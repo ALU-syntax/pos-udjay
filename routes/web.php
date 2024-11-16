@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\HakAksesController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProfileController;
@@ -61,13 +62,13 @@ Route::middleware('auth')->group(function () {
             Route::delete('/destroy/{id}', [PermissionController::class, 'destroy'])->name('permissions/destroy');
         });
 
-        // Route::prefix('hak-akses')->group(function(){
-        //     Route::get('/', [HakAksesController::class, 'index'])->name('hak-akses');
-        //     Route::get('/edit/hak-akses-role/{id}', [HakAksesController::class, 'editAksesRole'])->name('hak-akses/role/edit');
-        //     Route::post('/update/role/{id}', [HakAksesController::class, 'updateAksesRole'])->name('hak-akses/role/update');
-        //     Route::get('/edit/hak-akses-user/{id}', [HakAksesController::class, 'editAksesUser'])->name('hak-akses/user/edit');
-        //     Route::post('/update/user/{id}', [HakAksesController::class, 'updateAksesUser'])->name('hak-akses/user/update');
-        // });
+        Route::prefix('hak-akses')->group(function(){
+            Route::get('/', [HakAksesController::class, 'index'])->name('hak-akses');
+            Route::get('/edit/hak-akses-role/{id}', [HakAksesController::class, 'editAksesRole'])->name('hak-akses/role/edit');
+            Route::post('/update/role/{id}', [HakAksesController::class, 'updateAksesRole'])->name('hak-akses/role/update');
+            Route::get('/edit/hak-akses-user/{id}', [HakAksesController::class, 'editAksesUser'])->name('hak-akses/user/edit');
+            Route::post('/update/user/{id}', [HakAksesController::class, 'updateAksesUser'])->name('hak-akses/user/update');
+        });
     });
 });
 
