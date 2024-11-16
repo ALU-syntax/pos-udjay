@@ -89,7 +89,7 @@
                                     </a>
                                     <a href="#">
                                         <div class="notif-img"> 
-                                            <img src="{{'img/mlane.jpg'}}" alt="Img Profile">
+                                            <img src="{{asset('img/mlane.jpg')}}" alt="Img Profile">
                                         </div>
                                         <div class="notif-content">
                                             <span class="subject">Jhon Doe</span>
@@ -256,7 +256,7 @@
                         <div class="dropdown-user-scroll scrollbar-outer">
                             <li>
                                 <div class="user-box">
-                                    <div class="avatar-lg"><img src="{{'img/profile.jpg'}}" alt="image profile" class="avatar-img rounded"></div>
+                                    <div class="avatar-lg"><img src="{{asset('img/profile.jpg')}}" alt="image profile" class="avatar-img rounded"></div>
                                     <div class="u-text">
                                         <h4>Hizrian</h4>
                                         <p class="text-muted">hello@example.com</p><a href="profile.html" class="btn btn-xs btn-secondary btn-sm">View Profile</a>

@@ -71,7 +71,7 @@
                                             @foreach ($mm->subMenus as $sm)
                                                 @can('read ' . $sm->url)
                                                     <li @class([
-                                                        'active' => str_contains(request()->path(), $mm->url),
+                                                        'active' => str_contains(request()->path(), $sm->url),
                                                     ])>
                                                         <a href="{{ url($sm->url) }}">
                                                             <span class="sub-item">{{ $sm->name }}</span>

@@ -24,6 +24,7 @@
     <!-- CSS Files -->
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/plugins.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/sweetalert2.css') }}">
     <link rel="stylesheet" href="{{ asset('css/kaiadmin.min.css') }}">
 
     @stack('css')
@@ -74,7 +75,8 @@
     <script src="{{ asset('js/plugin/jsvectormap/world.js') }}"></script>
 
     <!-- Sweet Alert -->
-    <script src="{{ asset('js/plugin/sweetalert/sweetalert.min.js') }}"></script>
+    {{-- <script src="{{ asset('js/plugin/sweetalert/sweetalert.min.js') }}"></script> --}}
+    <script src="{{ asset('js/plugin/sweetalert2/sweetalert2.js') }}"></script>
 
     <!-- Kaiadmin JS -->
     <script src="{{ asset('js/kaiadmin.min.js') }}"></script>
