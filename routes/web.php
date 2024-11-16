@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
@@ -42,23 +43,23 @@ Route::middleware('auth')->group(function () {
 
         });
 
-        // Route::prefix('roles')->group(function(){
-        //     Route::get('/', [RoleController::class, 'index'])->name('roles');
-        //     Route::get('/create', [RoleController::class, 'create'])->name('roles/create');
-        //     Route::post('/store', [RoleController::class, 'store'])->name('roles/store');
-        //     Route::get('/edit/{id}', [RoleController::class, 'edit'])->name('roles/edit');
-        //     Route::post('/update/{id}', [RoleController::class, 'update'])->name('roles/update');
-        //     Route::delete('/destroy/{id}', [RoleController::class, 'destroy'])->name('roles/destroy');
-        // });
+        Route::prefix('roles')->group(function(){
+            Route::get('/', [RoleController::class, 'index'])->name('roles');
+            Route::get('/create', [RoleController::class, 'create'])->name('roles/create');
+            Route::post('/store', [RoleController::class, 'store'])->name('roles/store');
+            Route::get('/edit/{id}', [RoleController::class, 'edit'])->name('roles/edit');
+            Route::post('/update/{id}', [RoleController::class, 'update'])->name('roles/update');
+            Route::delete('/destroy/{id}', [RoleController::class, 'destroy'])->name('roles/destroy');
+        });
 
-        // Route::prefix('permissions')->group(function(){
-        //     Route::get('/', [PermissionController::class, 'index'])->name('permissions');
-        //     Route::get('/create', [PermissionController::class, 'create'])->name('permissions/create');
-        //     Route::get('/edit/{id}', [PermissionController::class, 'edit'])->name('permissions/edit');
-        //     Route::post('/store', [PermissionController::class, 'store'])->name('permissions/store');
-        //     Route::post('/update/{id}', [PermissionController::class, 'update'])->name('permissions/update');
-        //     Route::delete('/destroy/{id}', [PermissionController::class, 'destroy'])->name('permissions/destroy');
-        // });
+        Route::prefix('permissions')->group(function(){
+            Route::get('/', [PermissionController::class, 'index'])->name('permissions');
+            Route::get('/create', [PermissionController::class, 'create'])->name('permissions/create');
+            Route::get('/edit/{id}', [PermissionController::class, 'edit'])->name('permissions/edit');
+            Route::post('/store', [PermissionController::class, 'store'])->name('permissions/store');
+            Route::post('/update/{id}', [PermissionController::class, 'update'])->name('permissions/update');
+            Route::delete('/destroy/{id}', [PermissionController::class, 'destroy'])->name('permissions/destroy');
+        });
 
         // Route::prefix('hak-akses')->group(function(){
         //     Route::get('/', [HakAksesController::class, 'index'])->name('hak-akses');

@@ -15,7 +15,5 @@ class RoleSeeder extends Seeder
     {
         Role::create(['name' => 'super admin'])->delete();
         Role::create(['name' => 'admin']);
-        Role::create(['name' => 'operator']);
-        Role::create(['name' => 'agent-tps']);
     }
 }
