@@ -4,16 +4,16 @@ namespace App\DataTables;
 
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder as QueryBuilder;
-use Yajra\DataTables\EloquentDataTable;
-use Yajra\DataTables\Html\Builder as HtmlBuilder;
 use Yajra\DataTables\Html\Button;
 use Yajra\DataTables\Html\Column;
+use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Editor\Editor;
 use Yajra\DataTables\Html\Editor\Fields;
 use Yajra\DataTables\Services\DataTable;
+use Yajra\DataTables\Html\Builder as HtmlBuilder;
+use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 
-class UserDataTable extends DataTable
+class UserPermissionDataTable extends DataTable
 {
     /**
      * Build the DataTable class.
@@ -26,9 +26,8 @@ class UserDataTable extends DataTable
             ->addColumn('action', function ($row) {
                 return view('components.action', [
                     'showEdit' => true,
-                    'showDelete' => true,
-                    'routeEdit' => route('user/edit', $row->id),
-                    'routeDelete' => route('user/destroy', $row->id)
+                    'showDelete' => false,
+                    'routeEdit' => route('konfigurasi/hak-akses/user/edit', $row->id),
                 ]);
             })
             ->addColumn('role', function($user) {
@@ -53,20 +52,11 @@ class UserDataTable extends DataTable
     public function html(): HtmlBuilder
     {
         return $this->builder()
-                    ->setTableId('user-table')
-                    ->columns($this->getColumns())
-                    ->minifiedAjax()
-                    //->dom('Bfrtip')
-                    ->orderBy(1)
-                    ->selectStyleSingle()
-                    ->buttons([
-                        Button::make('excel'),
-                        Button::make('csv'),
-                        Button::make('pdf'),
-                        Button::make('print'),
-                        Button::make('reset'),
-                        Button::make('reload')
-                    ]);
+            ->setTableId('user-table')
+            ->columns($this->getColumns())
+            ->minifiedAjax()
+            //->dom('Bfrtip')
+            ->orderBy(1);
     }
 
     /**

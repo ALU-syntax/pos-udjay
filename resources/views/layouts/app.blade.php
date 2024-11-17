@@ -10,22 +10,31 @@
 
     <!-- Fonts and icons -->
     <script src="{{ asset('js/plugin/webfont/webfont.min.js') }}"></script>
-	<script>
-		WebFont.load({
-			google: {"families":["Public Sans:300,400,500,600,700"]},
-			custom: {"families":["Font Awesome 5 Solid", "Font Awesome 5 Regular", "Font Awesome 5 Brands", "simple-line-icons"], urls: ['{{ asset('css/fonts.min.css') }}']},
-			active: function() {
-				sessionStorage.fonts = true;
-			}
-		});
-	</script>
-    
+    <script>
+        WebFont.load({
+            google: {
+                "families": ["Public Sans:300,400,500,600,700"]
+            },
+            custom: {
+                "families": ["Font Awesome 5 Solid", "Font Awesome 5 Regular", "Font Awesome 5 Brands",
+                    "simple-line-icons"
+                ],
+                urls: ['{{ asset('css/fonts.min.css') }}']
+            },
+            active: function() {
+                sessionStorage.fonts = true;
+            }
+        });
+    </script>
+
 
     <!-- CSS Files -->
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/plugins.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/sweetalert2.css') }}">
     <link rel="stylesheet" href="{{ asset('css/kaiadmin.min.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
 
     @stack('css')
 </head>
@@ -78,6 +87,9 @@
     {{-- <script src="{{ asset('js/plugin/sweetalert/sweetalert.min.js') }}"></script> --}}
     <script src="{{ asset('js/plugin/sweetalert2/sweetalert2.js') }}"></script>
 
+    {{-- SELECT 2 --}}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <!-- Kaiadmin JS -->
     <script src="{{ asset('js/kaiadmin.min.js') }}"></script>
 
@@ -104,6 +116,53 @@
                 })
 
             });
+        }
+
+        function handleAjax(url, method = 'get') {
+
+            function onSuccess(cb, runDefault = true) {
+                this.onSuccessCallback = cb
+                this.runDefaultSuccessCallback = runDefault
+
+                return this
+            }
+
+            function excute() {
+                $.ajax({
+                    url,
+                    method,
+                    beforeSend: function() {
+                        showLoading()
+                    },
+                    complete: function() {
+                        hideLoading(false)
+                    },
+                    success: (res) => {
+                        if (this.runDefaultSuccessCallback) {
+                            const modal = $('#modal_action');
+                            modal.html(res);
+                            modal.modal('show');
+                        }
+
+                        this.onSuccessCallback && this.onSuccessCallback(res)
+                    },
+                    error: function(err) {
+                        console.log(err);
+                    }
+                });
+            }
+
+            function onError(cb) {
+                this.onErrorCallback = cb
+                return this
+            }
+
+            return {
+                excute,
+                onSuccess,
+                runDefaultSuccessCallback: true
+            }
+
         }
     </script>
 

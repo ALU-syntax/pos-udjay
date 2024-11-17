@@ -5,6 +5,7 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -69,6 +70,15 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/hak-akses-user/{id}', [HakAksesController::class, 'editAksesUser'])->name('hak-akses/user/edit');
             Route::post('/update/user/{id}', [HakAksesController::class, 'updateAksesUser'])->name('hak-akses/user/update');
         });
+    });
+
+    Route::prefix('users')->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('user');
+        Route::get('/create', [UserController::class, 'create'])->name('user/create');
+        Route::get('/edit/{id}', [UserController::class, 'edit'])->name('user/edit');
+        Route::post('/store', [UserController::class, 'store'])->name('user/store');
+        Route::post('/update/{id}', [UserController::class, 'update'])->name('user/update');
+        Route::post('/destroy/{id}', [UserController::class, 'destroy'])->name('user/destroy');
     });
 });
 

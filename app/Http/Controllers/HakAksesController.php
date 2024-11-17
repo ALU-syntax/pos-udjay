@@ -5,9 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
-use App\DataTables\UserDataTable;
 use App\Repositories\MenuRepository;
-use App\DataTables\HakAksesDataTable;
+use App\DataTables\UserPermissionDataTable;
 
 class HakAksesController extends Controller
 {
@@ -16,7 +15,7 @@ class HakAksesController extends Controller
         $this->menuRepository = $menuRepository;
     }
     
-    public function index(UserDataTable $hakAksesDataTable){
+    public function index(UserPermissionDataTable $hakAksesDataTable){
         return $hakAksesDataTable->render('layouts.hak_akses.index',[
             'roles' => Role::all()
         ]);

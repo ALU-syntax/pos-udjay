@@ -16,10 +16,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('username');
             $table->string('email')->nullable();
-            $table->string('partai');
             $table->integer('status');
             $table->integer('role');
-            $table->string('kelurahan_id');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->integer('deleted')->default(0);
