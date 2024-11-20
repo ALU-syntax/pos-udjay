@@ -4,6 +4,7 @@ namespace App\DataTables;
 
 use App\Models\Category;
 use App\Traits\DataTableHelper;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
@@ -28,6 +29,12 @@ class CategoryDataTable extends DataTable
             ->addColumn('action', function ($row) {
                 $actions = $this->basicActions($row);
                 return view('action', ['actions' => $actions]);
+            })
+            ->addColumn('status',function($row){
+                return view('components.badge', ['data' => $row]);
+            })
+            ->addColumn('created_at', function($row){
+                return Carbon::parse($row->created_at)->diffForHumans();
             })
             ->addIndexColumn();
     }

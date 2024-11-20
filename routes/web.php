@@ -4,6 +4,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\HakAksesController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
@@ -91,6 +92,11 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/{category}', [CategoryController::class, 'edit'])->name('category/edit');
             Route::put('/update/{category}', [CategoryController::class,'update'])->name('category/update');
             Route::delete('/destroy/{category}', [CategoryController::class,'destroy'])->name('category/destroy');
+        });
+
+        Route::prefix('product')->group(function(){
+            Route::get('/', [ProductController::class,'index'])->name('product');
+            Route::get('/create', [ProductController::class, 'create'])->name('product/create');
         });
     });
         
