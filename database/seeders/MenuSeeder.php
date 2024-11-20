@@ -41,8 +41,17 @@ class MenuSeeder extends Seeder
         // END KONFIGURASI
 
         // USERS
-        $mm = Menu::firstOrCreate(['url' => 'users'], ['name' => 'Users', 'category' => 'USERS', 'icon' => 'bx-user']);
+        $mm = Menu::firstOrCreate(['url' => 'users'], ['name' => 'Users', 'category' => 'USERS', 'icon' => 'fa-users']);
         $this->attachMenuPermission($mm, null, ['admin']);
         // END USERS
+
+        // LIBRARY
+        $mm = Menu::firstOrCreate(['url' => 'library'], ['name' => 'Library', 'category' => 'LIBRARY', 'icon' => 'fa-book']);
+        $this->attachMenuPermission($mm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Category', 'url' => $mm->url . '/category', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
+        // END LIBRARY
     }
 }

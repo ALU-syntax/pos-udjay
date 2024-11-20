@@ -22,7 +22,12 @@
                 @endcan
             </div>
             <div class="card-body">
-                {!! $dataTable->table() !!}
+                <div class="table-responsive">
+                    {!! $dataTable->table() !!}
+                    {{-- {!! $dataTable->table(['class' => 'table table-striped table-bordered']) !!} --}}
+                </div>
+                
+                
             </div>
         </div>
     </div>

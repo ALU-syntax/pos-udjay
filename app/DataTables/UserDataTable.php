@@ -27,6 +27,7 @@ class UserDataTable extends DataTable
                 return view('components.action', [
                     'showEdit' => true,
                     'showDelete' => true,
+                    'softDelete' => true,
                     'routeEdit' => route('user/edit', $row->id),
                     'routeDelete' => route('user/destroy', $row->id)
                 ]);
@@ -44,7 +45,7 @@ class UserDataTable extends DataTable
      */
     public function query(User $model): QueryBuilder
     {
-        return $model->where('role', '!=', 1)->newQuery();
+        return $model->where('role', '!=', 1)->where('deleted', '!=', 1)->newQuery();
     }
 
     /**
@@ -59,6 +60,7 @@ class UserDataTable extends DataTable
                     //->dom('Bfrtip')
                     ->orderBy(1)
                     ->selectStyleSingle()
+                    ->responsive(true)
                     ->buttons([
                         Button::make('excel'),
                         Button::make('csv'),

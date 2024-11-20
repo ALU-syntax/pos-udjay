@@ -55,6 +55,7 @@ class UserPermissionDataTable extends DataTable
             ->setTableId('user-table')
             ->columns($this->getColumns())
             ->minifiedAjax()
+            ->responsive(true)
             //->dom('Bfrtip')
             ->orderBy(1);
     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\HakAksesController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\PermissionController;
@@ -80,6 +81,19 @@ Route::middleware('auth')->group(function () {
         Route::post('/update/{id}', [UserController::class, 'update'])->name('user/update');
         Route::post('/destroy/{id}', [UserController::class, 'destroy'])->name('user/destroy');
     });
+
+    Route::group(['prefix'=> 'library', 'as' => 'library/'], function () {
+
+        Route::prefix('category')->group(function(){
+            Route::get('', [CategoryController::class, 'index'])->name('category');
+            Route::get('/create', [CategoryController::class, 'create'])->name('category/create');
+            Route::post('/store', [CategoryController::class, 'store'])->name('category/store');
+            Route::get('/edit/{category}', [CategoryController::class, 'edit'])->name('category/edit');
+            Route::put('/update/{category}', [CategoryController::class,'update'])->name('category/update');
+            Route::delete('/destroy/{category}', [CategoryController::class,'destroy'])->name('category/destroy');
+        });
+    });
+        
 });
 
 require __DIR__.'/auth.php';

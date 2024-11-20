@@ -50,7 +50,9 @@
                 <h4>Hak Akses User</h4>
             </div>
             <div class="card-body">
-                {!! $dataTable->table() !!}
+                <div class="table-responsive">
+                    {!! $dataTable->table() !!}
+                </div>
             </div>
         </div>
 

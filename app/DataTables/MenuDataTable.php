@@ -47,7 +47,9 @@ class MenuDataTable extends DataTable
                     ->columns($this->getColumns())
                     ->minifiedAjax()
                     //->dom('Bfrtip')
-                    ->orderBy(1);
+                    ->orderBy(1)
+                    // ->dom('<"d-flex justify-content-between"lf>rtip') // Atur posisi elemen
+                    ->responsive(true);
 
                     // ->selectStyleSingle()
                     // ->buttons([

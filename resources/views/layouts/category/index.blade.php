@@ -2,7 +2,7 @@
 @section('content')
     <div class="main-content">
         <div class="card text-center">
-            <h5 class="card-header">Users</h5>
+            <h5 class="card-header">Category</h5>
         </div>
         @if (session()->has('success'))
             <div class="alert alert-success mt-2" role="alert">
@@ -17,7 +17,10 @@
         @endif
         <div class="card mt-4">
             <div class="card-header d-flex justify-content-end">
-                <a href="{{ route('user/create') }}" type="button" class="btn btn-primary ">Tambah User</a>
+                @can('create library/category')
+                    <a href="{{ route('library/category/create') }}" type="button"
+                        class="btn btn-primary btn-round ms-auto action"><i class="fa fa-plus"></i>Tambah Category</a>
+                @endcan
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -32,7 +35,10 @@
 
         <script>
             var success = "{{ session('success') }}";
-            const datatable = 'user-table';
+            const datatable = 'category-table';
+
+            handleAction(datatable);
+            handleDelete(datatable);
 
             if (success) {
                 Swal.fire({
@@ -47,7 +53,6 @@
                     buttonsStyling: false
                 });
             }
-
         </script>
     @endpush
 @endsection

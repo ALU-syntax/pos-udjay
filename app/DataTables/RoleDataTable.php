@@ -23,6 +23,7 @@ class RoleDataTable extends DataTable
                 return view('components.action', [
                     'showEdit' => true,
                     'showDelete' => true,
+                    'softDelete' => false,
                     'routeEdit' => route('konfigurasi/roles/edit', $row->id),
                     'routeDelete' => route('konfigurasi/roles/destroy', $row->id)
                 ]);
@@ -47,6 +48,7 @@ class RoleDataTable extends DataTable
                     ->setTableId('role-table')
                     ->columns($this->getColumns())
                     ->minifiedAjax()
+                    ->responsive(true)
                     //->dom('Bfrtip')
                     ->orderBy(1);
     }

@@ -102,7 +102,7 @@ class UserController extends Controller
     {
         $user = User::find($id);
 
-        $user->deleted = 0;
+        $user->deleted = 1;
         $user->status = 0;
         $user->save();
 

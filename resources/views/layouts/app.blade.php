@@ -8,6 +8,7 @@
     <meta content='width=device-width, initial-scale=1.0, shrink-to-fit=no' name='viewport' />
     <link rel="icon" href="{{ asset('img/kaiadmin/favicon.ico') }}" type="image/x-icon" />
 
+    <meta name="csrf_token" content="{{ csrf_token() }}">
     <!-- Fonts and icons -->
     <script src="{{ asset('js/plugin/webfont/webfont.min.js') }}"></script>
     <script>
@@ -29,11 +30,16 @@
 
 
     <!-- CSS Files -->
+    
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/plugins.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/sweetalert2.css') }}">
     <link rel="stylesheet" href="{{ asset('css/kaiadmin.min.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ asset('css/iziToast.min.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"
+        integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w=="
+        crossorigin="anonymous" />
 
 
     @stack('css')
@@ -42,6 +48,9 @@
 <body>
     <div class="wrapper">
         @include('layouts.sidebar')
+
+        <div class="modal fade" id="modal_action" tabindex="-1" role="dialog" aria-hidden="true">
+        </div>
 
         <div class="main-panel">
             @include('layouts.navigation')
@@ -90,10 +99,19 @@
     {{-- SELECT 2 --}}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
+    {{-- IZI TOAST --}}
+    <script src="{{ asset('js/plugin/izitoast/iziToast.min.js') }}"></script>
+
     <!-- Kaiadmin JS -->
     <script src="{{ asset('js/kaiadmin.min.js') }}"></script>
 
     <script>
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name=csrf_token]').attr('content')
+            }
+        })
+
         function handleDelete(datatable, onSuccessAction) {
             $('#' + datatable).on('click', '.delete', function(e) {
                 e.preventDefault();
@@ -118,6 +136,7 @@
             });
         }
 
+
         function handleAjax(url, method = 'get') {
 
             function onSuccess(cb, runDefault = true) {
@@ -132,10 +151,10 @@
                     url,
                     method,
                     beforeSend: function() {
-                        showLoading()
+                        // showLoading()
                     },
                     complete: function() {
-                        hideLoading(false)
+                        // hideLoading(false)
                     },
                     success: (res) => {
                         if (this.runDefaultSuccessCallback) {
@@ -163,6 +182,124 @@
                 runDefaultSuccessCallback: true
             }
 
+        }
+
+        function handleAction(datatable, onShowAction, onSuccessAction) {
+            $('.main-content').on('click', '.action', function(e) {
+                e.preventDefault();
+                console.log("masok")
+                handleAjax(this.href).onSuccess(function(res) {
+                    onShowAction && onShowAction(res)
+                    handleFormSubmit('#form_action')
+                        .setDataTable(datatable)
+                        .onSuccess(function(res) {
+                            onSuccessAction && onSuccessAction(res)
+                        })
+                        .init();
+                }).excute();
+            });
+        }
+
+        function handleFormSubmit(selector) {
+            function init() {
+                const _this = this;
+                $(selector).on('submit', function(e) {
+                    e.preventDefault();
+                    const _form = this
+                    $.ajax({
+                        url: this.action,
+                        method: this.method,
+                        data: new FormData(_form),
+                        contentType: false,
+                        processData: false,
+                        beforeSend: function() {
+                            $(_form).find('.is-invalid').removeClass('is-invalid')
+                            $(_form).find(".invalid-feedback").remove()
+                            submitLoader().show()
+                        },
+                        success: (res) => {
+                            if (_this.runDefaultSuccessCallback) {
+                                $('#modal_action').modal('hide')
+                                showToast(res.status, res.message)
+                            }
+
+                            _this.onSuccessCallback && _this.onSuccessCallback(res)
+                            _this.dataTableId && window.LaravelDataTables[_this.dataTableId].ajax
+                                .reload(null, false)
+
+                        },
+                        complete: function() {
+                            submitLoader().hide()
+                        },
+                        error: function(err) {
+                            const errors = err.responseJSON?.errors
+
+                            if (errors) {
+                                for (let [key, message] of Object.entries(errors)) {
+                                    console.log(message);
+                                    $(`[name=${key}]`).addClass('is-invalid')
+                                        .parent()
+                                        .append(
+                                            `<div class="invalid-feedback">${message}</div>`
+                                        )
+                                }
+                            }
+
+                            showToast('error', err.responseJSON?.message)
+                        }
+                    })
+                })
+            }
+
+            function onSuccess(cb, runDefault = true) {
+                this.onSuccessCallback = cb
+                this.runDefaultSuccessCallback = runDefault
+
+                return this
+            }
+
+            function setDataTable(id) {
+                this.dataTableId = id
+
+                return this
+            }
+
+            return {
+                init,
+                runDefaultSuccessCallback: true,
+                onSuccess,
+                setDataTable
+            }
+        }
+
+        function submitLoader(formId = '#form_action') {
+            const button = $(formId).find('button[type="submit"]');
+
+
+            function show() {
+                button.addClass("btn-load").attr("disabled", true).html(
+                    `<span class="d-flex align-items-center">
+        <span class="spinner-border flex-shrink-0"></span><span class="flex-grow-1 ms-2"> Loading...  </span></span>`
+                );
+
+            }
+
+            function hide(text = "Save") {
+                button.removeClass("btn-load").removeAttr("disabled").text(text);
+            }
+
+            return {
+                show,
+                hide,
+            };
+        }
+
+        function showToast(status = 'success', message) {
+            iziToast[status]({
+                title: status == 'success' ? 'Success' : 'Error',
+                message: message,
+                position: 'topRight'
+            });
         }
     </script>
 
