@@ -28,8 +28,8 @@ class UserDataTable extends DataTable
                     'showEdit' => true,
                     'showDelete' => true,
                     'softDelete' => true,
-                    'routeEdit' => route('user/edit', $row->id),
-                    'routeDelete' => route('user/destroy', $row->id)
+                    'routeEdit' => route('employee/user/edit', $row->id),
+                    'routeDelete' => route('employee/user/destroy', $row->id)
                 ]);
             })
             ->addColumn('role', function($user) {

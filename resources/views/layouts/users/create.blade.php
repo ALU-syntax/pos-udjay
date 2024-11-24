@@ -3,7 +3,7 @@
     <div class="card mb-4">
         <h5 class="card-header">User Create</h5>
         <div class="card-body">
-            <form action="{{ route('user/store') }}" method="POST" enctype="multipart/form-data" class="needs-validation ">
+            <form action="{{ route('employee/user/store') }}" method="POST" enctype="multipart/form-data" class="needs-validation ">
                 @csrf
                 <div class="row g-3">
                     <div class="col-md-6">

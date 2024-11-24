@@ -3,7 +3,7 @@
     <div class="card mb-4">
         <h5 class="card-header">User Edit</h5>
         <div class="card-body">
-            <form action="{{ route('user/update', $data->id) }}" method="POST" enctype="multipart/form-data"
+            <form action="{{ route('employee/user/update', $data->id) }}" method="POST" enctype="multipart/form-data"
                 class="needs-validation @if ($errors->any()) was-validated @endif">
                 @csrf
                 <div class="row g-3">

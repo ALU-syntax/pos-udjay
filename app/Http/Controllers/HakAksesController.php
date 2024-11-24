@@ -37,7 +37,7 @@ class HakAksesController extends Controller
         $role = Role::find($id);
         $role->syncPermissions($request->permissions);
 
-        return redirect()->route('konfigurasi/hak-akses')->with('success', 'Role Permission Berhasil Diupdate');
+        return redirect()->route('employee/hak-akses')->with('success', 'Role Permission Berhasil Diupdate');
     }
 
     public function editAksesUser($id){
@@ -54,6 +54,6 @@ class HakAksesController extends Controller
         $user = User::find($id);
         $user->syncPermissions($request->permissions);
 
-        return redirect()->route('konfigurasi/hak-akses')->with('success', 'User Permission Berhasil Diupdate');
+        return redirect()->route('employee/hak-akses')->with('success', 'User Permission Berhasil Diupdate');
     }
 }

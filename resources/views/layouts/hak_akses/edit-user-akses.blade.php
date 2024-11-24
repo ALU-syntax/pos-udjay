@@ -7,7 +7,7 @@
             </div>
         @endif
         <div class="card-body">
-            <form action="{{ route('konfigurasi/hak-akses/user/update', $data->id) }}" method="POST"
+            <form action="{{ route('employee/hak-akses/user/update', $data->id) }}" method="POST"
                 class="row g-3 fv-plugins-bootstrap5 fv-plugins-framework">
                 @csrf
                 {{-- <div class="col-12 mb-4 fv-plugins-icon-container">

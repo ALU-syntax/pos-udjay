@@ -8,7 +8,7 @@
             </div>
         @endif
         <div class="card-body">
-            <form action="{{ route('konfigurasi/roles/update', $data->id) }}" method="POST" enctype="multipart/form-data"
+            <form action="{{ route('employee/roles/update', $data->id) }}" method="POST" enctype="multipart/form-data"
                 class="needs-validation ">
                 @csrf
                 <div class="row g-3">

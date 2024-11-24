@@ -27,7 +27,7 @@ class UserPermissionDataTable extends DataTable
                 return view('components.action', [
                     'showEdit' => true,
                     'showDelete' => false,
-                    'routeEdit' => route('konfigurasi/hak-akses/user/edit', $row->id),
+                    'routeEdit' => route('employee/hak-akses/user/edit', $row->id),
                 ]);
             })
             ->addColumn('role', function($user) {

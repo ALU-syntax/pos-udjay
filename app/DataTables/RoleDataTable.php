@@ -24,8 +24,8 @@ class RoleDataTable extends DataTable
                     'showEdit' => true,
                     'showDelete' => true,
                     'softDelete' => false,
-                    'routeEdit' => route('konfigurasi/roles/edit', $row->id),
-                    'routeDelete' => route('konfigurasi/roles/destroy', $row->id)
+                    'routeEdit' => route('employee/roles/edit', $row->id),
+                    'routeDelete' => route('employee/roles/destroy', $row->id)
                 ]);
             })
             ->addIndexColumn();

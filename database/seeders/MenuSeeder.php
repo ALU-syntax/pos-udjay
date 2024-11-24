@@ -22,29 +22,6 @@ class MenuSeeder extends Seeder
          * @var Menu $mm
          */
 
-        //  KONFIGURASI
-        $mm = Menu::firstOrCreate(['url' => 'konfigurasi'], ['name' => 'Konfigurasi', 'category' => 'KONFIGURASI', 'icon' => 'fa-cogs']);
-        $this->attachMenuPermission($mm, ['read '], ['admin']);
-
-        $sm = $mm->subMenus()->create(['name' => 'Menu', 'url' => $mm->url . '/menu', 'category' => $mm->category]);
-        $this->attachMenuPermission($sm, ['create ', 'read ', 'update ', 'delete ', 'sort '], ['admin']);
-
-        $sm = $mm->subMenus()->create(['name' => 'Role', 'url' => $mm->url . '/roles', 'category' => $mm->category]);
-        $this->attachMenuPermission($sm, null, ['admin']);
-
-        $sm = $mm->subMenus()->create(['name' => 'Permission', 'url' => $mm->url . '/permissions', 'category' => $mm->category]);
-        $this->attachMenuPermission($sm, null, ['admin']);
-
-        $sm = $mm->subMenus()->create(['name' => 'Hak Akses', 'url' => $mm->url . '/hak-akses', 'category' => $mm->category]);
-        $this->attachMenuPermission($sm, null, ['admin']);
-
-        // END KONFIGURASI
-
-        // USERS
-        $mm = Menu::firstOrCreate(['url' => 'users'], ['name' => 'Users', 'category' => 'USERS', 'icon' => 'fa-users']);
-        $this->attachMenuPermission($mm, null, ['admin']);
-        // END USERS
-
         // LIBRARY
         $mm = Menu::firstOrCreate(['url' => 'library'], ['name' => 'Library', 'category' => 'LIBRARY', 'icon' => 'fa-book']);
         $this->attachMenuPermission($mm, null, ['admin']);
@@ -56,5 +33,33 @@ class MenuSeeder extends Seeder
         $this->attachMenuPermission($sm, null, ['admin']);
 
         // END LIBRARY
+
+        // EMPLOYEES
+        $mm = Menu::firstOrCreate(['url' => 'employee'], ['name' => 'Employee', 'category' => 'EMPLOYEE', 'icon' => 'fa-users']);
+        $this->attachMenuPermission($mm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Users', 'url' => $mm->url . '/users', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Role', 'url' => $mm->url . '/roles', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Hak Akses', 'url' => $mm->url . '/hak-akses', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
+        // END EMPLOYEE
+
+        //  KONFIGURASI
+        $mm = Menu::firstOrCreate(['url' => 'konfigurasi'], ['name' => 'Konfigurasi', 'category' => 'KONFIGURASI', 'icon' => 'fa-cogs']);
+        $this->attachMenuPermission($mm, ['read '], ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Menu', 'url' => $mm->url . '/menu', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, ['create ', 'read ', 'update ', 'delete ', 'sort '], ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Permission', 'url' => $mm->url . '/permissions', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
+        // END KONFIGURASI
+
     }
 }

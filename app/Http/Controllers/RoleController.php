@@ -39,7 +39,7 @@ class RoleController extends Controller
         $role = new Role($requestValidate);
         $role->save();
 
-        return redirect()->route('konfigurasi/roles')->with('success','Role Berhasil dibuat!');
+        return redirect()->route('employee/roles')->with('success','Role Berhasil dibuat!');
     }
 
     /**
@@ -72,7 +72,7 @@ class RoleController extends Controller
             'guard_name' => strtolower($requestValidate['guard_name'])
         ]);
 
-        return redirect()->route('konfigurasi/roles')->with('success','Role Berhasil diupdate!');
+        return redirect()->route('employee/roles')->with('success','Role Berhasil diupdate!');
         
     }
 

@@ -34,7 +34,7 @@
                             <div class="d-flex justify-content-between align-items-end">
                                 <div class="role-heading">
                                     <h4 class="mb-1">{{ $data->name }}</h4>
-                                    <a href="{{ route('konfigurasi/hak-akses/role/edit', $data->id) }}">Edit Hak Akses
+                                    <a href="{{ route('employee/hak-akses/role/edit', $data->id) }}">Edit Hak Akses
                                         Role</a>
                                 </div>
                                 <a href="javascript:void(0);" class="text-muted"><i class="bx bx-copy"></i></a>

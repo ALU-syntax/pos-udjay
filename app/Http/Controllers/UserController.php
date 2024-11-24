@@ -48,7 +48,7 @@ class UserController extends Controller
         $role = Role::find($request->role);
         $user->assignRole($role->name);
 
-        return redirect()->route('user')->with('success', 'Data User Berhasil Dibuat!');
+        return redirect()->route('employee/user')->with('success', 'Data User Berhasil Dibuat!');
     }
 
     public function edit($id)
@@ -95,7 +95,7 @@ class UserController extends Controller
 
 
 
-        return redirect()->route('user')->with('success', 'Data User Berhasil Diupdate!');
+        return redirect()->route('employee/user')->with('success', 'Data User Berhasil Diupdate!');
     }
 
     public function destroy($id)
@@ -106,6 +106,6 @@ class UserController extends Controller
         $user->status = 0;
         $user->save();
 
-        return redirect()->route('user')->with('success', 'Data User Berhasil Dihapus!');
+        return redirect()->route('employee/user')->with('success', 'Data User Berhasil Dihapus!');
     }
 }

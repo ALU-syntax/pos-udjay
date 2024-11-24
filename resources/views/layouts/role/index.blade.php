@@ -17,8 +17,8 @@
         @endif
         <div class="card mt-4">
             <div class="card-header d-flex justify-content-end" style="zoom: 0.8">
-                @can('create konfigurasi/menu')
-                    <a href="{{ route('konfigurasi/roles/create') }}" type="button" class="btn btn-primary ">Tambah</a>
+                @can('create employee/roles')
+                    <a href="{{ route('employee/roles/create') }}" type="button" class="btn btn-primary ">Tambah</a>
                 @endcan
             </div>
             <div class="card-body">

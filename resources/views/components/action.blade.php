@@ -15,9 +15,9 @@
                         <button class="dropdown-item" type="submit">Delete</button>
                     </form>
                 @else
-                    <form action="{{ $routeDelete }}" method="POST" enctype="multipart/form-data" class="delete">
+                    <form action="{{ $routeDelete }}" method="POST" enctype="multipart/form-data" class="">
                         @csrf
-                        @method('delete')
+                        @method('DELETE')
                         <button class="dropdown-item" type="submit">Delete</button>
                     </form>
                 @endif

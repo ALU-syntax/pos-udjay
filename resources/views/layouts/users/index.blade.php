@@ -17,7 +17,7 @@
         @endif
         <div class="card mt-4">
             <div class="card-header d-flex justify-content-end">
-                <a href="{{ route('user/create') }}" type="button" class="btn btn-primary ">Tambah User</a>
+                <a href="{{ route('employee/user/create') }}" type="button" class="btn btn-primary ">Tambah User</a>
             </div>
             <div class="card-body">
                 <div class="table-responsive">

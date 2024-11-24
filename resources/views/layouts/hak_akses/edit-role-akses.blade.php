@@ -7,7 +7,7 @@
             </div>
         @endif
         <div class="card-body">
-            <form action="{{ route('konfigurasi/hak-akses/role/update', $data->id) }}" method="POST"
+            <form action="{{ route('employee/hak-akses/role/update', $data->id) }}" method="POST"
                 class="row g-3 fv-plugins-bootstrap5 fv-plugins-framework">
                 @csrf
                 {{-- <div class="col-12 mb-4 fv-plugins-icon-container">
@@ -65,7 +65,7 @@
                             id="parent{{ $mm->id . $sm->id }}" label="{{ $sm->name }}"
                             class="parent" /></td>
                     <td> --}}
-                                            <td class="text-nowrap fw-medium ps-4">- {{ $sm->name }}</td>
+                                            <td class="text-nowrap fw-medium ps-4">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; • {{ $sm->name }}</td>
                                             <td>
                                                 <div class="d-flex">
                                                     @foreach ($sm->permissions as $permission)
