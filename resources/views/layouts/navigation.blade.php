@@ -4,7 +4,7 @@
         <div class="logo-header" data-background-color="dark">
 
             <a href="index.html" class="logo">
-                <img src="{{asset('img/kaiadmin/logo_light.svg')}}" alt="navbar brand" class="navbar-brand" height="20">
+                <img src="{{asset('img/Logo Red.png')}}" alt="navbar brand" class="navbar-brand" height="20">
             </a>
             <div class="nav-toggle">
                 <button class="btn btn-toggle toggle-sidebar">
@@ -37,7 +37,7 @@
             </nav>
 
             <ul class="navbar-nav topbar-nav ms-md-auto align-items-center">
-                <li class="nav-item topbar-icon dropdown hidden-caret d-flex d-lg-none">
+                {{-- <li class="nav-item topbar-icon dropdown hidden-caret d-flex d-lg-none">
                     <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false" aria-haspopup="true">
                         <i class="fa fa-search"></i>
                     </a>
@@ -48,8 +48,9 @@
                             </div>
                         </form>
                     </ul>
-                </li>
-                <li class="nav-item topbar-icon dropdown hidden-caret">
+                </li> --}}
+
+                {{-- <li class="nav-item topbar-icon dropdown hidden-caret">
                     <a class="nav-link dropdown-toggle" href="#" id="messageDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <i class="fa fa-envelope"></i>
                     </a>
@@ -118,8 +119,9 @@
                             <a class="see-all" href="javascript:void(0);">See all messages<i class="fa fa-angle-right"></i> </a>
                         </li>
                     </ul>
-                </li>
-                <li class="nav-item topbar-icon dropdown hidden-caret">
+                </li> --}}
+
+                {{-- <li class="nav-item topbar-icon dropdown hidden-caret">
                     <a class="nav-link dropdown-toggle" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <i class="fa fa-bell"></i>
                         <span class="notification">4</span>
@@ -176,8 +178,9 @@
                             <a class="see-all" href="javascript:void(0);">See all notifications<i class="fa fa-angle-right"></i> </a>
                         </li>
                     </ul>
-                </li>
-                <li class="nav-item topbar-icon dropdown hidden-caret">
+                </li> --}}
+                
+                {{-- <li class="nav-item topbar-icon dropdown hidden-caret">
                     <a class="nav-link" data-bs-toggle="dropdown" href="#" aria-expanded="false">
                         <i class="fas fa-layer-group"></i>
                     </a>
@@ -241,7 +244,7 @@
                             </div>
                         </div>
                     </div>
-                </li>
+                </li> --}}
                 
                 <li class="nav-item topbar-user dropdown hidden-caret">
                     <a class="dropdown-toggle profile-pic" data-bs-toggle="dropdown" href="#" aria-expanded="false">

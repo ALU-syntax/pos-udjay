@@ -17,9 +17,9 @@
         @endif
         <div class="card mt-4">
             <div class="card-header d-flex justify-content-end">
-                @can('create library/category')
-                    <a href="{{ route('library/category/create') }}" type="button"
-                        class="btn btn-primary btn-round ms-auto action"><i class="fa fa-plus"></i>Tambah Category</a>
+                @can('create library/product')
+                    <a href="{{ route('library/product/create') }}" type="button"
+                        class="btn btn-primary btn-round ms-auto action"><i class="fa fa-plus"></i>Tambah Product</a>
                 @endcan
             </div>
             <div class="card-body">
@@ -35,10 +35,15 @@
 
         <script>
             var success = "{{ session('success') }}";
-            const datatable = 'category-table';
+            const datatable = 'product-table';
 
+            $(".select2InsideModal").select2({
+                dropdownParent: $("#modal_action")
+            });
+            
             handleAction(datatable);
             handleDelete(datatable);
+
 
             if (success) {
                 Swal.fire({

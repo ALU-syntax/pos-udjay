@@ -93,9 +93,4 @@
         </div>
     </div>
 
-    @push('js')
-        <script>
-            $('.dropdown-custom').select2();
-        </script>
-    @endpush
 @endsection

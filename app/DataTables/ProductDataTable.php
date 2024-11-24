@@ -3,6 +3,8 @@
 namespace App\DataTables;
 
 use App\Models\Product;
+use App\Traits\DataTableHelper;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
@@ -14,6 +16,7 @@ use Yajra\DataTables\Services\DataTable;
 
 class ProductDataTable extends DataTable
 {
+    use DataTableHelper;
     /**
      * Build the DataTable class.
      *
@@ -22,8 +25,29 @@ class ProductDataTable extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
-            ->addColumn('action', 'product.action')
-            ->setRowId('id');
+            ->addColumn('action', function ($row) {
+                $actions = $this->basicActions($row);
+                return view('action', ['actions' => $actions]);
+            })
+            ->addColumn('status',function($row){
+                return view('components.badge', ['data' => $row]);
+            })
+            ->addColumn('created_at', function($row){
+                return Carbon::parse($row->created_at)->diffForHumans();
+            })
+            ->addColumn('updated_at', function($row){
+                return Carbon::parse($row->updated_at)->diffForHumans();
+            })
+            ->addColumn('category_id', function($row){
+                return $row->category ? $row->category->name : '-';
+            })
+            ->addColumn('harga_jual', function($row){
+                return formatRupiah(intval($row->harga_jual), "Rp. ");
+            })  
+            ->addColumn('harga_modal', function($row){
+                return formatRupiah(intval($row->harga_modal), "Rp. ");
+            })  
+            ->addIndexColumn();
     }
 
     /**
@@ -62,15 +86,20 @@ class ProductDataTable extends DataTable
     public function getColumns(): array
     {
         return [
+            Column::make('name'),
+            Column::make('category_id'),
+            Column::make('status'),
+            Column::make('photo'),
+            Column::make('harga_jual'),
+            Column::make('harga_modal'),
+            Column::make('stock'),
+            Column::make('created_at'),
+            Column::make('updated_at'),
             Column::computed('action')
                   ->exportable(false)
                   ->printable(false)
                   ->width(60)
                   ->addClass('text-center'),
-            Column::make('id'),
-            Column::make('add your columns'),
-            Column::make('created_at'),
-            Column::make('updated_at'),
         ];
     }
 

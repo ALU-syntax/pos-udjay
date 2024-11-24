@@ -17,7 +17,10 @@ return new class extends Migration
             $table->foreignId('category_id')->nullable()->constrained()->onDelete('restrict');
             $table->boolean('status')->default(true);
             $table->string('photo')->nullable();
-            $table->bigInteger('price')->nullable();
+            $table->decimal('harga_jual', 15, 2)->default(0)->unsigned();
+            $table->decimal('harga_modal', 15, 2)->default(0)->unsigned();
+            // $table->bigInteger('harga_jual')->nullable();
+            // $table->bigInteger('harga_modal')->nullable();
             $table->bigInteger('stock')->nullable();
             $table->timestamps();
         });
