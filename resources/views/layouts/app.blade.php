@@ -135,6 +135,8 @@
                             // showToast(res.status, res.message)
                             window.LaravelDataTables[datatable].ajax.reload(null, false)
                         }, false).excute();
+                        console.log(result);
+                        showToast('success', "Data berhasil dihapus");
                     }
                 })
 

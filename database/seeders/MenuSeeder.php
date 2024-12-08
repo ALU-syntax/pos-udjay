@@ -32,6 +32,9 @@ class MenuSeeder extends Seeder
         $sm = $mm->subMenus()->create(['name' => 'Product', 'url' => $mm->url . '/product', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
 
+        $sm = $mm->subMenus()->create(['name' => 'Taxes', 'url' => $mm->url . '/tax', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
         // END LIBRARY
 
         // EMPLOYEES
@@ -57,6 +60,9 @@ class MenuSeeder extends Seeder
         $this->attachMenuPermission($sm, ['create ', 'read ', 'update ', 'delete ', 'sort '], ['admin']);
 
         $sm = $mm->subMenus()->create(['name' => 'Permission', 'url' => $mm->url . '/permissions', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Outlets', 'url' => $mm->url . '/outlets', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
 
         // END KONFIGURASI

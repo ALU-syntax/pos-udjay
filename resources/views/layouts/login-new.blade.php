@@ -71,6 +71,7 @@
         const openModal = () => {
             modal.classList.add("is-open");
             body.style.overflow = "hidden";
+            modalButton.style.zIndex = "-1";
         };
 
         const closeModal = () => {

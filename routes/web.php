@@ -4,10 +4,12 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\HakAksesController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\OutletController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\TaxController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,8 +29,8 @@ use Illuminate\Support\Facades\Route;
 // });
 
 Route::get('/login', [AuthController::class, 'login'])->name('login')->middleware('guest');
-Route::post('/login/store', [AuthController::class, 'store'])->name('store');
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+// Route::post('/login/store', [AuthController::class, 'store'])->name('store');
+// Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 Route::get('/', function () {
     return view('dashboard');
@@ -60,6 +62,15 @@ Route::middleware('auth')->group(function () {
             Route::post('/store', [PermissionController::class, 'store'])->name('permissions/store');
             Route::post('/update/{id}', [PermissionController::class, 'update'])->name('permissions/update');
             Route::delete('/destroy/{id}', [PermissionController::class, 'destroy'])->name('permissions/destroy');
+        });
+
+        Route::prefix('outlets')->group(function(){
+            Route::get('/', [OutletController::class, 'index'])->name('outlets');
+            Route::get('/create', [OutletController::class, 'create'])->name('outlets/create');
+            Route::post('/store', [OutletController::class, 'store'])->name('outlets/store');
+            Route::get('/edit/{outlet}', [OutletController::class, 'edit'])->name('outlets/edit');
+            Route::put('/update/{outlet}', [OutletController::class, 'update'])->name('outlets/update');
+            Route::delete('/destroy/{outlet}', [OutletController::class,'destroy'])->name('outlets/destroy');
         });
 
     });
@@ -112,6 +123,15 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/{product}', [ProductController::class, 'edit'])->name('product/edit');
             Route::put('/update/{product}', [ProductController::class,'update'])->name('product/update');
             Route::delete('destroy/{product}', [ProductController::class,'destroy'])->name('product/destroy');
+        });
+
+        Route::prefix('tax')->group(function(){
+            Route::get('', [TaxController::class, 'index'])->name('tax');
+            Route::get('/create', [TaxController::class, 'create'])->name("tax/create");
+            Route::get('/edit/{tax}', [TaxController::class, 'edit'])->name('tax/edit');
+            Route::post('/store', [TaxController::class, 'store'])->name('tax/store');
+            Route::put('/update/{tax}', [TaxController::class, 'update'])->name('tax/update');
+            Route::delete('/delete/{tax}', [TaxController::class, 'destroy'])->name('tax/destroy');
         });
     });
         
