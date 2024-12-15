@@ -35,7 +35,8 @@ class User extends Authenticatable
         'role',
         'kelurahan_id',
         'role2',
-        'deleted'
+        'deleted',
+        'outlet_id'
     ];
 
     /**
@@ -56,6 +57,12 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'outlet_id' => 'array'
     ];
+
+    public function outlets()
+    {
+        return $this->belongsToMany(Outlets::class, 'outlet_id', 'id');
+    }
 
 }

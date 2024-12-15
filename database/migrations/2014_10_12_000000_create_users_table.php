@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->integer('deleted')->default(0);
-            $table->json("outlet_id")->nullable();
+            $table->json("outlet_id");
             $table->rememberToken();
             $table->timestamps();
         });

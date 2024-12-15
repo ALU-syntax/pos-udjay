@@ -47,6 +47,14 @@ class ProductDataTable extends DataTable
             ->addColumn('harga_modal', function($row){
                 return formatRupiah(intval($row->harga_modal), "Rp. ");
             })  
+            ->addColumn('photo', function($row){
+                if($row->photo != null && file_exists(public_path($row->photo))){
+                    return '<img src="' . asset($row->photo) . '" width="80" style="border-radius: 20%;">';
+                }else{
+                    return '<img src="' . asset("img/img-placeholder.png") .'" width="80" style="border-radius: 20%;">';
+                }
+            })
+            ->rawColumns(['photo'])
             ->addIndexColumn();
     }
 

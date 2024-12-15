@@ -11,11 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('outlets', function (Blueprint $table) {
+        Schema::create('modifier_groups', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('address');
-            $table->string('phone');
+            $table->json('product_id')->nullable();
+            $table->boolean('required');
+            $table->integer('max_selected')->nullable();
+            $table->integer('min_selected')->nullable();
+            $table->string('outlet_id');
             $table->timestamps();
         });
     }
@@ -25,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('outlets');
+        Schema::dropIfExists('modifier_groups');
     }
 };

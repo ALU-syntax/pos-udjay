@@ -2,21 +2,17 @@
 
 namespace Database\Seeders;
 
-use App\Models\Outlets;
+use App\Models\Category;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class OutletsSeeder extends Seeder
+class CategorySeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        Outlets::create([
-            'name' => 'Udjay Puter',
-            'address' => 'jalan jalan muter',
-            'phone' => "08123",
-        ]);
+        Category::create(['name' => 'Minuman']);
     }
 }

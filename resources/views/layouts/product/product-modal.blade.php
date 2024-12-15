@@ -63,8 +63,8 @@
     </div>
 
     <script>
-        const hargaJualInput = document.getElementById("harga_jual");
-        const hargaModalInput = document.getElementById("harga_modal");
+        var hargaJualInput = document.getElementById("harga_jual");
+        var hargaModalInput = document.getElementById("harga_modal");
 
         $(".select2InsideModal").select2({
             dropdownParent: $("#modal_action")

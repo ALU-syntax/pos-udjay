@@ -2,6 +2,7 @@
 
 namespace App\DataTables;
 
+use App\Models\Outlets;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
@@ -36,7 +37,16 @@ class UserDataTable extends DataTable
                 $role = Role::find($user->role);
                 return $role->name; // Menampilkan nama peran dari relasi
             })
-            ->rawColumns(['role'])
+            ->addColumn('outlet_id', function($user) {
+                $dataOutlet = json_decode($user->outlet_id);
+                $listOutlet = "";
+                foreach($dataOutlet as $outlet){
+                    $outlet = Outlets::find($outlet); 
+                    $listOutlet = $listOutlet . "<span class='badge badge-primary'>{$outlet->name} </span></br>";
+                }
+                return $listOutlet; // Menampilkan nama peran dari relasi
+            })
+            ->rawColumns(['outlet_id'])
             ->addIndexColumn();
     }
 
@@ -81,6 +91,7 @@ class UserDataTable extends DataTable
             Column::make('name'),
             Column::make('email'),
             Column::make('role'),
+            Column::make('outlet_id'),
             Column::computed('action')
                 ->exportable(false)
                 ->printable(false)

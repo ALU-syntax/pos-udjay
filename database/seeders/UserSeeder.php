@@ -20,6 +20,7 @@ class UserSeeder extends Seeder
             'password' => bcrypt('password'),
             'status' => 1,
             'role' => 1,
+            'outlet_id' => json_encode([1])
         ])->assignRole('admin');
     }
 }

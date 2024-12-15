@@ -3,7 +3,8 @@
     <div class="card mb-4">
         <h5 class="card-header">User Create</h5>
         <div class="card-body">
-            <form action="{{ route('employee/user/store') }}" method="POST" enctype="multipart/form-data" class="needs-validation ">
+            <form action="{{ route('employee/user/store') }}" method="POST" enctype="multipart/form-data"
+                class="needs-validation ">
                 @csrf
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -57,8 +58,8 @@
                     </div>
                     <div class="col-md-6">
                         <label for="status" class="form-label">Status</label>
-                        <select id="status" name="status" class="dropdown-custom selectpicker w-100" data-style="btn-default"
-                            style="@if ($errors->has('status')) border-color:red; @endif">
+                        <select id="status" name="status" class="dropdown-custom selectpicker w-100"
+                            data-style="btn-default" style="@if ($errors->has('status')) border-color:red; @endif">
                             <option selected disabled>{{ old('status', 'Pilih Status') }}</option>
                             <option value="1">Aktif</option>
                             <option value="0">Tidak Aktif</option>
@@ -84,6 +85,17 @@
                             </div>
                         @enderror
                     </div>
+                    <div class="col-md-6">
+                        <label for="outlet_id">Outlet <span class="text-danger ">*</span></label>
+                        <select name="outlet_id[]" id="outlet_id[]" class="select2InsideModal form-select w-100"
+                            style="width: 100% !important;" required multiple>
+                            <option disabled>Pilih Outlet</option>
+                            @foreach ($outlets as $outlet)
+                                <option value="{{ $outlet->id }}">
+                                    {{ $outlet->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
                 <div class="pt-4 d-flex justify-content-end">
                     <button type="submit" class="btn btn-primary me-sm-3 me-1">Submit</button>
@@ -93,4 +105,11 @@
         </div>
     </div>
 
+    @push('js')
+        <script>
+            $(".select2InsideModal").select2({
+                closeOnSelect: false
+            });
+        </script>
+    @endpush
 @endsection

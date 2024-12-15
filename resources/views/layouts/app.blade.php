@@ -28,9 +28,8 @@
         });
     </script>
 
-
     <!-- CSS Files -->
-    
+
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/plugins.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/sweetalert2.css') }}">
@@ -46,7 +45,7 @@
 </head>
 
 <body>
-    <div class="wrapper">
+    <div class="wrapper" >
         @include('layouts.sidebar')
 
         <div class="modal fade" id="modal_action" tabindex="-1" role="dialog" aria-hidden="true">
@@ -114,8 +113,13 @@
 
         $('.dropdown-custom').select2();
         $(".select2InsideModal").select2({
-                dropdownParent: $("#modal_action")
-            });
+            dropdownParent: $("#modal_action")
+        });
+
+        // $('#offcanvasMenu').offcanvas('show');
+
+        // // Close Offcanvas Programmatically
+        // $('#offcanvasMenu').offcanvas('hide');
 
         function handleDelete(datatable, onSuccessAction) {
             $('#' + datatable).on('click', '.delete', function(e) {
@@ -194,7 +198,6 @@
         function handleAction(datatable, onShowAction, onSuccessAction) {
             $('.main-content').on('click', '.action', function(e) {
                 e.preventDefault();
-                console.log("masok")
                 handleAjax(this.href).onSuccess(function(res) {
                     onShowAction && onShowAction(res)
                     handleFormSubmit('#form_action')
@@ -302,6 +305,7 @@
         }
 
         function showToast(status = 'success', message) {
+            console.log(message);
             iziToast[status]({
                 title: status == 'success' ? 'Success' : 'Error',
                 message: message,

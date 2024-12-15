@@ -1,6 +1,10 @@
-@props(['id', 'action', 'title' => false, 'description' => null, 'addStyle' => ''])
-<div class="modal-dialog modal-dialog-centered {{$addStyle}}" role="document">
-    <div class="modal-content">
+@props(['id', 'action', 'title' => false, 'description' => null])
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasMenu" aria-labelledby="offcanvasMenuLabel" role="document" >
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="offcanvasMenuLabel">{{ $title }}</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
         <form id="form_action" action="{{ $action }}" method="POST">
             <div class="modal-header border-0">
                 <h5 class="modal-title">

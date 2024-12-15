@@ -53,11 +53,11 @@
                             </div>
                         @enderror
                     </div>
-                    
+
                     <div class="col-md-6">
                         <label for="status" class="form-label">Status</label>
-                        <select id="status" name="status" class="dropdown-custom selectpicker w-100" data-style="btn-default"
-                            style="color: black;">
+                        <select id="status" name="status" class="dropdown-custom selectpicker w-100"
+                            data-style="btn-default" style="color: black;">
                             {{-- <option value="{{ old($data->status) }}" selected>
                             {{ old('status', \App\Models\User::STATUS[$data->status]) }}</option> --}}
                             <option value="1" @if ($data->status == 1) seleccted @endif>Aktif</option>
@@ -72,8 +72,8 @@
 
                     <div class="col-md-6">
                         <label for="role" class="form-label">Role</label>
-                        <select id="role" name="role" class="dropdown-custom selectpicker w-100" style="color:black;"
-                            data-style="btn-default">
+                        <select id="role" name="role" class="dropdown-custom selectpicker w-100"
+                            style="color:black;" data-style="btn-default">
                             {{-- <option value="{{ old($data->role) }}" selected>
                             {{ old('role', $data->getRoleNames()[0]) }}</option> --}}
                             <option disabled>Pilih Role</option>
@@ -91,7 +91,18 @@
                             </div>
                         @enderror
                     </div>
-
+                    <div class="col-md-6">
+                        <label for="outlet_id">Outlet <span class="text-danger ">*</span></label>
+                        <select name="outlet_id[]" id="outlet_id" class="select2InsideModal form-select w-100"
+                            style="width: 100% !important;" required multiple>
+                            <option disabled>Pilih Outlet</option>
+                            @foreach ($outlets as $outlet)
+                                
+                                    <option value="{{ $outlet->id }}" @foreach (json_decode($data->outlet_id) as $outletData) @if ($outlet->id == $outletData) selected @endif @endforeach>
+                                        {{ $outlet->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
                 <div class="pt-4 d-flex justify-content-end">
                     <button type="submit" class="btn btn-primary me-sm-3 me-1">Update</button>
@@ -103,7 +114,9 @@
 
     @push('js')
         <script>
-            $('.dropdown-custom').select2();
+            $(".select2InsideModal").select2({
+                closeOnSelect: false
+            });
         </script>
     @endpush()
 @endsection

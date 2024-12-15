@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\HakAksesController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\ModifiersController;
 use App\Http\Controllers\OutletController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProductController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\UserController;
+use App\Models\ModifierGroup;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -132,6 +134,16 @@ Route::middleware('auth')->group(function () {
             Route::post('/store', [TaxController::class, 'store'])->name('tax/store');
             Route::put('/update/{tax}', [TaxController::class, 'update'])->name('tax/update');
             Route::delete('/delete/{tax}', [TaxController::class, 'destroy'])->name('tax/destroy');
+        });
+
+        Route::prefix('modifiers')->group(function(){
+            Route::get('/', [ModifiersController::class, 'index'])->name('modifiers');
+            Route::get('/create', [ModifiersController::class, 'create'])->name('modifiers/create');
+            Route::get('/edit/{modifier}', [ModifiersController::class, 'edit'])->name('modifiers/edit');
+            ROute::get('/getProduct/{modifierGroup}', [ModifiersController::class, 'getProduct'])->name('modifiers/getProduct');
+            Route::post('/store', [ModifiersController::class, 'store'])->name("modifiers/store");
+            Route::put('/update/{modifier}', [ModifiersController::class, 'update'])->name('modifiers/update');
+            Route::put('/update/product/{modifier}', [ModifiersController::class, 'updateProductModifier'])->name('modifiers/update-product');
         });
     });
         

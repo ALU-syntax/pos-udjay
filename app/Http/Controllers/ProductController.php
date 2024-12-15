@@ -22,17 +22,17 @@ class ProductController extends Controller
         ]);
     }
 
-    public function store(ProductStoreRequest $request){
-        $product = new Product($request->validated());
-        $product->harga_jual = getAmount($request->harga_jual);
-        $product->harga_modal = getAmount($request->harga_modal);
-        if ($request->hasFile('photo')) {
-            $product->photo = $request->file('photo')->store('product');
-        }
-        $product->save();
+        public function store(ProductStoreRequest $request){
+            $product = new Product($request->validated());
+            $product->harga_jual = getAmount($request->harga_jual);
+            $product->harga_modal = getAmount($request->harga_modal);
+            if ($request->hasFile('photo')) {
+                $product->photo = $request->file('photo')->store('product');
+            }
+            $product->save();
 
-        return responseSuccess(false);
-    }
+            return responseSuccess(false);
+        }
 
     public function edit(Product $product){
         return view('layouts.product.product-modal',[

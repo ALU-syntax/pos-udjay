@@ -11,12 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('outlets', function (Blueprint $table) {
+        Schema::create('modifiers', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('address');
-            $table->string('phone');
+            $table->bigInteger('harga');
+            $table->bigInteger('stok');
+            $table->unsignedBigInteger('modifiers_group_id');
             $table->timestamps();
+            $table->softDeletes();
+            $table->foreign('modifiers_group_id')->references('id')->on('modifier_groups')->onDelete('CASCADE');
         });
     }
 
@@ -25,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('outlets');
+        Schema::dropIfExists('modifiers');
     }
 };

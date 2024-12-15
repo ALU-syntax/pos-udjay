@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\DataTables\UserDataTable;
 use App\Models\Kelurahan;
+use App\Models\Outlets;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Partai;
@@ -20,11 +21,14 @@ class UserController extends Controller
     {
         return view('layouts.users.create', [
             'listRole' => Role::whereNull('deleted_at')->get(),
+            'outlets' => Outlets::all()
         ]);
     }
 
     public function store(Request $request)
     {
+
+        // dd($request->outlet_id);
         $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'required|unique:users,username',
@@ -32,6 +36,7 @@ class UserController extends Controller
             'email' => 'nullable',
             'status' => 'required',
             'role' => 'required',
+            'outlet_id' => 'required',
         ], [
             'username.unique' => 'username sudah terdaftar'
         ]);
@@ -43,6 +48,7 @@ class UserController extends Controller
             'email' => $request->email,
             'status' => $request->status,
             'role' => $request->role,
+            'outlet_id' => json_encode($request->outlet_id)
         ]);
 
         $role = Role::find($request->role);
@@ -59,6 +65,7 @@ class UserController extends Controller
             'subMenu' => 'user',
             'data' => $user,
             'roles' => Role::whereNull('deleted_at')->get(),
+            'outlets' => Outlets::all()
         ]);
     }
 
@@ -69,19 +76,20 @@ class UserController extends Controller
 
         \Log::info($request->all());
 
-
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'nullable',
             'username' => 'required',
             'status' => 'required',
             'role' => 'required',
+            'outlet_id' => 'required'
         ]);
 
 
         $role = Role::find($validatedData['role']);
         $user->syncRoles([$role->name]);
 
+        $validatedData['outlet_id'] = json_encode($request->outlet_id);
         \Log::info($validatedData);
         // Perbarui data pengguna yang tidak termasuk kata sandi
         $user->update($validatedData);
