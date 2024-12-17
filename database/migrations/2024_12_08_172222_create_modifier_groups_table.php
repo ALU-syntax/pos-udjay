@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('max_selected')->nullable();
             $table->integer('min_selected')->nullable();
             $table->string('outlet_id');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

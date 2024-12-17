@@ -6,6 +6,6 @@
     <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1">
         <li><a class="dropdown-item action" href="{{$edit}}">Edit</a></li>
         <li><a class="dropdown-item action" href="{{$aturProduk}}">Atur Produk</a></li>
-        <li><a class="dropdown-item " href="" style="color: red">Hapus</a></li>
+        <li><a class="dropdown-item delete" href="{{$routeDelete}}" style="color: red">Hapus</a></li>
     </ul>
 </div>

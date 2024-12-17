@@ -13,7 +13,7 @@ class ModifiersController extends Controller
 {
     public function index(ModifiersDatatables $datatables)
     {
-        return $datatables->render('layouts.modifiers.index',[
+        return $datatables->render('layouts.modifiers.index', [
             "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
         ]);
     }
@@ -27,7 +27,8 @@ class ModifiersController extends Controller
         ]);
     }
 
-    public function store(Request $request){
+    public function store(Request $request)
+    {
         $validatedData = $request->validate([
             'name' => 'required',
             'option_name' => 'required|array',
@@ -40,8 +41,8 @@ class ModifiersController extends Controller
         ]);
 
         $required = $validatedData['required'] === "true";
-        
-        foreach ($validatedData['outlet_id'] as $outlet){
+
+        foreach ($validatedData['outlet_id'] as $outlet) {
             $dataModifierGroup = [
                 "name" => $validatedData['name'],
                 'required' => $required,
@@ -49,10 +50,10 @@ class ModifiersController extends Controller
                 'min_selected' => $required ? $validatedData['min'] : null,
                 'outlet_id' => $outlet
             ];
-    
+
             // Simpan ModifierGroup
             $modifierGroup = ModifierGroup::create($dataModifierGroup); // `create()` lebih ringkas daripada `new` + `save()`
-    
+
             // Buat data Modifiers
             $dataModifier = [];
             for ($x = 0; $x < count($validatedData['option_name']); $x++) {
@@ -65,7 +66,7 @@ class ModifiersController extends Controller
                     'updated_at' => now()
                 ];
             }
-    
+
             // Simpan semua Modifiers secara bulk
             Modifiers::insert($dataModifier); // Bulk insert lebih efisien
         }
@@ -73,11 +74,12 @@ class ModifiersController extends Controller
         return responseSuccess(false);
     }
 
-    public function edit(ModifierGroup $modifier){
+    public function edit(ModifierGroup $modifier)
+    {
         $modifierGroup = $modifier->where('id', $modifier->id)->with(['modifier', 'outlet'])->get()[0];
         $outlet = Outlets::find($modifierGroup->outlet_id);
         $dataOutlet = ['id' => $outlet->id, 'name' => $outlet->name];
-        return view('layouts.modifiers.modifiers-modal',[
+        return view('layouts.modifiers.modifiers-modal', [
             'data' => $modifierGroup,
             'action' => route('library/modifiers/update', $modifierGroup->id),
             'outlets' => json_encode([$dataOutlet])
@@ -85,7 +87,8 @@ class ModifiersController extends Controller
     }
 
 
-    public function update(Request $request, ModifierGroup $modifier){
+    public function update(Request $request, ModifierGroup $modifier)
+    {
         $validateData = $request->validate([
             'name' => 'required',
             'option_name' => 'required|array',
@@ -104,28 +107,28 @@ class ModifiersController extends Controller
             'name' => $validateData['name'],
             'required' => $required,
             'max_selected' => $validateData['max'],
-            'min_selected' => $validateData ['min'],
+            'min_selected' => $validateData['min'],
         ];
 
         $modifier->update($dataModifierGroupUpdate);
-            
+
         $listNameModifier = $validateData['option_name'];
         $listPriceModifier = $validateData['price'];
         $listStokModifier = $validateData['stok'];
         $listIdModifier = $validateData['id_modifier'];
-        
+
         $listModifierExist = $modifier->with('modifier')->get();
 
         $idModifierExist = array_column($listModifierExist[0]->modifier->toArray(), 'id');
 
         $modifierToDelete = array_diff($idModifierExist, $listIdModifier);
 
-        foreach($modifierToDelete as $deleteItem){
+        foreach ($modifierToDelete as $deleteItem) {
             Modifiers::find($deleteItem)->delete();
         }
 
-        foreach($listNameModifier as $key=>$value){
-            if(isset($listIdModifier[$key])){
+        foreach ($listNameModifier as $key => $value) {
+            if (isset($listIdModifier[$key])) {
                 $modifierItem = Modifiers::find($listIdModifier[$key]);
                 $dataModifier = [
                     'name' => $value,
@@ -134,7 +137,7 @@ class ModifiersController extends Controller
                 ];
 
                 $modifierItem->update($dataModifier);
-            }else{
+            } else {
                 $dataModifier = [
                     'name' => $value,
                     'harga' => getAmount($listPriceModifier[$key]),
@@ -147,18 +150,20 @@ class ModifiersController extends Controller
                 Modifiers::create($dataModifier);
             }
         }
-        
+
         return responseSuccess(true);
     }
 
-    public function getProduct(PilihProductDataTable $datatable, ModifierGroup $modifierGroup){
+    public function getProduct(PilihProductDataTable $datatable, ModifierGroup $modifierGroup)
+    {
         return $datatable->with('modifierGroup', $modifierGroup)->render('layouts.modifiers.modal-tambah-product', [
             "data" => $modifierGroup,
             "action" => route("library/modifiers/update-product", $modifierGroup->id),
-        ]);        
+        ]);
     }
 
-    public function updateProductModifier(Request $request, ModifierGroup $modifier){
+    public function updateProductModifier(Request $request, ModifierGroup $modifier)
+    {
         $data = [
             'product_id' => json_encode($request->products)
         ];
@@ -168,4 +173,11 @@ class ModifiersController extends Controller
         return responseSuccess(true, "Modifiers berhasil ditambahkan kedalam product");
     }
 
+    public function destroy(ModifierGroup $modifier)
+    {
+        $modifier->modifier()->delete();
+        $modifier->delete();
+        // dd($modifier);
+        return responseSuccessDelete();
+    }
 }

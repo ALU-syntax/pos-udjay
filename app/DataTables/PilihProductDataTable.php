@@ -37,8 +37,10 @@ class PilihProductDataTable extends DataTable
             ->addColumn('checkbox', function ($row) use ($dataClosure) {
                 if(!empty($dataClosure['checkedProduct'])){
                     $checked = in_array($row->id, $dataClosure['checkedProduct']) ? 'checked' : '';    
-                }else{
+                }else if($dataClosure['productId'] != null){
                     $checked = in_array($row->id, $dataClosure['productId']) ? 'checked' : '';
+                }else{
+                    $checked = '';
                 }
                 return '<input type="checkbox" class="product-checkbox" name="products[]" value="' . $row->id . '" ' . $checked . '>';
             })

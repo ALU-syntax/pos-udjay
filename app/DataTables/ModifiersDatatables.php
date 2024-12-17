@@ -44,6 +44,7 @@ class ModifiersDatatables extends DataTable
                 return view('layouts.modifiers.action', [
                     'edit' => route('library/modifiers/edit', $row->id),
                     'aturProduk' =>route('library/modifiers/getProduct', $row->id),
+                    'routeDelete' =>route('library/modifiers/destroy', $row->id)
                 ]);
             })
             ->rawColumns(['option_name', 'outlet'])

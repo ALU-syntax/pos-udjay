@@ -2,12 +2,21 @@
     @if ($data->id)
         @method('put')
     @endif
+    <input type="text" name="input-modifier-product" value="true" hidden>
     {!! $dataTable->table(['class' => 'table table-bordered table-striped table-responsive'], true) !!}
 
     {!! $dataTable->scripts() !!}
     <script>
         $(document).ready(function() {
 
+            console.log(tmpDataProductModifier);
+            tmpDataProductModifier = []; //kosongkan array terlebih dahulu
+
+            // ambil data product_id dari database jika ada
+            let dataModifierGroup = @json($data);
+            let dataProduct = JSON.parse(dataModifierGroup.product_id);
+            
+            tmpDataProductModifier.push(...dataProduct);
             // Jalankan DataTables secara otomatis
             $('#pilihproduct-table').on('preInit.dt', function() {
                 $('#pilihproduct-table thead tr').addClass('bg-light');
@@ -66,36 +75,29 @@
             });
 
 
-            // Variabel untuk menyimpan ID produk yang dicentang
-            let checkedProducts = [];
-
-            // ambil data product_id dari database jika ada
-            let dataModifierGroup = @json($data);
-            let dataProduct = JSON.parse(dataModifierGroup.product_id);
             
-            checkedProducts.push(...dataProduct);
 
             // Event listener untuk checkbox
             $(document).on('change', '.product-checkbox', function() {
                 const productId = $(this).val();
 
                 if ($(this).is(':checked')) {
-                    // Tambahkan ID ke checkedProducts jika dicentang
-                    if (!checkedProducts.includes(productId)) {
-                        checkedProducts.push(productId);
+                    // Tambahkan ID ke tmpDataProductModifier jika dicentang
+                    if (!tmpDataProductModifier.includes(productId)) {
+                        tmpDataProductModifier.push(productId);
                     }
                 } else {
-                    // Hapus ID dari checkedProducts jika tidak dicentang
-                    checkedProducts = checkedProducts.filter(id => id !== productId);
+                    // Hapus ID dari tmpDataProductModifier jika tidak dicentang
+                    tmpDataProductModifier = tmpDataProductModifier.filter(id => id !== productId);
                 }
 
-                // console.log(productId);
+                console.log(productId);
             });
 
-            // Kirim daftar checkedProducts saat DataTable melakukan request AJAX
+            // Kirim daftar tmpDataProductModifier saat DataTable melakukan request AJAX
             $('#pilihproduct-table').on('preXhr.dt', function(e, settings, data) {
                 // console.log(data);
-                data.checkedProducts = checkedProducts; // Tambahkan checkedProducts ke request
+                data.checkedProducts = tmpDataProductModifier; // Tambahkan tmpDataProductModifier ke request
             });
         });
     </script>

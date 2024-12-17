@@ -111,6 +111,7 @@
             }
         })
 
+        var tmpDataProductModifier = [];
         $('.dropdown-custom').select2();
         $(".select2InsideModal").select2({
             dropdownParent: $("#modal_action")
@@ -121,12 +122,13 @@
         // // Close Offcanvas Programmatically
         // $('#offcanvasMenu').offcanvas('hide');
 
-        function handleDelete(datatable, onSuccessAction) {
+        function handleDelete(datatable,customMessage = false onSuccessAction) {
+            let message = customMessage ? customMessage : "You won't be able to revert this!";
             $('#' + datatable).on('click', '.delete', function(e) {
                 e.preventDefault();
                 Swal.fire({
                     title: 'Are you sure?',
-                    text: "You won't be able to revert this!",
+                    text: message,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#3085d6',
@@ -216,10 +218,33 @@
                 $(selector).on('submit', function(e) {
                     e.preventDefault();
                     const _form = this
+                    let data = new FormData(_form);
+                    let dataForm;
+                    let dataCustom = false;
+                    data.forEach(function(item, index){
+                        if(index == "input-modifier-product"){
+                            dataCustom = true;
+                        }
+                    });
+
+                    if(dataCustom){
+                        const token = document.querySelector('meta[name="csrf_token"]').getAttribute('content');
+                        dataForm = new FormData();
+                        dataForm.append("_token", token);
+                        dataForm.append("_method", 'put');
+                        tmpDataProductModifier.forEach(function(item){
+                            dataForm.append("products[]", item);
+                        });
+                    }else{
+                        dataForm = data;
+                    }
+
+                    console.log(dataForm);
+
                     $.ajax({
                         url: this.action,
                         method: this.method,
-                        data: new FormData(_form),
+                        data: dataForm,
                         contentType: false,
                         processData: false,
                         beforeSend: function() {
