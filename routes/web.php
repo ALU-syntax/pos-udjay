@@ -10,6 +10,7 @@ use App\Http\Controllers\OutletController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PromoController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\UserController;
@@ -155,6 +156,15 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/{discount}', [DiscountController::class, 'edit'])->name('discount/edit');
             Route::put('/update/{discount}', [DiscountController::class, 'update'])->name('discount/update');
             Route::delete('/destroy/{discount}', [DiscountController::class,'destroy'])->name('discount/destroy');
+        });
+
+        Route::prefix('promo')->group(function(){
+            Route::get('/', [PromoController::class, 'index'])->name('promo');
+            Route::get('/create', [DiscountController::class, 'create'])->name('promo/create');
+            // Route::post('/store', [DiscountController::class, 'store'])->name('discount/store');
+            // Route::get('/edit/{discount}', [DiscountController::class, 'edit'])->name('discount/edit');
+            // Route::put('/update/{discount}', [DiscountController::class, 'update'])->name('discount/update');
+            // Route::delete('/destroy/{discount}', [DiscountController::class,'destroy'])->name('discount/destroy');
         });
     });
         

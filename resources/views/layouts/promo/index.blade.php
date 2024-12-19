@@ -35,7 +35,7 @@
 
         <script>
             var success = "{{ session('success') }}";
-            const datatable = 'product-table';
+            const datatable = 'promodatatables-table';
 
             $(".select2InsideModal").select2({
                 dropdownParent: $("#modal_action")

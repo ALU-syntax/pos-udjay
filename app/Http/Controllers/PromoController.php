@@ -10,4 +10,8 @@ class PromoController extends Controller
     public function index(PromoDatatables $datatables){
         return $datatables->render('layouts.promo.index');
     }
+
+    // public function create(){
+    //     return view
+    // }
 }

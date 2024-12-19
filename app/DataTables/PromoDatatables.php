@@ -2,6 +2,7 @@
 
 namespace App\DataTables;
 
+use App\Models\Promo;
 use App\Models\PromoDatatable;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
@@ -29,7 +30,7 @@ class PromoDatatables extends DataTable
     /**
      * Get the query source of dataTable.
      */
-    public function query(PromoDatatable $model): QueryBuilder
+    public function query(Promo $model): QueryBuilder
     {
         return $model->newQuery();
     }
