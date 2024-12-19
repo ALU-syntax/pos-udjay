@@ -10,19 +10,6 @@
                 placeholder="nama product.." required>
         </div>
     </div>
-    <div class="col-md-12">
-        <div class="form-group">
-            <label for="category_id">Category <span class="text-danger ">*</span></label>
-            <select name="category_id" id="category_id" class="select2InsideModal form-select w-100"
-                style="width: 100% !important;" required>
-                <option disabled selected>Pilih Category</option>
-                @foreach ($categorys as $category)
-                    <option value="{{ $category->id }}" @if ($data->category_id == $category->id) selected @endif>
-                        {{ $category->name }}</option>
-                @endforeach
-            </select>
-        </div>
-    </div>
     <div class="col-sm-12">
         <div class="form-group">
             <label>Harga Jual<span class="text-danger">*</span></label>

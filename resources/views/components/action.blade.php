@@ -12,13 +12,13 @@
                 @if ($softDelete)
                     <form action="{{ $routeDelete }}" method="POST" enctype="multipart/form-data" class="delete">
                         @csrf
-                        <button class="dropdown-item" type="submit">Delete</button>
+                        <button class="dropdown-item" type="submit" style="color: red">Delete</button>
                     </form>
                 @else
                     <form action="{{ $routeDelete }}" method="POST" enctype="multipart/form-data" class="">
                         @csrf
                         @method('DELETE')
-                        <button class="dropdown-item" type="submit">Delete</button>
+                        <button class="dropdown-item" type="submit" style="color: red">Delete</button>
                     </form>
                 @endif
 

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\HakAksesController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ModifiersController;
@@ -145,6 +146,15 @@ Route::middleware('auth')->group(function () {
             Route::put('/update/{modifier}', [ModifiersController::class, 'update'])->name('modifiers/update');
             Route::put('/update/product/{modifier}', [ModifiersController::class, 'updateProductModifier'])->name('modifiers/update-product');
             Route::delete('/destroy/{modifier}', [ModifiersController::class, 'destroy'])->name('modifiers/destroy');
+        });
+
+        Route::prefix('discount')->group(function(){
+            Route::get('/', [DiscountController::class, 'index'])->name('discount');
+            Route::get('/create', [DiscountController::class, 'create'])->name('discount/create');
+            Route::post('/store', [DiscountController::class, 'store'])->name('discount/store');
+            Route::get('/edit/{discount}', [DiscountController::class, 'edit'])->name('discount/edit');
+            Route::put('/update/{discount}', [DiscountController::class, 'update'])->name('discount/update');
+            Route::delete('/destroy/{discount}', [DiscountController::class,'destroy'])->name('discount/destroy');
         });
     });
         

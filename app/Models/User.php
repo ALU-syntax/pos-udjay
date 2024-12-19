@@ -62,7 +62,7 @@ class User extends Authenticatable
 
     public function outlets()
     {
-        return $this->belongsToMany(Outlets::class, 'outlet_id', 'id');
+        return $this->belongsToMany('outlet_id', Outlets::class, 'id');
     }
 
 }

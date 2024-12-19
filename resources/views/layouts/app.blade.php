@@ -122,7 +122,7 @@
         // // Close Offcanvas Programmatically
         // $('#offcanvasMenu').offcanvas('hide');
 
-        function handleDelete(datatable,customMessage = false onSuccessAction) {
+        function handleDelete(datatable,customMessage = false, onSuccessAction) {
             let message = customMessage ? customMessage : "You won't be able to revert this!";
             $('#' + datatable).on('click', '.delete', function(e) {
                 e.preventDefault();

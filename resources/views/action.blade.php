@@ -5,7 +5,7 @@
     </button>
     <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1">
         @foreach ($actions as $key => $item)
-            <li><a class="dropdown-item {{ $key == 'Delete' ? 'delete' : 'action'}}" href="{{ $item }}">{{ $key }}</a></li>
+            <li><a class="dropdown-item {{ $key == 'Delete' ? 'delete' : 'action'}}" style="{{$key == 'Delete' ? 'color:red;' : 'color:black;'}}" href="{{ $item }}">{{ $key }}</a></li>
         @endforeach
     </ul>
 </div>
