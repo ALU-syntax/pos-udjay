@@ -11,7 +11,13 @@ class Product extends Model
 
     protected $guarded = ['id'];
 
-    public function category(){
+    public function category()
+    {
         return $this->belongsTo(Category::class, 'category_id', 'id');
+    }
+
+    public function modifierGroups()
+    {
+        return ModifierGroup::whereJsonContains('product_id', strval($this->id));
     }
 }

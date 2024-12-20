@@ -58,7 +58,7 @@ class PilihProductDataTable extends DataTable
         // Ambil data 'modifierGroup' dari request
         $modifierGroup = $this->modifierGroup;
 
-        $productIds = $modifierGroup ? json_decode($modifierGroup->product_id, true) : [];
+        $productIds = $modifierGroup ? ($modifierGroup->product_id != null ? json_decode($modifierGroup->product_id, true) : []) : [];
         if (empty($productIds)) {
             return $model->newQuery()->select('id', 'name', 'harga_jual')->orderBy('name', 'asc');
         }

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->bigInteger('harga');
-            $table->bigInteger('stok');
+            $table->bigInteger('stok')->nullable();
             $table->unsignedBigInteger('modifiers_group_id');
             $table->timestamps();
             $table->softDeletes();

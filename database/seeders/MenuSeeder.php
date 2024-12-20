@@ -35,8 +35,8 @@ class MenuSeeder extends Seeder
         $sm = $mm->subMenus()->create(['name' => 'Taxes', 'url' => $mm->url . '/tax', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
 
-        $sm = $mm->subMenus()->create(['name' => 'Promo', 'url' => $mm->url . '/promo', 'category' => $mm->category]);
-        $this->attachMenuPermission($sm, null, ['admin']);
+        // $sm = $mm->subMenus()->create(['name' => 'Promo', 'url' => $mm->url . '/promo', 'category' => $mm->category]);
+        // $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->create(['name' => 'Modifiers', 'url' => $mm->url . '/modifiers', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
@@ -73,7 +73,15 @@ class MenuSeeder extends Seeder
         $sm = $mm->subMenus()->create(['name' => 'Outlets', 'url' => $mm->url . '/outlets', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
 
+        $sm = $mm->subMenus()->create(['name' => 'Checkout', 'url' => $mm->url . '/checkout', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
         // END KONFIGURASI
+
+        //KASIR
+            $mm = Menu::firstOrCreate(['url' => 'kasir'], ['name' => 'Kasir', 'category' => 'KASIR', 'icon' => 'fa-money-bill']);
+            $this->attachMenuPermission($mm, ['read '], ['admin']);
+        //END KASIR
 
     }
 }

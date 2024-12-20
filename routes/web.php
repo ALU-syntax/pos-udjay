@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\HakAksesController;
+use App\Http\Controllers\KasirController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ModifiersController;
 use App\Http\Controllers\OutletController;
@@ -75,6 +77,14 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/{outlet}', [OutletController::class, 'edit'])->name('outlets/edit');
             Route::put('/update/{outlet}', [OutletController::class, 'update'])->name('outlets/update');
             Route::delete('/destroy/{outlet}', [OutletController::class,'destroy'])->name('outlets/destroy');
+        });
+
+        Route::prefix('checkout')->group(function(){
+            Route::get('/', [CheckoutController::class, 'index'])->name('checkout');
+            Route::post('/store', [CheckoutController::class, 'store'])->name('checkout/store');
+            // Route::get('/edit/{outlet}', [OutletController::class, 'edit'])->name('outlets/edit');
+            // Route::put('/update/{outlet}', [OutletController::class, 'update'])->name('outlets/update');
+            // Route::delete('/destroy/{outlet}', [OutletController::class,'destroy'])->name('outlets/destroy');
         });
 
     });
@@ -168,6 +178,19 @@ Route::middleware('auth')->group(function () {
         });
     });
         
+    Route::prefix('kasir')->group(function(){
+        Route::get('', [KasirController::class, 'index'])->name('kasir');
+        Route::get('/choose-payment', [KasirController::class, 'choosePayment'])->name('kasir/choosePayment');
+        Route::get('/{product}', [KasirController::class, 'findProduct'])->name('kasir/findProduct');
+        Route::post('/store-patty-cash', [KasirController::class, 'pattyCash'])->name('kasir/pattyCash');
+        // Route::get('/create', [CategoryController::class, 'create'])->name('category/create');
+        // Route::post('/store', [CategoryController::class, 'store'])->name('category/store');
+        // Route::get('/edit/{category}', [CategoryController::class, 'edit'])->name('category/edit');
+        // Route::put('/update/{category}', [CategoryController::class,'update'])->name('category/update');
+        // Route::delete('/destroy/{category}', [CategoryController::class,'destroy'])->name('category/destroy');
+    });
+
+    
 });
 
 require __DIR__.'/auth.php';

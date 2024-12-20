@@ -11,15 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('modifier_groups', function (Blueprint $table) {
+        Schema::create('petty_cashes', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->json('product_id')->nullable();
-            $table->boolean('required')->nullable();
-            $table->integer('max_selected')->nullable();
-            $table->integer('min_selected')->nullable();
             $table->string('outlet_id');
-            $table->softDeletes();
+            $table->string('amount_awal')->nullable();
+            $table->string('amount_akhir')->nullable();
+            $table->string('user_id_started')->nullable();
+            $table->string('user_id_ended')->nullable();
+            $table->dateTime('open')->nullable();
+            $table->dateTime('close')->nullable();
             $table->timestamps();
         });
     }
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('modifier_groups');
+        Schema::dropIfExists('petty_cashes');
     }
 };

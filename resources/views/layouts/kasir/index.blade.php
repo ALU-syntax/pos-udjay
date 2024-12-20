@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf_token" content="{{ csrf_token() }}">
+    <title>POS System with Div and jQuery</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+        integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous"> --}}
+    {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous"> --}}
+    <link rel="stylesheet" href="{{ asset('css/iziToast.min.css') }}">
+    <style>
+        .product-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .product-card img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+        }
+
+        .btn-nav {
+            width: 100%;
+            padding: 15px;
+        }
+
+        .btn-lg-custom {
+            height: 60px;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .order-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .bottom-nav-li {
+            height: 80px
+        }
+
+        .icon-box {
+            width: 100px;
+            height: 100px;
+            background-color: #d3d3d3;
+            /* Warna latar belakang */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            text-transform: uppercase;
+            border-radius: 4px;
+            /* Membuat sudut kotak */
+        }
+
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background-color: #3b5998;
+            /* Biru seperti contoh */
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+            padding: 10px 0;
+        }
+
+        .bottom-nav .nav-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .bottom-nav .nav-item a {
+            color: #d8d8d8;
+            /* Warna teks default */
+            text-decoration: none;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 0;
+            transition: all 0.3s;
+        }
+
+        .bottom-nav .nav-item a i {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .bottom-nav .nav-item a.active {
+            background-color: #2a437a;
+            /* Biru gelap untuk aktif */
+            border-radius: 20px;
+            color: white;
+            padding: 8px 15px;
+        }
+
+        .bottom-nav .nav-item a.active i {
+            color: white;
+        }
+
+        .calculator-btn {
+            height: 130px;
+            font-size: 40px;
+            width: 114% !important;
+        }
+
+        .calculator-row {
+            margin: 0;
+        }
+
+        .calculator-btn-footer {
+            height: 130px;
+            font-size: 40px;
+            width: 106% !important;
+        }
+
+        .screen {
+            height: 100px;
+            font-size: 36px;
+            background-color: #f8f9fa;
+            text-align: right;
+            padding-right: 10px;
+            line-height: 100px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid vh-100 d-flex flex-column">
+        <!-- Main Content -->
+        <div id="content-area" class="flex-grow-1">
+            <div class="row">
+                <div class="col-8">
+                    <!-- All Items Section -->
+                    <div id="setting" class="content-section">
+                        <div class="row vh-100">
+
+                        </div>
+                    </div>
+
+                    <!-- favorite Section -->
+                    <div id="favorite" class="content-section active">
+                        <div class="row vh-100">
+                            <div class="container my-5">
+                                <div class="row">
+                                    <!-- Card 1 -->
+                                    <div class="col-md-3 col-sm-6 mb-4">
+                                        <div class="product-card">
+                                            <img src="https://via.placeholder.com/150" alt="Cappuccino">
+                                            <p>Cappuccino</p>
+                                        </div>
+                                    </div>
+                                    <!-- Card 2 -->
+                                    <div class="col-md-3 col-sm-6 mb-4">
+                                        <div class="product-card">
+                                            <img src="https://via.placeholder.com/150" alt="Dori Goreng Tepung">
+                                            <p>Dori Goreng Tepung</p>
+                                        </div>
+                                    </div>
+                                    <!-- Card 3 -->
+                                    <div class="col-md-3 col-sm-6 mb-4">
+                                        <div class="product-card">
+                                            <img src="https://via.placeholder.com/150" alt="Beef Chop">
+                                            <p>Beef Chop</p>
+                                        </div>
+                                    </div>
+                                    <!-- Card 4 -->
+                                    <div class="col-md-3 col-sm-6 mb-4">
+                                        <div class="product-card">
+                                            <img src="https://via.placeholder.com/150" alt="Espresso">
+                                            <p>Espresso</p>
+                                        </div>
+                                    </div>
+                                    <!-- Card 5 -->
+                                    <div class="col-md-3 col-sm-6 mb-4">
+                                        <div class="product-card">
+                                            <img src="https://via.placeholder.com/150" alt="GRILL">
+                                            <p>GRILL</p>
+                                        </div>
+                                    </div>
+                                    <!-- Card 6 -->
+                                    <div class="col-md-3 col-sm-6 mb-4">
+                                        <div class="product-card">
+                                            <img src="https://via.placeholder.com/150" alt="Bruschetta Beef">
+                                            <p>Bruschetta Beef</p>
+                                        </div>
+                                    </div>
+                                    <!-- Card 7 -->
+                                    <div class="col-md-3 col-sm-6 mb-4">
+                                        <div class="product-card">
+                                            <img src="https://via.placeholder.com/150" alt="Ayam Kampung">
+                                            <p>Ayam Kampung</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-4">
+                                        <div class="product-card">
+                                            <img src="https://via.placeholder.com/150" alt="Ayam Kampung">
+                                            <p>Ayam Kampung</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-4">
+                                        <div class="product-card">
+                                            <img src="https://via.placeholder.com/150" alt="Ayam Kampung">
+                                            <p>Ayam Kampung</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-4">
+                                        <div class="product-card">
+                                            <img src="https://via.placeholder.com/150" alt="Ayam Kampung">
+                                            <p>Ayam Kampung</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-4">
+                                        <div class="product-card">
+                                            <img src="https://via.placeholder.com/150" alt="Ayam Kampung">
+                                            <p>Ayam Kampung</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-4">
+                                        <div class="product-card">
+                                            <img src="https://via.placeholder.com/150" alt="Ayam Kampung">
+                                            <p>Ayam Kampung</p>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- library Section -->
+                    <div id="library" class="content-section ">
+                        <div class="row vh-100">
+                            <div class="col-12 mt-3">
+                                <!-- Search Bar -->
+                                <div class="input-group mb-3">
+                                    <input type="text" class="form-control" placeholder="Cari" aria-label="Search">
+                                    <button class="btn btn-outline-secondary" type="button">Search</button>
+                                </div>
+
+                                <!-- Content Section -->
+                                <div id="content-section" class="mt-2">
+
+                                    <div class="card d-flex align-items-center">
+                                        <div class="row w-100">
+                                            <div class="col-auto d-flex align-items-center">
+                                                <button id="back-btn" class="btn btn-link my-3 back-btn"
+                                                    style="display: none !important;">&larr; Back</button>
+                                                <div class="col text-center">
+                                                    <h5 class="my-3">Library</h5>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Initial Library View -->
+                                    <div id="library-view" class="card"
+                                        style="overflow-y: auto; height: calc(100vh - 210px);">
+                                        <div class="list-group">
+                                            @foreach ($categorys as $category)
+                                                <div class="list-group-item list-category d-flex align-items-center"
+                                                    data-target="{{ $category->name }}">
+                                                    <div class="icon-box" data-text="{{ $category->name }}"></div>
+                                                    <span class="ml-3">{{ $category->name }}</span>
+                                                    <span class="ml-auto">&gt;</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+
+                                    <!-- Product View -->
+
+                                    @foreach ($categorys as $item)
+                                        <div id="{{ $item->name }}" class="card d-none"
+                                            style="overflow-y: auto; height: calc(100vh - 210px);">
+                                            @foreach ($item->products as $data)
+                                                <div class="list-group-item list-item d-flex align-items-center"
+                                                    data-harga="{{ $data->harga_jual }}" data-nama="{{ $data->name }}"
+                                                    data-id="{{ $data->id }}">
+                                                    <div class="icon-box" data-text="{{ $data->name }}"></div>
+                                                    <span class="ml-3">{{ $data->name }}</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endforeach
+
+                                </div>
+                            </div>
+
+
+                        </div>
+                    </div>
+
+                    <!-- custom Section -->
+                    <div id="custom" class="content-section">
+                        <div class="row vh-100">
+                            <div class="container mt-5">
+                                <!-- Calculator Screen -->
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="screen" id="calculator-screen">Rp 0</div>
+                                    </div>
+                                </div>
+                                <!-- Calculator Buttons -->
+                                <div class="row calculator-row mt-3 mr-2">
+                                    <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
+                                            data-value="1">1</button></div>
+                                    <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
+                                            data-value="2">2</button></div>
+                                    <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
+                                            data-value="3">3</button></div>
+                                    <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
+                                            data-value="0">0</button></div>
+                                </div>
+                                <div class="row calculator-row mt-2 mr-2">
+                                    <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
+                                            data-value="4">4</button></div>
+                                    <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
+                                            data-value="5">5</button></div>
+                                    <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
+                                            data-value="6">6</button></div>
+                                    <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
+                                            data-value="00">00</button></div>
+                                </div>
+                                <div class="row calculator-row mt-2 mr-2">
+                                    <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
+                                            data-value="7">7</button></div>
+                                    <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
+                                            data-value="8">8</button></div>
+                                    <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
+                                            data-value="9">9</button></div>
+                                    <div class="col-3"><button class="btn btn-primary w-100 calculator-btn"
+                                            data-value="add">+</button></div>
+                                </div>
+                                <div class="row calculator-row mt-2 mr-2">
+                                    <div class="col-6"><button
+                                            class="btn btn-secondary w-100 calculator-btn calculator-btn-footer"
+                                            data-value="clear">C</button></div>
+                                    <div class="col-6"><button
+                                            class="btn btn-secondary w-100 calculator-btn calculator-btn-footer"
+                                            data-value="del">Del</button></div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Order Section -->
+                <div class="col-4 p-3">
+                    <div class="order-section">
+                        <div class="row">
+                            <div class="col-3">
+                                <h5>Billing list</h5>
+                            </div>
+                            <div class="col-9 d-flex">
+                                <button class="btn btn-primary w-100  rounded">Tambah Pelanggan</button>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body ">
+
+                                <!-- Dine In Section -->
+                                <p class="text-muted text-center mb-2">dine in</p>
+                                <hr>
+
+                                <div class="container my-5" id="produkKosong">
+                                    <div class="col-12 text-center">
+                                        <p>Produk Belum Dipilih</p>
+                                    </div>
+                                </div>
+
+                                <div id="summary" style="display: none">
+                                    <form action="bayar" method="POST">
+                                        <!-- Item List -->
+                                        <div id="order-list">
+
+                                        </div>
+
+                                        <!-- Summary Section -->
+                                        <div class="row mb-2">
+                                            <div class="col-6">Subtotal:</div>
+                                            <div class="col-6 text-end" id="sub-total">Rp 27.000</div>
+                                        </div>
+                                        <div id="pajak">
+                                            @foreach ($pajak as $dataPajak)
+                                                <div class="row mb-2">
+                                                    <div class="col-6">{{ $dataPajak->name }}
+                                                        ({{ $dataPajak->amount }}{{ $dataPajak->satuan }})
+                                                    </div>
+                                                    <input type="text" name="idPajak[]"
+                                                        value="{{ $dataPajak->id }}" hidden>
+                                                    <div class="col-6 text-end value-pajak"
+                                                        id="pajak-{{ $dataPajak->name }}">
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                        <div class="row mb-2 d-none" id="group-diskon">
+                                            <div class="col-6">Diskon:</div>
+                                            <div class="col-6 text-end" id="diskon"></div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-6">Total:</div>
+                                            <div class="col-6 text-end" id="total"></div>
+                                        </div>
+                                        <div class="row mb-3 d-none" id="group-rounding">
+                                            <div class="col-6" style="color:gray;">Rounding:</div>
+                                            <div class="col-6 text-end" id="rounding"></div>
+                                        </div>
+                                    </form>
+
+                                </div>
+
+                                <!-- Empty Cart Section -->
+                                <p class="text-muted text-center mb-3 card">Kosongkan Keranjang Belanja</p>
+
+                                <!-- Action Buttons -->
+                                <div class="d-flex mb-3">
+                                    <button class="btn btn-secondary w-50 me-2" style="height: 60px;">Simpan
+                                        Bill</button>
+                                    <button class="btn btn-outline-primary w-50" style="height: 60px;">Cetak
+                                        Bill</button>
+                                </div>
+
+                                <!-- Charge Button -->
+                                <div class="row">
+                                    {{-- <div class="col-3">
+                                        <h5>Billing list</h5>
+                                    </div>
+                                    <div class="col-9 d-flex">
+                                        <button class="btn btn-primary btn-lg btn-block" id="bayar"
+                                            style="height: 60px;">Bayar</button>
+                                    </div> --}}
+                                    <button class="btn btn-primary btn-lg btn-block" id="bayar"
+                                        style="height: 60px;">Bayar</button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- <div class="col-4 p-3">
+                    <div class="order-section">
+                        <div class="d-flex align-items-center justify-content-between bg-light p-2 rounded">
+                            <div class="d-flex align-items-center">
+                                <img src="https://via.placeholder.com/24" alt="Icon" class="mr-2">
+                                <span class="font-weight-bold">+ Tambah Pelanggan</span>
+                            </div>
+                            <button class="btn btn-primary btn-sm">Tambah Pelanggan</button>
+                        </div>
+                        <hr>
+                        <p class="text-center font-weight-bold">Dine In</p>
+                        <div>
+                            <div class="d-flex justify-content-between">
+                                <span>Berry Blossom</span>
+                                <span>Rp 27.000</span>
+                                <button class="btn btn-sm btn-danger">X</button>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between">
+                                <span>Subtotal:</span>
+                                <span>Rp 27.000</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>PB 1 (10%):</span>
+                                <span>Rp 2.700</span>
+                            </div>
+                            <div class="d-flex justify-content-between font-weight-bold">
+                                <span>Total:</span>
+                                <span>Rp 29.700</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Rounding:</span>
+                                <span>Rp 300</span>
+                            </div>
+                        </div>
+                        <hr>
+                        <button class="btn btn-danger btn-block">Kosongkan Keranjang Belanja</button>
+                    </div>
+                </div> --}}
+
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <ul class="nav nav-pills nav-fill fixed-bottom bg-light">
+            <li class="nav-item-small ">
+                <a class="nav-link bottom-nav-li" data-target="#setting" href="#">
+                    <div class="contianer mt-2">
+                        <i class="fa-solid fa-list" style="font-size: 40px;"></i>
+                    </div>
+                </a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link active bottom-nav-li" data-target="#favorite" href="#">
+                    <div class="container">
+                        <i class="fa-solid fa-star" style="font-size: 40px;"></i>
+                    </div>
+                    Favorites
+                </a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link bottom-nav-li" data-target="#library" href="#">
+                    <div class="container">
+                        <i class="fa-solid fa-table-list" style="font-size: 40px;"></i>
+                    </div>
+                    Library
+                </a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link bottom-nav-li" data-target="#custom" href="#">
+                    <div class="container">
+                        <i class="fa-solid fa-calculator" style="font-size: 40px;"></i>
+                    </div>
+                    Custom
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel">
+    </div>
+
+
+    <!-- JS Dependencies -->
+    {{-- <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script> --}}
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    {{-- IZI TOAST --}}
+    <script src="{{ asset('js/plugin/izitoast/iziToast.min.js') }}"></script>
+    <script>
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name=csrf_token]').attr('content')
+            }
+        })
+        var listItem = [];
+        var subTotal = [];
+        var totalDiskon = [];
+        var tmpTampungCustomAmount = 0;
+
+        function generateRandomID() {
+            return 'temp-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+        }
+
+        function deleteItem(button) {
+            // Cari elemen terdekat yang merupakan parent (row item) dan hapus
+            var row = $(button).closest('.row');
+
+            let dataTmpId = button.getAttribute('data-tmpId');
+
+
+            // Ambil nilai harga dari input hidden
+            var harga = parseInt(row.find('input[name="harga[]"]').val());
+            // Hapus nilai dari array subTotal
+            var index = subTotal.indexOf(harga);
+            if (index !== -1) {
+                subTotal.splice(index, 1); // Hapus nilai dari array
+            }
+
+            // Cari elemen modifier terkait berdasarkan data-tmpId
+            $(`.modifier[data-tmpId="${dataTmpId}"]`).each(function() {
+                // Ambil nilai hargaModifier dari input hidden
+                let hargaModifier = parseInt($(this).find('input[name="hargaModifier[]"]').val());
+
+                // Hapus nilai hargaModifier dari array subTotal
+                let modifierIndex = subTotal.indexOf(hargaModifier);
+                if (modifierIndex !== -1) {
+                    subTotal.splice(modifierIndex, 1); // Hapus nilai dari array
+                }
+            });
+
+            $(`.diskon[data-tmpId="${dataTmpId}"]`).each(function() {
+                let hargaDiskon = parseInt($(this).find('input[name="nominalDiskon[]"]').val());
+
+                // Hapus nilai hargaModifier dari array subTotal
+                let modifierIndex = totalDiskon.indexOf(hargaDiskon);
+                if (modifierIndex !== -1) {
+                    totalDiskon.splice(modifierIndex, 1); // Hapus nilai dari array
+                }
+            });
+
+            // Hapus semua elemen (produk dan modifier) dengan data-tmpId terkait dari DOM
+            $(`[data-tmpId="${dataTmpId}"]`).remove();
+
+            // Hapus elemen row dari DOM
+            row.remove();
+            // Perbarui subtotal
+            updateHargaTotal();
+        }
+
+        function updateDiskon() {
+            var jumlahDiskon = totalDiskon.reduce(function(acc, curr) {
+                return acc + curr;
+            }, 0);
+
+            console.log(jumlahDiskon)
+            let bulatkanDiskon = Math.round(jumlahDiskon);
+            if (bulatkanDiskon > 0) {
+                $("#group-diskon").removeClass('d-none');
+            } else {
+                $("#group-diskon").addClass('d-none');
+            }
+
+            $('#diskon').text("-" + formatRupiah(bulatkanDiskon.toString(), "Rp. "));
+        }
+
+        function updateSubTotal() {
+            var total = subTotal.reduce(function(acc, curr) {
+                return acc + curr;
+            }, 0);
+
+            $('#sub-total').text(formatRupiah(total.toString(), "Rp. "));
+        }
+
+        function updateCustomAmount() {
+            let html = `
+            <div class="row mb-0 mt-2">
+                <div class="col-6" style="color:gray;">Custom Amount</div>
+                <input type="text" name="nama[]" value="custom" hidden>
+                <div class="col-5 text-end">${formatRupiah(tmpTampungCustomAmount.toString(), "Rp. ")}</div>
+                <input type="text" name="harga[]" value="${tmpTampungCustomAmount}" hidden>
+                <input type="text" name="quantity[]" value="1" hidden>
+                <div class="col-1 text-end text-danger">
+                    <button type="button" onclick="deleteItem(this)" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
+                </div>
+            </div>
+            `;
+
+            subTotal.push(parseInt(tmpTampungCustomAmount));
+
+            // Tambahkan elemen ke dalam form di dalam #order-list
+            $('#order-list').append(html);
+
+            updateHargaTotal();
+
+        }
+
+        function updateRounding() {
+            let dataRounding = @json($rounding);
+
+            if (dataRounding) {
+                let dataRounded = dataRounding.rounded;
+                if (dataRounded == "true") {
+                    $("#group-rounding").removeClass('d-none');
+
+                    let dataRoundBenchmark = parseInt(dataRounding.rounded_benchmark);
+                    let roundedType = parseInt(dataRounding.rounded_type);
+
+                    // Ambil angka total
+                    let total = document.getElementById("total").textContent;
+                    let totalText = total.trim();
+                    let angkaTotal = parseInt(totalText.replace(/[^\d]/g, ""));
+
+                    // Ambil bagian belakang dan depan angka
+                    let angkaBelakang = angkaTotal % roundedType; // Sisa pembagian (angka belakang)
+                    let angkaDepan = Math.floor(angkaTotal / roundedType); // Angka depan
+
+                    let hasilRounded = 0;
+                    let rounded = '';
+
+                    if (angkaBelakang > dataRoundBenchmark) {
+                        // Jika bagian belakang lebih besar dari benchmark, bulatkan ke atas
+                        hasilRounded = roundedType - angkaBelakang;
+                        rounded = "+";
+                    } else {
+                        // Jika bagian belakang lebih kecil/sama, bulatkan ke bawah
+                        hasilRounded = -angkaBelakang;
+                        rounded = "-";
+                    }
+
+                    // Update nilai pembulatan ke elemen
+                    $('#rounding').text(rounded + formatRupiah(hasilRounded.toString(), "Rp. "));
+                }
+            } else {
+                $("#group-rounding").addClass('d-none');
+            }
+        }
+
+
+        function updatePajak() {
+            // Hitung subtotal
+            // console.log(subTotal);
+            let resultSubTotal = subTotal.reduce(function(acc, curr) {
+                return acc + curr;
+            }, 0);
+
+            // Iterasi melalui setiap elemen di dalam #pajak
+            $('#pajak .row').each(function() {
+                // Ambil informasi amount dan satuan pajak
+                let amountText = $(this).find('.col-6').text().match(/\((.*?)\)/);
+                if (amountText) {
+                    let amountValue = amountText[1]; // Ambil isi dalam kurung
+                    let satuan = amountValue.slice(-1); // Cek karakter terakhir (misalnya % atau lainnya)
+                    let amount = parseFloat(amountValue.slice(0, -1)); // Ambil angka sebelum satuan
+
+                    let pajakValue = 0;
+
+                    // Hitung pajak berdasarkan satuan
+                    if (satuan === "%") {
+                        pajakValue = (resultSubTotal * amount) / 100; // Hitung jika persentase
+                    } else {
+                        pajakValue = amount; // Jika satuan tetap (angka biasa)
+                    }
+
+                    let resultPajak = Math.round(pajakValue);
+
+                    // Format nilai pajak ke format rupiah
+                    let formattedPajak = formatRupiah(resultPajak.toString(), "Rp. ");
+
+                    let idPajak = $(this).find('.value-pajak').attr('id');
+                    $('#' + idPajak).text(formattedPajak);
+                }
+            });
+        }
+
+        function updateTotal() {
+            // Hitung subtotal
+            let resultSubTotal = subTotal.reduce(function(acc, curr) {
+                return acc + curr;
+            }, 0);
+
+            // Ambil semua nilai pajak dari elemen dengan class 'value-pajak'
+            let pajak = 0;
+            $('#pajak .value-pajak').each(function() {
+                // Ambil nilai pajak (dalam format 10%, 2%, dll.)
+                let pajakText = $(this).text().trim();
+                // Menghapus semua karakter non-digit menggunakan regex
+                let angkaPajak = pajakText.replace(/[^\d]/g, "");
+
+                // Konversi ke angka (opsional)
+                // let pajakDataValue = parseInt(angkaSaja, 10);
+
+                // console.log(pajakDataValue);
+                // Hapus tanda '%' dan ubah menjadi desimal
+                let pajakValue = parseFloat(angkaPajak);
+                console.log(pajakValue)
+
+                console.log(resultSubTotal);
+                // Tambahkan pajak ke total pajak
+                pajak += pajakValue;
+            });
+
+            var jumlahDiskon = totalDiskon.reduce(function(acc, curr) {
+                return acc + curr;
+            }, 0);
+
+            let bulatkanDiskon = Math.round(jumlahDiskon);
+
+            // console.log(pajak)
+            // console.log(resultSubTotal);
+
+            // Hitung total akhir dengan pajak
+            let total = resultSubTotal + pajak;
+
+            let totalKurangDiskon = total - bulatkanDiskon;
+
+            document.getElementById("total").innerText = formatRupiah(totalKurangDiskon.toString(), "Rp. ");
+
+            // Format hasil ke dalam format rupiah (sesuai fungsi formatRupiah yang Anda miliki)
+            // let formattedTotal = formatRupiah(total);
+
+            // // Tampilkan hasil di tempat yang diinginkan (misalnya dalam div dengan id #total)
+            // $('#total').text(formattedTotal);
+        }
+
+
+        function updateHargaTotal() {
+            updatePajak();
+            updateSubTotal()
+            updateTotal();
+            updateDiskon();
+            updateRounding();
+            updateHargaFinalButton();
+
+            console.log(subTotal);
+            console.log(subTotal.length);
+            if (subTotal.length > 0) {
+                document.getElementById("produkKosong").style.display = "none";
+                document.getElementById("summary").style.setProperty('display', 'block', 'important');
+            } else {
+                document.getElementById("produkKosong").style.display = "block";
+                document.getElementById("summary").style.setProperty('display', 'none', 'important');
+            }
+        }
+
+        function formatRupiah(angka, prefix) {
+            var number_string = angka.replace(/[^,\d]/g, "").toString(),
+                split = number_string.split(","),
+                sisa = split[0].length % 3,
+                rupiah = split[0].substr(0, sisa),
+                ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+            if (ribuan) {
+                separator = sisa ? "." : "";
+                rupiah += separator + ribuan.join(".");
+            }
+
+            rupiah = split[1] != undefined ? rupiah + "," + split[1] : rupiah;
+            return prefix == undefined ? rupiah : rupiah ? "Rp. " + rupiah : "";
+        }
+
+        function updateHargaFinalButton() {
+            let total = document.getElementById("total").textContent;
+            let textTotal = total.trim();
+            let angkaTotal = parseInt(textTotal.replace(/[^\d]/g, ""));
+
+            let rounding = document.getElementById("rounding").textContent;
+            if (rounding) {
+                let textRounding = rounding.trim();
+                let angkaRounding = parseInt(textRounding.replace(/[^\d]/g, ""));
+
+                let symbol = textRounding.charAt(0);
+
+                let hargaFinal = symbol == "-" ? angkaTotal - angkaRounding : angkaTotal + angkaRounding;
+                console.log(console.log(rounding));
+
+                $('#bayar').text("Bayar " + formatRupiah(hargaFinal.toString(), "Rp. "));
+            } else {
+                $('#bayar').text("Bayar " + formatRupiah(angkaTotal.toString(), "Rp. "));
+            }
+        }
+
+        function showToast(status = 'success', message) {
+            console.log(message);
+            iziToast[status]({
+                title: status == 'success' ? 'Success' : 'Error',
+                message: message,
+                position: 'topRight'
+            });
+        }
+
+        $(document).ready(function() {
+            function handleAjax(url, method = 'get') {
+
+                function onSuccess(cb, runDefault = true) {
+                    this.onSuccessCallback = cb
+                    this.runDefaultSuccessCallback = runDefault
+
+                    return this
+                }
+
+
+                function excute() {
+                    console.log(url)
+                    $.ajax({
+                        url,
+                        method,
+                        beforeSend: function() {
+                            // showLoading()
+                        },
+                        complete: function() {
+                            // hideLoading(false)
+                        },
+                        success: (res) => {
+                            if (this.runDefaultSuccessCallback) {
+                                const modal = $('#itemModal');
+                                modal.html(res);
+                                modal.modal('show');
+                            }
+
+                            this.onSuccessCallback && this.onSuccessCallback(res)
+                        },
+                        error: function(err) {
+                            console.log(err);
+                        }
+                    });
+                }
+
+                function onError(cb) {
+                    this.onErrorCallback = cb
+                    return this
+                }
+
+                return {
+                    excute,
+                    onSuccess,
+                    runDefaultSuccessCallback: true
+                }
+
+            }
+
+
+            $('.nav-link').on('click', function(e) {
+                e.preventDefault();
+                var target = $(this).data('target');
+
+                // Remove active class from all sections and add to the target section
+                $('.content-section').removeClass('active');
+                $(target).addClass('active');
+
+                // Update active class on nav items
+                $('.nav-link').removeClass('active');
+                $(this).addClass('active');
+            });
+
+            var backBtn = document.getElementById('back-btn');
+            // Handle click on list items to show specific views
+            $('.list-category').on('click', function() {
+                // backBtn.style.display = 'block !important;';
+                backBtn.style.setProperty('display', 'flex', 'important');
+                const targetView = $(this).data('target');
+                $('#content-section > .card').addClass('d-none'); // Hide all views
+                $(`#${targetView}`).removeClass('d-none'); // Show selected view
+            });
+
+
+
+            $('.list-item').on('click', function(e) {
+                const dataId = $(this).data('id');
+
+                e.preventDefault();
+                // Ambil URL dasar dari Blade tanpa parameter
+                let baseUrl = `{{ route('kasir/findProduct', ':id') }}`; // Placeholder ':id'
+                let url = baseUrl.replace(':id', dataId); // Ganti ':id' dengan nilai dataId
+
+                handleAjax(url).excute();
+
+
+            });
+
+
+
+            // Handle back button to return to the library view
+            $('.back-btn').on('click', function() {
+                // backBtn.style.display = 'none !important;';
+                backBtn.style.setProperty('display', 'none', 'important');
+                $('#content-section > .card').addClass('d-none'); // Hide all views
+                $('#library-view').removeClass('d-none'); // Show library view
+            });
+
+            const iconBoxes = document.querySelectorAll('.icon-box');
+
+            iconBoxes.forEach((box) => {
+                const text = box.getAttribute('data-text');
+
+                if (text) {
+                    // Pisahkan kata dan ambil maksimal 2 kata pertama
+                    const words = text.split(' ');
+                    const initials = words.slice(0, 2).map(word => word[0]).join('');
+                    box.textContent = initials; // Isi kotak dengan inisial
+                }
+            });
+
+            // Handle delete button
+            $('.btn-danger').on('click', function() {
+                $(this).closest('.row').remove();
+                updateHargaTotal();
+                alert('Item deleted!');
+                // Logic to update subtotal, total, etc.
+            });
+
+            // Handle empty cart
+            $('.text-muted').on('click', function() {
+                alert('Cart emptied!');
+                // Logic to clear cart items
+            });
+
+            // Handle charge button
+            $('#bayar').on('click', function() {
+                if (subTotal.length > 0) {
+                    handleAjax("{{ route('kasir/choosePayment') }}").excute();
+                } else {
+                    iziToast['error']({
+                        title: "Gagal",
+                        message: "Product Belum Dipilih",
+                        position: 'topRight'
+                    });
+                }
+            });
+
+            let screenValue = "Rp 0";
+
+            // Update screen
+            function updateScreen(value) {
+                if (value === "") value = "Rp 0";
+                $("#calculator-screen").text(formatRupiah(value, "Rp. "));
+            }
+
+            // Button click event
+            $(".calculator-btn").on("click", function() {
+                const value = $(this).data("value");
+
+                if (value === "clear") {
+                    screenValue = "Rp 0";
+                } else if (value === "del") {
+                    screenValue = screenValue.slice(0, -1);
+                } else if (value === "add") {
+                    console.log(screenValue);
+                    tmpTampungCustomAmount = screenValue;
+                    updateCustomAmount();
+
+                } else {
+                    if (screenValue === "Rp 0") screenValue = value.toString();
+                    else screenValue += value.toString();
+                }
+
+                updateScreen(screenValue);
+            });
+        });
+    </script>
+</body>
+
+</html>

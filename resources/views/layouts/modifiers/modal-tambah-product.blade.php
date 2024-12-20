@@ -15,8 +15,11 @@
             // ambil data product_id dari database jika ada
             let dataModifierGroup = @json($data);
             let dataProduct = JSON.parse(dataModifierGroup.product_id);
+
+            console.log(dataProduct);
             
-            tmpDataProductModifier.push(...dataProduct);
+            if(dataProduct) tmpDataProductModifier.push(...dataProduct);
+            
             // Jalankan DataTables secara otomatis
             $('#pilihproduct-table').on('preInit.dt', function() {
                 $('#pilihproduct-table thead tr').addClass('bg-light');

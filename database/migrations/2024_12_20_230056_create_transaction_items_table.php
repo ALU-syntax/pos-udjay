@@ -11,16 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('modifier_groups', function (Blueprint $table) {
+        Schema::create('transaction_items', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->json('product_id')->nullable();
-            $table->boolean('required')->nullable();
-            $table->integer('max_selected')->nullable();
-            $table->integer('min_selected')->nullable();
-            $table->string('outlet_id');
+            $table->json('product_id');
+            $table->json('discount_id');
+            $table->json('modifier_id');
+            $table->integer('quantity');
+            $table->unsignedBigInteger('transaction_id');
             $table->softDeletes();
             $table->timestamps();
+            $table->foreign('transaction_id')->references('id')->on('transactions')->onDelete('CASCADE');
         });
     }
 
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('modifier_groups');
+        Schema::dropIfExists('transaction_items');
     }
 };

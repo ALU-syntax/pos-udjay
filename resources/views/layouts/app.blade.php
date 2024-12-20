@@ -239,8 +239,6 @@
                         dataForm = data;
                     }
 
-                    console.log(dataForm);
-
                     $.ajax({
                         url: this.action,
                         method: this.method,
