@@ -40,9 +40,9 @@
                                     class="form-control harga-modifier" id="harga-modifier" name="price[]"
                                     placeholder="Rp" value="{{ $modifier->harga }}">
                             </td>
-                            {{-- <td style="padding: 5px !important"><input type="number" class="form-control"
+                            <td style="padding: 5px !important"><input type="number" class="form-control"
                                     name="stok[]" placeholder="Stok" value="{{ $modifier->stok }}"></td>
-                            <td> --}}
+                            <td>
                                 <input type="text" hidden value="{{ $modifier->id }}" name="id_modifier[]">
                                 <button type="button" class="btn btn-danger btn-sm removeRow">Remove</button>
                             </td>
@@ -55,9 +55,9 @@
                         </td>
                         <td style="padding: 5px !important"><input type="text" class="form-control"
                                 id="harga-modifier" name="price[]" placeholder="Rp"></td>
-                        {{-- <td style="padding: 5px !important"><input type="number" class="form-control" name="stok[]"
+                        <td style="padding: 5px !important"><input type="number" class="form-control" name="stok[]"
                                 placeholder="Stok"></td>
-                        <td> --}}
+                        <td>
                             {{-- <button type="button" class="btn btn-danger btn-sm removeRow">Remove</button> --}}
                         </td>
                     </tr>

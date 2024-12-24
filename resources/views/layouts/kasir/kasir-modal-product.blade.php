@@ -54,7 +54,8 @@
                         @foreach ($dataModifier->modifier as $data)
                             <div class="col-md-6">
                                 <div class="custom-card">
-                                    <span>{{ $data->name }} <small>({{ $data->harga }})</small></span>
+                                    <span>{{ $data->name }}
+                                        <small>{{ '(' . formatRupiah($data->harga, 'Rp. ') . ')' }}</small></span>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input form-modifier" value="{{ $data->harga }}"
                                             type="checkbox" data-id="{{ $data->id }}"
@@ -99,11 +100,10 @@
             <!-- Catatan -->
             <div class="mb-4 mt-2">
                 <label for="note" class="form-label"><strong>Catatan</strong></label>
-                <textarea class="form-control" id="note" rows="3"></textarea>
+                <textarea class="form-control" id="catatan" rows="3"></textarea>
             </div>
         </div>
     </div>
-</div>
 </div>
 
 <script>
@@ -127,6 +127,8 @@
 
     var listDiskonId = [];
     var listDiskonName = [];
+    var listDiskonType = [];
+    var listDiskonValue = [];
     var listDiskonAmount = [];
 
     function hitungModifier() {
@@ -159,8 +161,11 @@
         let totalDiskon = 0;
         let totalDiskonId = [];
         let totalDiskonHarga = [];
+        let totalDiskonValue = [];
+        let totalDiskonType = [];
 
         diskonCheckboxes.forEach((checkbox) => {
+
             if (checkbox.checked) {
                 const amount = parseFloat(checkbox.value);
                 const type = checkbox.dataset.type;
@@ -173,12 +178,16 @@
                 }
 
                 totalDiskonId.push(id);
+                totalDiskonValue.push(amount);
                 totalDiskonHarga.push(totalDiskon);
+                totalDiskonType.push(type);
             }
         });
 
         listDiskonAmount = totalDiskonHarga;
         listDiskonId = totalDiskonId;
+        listDiskonValue = totalDiskonValue;
+        listDiskonType = totalDiskonType;
         return totalDiskon;
     }
 
@@ -239,20 +248,56 @@
     });
 
     $('#saveItemToCart').on('click', function(e) {
-
+        let tmpRandomId = generateRandomID();
+        
         let dataNama = document.getElementById("namaProduct").textContent;
         let dataIdProduct = document.getElementById("idProduct").value;
         let dataHargaProduct = dataHarga;
         let quantityProduct = quantity.value;
         let totalHargaProduct = dataHargaProduct * quantityProduct;
 
+        // MODIFIER
         let dataModifierId = listModifierId;
         let dataModifierNama = listModifierName;
         let dataModifierHarga = listModifierHarga;
 
+        let dataModifier = [];
+        for (let x; x > dataModifierId.length; x++) {
+            let tmpDataModifier = {
+                tmpIdProduct: tmpRandomId,
+                id: dataModifierId[x],
+                nama: dataModifierNama[x],
+                harga: dataModifierHarga[x],
+            }
+
+            dataModifier.push(tmpDataModifier);
+        }
+
+        // DISKON
         let dataDiskonId = listDiskonId;
         let dataDiskonNama = listDiskonName;
         let dataDiskonHarga = listDiskonAmount;
+        let dataDiskonValue = listDiskonValue;
+        let dataDiskonType = listDiskonType;
+
+        let dataDiskon = [];
+
+        for (let i = 0; i > dataDiskonId.length; i++) {
+            let tmpDataDiskon = {
+                tmpIdProduct: tmpRandomId,
+                id: dataDiskonId[i],
+                nama: dataDiskonNama[i],
+                satuan: dataDiskonType[i],
+                value: dataDiskonValue[i],
+                result: dataDiskonHarga[i],
+            };
+
+            dataDiskon.push(tmpDataDiskon);
+        }
+
+
+        let catatanTextArea = document.getElementById('catatan');
+        let catatan = catatanTextArea.value;
 
         subTotal.push(totalHargaProduct);
 
@@ -261,11 +306,26 @@
         }, 0);
         subTotal.push(resultModifierTotal);
 
-        
+
+        console.log(totalHargaProduct)
+        console.log(resultModifierTotal);
+
+        let data = {
+            tmpId: tmpRandomId,
+            idProduct: dataIdProduct,
+            namaProduct: dataNama,
+            harga: dataHargaProduct,
+            quantity: quantityProduct,
+            diskon: dataDiskon,
+            promo: ,
+            catatan: catatan,
+            resultTotal: totalHargaProduct + resultModifierTotal, //re
+        }
+
         // updateSubTotal();
         // updatePajak();
 
-        let tmpRandomId = generateRandomID();
+
         let html = ''
         if (dataModifierId.length > 0 && dataDiskonId.length > 0) {
             // HTML baru yang akan ditambahkan ke dalam form

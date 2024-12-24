@@ -14,6 +14,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SalesTypeController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\UserController;
 use App\Models\ModifierGroup;
@@ -170,11 +171,20 @@ Route::middleware('auth')->group(function () {
 
         Route::prefix('promo')->group(function(){
             Route::get('/', [PromoController::class, 'index'])->name('promo');
-            Route::get('/create', [DiscountController::class, 'create'])->name('promo/create');
-            // Route::post('/store', [DiscountController::class, 'store'])->name('discount/store');
+            Route::get('/create', [PromoController::class, 'create'])->name('promo/create');
+            Route::post('/store', [PromoController::class, 'store'])->name('promo/store');
             // Route::get('/edit/{discount}', [DiscountController::class, 'edit'])->name('discount/edit');
             // Route::put('/update/{discount}', [DiscountController::class, 'update'])->name('discount/update');
             // Route::delete('/destroy/{discount}', [DiscountController::class,'destroy'])->name('discount/destroy');
+        });
+
+        Route::prefix('salestype')->group(function(){
+            Route::get('/', [SalesTypeController::class, 'index'])->name('salestype');
+            Route::get('/create', [SalesTypeController::class, 'create'])->name('salestype/create');
+            Route::post('/store', [SalesTypeController::class, 'store'])->name('salestype/store');
+            Route::get('/edit/{salesType}', [SalesTypeController::class, 'edit'])->name('salestype/edit');
+            Route::put('/update/{salesType}', [SalesTypeController::class, 'update'])->name('salestype/update');
+            Route::delete('/destroy/{salesType}', [SalesTypeController::class,'destroy'])->name('salestype/destroy');
         });
     });
         

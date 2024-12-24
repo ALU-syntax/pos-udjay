@@ -243,7 +243,7 @@
                                             <p>Ayam Kampung</p>
                                         </div>
                                     </div>
-                                    
+
                                 </div>
                             </div>
                         </div>
@@ -274,10 +274,20 @@
                                         </div>
                                     </div>
 
+                                    {{-- Diskon View --}}
+                                    <div id="all-diskon"></div>
+
                                     <!-- Initial Library View -->
                                     <div id="library-view" class="card"
                                         style="overflow-y: auto; height: calc(100vh - 210px);">
                                         <div class="list-group">
+                                            <div class="list-group-item-diskon list-diskon d-flex align-items-center"
+                                                data-target="diskon">
+                                                <div class="icon-box" data-text="diskon"></div>
+                                                <span class="ml-3">Diskon</span>
+                                                <span class="ml-auto">&gt;</span>
+                                            </div>
+
                                             @foreach ($categorys as $category)
                                                 <div class="list-group-item list-category d-flex align-items-center"
                                                     data-target="{{ $category->name }}">
@@ -296,8 +306,8 @@
                                             style="overflow-y: auto; height: calc(100vh - 210px);">
                                             @foreach ($item->products as $data)
                                                 <div class="list-group-item list-item d-flex align-items-center"
-                                                    data-harga="{{ $data->harga_jual }}" data-nama="{{ $data->name }}"
-                                                    data-id="{{ $data->id }}">
+                                                    data-harga="{{ $data->harga_jual }}"
+                                                    data-nama="{{ $data->name }}" data-id="{{ $data->id }}">
                                                     <div class="icon-box" data-text="{{ $data->name }}"></div>
                                                     <span class="ml-3">{{ $data->name }}</span>
                                                 </div>
@@ -315,7 +325,7 @@
                     <!-- custom Section -->
                     <div id="custom" class="content-section">
                         <div class="row vh-100">
-                            <div class="container mt-5">
+                            <div class="container mt-2">
                                 <!-- Calculator Screen -->
                                 <div class="row">
                                     <div class="col-12">
@@ -986,7 +996,59 @@
             // Handle charge button
             $('#bayar').on('click', function() {
                 if (subTotal.length > 0) {
+                    // let content = $('#summary').html();
+                    // console.log(content);
+
+                    // let children = $('#summary').children();
+                    // console.log(children);
+
+                    // $('#summary').find('*').each(function() {
+                    //     console.log($(this)); // Menampilkan setiap elemen
+                    // });
                     handleAjax("{{ route('kasir/choosePayment') }}").excute();
+                    // $.ajax({
+                    //     url: this.action,
+                    //     method: this.method,
+                    //     data: dataForm,
+                    //     contentType: false,
+                    //     processData: false,
+                    //     beforeSend: function() {
+                    //         $(_form).find('.is-invalid').removeClass('is-invalid')
+                    //         $(_form).find(".invalid-feedback").remove()
+                    //         submitLoader().show()
+                    //     },
+                    //     success: (res) => {
+                    //         if (_this.runDefaultSuccessCallback) {
+                    //             $('#modal_action').modal('hide')
+                    //             showToast(res.status, res.message)
+                    //         }
+
+                    //         _this.onSuccessCallback && _this.onSuccessCallback(res)
+                    //         _this.dataTableId && window.LaravelDataTables[_this.dataTableId]
+                    //             .ajax
+                    //             .reload(null, false)
+
+                    //     },
+                    //     complete: function() {
+                    //         submitLoader().hide()
+                    //     },
+                    //     error: function(err) {
+                    //         const errors = err.responseJSON?.errors
+
+                    //         if (errors) {
+                    //             for (let [key, message] of Object.entries(errors)) {
+                    //                 console.log(message);
+                    //                 $(`[name=${key}]`).addClass('is-invalid')
+                    //                     .parent()
+                    //                     .append(
+                    //                         `<div class="invalid-feedback">${message}</div>`
+                    //                     )
+                    //             }
+                    //         }
+
+                    //         showToast('error', err.responseJSON?.message)
+                    //     }
+                    // })
                 } else {
                     iziToast['error']({
                         title: "Gagal",

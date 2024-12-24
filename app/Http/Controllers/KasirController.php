@@ -16,6 +16,11 @@ class KasirController extends Controller
         $outletUser = auth()->user()->outlet_id;
         $dataOutletUser = json_decode($outletUser);
 
+        $userOutletJson = auth()->user()->outlet_id;
+        $userOutlet = json_decode($userOutletJson);
+        
+        $diskon = Discount::where('outlet_id', '=', $userOutlet[0]);
+
         $rounding = Checkout::find(1);
         // dd($rounding);
 
@@ -24,7 +29,8 @@ class KasirController extends Controller
         return view('layouts.kasir.index', [
             'categorys' => Category::with('products')->get(),
             'pajak' => $pajak,
-            'rounding' => $rounding
+            'rounding' => $rounding,
+            'discounts' => $diskon
         ]);
     }
 
@@ -46,6 +52,8 @@ class KasirController extends Controller
     }
 
     public function choosePayment(Request $request){
+
+        // dd($request);
         $userData = auth()->user();
         $outletUser = json_decode($userData->outlet_id);
 

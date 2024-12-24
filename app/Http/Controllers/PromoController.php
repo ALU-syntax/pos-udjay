@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\PromoDatatables;
+use App\Models\Outlets;
+use App\Models\Promo;
 use Illuminate\Http\Request;
 
 class PromoController extends Controller
@@ -11,7 +13,11 @@ class PromoController extends Controller
         return $datatables->render('layouts.promo.index');
     }
 
-    // public function create(){
-    //     return view
-    // }
+    public function create(){
+        return view('layouts.promo.promo-modal',[
+            'action' => route("library/promo/store"),
+            'data' =>  new Promo(),
+            "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get()
+        ]);
+    }
 }

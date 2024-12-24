@@ -35,13 +35,16 @@ class MenuSeeder extends Seeder
         $sm = $mm->subMenus()->create(['name' => 'Taxes', 'url' => $mm->url . '/tax', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
 
-        // $sm = $mm->subMenus()->create(['name' => 'Promo', 'url' => $mm->url . '/promo', 'category' => $mm->category]);
-        // $this->attachMenuPermission($sm, null, ['admin']);
+        $sm = $mm->subMenus()->create(['name' => 'Promo', 'url' => $mm->url . '/promo', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->create(['name' => 'Modifiers', 'url' => $mm->url . '/modifiers', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->create(['name' => 'Discount', 'url' => $mm->url . '/discount', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Sales Type', 'url' => $mm->url . '/salestype', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
         // END LIBRARY
 
