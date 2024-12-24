@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\DataTables\PromoDatatables;
 use App\Models\Outlets;
+use App\Models\Product;
 use App\Models\Promo;
+use App\Models\SalesType;
 use Illuminate\Http\Request;
 
 class PromoController extends Controller
@@ -17,7 +19,9 @@ class PromoController extends Controller
         return view('layouts.promo.promo-modal',[
             'action' => route("library/promo/store"),
             'data' =>  new Promo(),
-            "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get()
+            "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
+            'salesTypes' => SalesType::all(),
+            'products' => Product::all()
         ]);
     }
 }

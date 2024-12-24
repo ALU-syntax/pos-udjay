@@ -6,10 +6,10 @@
         </div>
 
         <div class="card mt-4">
-            <div class="card-header d-flex justify-content-end" style="zoom: 0.8">
+            <div class="card-header d-flex justify-content-end" >
                 @can('create library/salestype')
                     <a href="{{ route('library/salestype/create') }}" type="button" class="btn btn-primary btn-round ms-auto action"><i
-                            class="fa fa-plus"></i>Tambah Sales Type</a>
+                            class="fa fa-plus"></i> Tambah Sales Type</a>
                 @endcan
             </div>
             <div class="card-body">
