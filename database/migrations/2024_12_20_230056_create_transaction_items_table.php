@@ -18,6 +18,7 @@ return new class extends Migration
             $table->json('modifier_id')->nullable();
             // $table->integer('quantity');
             $table->unsignedBigInteger('transaction_id');
+            $table->string('catatan')->nullable();
             $table->softDeletes();
             $table->timestamps();
 

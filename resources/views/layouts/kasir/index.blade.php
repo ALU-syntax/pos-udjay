@@ -9,8 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
         integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous"> --}}
+    {{-- <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet"> --}}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous"> --}}
     <link rel="stylesheet" href="{{ asset('css/iziToast.min.css') }}">
     <style>
@@ -58,6 +58,7 @@
         .icon-box {
             width: 100px;
             height: 100px;
+            margin:10px;
             background-color: #d3d3d3;
             /* Warna latar belakang */
             display: flex;
@@ -263,37 +264,37 @@
                                 <div id="content-section" class="mt-2">
 
                                     <div class="card d-flex align-items-center">
-                                        <div class="row w-100">
+                                        <div class="row w-100" style="height: 80px">
                                             <div class="col-auto d-flex align-items-center">
                                                 <button id="back-btn" class="btn btn-link my-3 back-btn"
                                                     style="display: none !important;">&larr; Back</button>
                                                 <div class="col text-center">
-                                                    <h5 class="my-3">Library</h5>
+                                                    <h5 class="my-3" id="text-judul">Library</h5>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
                                     {{-- Diskon View --}}
-                                    <div id="all-diskon"></div>
+                                    <div id="all-diskon" class="child-section"></div>
 
                                     <!-- Initial Library View -->
-                                    <div id="library-view" class="card"
-                                        style="overflow-y: auto; height: calc(100vh - 210px);">
+                                    <div id="library-view" class="card child-section"
+                                        style="overflow-y: auto; height: calc(100vh - 240px);">
                                         <div class="list-group">
                                             <div class="list-group-item list-diskon d-flex align-items-center"
                                                 data-target="diskon">
                                                 <div class="icon-box" data-text="diskon"></div>
-                                                <span class="ml-3">Diskon</span>
-                                                <span class="ml-auto">&gt;</span>
+                                                <span class="ms-3">Diskon</span>
+                                                <span class="ms-auto">&gt;</span>
                                             </div>
 
                                             @foreach ($categorys as $category)
                                                 <div class="list-group-item list-category d-flex align-items-center"
                                                     data-target="{{ $category->name }}">
                                                     <div class="icon-box" data-text="{{ $category->name }}"></div>
-                                                    <span class="ml-3">{{ $category->name }}</span>
-                                                    <span class="ml-auto">&gt;</span>
+                                                    <span class="ms-3">{{ $category->name }}</span>
+                                                    <span class="ms-auto">&gt;</span>
                                                 </div>
                                             @endforeach
                                         </div>
@@ -302,14 +303,14 @@
                                     <!-- Product View -->
 
                                     @foreach ($categorys as $item)
-                                        <div id="{{ $item->name }}" class="card d-none"
-                                            style="overflow-y: auto; height: calc(100vh - 210px);">
+                                        <div id="{{ $item->name }}" class="card d-none child-section"
+                                            style="overflow-y: auto; height: calc(100vh - 240px);">
                                             @foreach ($item->products as $data)
                                                 <div class="list-group-item list-item d-flex align-items-center"
                                                     data-harga="{{ $data->harga_jual }}"
                                                     data-nama="{{ $data->name }}" data-id="{{ $data->id }}">
                                                     <div class="icon-box" data-text="{{ $data->name }}"></div>
-                                                    <span class="ml-3">{{ $data->name }}</span>
+                                                    <span class="ms-3">{{ $data->name }}</span>
                                                 </div>
                                             @endforeach
                                         </div>
@@ -333,7 +334,7 @@
                                     </div>
                                 </div>
                                 <!-- Calculator Buttons -->
-                                <div class="row calculator-row mt-3 mr-2">
+                                <div class="row calculator-row mt-3 me-2">
                                     <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
                                             data-value="1">1</button></div>
                                     <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
@@ -343,7 +344,7 @@
                                     <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
                                             data-value="0">0</button></div>
                                 </div>
-                                <div class="row calculator-row mt-2 mr-2">
+                                <div class="row calculator-row mt-2 me-2">
                                     <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
                                             data-value="4">4</button></div>
                                     <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
@@ -353,7 +354,7 @@
                                     <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
                                             data-value="00">00</button></div>
                                 </div>
-                                <div class="row calculator-row mt-2 mr-2">
+                                <div class="row calculator-row mt-2 me-2">
                                     <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
                                             data-value="7">7</button></div>
                                     <div class="col-3"><button class="btn btn-light w-100 calculator-btn"
@@ -363,7 +364,7 @@
                                     <div class="col-3"><button class="btn btn-primary w-100 calculator-btn"
                                             data-value="add">+</button></div>
                                 </div>
-                                <div class="row calculator-row mt-2 mr-2">
+                                <div class="row calculator-row mt-2 me-2">
                                     <div class="col-6"><button
                                             class="btn btn-secondary w-100 calculator-btn calculator-btn-footer"
                                             data-value="clear">C</button></div>
@@ -415,7 +416,7 @@
                                             <div class="col-6 text-end" id="sub-total">Rp 27.000</div>
                                         </div>
                                         <div id="pajak">
-                                            @foreach ($pajak as $dataPajak)
+                                            {{-- @foreach ($pajak as $dataPajak)
                                                 <div class="row mb-2">
                                                     <div class="col-6">{{ $dataPajak->name }}
                                                         ({{ $dataPajak->amount }}{{ $dataPajak->satuan }})
@@ -426,7 +427,7 @@
                                                         id="pajak-{{ $dataPajak->name }}">
                                                     </div>
                                                 </div>
-                                            @endforeach
+                                            @endforeach --}}
                                         </div>
                                         <div class="row mb-2 d-none" id="group-diskon">
                                             <div class="col-6">Diskon:</div>
@@ -556,6 +557,34 @@
     <div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel">
     </div>
 
+    <!-- Modal Success -->
+    <div class="modal fade" id="modals" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <center>
+                        <img src="https://i.gifer.com/7efs.gif" alt="Transaction Successfully" class="img-fluid">
+                        <h1>Transaksi Sukses!</h1>
+                        <p>Kembalian : <h2 ><strong id="change"></strong></h2></p>
+                        <span class="badge rounded-pill bg-primary text-white mb-4">Metode Pembayaran : <span
+                                id="metodetrx"></span></span>
+                        <div class="d-flex justify-content-center mt-4">
+                            {{-- <a href="javascript:void(0);" class="btn btn-secondary me-4" target="_blank"
+                                id="btninvoice"><i class="fab fa-whatsapp me-1"></i>Kirim Invoice</a> --}}
+                            <a href="javascript:void(0);" class="btn btn-secondary me-4" target="_blank"
+                                id="btnstruk"><i class="fas fa-receipt me-1"></i>Cetak Struk</a>
+                            {{-- <a href="javascript:void(0);" class="btn btn-secondary" target="_blank"
+                                id="btnSettingDevice"><i class="fas fa-gear me-1"></i>Setting Device</a> --}}
+                        </div>
+                    </center>
+                </div>
+                <div class="d-flex justify-content-center mb-4">
+                    <a type="submit" class="btn btn-primary w-50" href="/kasir">Buat Pesanan Baru</a>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- JS Dependencies -->
     {{-- <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script> --}}
@@ -575,6 +604,10 @@
         var subTotal = [];
         var totalDiskon = [];
         var tmpTampungCustomAmount = 0;
+        var totalKeseluruhanPajak = 0;
+        var listPajak = [];
+        var tandaRounding = '';
+        var amountRounding = 0;
 
         function generateRandomID() {
             return 'temp-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
@@ -941,6 +974,10 @@
         }
 
         function syncPajak() {
+            let dataPajak = @json($pajak);
+            let pajakContainer = $('#pajak'); // Targetkan elemen dengan id 'pajak'
+            pajakContainer.html(''); //kosongkan pajak
+
             // Iterasi melalui setiap elemen di dalam #pajak
             let tmpSubTotal = [];
 
@@ -957,40 +994,58 @@
             }, 0);
 
             let tmpTotalPajak = [];
-            $('#pajak .row').each(function() {
-                // Ambil informasi amount dan satuan pajak
-                let amountText = $(this).find('.col-6').text().match(/\((.*?)\)/);
-                if (amountText) {
-                    let amountValue = amountText[1]; // Ambil isi dalam kurung
-                    let satuan = amountValue.slice(-1); // Cek karakter terakhir (misalnya % atau lainnya)
-                    let amount = parseFloat(amountValue.slice(0, -1)); // Ambil angka sebelum satuan
+            let tmpDataPajak = [];
 
-                    let pajakValue = 0;
+            dataPajak.forEach(function(itemPajak, indexPajak) {
+                let satuan = itemPajak.satuan; // Cek karakter terakhir (misalnya % atau lainnya)
+                let amount = parseFloat(itemPajak.amount); // Ambil angka sebelum satuan
 
-                    // Hitung pajak berdasarkan satuan
-                    if (satuan === "%") {
-                        pajakValue = (subTotal * amount) / 100; // Hitung jika persentase
-                    } else {
-                        pajakValue = amount; // Jika satuan tetap (angka biasa)
-                    }
+                let pajakValue = 0;
 
-                    let resultPajak = Math.round(pajakValue);
-
-                    // Format nilai pajak ke format rupiah
-                    let formattedPajak = formatRupiah(resultPajak.toString(), "Rp. ");
-
-                    let idPajak = $(this).find('.value-pajak').attr('id');
-                    $('#' + idPajak).text(formattedPajak);
-
-                    tmpTotalPajak.push(resultPajak);
+                // Hitung pajak berdasarkan satuan
+                if (satuan === "%") {
+                    pajakValue = (subTotal * amount) / 100; // Hitung jika persentase
+                } else {
+                    pajakValue = amount; // Jika satuan tetap (angka biasa)
                 }
+
+                let resultPajak = Math.round(pajakValue);
+
+                // Format nilai pajak ke format rupiah
+                let formattedPajak = formatRupiah(resultPajak.toString(), "Rp. ");
+
+                // Buat elemen row dengan format yang sesuai
+                let row = `
+                    <div class="row mb-2">
+                        <div class="col-6">${itemPajak.name} (${itemPajak.amount}${itemPajak.satuan})</div>
+                        <input type="hidden" name="idPajak[]" value="${itemPajak.id}">
+                        <div class="col-6 text-end value-pajak" id="pajak-${itemPajak.name}">
+                            ${formattedPajak}
+                        </div>
+                    </div>
+                `;
+
+                // Append elemen row ke dalam div 'pajak'
+                pajakContainer.append(row);
+
+                let dataPajak = {
+                    id: itemPajak.id,
+                    name: itemPajak.name,
+                    amount: amount,
+                    satuan: satuan,
+                    total: resultPajak
+                }
+                tmpDataPajak.push(dataPajak);
+                tmpTotalPajak.push(resultPajak);
             });
 
             var totalPajak = tmpTotalPajak.reduce(function(acc, curr) {
                 return acc + curr;
             }, 0);
 
-            return totalPajak;
+            totalKeseluruhanPajak = totalPajak;
+
+            listPajak = tmpDataPajak;
         }
 
         function syncDiskon() {
@@ -1021,7 +1076,7 @@
         function syncTotal() {
             let subTotal = syncSubTotal();
             let diskon = syncDiskon();
-            let pajak = syncPajak();
+            let pajak = totalKeseluruhanPajak;
 
             let total = subTotal + pajak - diskon;
 
@@ -1051,28 +1106,26 @@
                     let hasilRounded = 0;
                     let rounded = '';
 
-                    console.log(dataRoundBenchmark)
-                    console.log(angkaBelakang)
 
-                    if(angkaBelakang > 500){
-                        if(angkaBelakang > dataRoundBenchmark){
+                    if (angkaBelakang > 500) {
+                        if (angkaBelakang > dataRoundBenchmark) {
                             console.log("masuk tahap 1")
                             let hasil = 1000 - angkaBelakang;
                             hasilRounded = Math.abs(hasil);
                             rounded = '+';
-                        }else{
+                        } else {
                             console.log("masuk tahap 2")
                             let hasil = 500 - angkaBelakang;
                             hasilRounded = -Math.abs(hasil);
                             rounded = '-';
                         }
-                    }else{
-                        if(angkaBelakang > dataRoundBenchmark){
+                    } else {
+                        if (angkaBelakang > dataRoundBenchmark) {
                             console.log("masuk tahap 3")
                             let hasil = 500 - angkaBelakang;
                             hasilRounded = Math.abs(hasil);
                             rounded = '+';
-                        }else{
+                        } else {
                             console.log("masuk tahap 4x")
                             let hasil = 500 - angkaBelakang;
                             hasilRounded = Math.abs(hasil);
@@ -1090,14 +1143,14 @@
                     //     rounded = "-";
                     // }
 
-
-                    console.log(rounded);
-                    console.log(hasilRounded);
-
                     // Update nilai pembulatan ke elemen
                     $('#rounding').text(rounded + formatRupiah(hasilRounded.toString(), "Rp. "));
+                    tandaRounding = rounded;
+                    amountRounding = hasilRounded
                 }
             } else {
+                tandaRounding = ''
+                amountRounding = 0;
                 $("#group-rounding").addClass('d-none');
             }
         }
@@ -1172,8 +1225,9 @@
                 // backBtn.style.display = 'block !important;';
                 backBtn.style.setProperty('display', 'flex', 'important');
                 const targetView = $(this).data('target');
-                $('#content-section > .card').addClass('d-none'); // Hide all views
+                $('#content-section > .child-section').addClass('d-none'); // Hide all views
                 $(`#${targetView}`).removeClass('d-none'); // Show selected view
+                $('#text-judul').text(`${targetView}`)
             });
 
 
@@ -1191,14 +1245,13 @@
 
             });
 
-
-
             // Handle back button to return to the library view
             $('.back-btn').on('click', function() {
                 // backBtn.style.display = 'none !important;';
                 backBtn.style.setProperty('display', 'none', 'important');
-                $('#content-section > .card').addClass('d-none'); // Hide all views
+                $('#content-section > .child-section').addClass('d-none'); // Hide all views
                 $('#library-view').removeClass('d-none'); // Show library view
+                $('#text-judul').text("Library")
             });
 
             const iconBoxes = document.querySelectorAll('.icon-box');
@@ -1243,7 +1296,7 @@
                     handleAjax("{{ route('kasir/choosePayment') }}").excute();
                     // let dataForm = new FormData();
                     // $.ajax({
-                    //     url: "{{route('kasir/choosePayment')}}",
+                    //     url: "{{ route('kasir/choosePayment') }}",
                     //     method: "GET",
                     //     data: dataForm,
                     //     contentType: false,

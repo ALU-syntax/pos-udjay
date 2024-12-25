@@ -17,12 +17,14 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('cutomer_id')->nullable();
             $table->bigInteger('total')->nullable();
+            $table->bigInteger('nominal_bayar')->nullable();
             $table->bigInteger('change')->nullable();
             $table->string('tipe_pembayaran');
             $table->json('total_pajak');
             $table->bigInteger('total_modifier');
             $table->bigInteger('total_diskon');
-            $table->bigInteger('rounding_amount');
+            $table->bigInteger('rounding_amount')->nullable();
+            $table->string('tanda_rounding')->nullable();
             $table->softDeletes();
             $table->timestamps();
             
