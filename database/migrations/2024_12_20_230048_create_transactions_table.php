@@ -17,9 +17,9 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('cutomer_id')->nullable();
             $table->bigInteger('total')->nullable();
-            $table->bigInteger('charge')->nullable();
+            $table->bigInteger('change')->nullable();
             $table->string('tipe_pembayaran');
-            $table->bigInteger('total_pajak');
+            $table->json('total_pajak');
             $table->bigInteger('total_modifier');
             $table->bigInteger('total_diskon');
             $table->bigInteger('rounding_amount');

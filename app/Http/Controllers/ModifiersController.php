@@ -60,7 +60,7 @@ class ModifiersController extends Controller
                 $dataModifier[] = [
                     'name' => $validatedData['option_name'][$x],
                     'harga' => getAmount($validatedData['price'][$x]),
-                    // 'stok' => $validatedData['stok'][$x],
+                    'stok' => $validatedData['stok'][$x],
                     'modifiers_group_id' => $modifierGroup->id, // Gunakan ID langsung dari instance ModifierGroup
                     'created_at' => now(),
                     'updated_at' => now()
@@ -133,7 +133,7 @@ class ModifiersController extends Controller
                 $dataModifier = [
                     'name' => $value,
                     'harga' => getAmount($listPriceModifier[$key]),
-                    // 'stok' => $listStokModifier[$key],
+                    'stok' => $listStokModifier[$key],
                 ];
 
                 $modifierItem->update($dataModifier);
@@ -141,7 +141,7 @@ class ModifiersController extends Controller
                 $dataModifier = [
                     'name' => $value,
                     'harga' => getAmount($listPriceModifier[$key]),
-                    // 'stok' => $listStokModifier[$key],
+                    'stok' => $listStokModifier[$key],
                     'modifiers_group_id' => $modifier->id, // Gunakan ID langsung dari instance ModifierGroup
                     'created_at' => now(),
                     'updated_at' => now()

@@ -27,7 +27,9 @@ class KasirController extends Controller
         $pajak = Taxes::where('outlet_id', $dataOutletUser[0])->get();
 
         return view('layouts.kasir.index', [
-            'categorys' => Category::with('products')->get(),
+            'categorys' => Category::with(['products' => function($product){
+                $product->orderBy('name', 'asc');
+            }])->get(),
             'pajak' => $pajak,
             'rounding' => $rounding,
             'discounts' => $diskon
@@ -80,5 +82,9 @@ class KasirController extends Controller
         PettyCash::create($data);
 
         return responseSuccess(false, "Shift Berhasil dibuka");
+    }
+
+    public function bayar(Request $request){
+        dd($request);
     }
 }

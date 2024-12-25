@@ -62,7 +62,6 @@ class ModifiersDatatables extends DataTable
         } elseif($this->request()->has('outlet') && $this->request()->get('outlet') == ''){
             $query->where('outlet_id', json_decode(auth()->user()->outlet_id));
         }
-        // dd($query);
 
         return $query;
     }

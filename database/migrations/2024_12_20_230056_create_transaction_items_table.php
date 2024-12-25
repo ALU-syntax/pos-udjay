@@ -13,13 +13,15 @@ return new class extends Migration
     {
         Schema::create('transaction_items', function (Blueprint $table) {
             $table->id();
-            $table->json('product_id');
-            $table->json('discount_id');
-            $table->json('modifier_id');
-            $table->integer('quantity');
+            $table->unsignedBigInteger('product_id');
+            $table->json('discount_id')->nullable();
+            $table->json('modifier_id')->nullable();
+            // $table->integer('quantity');
             $table->unsignedBigInteger('transaction_id');
             $table->softDeletes();
             $table->timestamps();
+
+            $table->foreign('product_id')->references('id')->on('products')->onDelete('CASCADE');
             $table->foreign('transaction_id')->references('id')->on('transactions')->onDelete('CASCADE');
         });
     }

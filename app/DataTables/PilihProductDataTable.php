@@ -35,11 +35,11 @@ class PilihProductDataTable extends DataTable
 
         return (new EloquentDataTable($query))
             ->addColumn('checkbox', function ($row) use ($dataClosure) {
-                if(!empty($dataClosure['checkedProduct'])){
-                    $checked = in_array($row->id, $dataClosure['checkedProduct']) ? 'checked' : '';    
-                }else if($dataClosure['productId'] != null){
+                if (!empty($dataClosure['checkedProduct'])) {
+                    $checked = in_array($row->id, $dataClosure['checkedProduct']) ? 'checked' : '';
+                } else if ($dataClosure['productId'] != null) {
                     $checked = in_array($row->id, $dataClosure['productId']) ? 'checked' : '';
-                }else{
+                } else {
                     $checked = '';
                 }
                 return '<input type="checkbox" class="product-checkbox" name="products[]" value="' . $row->id . '" ' . $checked . '>';
@@ -58,27 +58,27 @@ class PilihProductDataTable extends DataTable
         // Ambil data 'modifierGroup' dari request
         $modifierGroup = $this->modifierGroup;
 
-        $productIds = $modifierGroup ? ($modifierGroup->product_id != null ? json_decode($modifierGroup->product_id, true) : []) : [];
-        if (empty($productIds)) {
-            return $model->newQuery()->select('id', 'name', 'harga_jual')->orderBy('name', 'asc');
-        }
-
         // Ambil data dari request
         $checkedProducts = $this->request->get('checkedProducts', []);
 
+        $productIds = $modifierGroup ? ($modifierGroup->product_id != null ? json_decode($modifierGroup->product_id, true) : []) : [];
+
+        // Query dasar
+        $query = $model->newQuery()
+            ->select('id', 'name', 'harga_jual');
+
         if (!empty($checkedProducts)) {
-            // Urutkan data: produk yang dicentang muncul lebih dulu
-            return $model->newQuery()
-                ->select('id', 'name', 'harga_jual')
-                ->orderByRaw("FIELD(id, " . implode(',', $checkedProducts) . ") DESC")
-                ->orderBy('name', 'asc');
-        } else {
-            // Tambahkan CASE untuk memprioritaskan product_id yang ada di daftar
-            return $model->newQuery()
-                ->select('id', 'name', 'harga_jual')
-                ->orderByRaw("FIELD(id, " . implode(',', $productIds) . ") DESC")
-                ->orderBy('name', 'asc'); // Order by name untuk data lainnya
+            // Jika ada produk yang dicentang, urutkan berdasarkan `checkedProducts`
+            $query->orderByRaw("FIELD(id, " . implode(',', $checkedProducts) . ") DESC");
+        } elseif (!empty($productIds)) {
+            // Jika tidak ada `checkedProducts`, urutkan berdasarkan `productIds` dari modifierGroup
+            $query->orderByRaw("FIELD(id, " . implode(',', $productIds) . ") DESC");
         }
+
+        // Tambahkan order by name sebagai default
+        $query->orderBy('name', 'asc');
+
+        return $query;
     }
 
     /**

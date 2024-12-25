@@ -84,7 +84,7 @@
                                     </span>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input form-diskon" value="{{ $discount->amount }}"
-                                            data-type="{{ $discount->satuan }}" type="checkbox"
+                                            data-type="{{ $discount->satuan }}" data-name="{{$discount->name}}" type="checkbox"
                                             data-id="{{ $discount->id }}" id="discount-{{ $discount->id }}">
                                     </div>
                                 </div>
@@ -160,6 +160,7 @@
     function hitungDiskon() {
         let totalDiskon = 0;
         let totalDiskonId = [];
+        let totalDiskonNama = [];
         let totalDiskonHarga = [];
         let totalDiskonValue = [];
         let totalDiskonType = [];
@@ -170,6 +171,7 @@
                 const amount = parseFloat(checkbox.value);
                 const type = checkbox.dataset.type;
                 const id = checkbox.dataset.id;
+                const name = checkbox.dataset.name;
 
                 if (type === "rupiah") {
                     totalDiskon += amount;
@@ -181,11 +183,13 @@
                 totalDiskonValue.push(amount);
                 totalDiskonHarga.push(totalDiskon);
                 totalDiskonType.push(type);
+                totalDiskonNama.push(name);
             }
         });
 
         listDiskonAmount = totalDiskonHarga;
         listDiskonId = totalDiskonId;
+        listDiskonName = totalDiskonNama;
         listDiskonValue = totalDiskonValue;
         listDiskonType = totalDiskonType;
         return totalDiskon;
@@ -262,7 +266,7 @@
         let dataModifierHarga = listModifierHarga;
 
         let dataModifier = [];
-        for (let x; x > dataModifierId.length; x++) {
+        for (let x=0; x < dataModifierId.length; x++) {
             let tmpDataModifier = {
                 tmpIdProduct: tmpRandomId,
                 id: dataModifierId[x],
@@ -282,7 +286,8 @@
 
         let dataDiskon = [];
 
-        for (let i = 0; i > dataDiskonId.length; i++) {
+        console.log(dataDiskonNama);
+        for (let i = 0; i < dataDiskonId.length; i++) {
             let tmpDataDiskon = {
                 tmpIdProduct: tmpRandomId,
                 id: dataDiskonId[i],
@@ -317,11 +322,13 @@
             harga: dataHargaProduct,
             quantity: quantityProduct,
             diskon: dataDiskon,
-            promo: ,
+            promo: [],
+            modifier: dataModifier,
             catatan: catatan,
-            resultTotal: totalHargaProduct + resultModifierTotal, //re
+            resultTotal: totalHargaProduct, //result
         }
 
+        listItem.push(data);
         // updateSubTotal();
         // updatePajak();
 
@@ -433,9 +440,10 @@
         }
 
         console.log(totalDiskon);
-        updateHargaTotal();
+        // updateHargaTotal();
         // Tambahkan elemen ke dalam form di dalam #order-list
-        $('#order-list').append(html);
+        // $('#order-list').append(html);
+        syncItemCart()
 
         // Tutup modal
         const modal = $('#itemModal');

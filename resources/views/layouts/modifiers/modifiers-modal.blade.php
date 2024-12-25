@@ -71,7 +71,7 @@
     <hr class="ms-4 me-4 mt-4" style="width: 95%;">
     <div class="col-md-12">
         <div class="form-group">
-            <label>Required? <span class="text-danger">*</span></label><br>
+            <label>Required? <span class="text-danger">*</span> <small><i>belum digunakan, kasus dimoka mode required hanya digunakan untuk pesanan online</i></small></label><br>
             <div class="d-flex" onload="radioClicked()" onclick="radioClicked()">
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="required" id="requiredYes" value="true"
@@ -167,32 +167,32 @@
 
             // Buat elemen <tr> baru
             const newRow = document.createElement("tr");
-    //         newRow.innerHTML = `
-    //     <td style="padding: 5px !important">
-    //         <input type="text" class="form-control" name="option_name[]" placeholder="Name">
-    //     </td>
-    //     <td style="padding: 5px !important">
-    //         <input type="text" class="form-control harga-modifier" name="price[]" placeholder="Rp">
-    //     </td>
-    //     <td style="padding: 5px !important">
-    //         <input type="number" class="form-control" name="stok[]" placeholder="Stok">
-    //     </td>
-    //     <td>
-    //         <button type="button" class="btn btn-danger btn-sm removeRow">Remove</button>
-    //     </td>
-    // `;
-
-    newRow.innerHTML = `
+            newRow.innerHTML = `
         <td style="padding: 5px !important">
             <input type="text" class="form-control" name="option_name[]" placeholder="Name">
         </td>
         <td style="padding: 5px !important">
             <input type="text" class="form-control harga-modifier" name="price[]" placeholder="Rp">
         </td>
+        <td style="padding: 5px !important">
+            <input type="number" class="form-control" name="stok[]" placeholder="Stok">
+        </td>
         <td>
             <button type="button" class="btn btn-danger btn-sm removeRow">Remove</button>
         </td>
     `;
+
+    // newRow.innerHTML = `
+    //     <td style="padding: 5px !important">
+    //         <input type="text" class="form-control" name="option_name[]" placeholder="Name">
+    //     </td>
+    //     <td style="padding: 5px !important">
+    //         <input type="text" class="form-control harga-modifier" name="price[]" placeholder="Rp">
+    //     </td>
+    //     <td>
+    //         <button type="button" class="btn btn-danger btn-sm removeRow">Remove</button>
+    //     </td>
+    // `;
 
             // Tambahkan baris baru ke tabel
             tableBody.appendChild(newRow);

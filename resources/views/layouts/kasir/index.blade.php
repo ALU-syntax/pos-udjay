@@ -281,7 +281,7 @@
                                     <div id="library-view" class="card"
                                         style="overflow-y: auto; height: calc(100vh - 210px);">
                                         <div class="list-group">
-                                            <div class="list-group-item-diskon list-diskon d-flex align-items-center"
+                                            <div class="list-group-item list-diskon d-flex align-items-center"
                                                 data-target="diskon">
                                                 <div class="icon-box" data-text="diskon"></div>
                                                 <span class="ml-3">Diskon</span>
@@ -850,7 +850,6 @@
                 let symbol = textRounding.charAt(0);
 
                 let hargaFinal = symbol == "-" ? angkaTotal - angkaRounding : angkaTotal + angkaRounding;
-                console.log(console.log(rounding));
 
                 $('#bayar').text("Bayar " + formatRupiah(hargaFinal.toString(), "Rp. "));
             } else {
@@ -865,6 +864,242 @@
                 message: message,
                 position: 'topRight'
             });
+        }
+
+        function syncItemCart() {
+            syncAllItemInCart();
+            syncSubTotal();
+            syncPajak();
+            syncDiskon();
+            syncTotal();
+            syncRounding();
+            updateHargaFinalButton();
+
+            if (listItem.length > 0) {
+                document.getElementById("produkKosong").style.display = "none";
+                document.getElementById("summary").style.setProperty('display', 'block', 'important');
+            } else {
+                document.getElementById("produkKosong").style.display = "block";
+                document.getElementById("summary").style.setProperty('display', 'none', 'important');
+            }
+        }
+
+        function syncAllItemInCart() {
+            $('#order-list').empty();
+            listItem.forEach(function(item, index) {
+                let html = `
+                <div class="row mb-0 mt-2">
+                    <div class="col-6">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
+                    <div class="col-5 text-end">${formatRupiah(item.resultTotal.toString(), "Rp. ")}</div>
+                    <div class="col-1 text-end text-danger">
+                        <button type="button" onclick="deleteItem(this)" data-tmpId="${item.tmpId}" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
+                    </div>
+                </div>
+                `;
+
+                if (item.modifier.length > 0) {
+                    item.modifier.forEach(function(itemModifier, indexModifier) {
+                        html += `
+                        <div class="row mb-0 mt-0">
+                            <div class="col-6 text-muted">${itemModifier.nama}</div>
+                            <div class="col-5 text-end text-muted">${formatRupiah(itemModifier.harga.toString(), "Rp. ")}</div>
+                        </div>
+                        `;
+                    });
+                }
+
+                if (item.catatan != '') {
+                    html += `
+                        <div class="row mb-0 mt-0">
+                            <div class="col-6 text-muted">${item.catatan}</div>
+                        </div>
+                        `;
+                }
+
+                $('#order-list').append(html);
+            })
+        }
+
+        function syncSubTotal() {
+            let tmpSubTotal = [];
+
+            listItem.forEach(function(item, index) {
+                tmpSubTotal.push(item.resultTotal);
+
+                item.modifier.forEach(function(itemModifier, indexModifier) {
+                    tmpSubTotal.push(itemModifier.harga);
+                });
+            });
+
+            var total = tmpSubTotal.reduce(function(acc, curr) {
+                return acc + curr;
+            }, 0);
+
+            $('#sub-total').text(formatRupiah(total.toString(), "Rp. "));
+
+            return total;
+        }
+
+        function syncPajak() {
+            // Iterasi melalui setiap elemen di dalam #pajak
+            let tmpSubTotal = [];
+
+            listItem.forEach(function(item, index) {
+                tmpSubTotal.push(item.resultTotal);
+
+                item.modifier.forEach(function(itemModifier, indexModifier) {
+                    tmpSubTotal.push(itemModifier.harga);
+                });
+            });
+
+            var subTotal = tmpSubTotal.reduce(function(acc, curr) {
+                return acc + curr;
+            }, 0);
+
+            let tmpTotalPajak = [];
+            $('#pajak .row').each(function() {
+                // Ambil informasi amount dan satuan pajak
+                let amountText = $(this).find('.col-6').text().match(/\((.*?)\)/);
+                if (amountText) {
+                    let amountValue = amountText[1]; // Ambil isi dalam kurung
+                    let satuan = amountValue.slice(-1); // Cek karakter terakhir (misalnya % atau lainnya)
+                    let amount = parseFloat(amountValue.slice(0, -1)); // Ambil angka sebelum satuan
+
+                    let pajakValue = 0;
+
+                    // Hitung pajak berdasarkan satuan
+                    if (satuan === "%") {
+                        pajakValue = (subTotal * amount) / 100; // Hitung jika persentase
+                    } else {
+                        pajakValue = amount; // Jika satuan tetap (angka biasa)
+                    }
+
+                    let resultPajak = Math.round(pajakValue);
+
+                    // Format nilai pajak ke format rupiah
+                    let formattedPajak = formatRupiah(resultPajak.toString(), "Rp. ");
+
+                    let idPajak = $(this).find('.value-pajak').attr('id');
+                    $('#' + idPajak).text(formattedPajak);
+
+                    tmpTotalPajak.push(resultPajak);
+                }
+            });
+
+            var totalPajak = tmpTotalPajak.reduce(function(acc, curr) {
+                return acc + curr;
+            }, 0);
+
+            return totalPajak;
+        }
+
+        function syncDiskon() {
+            var tmpTotalDiskon = [];
+
+            listItem.forEach(function(item, index) {
+                item.diskon.forEach(function(itemDiskon, indexDiskon) {
+                    tmpTotalDiskon.push(itemDiskon.result);
+                });
+            });
+
+            var totalDiskon = tmpTotalDiskon.reduce(function(acc, curr) {
+                return acc + curr;
+            }, 0);
+
+            let bulatkanDiskon = Math.round(totalDiskon);
+            if (bulatkanDiskon > 0) {
+                $("#group-diskon").removeClass('d-none');
+            } else {
+                $("#group-diskon").addClass('d-none');
+            }
+
+            $('#diskon').text("-" + formatRupiah(bulatkanDiskon.toString(), "Rp. "));
+
+            return bulatkanDiskon;
+        }
+
+        function syncTotal() {
+            let subTotal = syncSubTotal();
+            let diskon = syncDiskon();
+            let pajak = syncPajak();
+
+            let total = subTotal + pajak - diskon;
+
+            document.getElementById("total").innerText = formatRupiah(total.toString(), "Rp. ");
+        }
+
+        function syncRounding() {
+            let dataRounding = @json($rounding);
+
+            if (dataRounding) {
+                let dataRounded = dataRounding.rounded;
+                if (dataRounded == "true") {
+                    $("#group-rounding").removeClass('d-none');
+
+                    let dataRoundBenchmark = parseInt(dataRounding.rounded_benchmark);
+                    let roundedType = parseInt(dataRounding.rounded_type);
+
+                    // Ambil angka total
+                    let total = document.getElementById("total").textContent;
+                    let totalText = total.trim();
+                    let angkaTotal = parseInt(totalText.replace(/[^\d]/g, ""));
+
+                    // Ambil bagian belakang dan depan angka
+                    let angkaBelakang = angkaTotal % roundedType; // Sisa pembagian (angka belakang)
+                    let angkaDepan = Math.floor(angkaTotal / roundedType); // Angka depan
+
+                    let hasilRounded = 0;
+                    let rounded = '';
+
+                    console.log(dataRoundBenchmark)
+                    console.log(angkaBelakang)
+
+                    if(angkaBelakang > 500){
+                        if(angkaBelakang > dataRoundBenchmark){
+                            console.log("masuk tahap 1")
+                            let hasil = 1000 - angkaBelakang;
+                            hasilRounded = Math.abs(hasil);
+                            rounded = '+';
+                        }else{
+                            console.log("masuk tahap 2")
+                            let hasil = 500 - angkaBelakang;
+                            hasilRounded = -Math.abs(hasil);
+                            rounded = '-';
+                        }
+                    }else{
+                        if(angkaBelakang > dataRoundBenchmark){
+                            console.log("masuk tahap 3")
+                            let hasil = 500 - angkaBelakang;
+                            hasilRounded = Math.abs(hasil);
+                            rounded = '+';
+                        }else{
+                            console.log("masuk tahap 4x")
+                            let hasil = 500 - angkaBelakang;
+                            hasilRounded = Math.abs(hasil);
+                            rounded = '+';
+                        }
+                    }
+
+                    // if (angkaBelakang > dataRoundBenchmark) {
+                    //     // Jika bagian belakang lebih besar dari benchmark, bulatkan ke atas
+                    //     hasilRounded = roundedType - angkaBelakang;
+                    //     rounded = "+";
+                    // } else {
+                    //     // Jika bagian belakang lebih kecil/sama, bulatkan ke bawah
+                    //     hasilRounded = -angkaBelakang;
+                    //     rounded = "-";
+                    // }
+
+
+                    console.log(rounded);
+                    console.log(hasilRounded);
+
+                    // Update nilai pembulatan ke elemen
+                    $('#rounding').text(rounded + formatRupiah(hasilRounded.toString(), "Rp. "));
+                }
+            } else {
+                $("#group-rounding").addClass('d-none');
+            }
         }
 
         $(document).ready(function() {
@@ -1006,9 +1241,10 @@
                     //     console.log($(this)); // Menampilkan setiap elemen
                     // });
                     handleAjax("{{ route('kasir/choosePayment') }}").excute();
+                    // let dataForm = new FormData();
                     // $.ajax({
-                    //     url: this.action,
-                    //     method: this.method,
+                    //     url: "{{route('kasir/choosePayment')}}",
+                    //     method: "GET",
                     //     data: dataForm,
                     //     contentType: false,
                     //     processData: false,
