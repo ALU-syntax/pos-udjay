@@ -10,7 +10,8 @@
         integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     {{-- <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet"> --}}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous"> --}}
     <link rel="stylesheet" href="{{ asset('css/iziToast.min.css') }}">
     <style>
@@ -58,7 +59,7 @@
         .icon-box {
             width: 100px;
             height: 100px;
-            margin:10px;
+            margin: 10px;
             background-color: #d3d3d3;
             /* Warna latar belakang */
             display: flex;
@@ -275,15 +276,12 @@
                                         </div>
                                     </div>
 
-                                    {{-- Diskon View --}}
-                                    <div id="all-diskon" class="child-section"></div>
-
                                     <!-- Initial Library View -->
                                     <div id="library-view" class="card child-section"
                                         style="overflow-y: auto; height: calc(100vh - 240px);">
                                         <div class="list-group">
-                                            <div class="list-group-item list-diskon d-flex align-items-center"
-                                                data-target="diskon">
+                                            <div class="list-group-item list-category d-flex align-items-center"
+                                                data-target="Diskon">
                                                 <div class="icon-box" data-text="diskon"></div>
                                                 <span class="ms-3">Diskon</span>
                                                 <span class="ms-auto">&gt;</span>
@@ -316,6 +314,11 @@
                                         </div>
                                     @endforeach
 
+                                    {{-- Menu Diskon --}}
+                                    <div id="Diskon" class="card d-none child-section"
+                                        style="overflow-y: auto; height: calc(100vh - 240px);">
+
+                                    </div>
                                 </div>
                             </div>
 
@@ -415,20 +418,10 @@
                                             <div class="col-6">Subtotal:</div>
                                             <div class="col-6 text-end" id="sub-total">Rp 27.000</div>
                                         </div>
+
                                         <div id="pajak">
-                                            {{-- @foreach ($pajak as $dataPajak)
-                                                <div class="row mb-2">
-                                                    <div class="col-6">{{ $dataPajak->name }}
-                                                        ({{ $dataPajak->amount }}{{ $dataPajak->satuan }})
-                                                    </div>
-                                                    <input type="text" name="idPajak[]"
-                                                        value="{{ $dataPajak->id }}" hidden>
-                                                    <div class="col-6 text-end value-pajak"
-                                                        id="pajak-{{ $dataPajak->name }}">
-                                                    </div>
-                                                </div>
-                                            @endforeach --}}
                                         </div>
+
                                         <div class="row mb-2 d-none" id="group-diskon">
                                             <div class="col-6">Diskon:</div>
                                             <div class="col-6 text-end" id="diskon"></div>
@@ -458,13 +451,6 @@
 
                                 <!-- Charge Button -->
                                 <div class="row">
-                                    {{-- <div class="col-3">
-                                        <h5>Billing list</h5>
-                                    </div>
-                                    <div class="col-9 d-flex">
-                                        <button class="btn btn-primary btn-lg btn-block" id="bayar"
-                                            style="height: 60px;">Bayar</button>
-                                    </div> --}}
                                     <button class="btn btn-primary btn-lg btn-block" id="bayar"
                                         style="height: 60px;">Bayar</button>
                                 </div>
@@ -473,46 +459,6 @@
                         </div>
                     </div>
                 </div>
-
-                {{-- <div class="col-4 p-3">
-                    <div class="order-section">
-                        <div class="d-flex align-items-center justify-content-between bg-light p-2 rounded">
-                            <div class="d-flex align-items-center">
-                                <img src="https://via.placeholder.com/24" alt="Icon" class="mr-2">
-                                <span class="font-weight-bold">+ Tambah Pelanggan</span>
-                            </div>
-                            <button class="btn btn-primary btn-sm">Tambah Pelanggan</button>
-                        </div>
-                        <hr>
-                        <p class="text-center font-weight-bold">Dine In</p>
-                        <div>
-                            <div class="d-flex justify-content-between">
-                                <span>Berry Blossom</span>
-                                <span>Rp 27.000</span>
-                                <button class="btn btn-sm btn-danger">X</button>
-                            </div>
-                            <hr>
-                            <div class="d-flex justify-content-between">
-                                <span>Subtotal:</span>
-                                <span>Rp 27.000</span>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>PB 1 (10%):</span>
-                                <span>Rp 2.700</span>
-                            </div>
-                            <div class="d-flex justify-content-between font-weight-bold">
-                                <span>Total:</span>
-                                <span>Rp 29.700</span>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Rounding:</span>
-                                <span>Rp 300</span>
-                            </div>
-                        </div>
-                        <hr>
-                        <button class="btn btn-danger btn-block">Kosongkan Keranjang Belanja</button>
-                    </div>
-                </div> --}}
 
             </div>
         </div>
@@ -566,7 +512,9 @@
                     <center>
                         <img src="https://i.gifer.com/7efs.gif" alt="Transaction Successfully" class="img-fluid">
                         <h1>Transaksi Sukses!</h1>
-                        <p>Kembalian : <h2 ><strong id="change"></strong></h2></p>
+                        <p>Kembalian :
+                        <h2><strong id="change"></strong></h2>
+                        </p>
                         <span class="badge rounded-pill bg-primary text-white mb-4">Metode Pembayaran : <span
                                 id="metodetrx"></span></span>
                         <div class="d-flex justify-content-center mt-4">
@@ -602,6 +550,7 @@
         })
         var listItem = [];
         var subTotal = [];
+        var listDiskon = [];
         var totalDiskon = [];
         var tmpTampungCustomAmount = 0;
         var totalKeseluruhanPajak = 0;
@@ -659,30 +608,6 @@
             updateHargaTotal();
         }
 
-        function updateDiskon() {
-            var jumlahDiskon = totalDiskon.reduce(function(acc, curr) {
-                return acc + curr;
-            }, 0);
-
-            console.log(jumlahDiskon)
-            let bulatkanDiskon = Math.round(jumlahDiskon);
-            if (bulatkanDiskon > 0) {
-                $("#group-diskon").removeClass('d-none');
-            } else {
-                $("#group-diskon").addClass('d-none');
-            }
-
-            $('#diskon').text("-" + formatRupiah(bulatkanDiskon.toString(), "Rp. "));
-        }
-
-        function updateSubTotal() {
-            var total = subTotal.reduce(function(acc, curr) {
-                return acc + curr;
-            }, 0);
-
-            $('#sub-total').text(formatRupiah(total.toString(), "Rp. "));
-        }
-
         function updateCustomAmount() {
             let html = `
             <div class="row mb-0 mt-2">
@@ -704,154 +629,6 @@
 
             updateHargaTotal();
 
-        }
-
-        function updateRounding() {
-            let dataRounding = @json($rounding);
-
-            if (dataRounding) {
-                let dataRounded = dataRounding.rounded;
-                if (dataRounded == "true") {
-                    $("#group-rounding").removeClass('d-none');
-
-                    let dataRoundBenchmark = parseInt(dataRounding.rounded_benchmark);
-                    let roundedType = parseInt(dataRounding.rounded_type);
-
-                    // Ambil angka total
-                    let total = document.getElementById("total").textContent;
-                    let totalText = total.trim();
-                    let angkaTotal = parseInt(totalText.replace(/[^\d]/g, ""));
-
-                    // Ambil bagian belakang dan depan angka
-                    let angkaBelakang = angkaTotal % roundedType; // Sisa pembagian (angka belakang)
-                    let angkaDepan = Math.floor(angkaTotal / roundedType); // Angka depan
-
-                    let hasilRounded = 0;
-                    let rounded = '';
-
-                    if (angkaBelakang > dataRoundBenchmark) {
-                        // Jika bagian belakang lebih besar dari benchmark, bulatkan ke atas
-                        hasilRounded = roundedType - angkaBelakang;
-                        rounded = "+";
-                    } else {
-                        // Jika bagian belakang lebih kecil/sama, bulatkan ke bawah
-                        hasilRounded = -angkaBelakang;
-                        rounded = "-";
-                    }
-
-                    // Update nilai pembulatan ke elemen
-                    $('#rounding').text(rounded + formatRupiah(hasilRounded.toString(), "Rp. "));
-                }
-            } else {
-                $("#group-rounding").addClass('d-none');
-            }
-        }
-
-
-        function updatePajak() {
-            // Hitung subtotal
-            // console.log(subTotal);
-            let resultSubTotal = subTotal.reduce(function(acc, curr) {
-                return acc + curr;
-            }, 0);
-
-            // Iterasi melalui setiap elemen di dalam #pajak
-            $('#pajak .row').each(function() {
-                // Ambil informasi amount dan satuan pajak
-                let amountText = $(this).find('.col-6').text().match(/\((.*?)\)/);
-                if (amountText) {
-                    let amountValue = amountText[1]; // Ambil isi dalam kurung
-                    let satuan = amountValue.slice(-1); // Cek karakter terakhir (misalnya % atau lainnya)
-                    let amount = parseFloat(amountValue.slice(0, -1)); // Ambil angka sebelum satuan
-
-                    let pajakValue = 0;
-
-                    // Hitung pajak berdasarkan satuan
-                    if (satuan === "%") {
-                        pajakValue = (resultSubTotal * amount) / 100; // Hitung jika persentase
-                    } else {
-                        pajakValue = amount; // Jika satuan tetap (angka biasa)
-                    }
-
-                    let resultPajak = Math.round(pajakValue);
-
-                    // Format nilai pajak ke format rupiah
-                    let formattedPajak = formatRupiah(resultPajak.toString(), "Rp. ");
-
-                    let idPajak = $(this).find('.value-pajak').attr('id');
-                    $('#' + idPajak).text(formattedPajak);
-                }
-            });
-        }
-
-        function updateTotal() {
-            // Hitung subtotal
-            let resultSubTotal = subTotal.reduce(function(acc, curr) {
-                return acc + curr;
-            }, 0);
-
-            // Ambil semua nilai pajak dari elemen dengan class 'value-pajak'
-            let pajak = 0;
-            $('#pajak .value-pajak').each(function() {
-                // Ambil nilai pajak (dalam format 10%, 2%, dll.)
-                let pajakText = $(this).text().trim();
-                // Menghapus semua karakter non-digit menggunakan regex
-                let angkaPajak = pajakText.replace(/[^\d]/g, "");
-
-                // Konversi ke angka (opsional)
-                // let pajakDataValue = parseInt(angkaSaja, 10);
-
-                // console.log(pajakDataValue);
-                // Hapus tanda '%' dan ubah menjadi desimal
-                let pajakValue = parseFloat(angkaPajak);
-                console.log(pajakValue)
-
-                console.log(resultSubTotal);
-                // Tambahkan pajak ke total pajak
-                pajak += pajakValue;
-            });
-
-            var jumlahDiskon = totalDiskon.reduce(function(acc, curr) {
-                return acc + curr;
-            }, 0);
-
-            let bulatkanDiskon = Math.round(jumlahDiskon);
-
-            // console.log(pajak)
-            // console.log(resultSubTotal);
-
-            // Hitung total akhir dengan pajak
-            let total = resultSubTotal + pajak;
-
-            let totalKurangDiskon = total - bulatkanDiskon;
-
-            document.getElementById("total").innerText = formatRupiah(totalKurangDiskon.toString(), "Rp. ");
-
-            // Format hasil ke dalam format rupiah (sesuai fungsi formatRupiah yang Anda miliki)
-            // let formattedTotal = formatRupiah(total);
-
-            // // Tampilkan hasil di tempat yang diinginkan (misalnya dalam div dengan id #total)
-            // $('#total').text(formattedTotal);
-        }
-
-
-        function updateHargaTotal() {
-            updatePajak();
-            updateSubTotal()
-            updateTotal();
-            updateDiskon();
-            updateRounding();
-            updateHargaFinalButton();
-
-            console.log(subTotal);
-            console.log(subTotal.length);
-            if (subTotal.length > 0) {
-                document.getElementById("produkKosong").style.display = "none";
-                document.getElementById("summary").style.setProperty('display', 'block', 'important');
-            } else {
-                document.getElementById("produkKosong").style.display = "block";
-                document.getElementById("summary").style.setProperty('display', 'none', 'important');
-            }
         }
 
         function formatRupiah(angka, prefix) {
@@ -1048,6 +825,65 @@
             listPajak = tmpDataPajak;
         }
 
+        function generateListDiskon() {
+            let dataDiskon = @json($discounts);
+
+            listDiskon = dataDiskon;
+            let diskonContainer = $('#Diskon');
+            diskonContainer.html(''); //kosongkan container
+
+            let totalItem = listItem.length
+            dataDiskon.forEach(function(item, index) {
+                let html = `
+                <div class="list-group-item list-diskon d-flex align-items-center" data-type="${item.type_input}" data-id="${item.id}" data-satuan="${item.satuan}" data-amount="${item.amount}" data-name="${item.name}">
+                    <div class="icon-box" data-text="${item.name}"></div>
+                    <span class="ms-3" id="text-diskon-list">${item.name}</span>
+                </div>`
+
+                diskonContainer.append(html);
+            });
+
+            console.log(dataDiskon);
+        }
+
+        function checkDiskonUsage() {
+            let totalItem = listItem.length; // Total item di listItem
+            let diskonContainer = $('#Diskon'); // Container untuk diskon
+
+            listDiskon.forEach(function(item) {
+                let tmpCheckId = []; // Temp untuk menyimpan ID diskon yang dipakai
+
+                // Iterasi melalui listItem untuk memeriksa diskon
+                listItem.forEach(function(itemData) {
+                    itemData.diskon.forEach(function(diskonItemData) {
+                        if (diskonItemData.id == item.id) {
+                            tmpCheckId.push(item.id); // Simpan jika diskon ditemukan
+                        }
+                    });
+                });
+
+                console.log(tmpCheckId.length)
+                console.log(totalItem)
+                // Cek apakah diskon sudah digunakan oleh semua item
+                if (tmpCheckId.length == totalItem) {
+                    // Jika diskon dipakai oleh semua item, cari elemen terkait di HTML
+                    let diskonElement = diskonContainer.find(`.list-diskon[data-id="${item.id}"]`);
+
+                    // Tambahkan atribut disabled
+                    diskonElement.attr('disabled', true);
+
+                    // Tambahkan class text-muted pada span dengan id text-diskon-list
+                    diskonElement.find('#text-diskon-list').addClass('text-muted');
+                } else {
+                    // Jika diskon tidak dipakai oleh semua item, pastikan elemen aktif
+                    let diskonElement = diskonContainer.find(`.list-diskon[data-id="${item.id}"]`);
+                    diskonElement.removeAttr('disabled');
+                    diskonElement.find('#text-diskon-list').removeClass('text-muted');
+                }
+            });
+        }
+
+
         function syncDiskon() {
             var tmpTotalDiskon = [];
 
@@ -1156,6 +992,8 @@
         }
 
         $(document).ready(function() {
+            generateListDiskon()
+
             function handleAjax(url, method = 'get') {
 
                 function onSuccess(cb, runDefault = true) {
@@ -1225,6 +1063,9 @@
                 // backBtn.style.display = 'block !important;';
                 backBtn.style.setProperty('display', 'flex', 'important');
                 const targetView = $(this).data('target');
+                if (targetView == "Diskon") {
+                    checkDiskonUsage();
+                }
                 $('#content-section > .child-section').addClass('d-none'); // Hide all views
                 $(`#${targetView}`).removeClass('d-none'); // Show selected view
                 $('#text-judul').text(`${targetView}`)
@@ -1241,8 +1082,45 @@
                 let url = baseUrl.replace(':id', dataId); // Ganti ':id' dengan nilai dataId
 
                 handleAjax(url).excute();
+            });
 
+            $('.list-diskon').on('click', function(e) {
+                let satuan = $(this).data('satuan');
+                let amount = $(this).data('amount');
+                let idDiskon = $(this).data('id');
+                let type = $(this).data('type');
+                let name = $(this).data('name')
 
+                console.log('masok click diskon')
+                let isDisabled = $(this).attr('disabled') !== undefined;
+
+                // console.log("ke klik ga sih");
+                if (isDisabled) {
+                    console.log('Elemen ini disabled');
+                    return; // Jika disabled, hentikan eksekusi
+                } else {
+                    console.log("masuk ga disable")
+                    if (type == "fixed") {
+                        listItem.forEach(function(dataItem, indexItem) {
+                            let diskonExist = dataItem.diskon.find((diskon) => diskon.id ==
+                                idDiskon);
+                            if (!diskonExist) {
+                                let hasilDiskon = dataItem.harga / amount;
+                                let tmpDataDiskon = {
+                                    id: idDiskon,
+                                    nama: name,
+                                    result: hasilDiskon,
+                                    satuan: satuan,
+                                    tmpIdProduct: dataItem.tmpId,
+                                    value: amount,
+                                }
+                                dataItem.diskon.push(tmpDataDiskon);
+                            }
+                        });
+                    }
+                }
+
+                syncItemCart();
             });
 
             // Handle back button to return to the library view
@@ -1283,61 +1161,8 @@
 
             // Handle charge button
             $('#bayar').on('click', function() {
-                if (subTotal.length > 0) {
-                    // let content = $('#summary').html();
-                    // console.log(content);
-
-                    // let children = $('#summary').children();
-                    // console.log(children);
-
-                    // $('#summary').find('*').each(function() {
-                    //     console.log($(this)); // Menampilkan setiap elemen
-                    // });
+                if (listItem.length > 0) {
                     handleAjax("{{ route('kasir/choosePayment') }}").excute();
-                    // let dataForm = new FormData();
-                    // $.ajax({
-                    //     url: "{{ route('kasir/choosePayment') }}",
-                    //     method: "GET",
-                    //     data: dataForm,
-                    //     contentType: false,
-                    //     processData: false,
-                    //     beforeSend: function() {
-                    //         $(_form).find('.is-invalid').removeClass('is-invalid')
-                    //         $(_form).find(".invalid-feedback").remove()
-                    //         submitLoader().show()
-                    //     },
-                    //     success: (res) => {
-                    //         if (_this.runDefaultSuccessCallback) {
-                    //             $('#modal_action').modal('hide')
-                    //             showToast(res.status, res.message)
-                    //         }
-
-                    //         _this.onSuccessCallback && _this.onSuccessCallback(res)
-                    //         _this.dataTableId && window.LaravelDataTables[_this.dataTableId]
-                    //             .ajax
-                    //             .reload(null, false)
-
-                    //     },
-                    //     complete: function() {
-                    //         submitLoader().hide()
-                    //     },
-                    //     error: function(err) {
-                    //         const errors = err.responseJSON?.errors
-
-                    //         if (errors) {
-                    //             for (let [key, message] of Object.entries(errors)) {
-                    //                 console.log(message);
-                    //                 $(`[name=${key}]`).addClass('is-invalid')
-                    //                     .parent()
-                    //                     .append(
-                    //                         `<div class="invalid-feedback">${message}</div>`
-                    //                     )
-                    //             }
-                    //         }
-
-                    //         showToast('error', err.responseJSON?.message)
-                    //     }
-                    // })
                 } else {
                     iziToast['error']({
                         title: "Gagal",

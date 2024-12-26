@@ -22,7 +22,7 @@ class KasirController extends Controller
         $userOutletJson = auth()->user()->outlet_id;
         $userOutlet = json_decode($userOutletJson);
 
-        $diskon = Discount::where('outlet_id', '=', $userOutlet[0]);
+        $diskon = Discount::where('outlet_id', '=', $userOutlet[0])->get();
 
         $rounding = Checkout::find(1);
         // dd($rounding);

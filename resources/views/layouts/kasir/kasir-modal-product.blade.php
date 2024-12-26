@@ -57,7 +57,7 @@
                                     <span>{{ $data->name }}
                                         <small>{{ '(' . formatRupiah($data->harga, 'Rp. ') . ')' }}</small></span>
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input form-modifier" value="{{ $data->harga }}"
+                                        <input class="form-check-input form-modifier form-switch" value="{{ $data->harga }}"
                                             type="checkbox" data-id="{{ $data->id }}"
                                             data-name="{{ $data->name }}">
                                     </div>
@@ -83,7 +83,7 @@
                                         @endif
                                     </span>
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input form-diskon" value="{{ $discount->amount }}"
+                                        <input class="form-check-input form-diskon form-switch" value="{{ $discount->amount }}"
                                             data-type="{{ $discount->satuan }}" data-name="{{$discount->name}}" type="checkbox"
                                             data-id="{{ $discount->id }}" id="discount-{{ $discount->id }}">
                                     </div>
