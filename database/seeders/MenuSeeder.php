@@ -49,7 +49,7 @@ class MenuSeeder extends Seeder
         // END LIBRARY
 
         // EMPLOYEES
-        $mm = Menu::firstOrCreate(['url' => 'employee'], ['name' => 'Employee', 'category' => 'EMPLOYEE', 'icon' => 'fa-users']);
+        $mm = Menu::firstOrCreate(['url' => 'employee'], ['name' => 'Employee', 'category' => 'EMPLOYEE', 'icon' => 'fa-user-tie']);
         $this->attachMenuPermission($mm, null, ['admin']);
 
         $sm = $mm->subMenus()->create(['name' => 'Users', 'url' => $mm->url . '/users', 'category' => $mm->category]);
@@ -62,6 +62,13 @@ class MenuSeeder extends Seeder
         $this->attachMenuPermission($sm, null, ['admin']);
 
         // END EMPLOYEE
+
+        // CUSTOMER MANAGEMENT
+
+        $mm = Menu::firstOrCreate(['url' => 'customer'], ['name' => 'Customer', 'category' => 'CUSTOMER', 'icon' => 'fa-users']);
+        $this->attachMenuPermission($mm, null, ['admin']);
+        
+        // END CUSTOMER MANAGEMENT
 
         //  KONFIGURASI
         $mm = Menu::firstOrCreate(['url' => 'konfigurasi'], ['name' => 'Konfigurasi', 'category' => 'KONFIGURASI', 'icon' => 'fa-cogs']);

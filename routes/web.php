@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\HakAksesController;
 use App\Http\Controllers\KasirController;
@@ -187,6 +188,16 @@ Route::middleware('auth')->group(function () {
             Route::delete('/destroy/{salesType}', [SalesTypeController::class,'destroy'])->name('salestype/destroy');
         });
     });
+
+    Route::prefix('customer')->group(function(){
+        Route::get('', [CustomerController::class, 'index'])->name('customer');
+        Route::get('/create', [CustomerController::class, 'create'])->name('customer/create');
+        Route::post('/store', [CustomerController::class, 'store'])->name('customer/store');
+        Route::get('/edit/{customer}', [CustomerController::class, 'edit'])->name('customer/edit');
+        Route::put('/update/{customer}', [CustomerController::class, 'update'])->name('customer/update');
+        Route::delete('/destroy/{customer}', [CustomerController::class, 'destroy'])->name('customer/destroy');
+    });
+
         
     Route::prefix('kasir')->group(function(){
         Route::get('', [KasirController::class, 'index'])->name('kasir');
