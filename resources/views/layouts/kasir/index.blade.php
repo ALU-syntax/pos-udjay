@@ -166,22 +166,38 @@
                     <div id="setting" class="content-section">
                         <div class="row vh-100">
                             <div class="col-12 mt-4">
-                                <div class="card">
-                                    <div class="card-header">
-                                        Setting
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="card list-setting">
-                                            <div class="card-body">
-                                                Shift
-                                            </div>
-                                        </div>
-                                        <div class="card list-setting" id="logout">
-                                            <div class="card-body">
-                                                <h4>Keluar</h4>
-                                            </div>
+
+                                <div id="setting-section">
+                                    <div class="card">
+                                        <div class="card-body" style="background-color: #0000002d">
+                                            <button id="back-btn-setting" class="btn btn-link my-3 back-btn"
+                                                            style="display: none !important;">&larr; Back</button>
+                                            <h4>Setting</h4>
                                         </div>
                                     </div>
+
+                                    <div class="card mt-2">
+                                        <div class="card-body">
+                                            <div class="card list-setting" id="shift">
+                                                <div class="card-body">
+                                                    Shift
+                                                </div>
+                                            </div>
+                                            <div class="card list-setting" id="logout">
+                                                <div class="card-body">
+                                                    <h4>Keluar</h4>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card">
+                                        <div class="card-body">
+
+                                        </div>
+                                    </div>
+
+
                                 </div>
                             </div>
                         </div>
@@ -1311,6 +1327,18 @@
                         }
                     })
                     .catch(error => console.error('Error:', error));
+            });
+
+            $("#shift").on('click', function(e){
+                backBtn.style.setProperty('display', 'flex', 'important');
+                const targetView = $(this).data('target');
+                if (targetView == "Diskon") {
+                    checkDiskonUsage();
+                }
+                $('#content-section > .child-section').addClass('d-none'); // Hide all views
+                $(`#${targetView}`).removeClass('d-none'); // Show selected view
+                $('#text-judul').text(`${targetView}`)
+
             });
 
             // $.ajax({
