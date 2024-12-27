@@ -153,6 +153,21 @@
         .list-setting {
             height: 75px;
         }
+
+        .card.list-setting {
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card.list-setting:hover {
+            background-color: #f1f1f1;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+        }
+
+        .hover-effect {
+            background-color: #f1f1f1;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
     </style>
 </head>
 
@@ -169,21 +184,22 @@
 
                                 <div id="setting-section">
                                     <div class="card">
-                                        <div class="card-body" style="background-color: #0000002d">
-                                            <button id="back-btn-setting" class="btn btn-link my-3 back-btn"
-                                                            style="display: none !important;">&larr; Back</button>
-                                            <h4>Setting</h4>
+                                        <div class="card-body d-flex" style="background-color: #0000002d">
+                                            <button id="back-btn-setting" class="btn btn-link"
+                                                style="display: none !important;">&larr; Back</button>
+                                            <h4 id="text-title-setting">Setting</h4>
                                         </div>
                                     </div>
 
-                                    <div class="card mt-2">
+                                    <div id="setting-view" class="card mt-2 child-section">
                                         <div class="card-body">
-                                            <div class="card list-setting" id="shift">
+                                            <div class="card list-setting" id="shift" data-target="shift-menu"
+                                                data-name-section="Shift">
                                                 <div class="card-body">
                                                     Shift
                                                 </div>
                                             </div>
-                                            <div class="card list-setting" id="logout">
+                                            <div class="card list-setting" data-target="logout">
                                                 <div class="card-body">
                                                     <h4>Keluar</h4>
                                                 </div>
@@ -191,12 +207,86 @@
                                         </div>
                                     </div>
 
-                                    <div class="card">
+                                    <div class="card d-none child-section" id="shift-menu">
                                         <div class="card-body">
+                                            <div class="container">
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <button class="btn btn-outline-primary w-100 btn-lg mb-4">End Current Shift</button>
 
+                                                        <div class="container">
+                                                            <div class="row">
+                                                                <div class="col-12">
+                                                                    <h5>Shift Details</h5>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Name
+                                                                        </div>
+                                                                        <div class="col-6">
+                                                                            Ardian
+                                                                        </div>
+                                                                    </div>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Outlet
+                                                                        </div>
+                                                                        <div class="col-6">
+                                                                            Outlet 1
+                                                                        </div>
+                                                                    </div>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Starting Shift
+                                                                        </div>
+                                                                        <div class="col-6">
+                                                                            Thursday blablabla
+                                                                        </div>
+                                                                    </div>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Expense / Income
+                                                                        </div>
+                                                                        <div class="col-6">
+                                                                            0
+                                                                        </div>
+                                                                    </div>
+                                                                    <hr>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="row mt-3">
+                                                                <div class="col-12">
+                                                                    <h5>Order Details (Except Moka Order Delivery)</h5>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Sold Items
+                                                                        </div>
+                                                                        <div class="col-6">
+                                                                            27
+                                                                        </div>
+                                                                    </div>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Refunded Items
+                                                                        </div>
+                                                                        <div class="col-6">
+                                                                            0
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-
 
                                 </div>
                             </div>
@@ -299,7 +389,8 @@
                             <div class="col-12 mt-3">
                                 <!-- Search Bar -->
                                 <div class="input-group mb-3">
-                                    <input type="text" class="form-control" placeholder="Cari" aria-label="Search">
+                                    <input type="text" class="form-control" placeholder="Cari"
+                                        aria-label="Search">
                                     <button class="btn btn-outline-secondary" type="button">Search</button>
                                 </div>
 
@@ -1310,69 +1401,53 @@
                 updateScreen(screenValue);
             });
 
-            document.getElementById('logout').addEventListener('click', function(e) {
-                e.preventDefault(); // Mencegah pengiriman form default
-                fetch("{{ route('logout') }}", {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': "{{ csrf_token() }}",
-                            'Content-Type': 'application/json'
-                        }
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            window.location.href = '/login'; // Redirect ke halaman login
-                        } else {
-                            alert('Logout gagal.');
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-            });
 
-            $("#shift").on('click', function(e){
-                backBtn.style.setProperty('display', 'flex', 'important');
+            var backBtnSetting = document.getElementById('back-btn-setting');
+            if (backBtnSetting) {
+                backBtnSetting.addEventListener('click', function() {
+                    backBtnSetting.style.setProperty('display', 'none', 'important');
+                    $('#setting-section > .child-section').addClass('d-none'); // Hide all views
+                    $('#setting-view').removeClass('d-none'); // Show library view
+                    $('#text-title-setting').text("Setting")
+                });
+            }
+            // Handle click on list items to show specific views
+            $('.list-setting').on('click', function() {
                 const targetView = $(this).data('target');
-                if (targetView == "Diskon") {
-                    checkDiskonUsage();
-                }
-                $('#content-section > .child-section').addClass('d-none'); // Hide all views
-                $(`#${targetView}`).removeClass('d-none'); // Show selected view
-                $('#text-judul').text(`${targetView}`)
 
+                if (targetView == "logout") {
+                    fetch("{{ route('logout') }}", {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                window.location.href = '/login'; // Redirect ke halaman login
+                            } else {
+                                alert('Logout gagal.');
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                } else {
+                    backBtnSetting.style.setProperty('display', 'flex', 'important');
+                    let titleSectionSetting = $(this).data('name-section');
+
+                    $('#setting-section > .child-section').addClass('d-none'); // Hide all views
+                    $(`#${targetView}`).removeClass('d-none'); // Show selected view
+                    $('#text-title-setting').text(`${titleSectionSetting}`)
+                }
             });
 
-            // $.ajax({
-            //     url: "{{ route('logout') }}",
-            //     method: "POST",
-            //     data: dataForm,
-            //     contentType: false,
-            //     processData: false,
-            //     beforeSend: function() {
-            //         // submitLoader().show()
-            //     },
-            //     success: (res) => {
-            //         window.location.href = '/login';
-            //     },
-            //     complete: function() {
-            //         // submitLoader().hide()
-            //     },
-            //     error: function(err) {
-            //         const errors = err.responseJSON?.errors
+            $('.card.list-setting').on('touchstart', function() {
+                $(this).addClass('hover-effect');
+            });
 
-            //         if (errors) {
-            //             for (let [key, message] of Object.entries(errors)) {
-            //                 console.log(message);
-            //                 $(`[name=${key}]`).addClass('is-invalid')
-            //                     .parent()
-            //                     .append(
-            //                         `<div class="invalid-feedback">${message}</div>`
-            //                     )
-            //             }
-            //         }
-
-            //         showToast('error', err.responseJSON?.message)
-            //     }
-            // })
+            $('.card.list-setting').on('touchend', function() {
+                $(this).removeClass('hover-effect');
+            });
 
 
         });

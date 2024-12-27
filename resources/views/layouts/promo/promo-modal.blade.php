@@ -508,6 +508,8 @@
                     }
                 }
 
+                _totalSpesificItemPurchaseRequirement--;
+
                 // Hapus elemen `specific_item`
                 specificItem.remove();
 
