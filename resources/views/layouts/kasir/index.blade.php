@@ -149,6 +149,10 @@
         .text-muted {
             color: #aeaeae !important;
         }
+
+        .list-setting {
+            height: 75px;
+        }
     </style>
 </head>
 
@@ -161,7 +165,25 @@
                     <!-- All Items Section -->
                     <div id="setting" class="content-section">
                         <div class="row vh-100">
-
+                            <div class="col-12 mt-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        Setting
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="card list-setting">
+                                            <div class="card-body">
+                                                Shift
+                                            </div>
+                                        </div>
+                                        <div class="card list-setting" id="logout">
+                                            <div class="card-body">
+                                                <h4>Keluar</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1271,6 +1293,60 @@
 
                 updateScreen(screenValue);
             });
+
+            document.getElementById('logout').addEventListener('click', function(e) {
+                e.preventDefault(); // Mencegah pengiriman form default
+                fetch("{{ route('logout') }}", {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            window.location.href = '/login'; // Redirect ke halaman login
+                        } else {
+                            alert('Logout gagal.');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+
+            // $.ajax({
+            //     url: "{{ route('logout') }}",
+            //     method: "POST",
+            //     data: dataForm,
+            //     contentType: false,
+            //     processData: false,
+            //     beforeSend: function() {
+            //         // submitLoader().show()
+            //     },
+            //     success: (res) => {
+            //         window.location.href = '/login';
+            //     },
+            //     complete: function() {
+            //         // submitLoader().hide()
+            //     },
+            //     error: function(err) {
+            //         const errors = err.responseJSON?.errors
+
+            //         if (errors) {
+            //             for (let [key, message] of Object.entries(errors)) {
+            //                 console.log(message);
+            //                 $(`[name=${key}]`).addClass('is-invalid')
+            //                     .parent()
+            //                     .append(
+            //                         `<div class="invalid-feedback">${message}</div>`
+            //                     )
+            //             }
+            //         }
+
+            //         showToast('error', err.responseJSON?.message)
+            //     }
+            // })
+
+
         });
     </script>
 </body>
