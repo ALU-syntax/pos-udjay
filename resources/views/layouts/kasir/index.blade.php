@@ -212,7 +212,9 @@
                                             <div class="container">
                                                 <div class="row">
                                                     <div class="col-12">
-                                                        <button class="btn btn-outline-primary w-100 btn-lg mb-4">End Current Shift</button>
+                                                        <button id="end-current-shift"
+                                                            class="btn btn-outline-primary w-100 btn-lg mb-4">End
+                                                            Current Shift</button>
 
                                                         <div class="container">
                                                             <div class="row">
@@ -278,6 +280,141 @@
                                                                         <div class="col-6">
                                                                             0
                                                                         </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card d-none" id="end-current-shift-section">
+                                        <div class="card-body">
+                                            <div class="container">
+                                                <div class="row">
+                                                    <div class="col-12">
+
+                                                        <div class="card">
+                                                            <div class="card-body">
+                                                                <div class="row">
+                                                                    <div class="col-12">
+                                                                        <h5>Actual Ending Cash</h5>
+                                                                        <div class="form-group">
+                                                                            <input type="text" class="form-control"
+                                                                                id="endingCash"
+                                                                                placeholder="Ending cash">
+                                                                        </div>
+                                                                        <div class="row mt-2 d-none"
+                                                                            id="container-difference">
+                                                                            <hr>
+                                                                            <div class="col-6">
+                                                                                <h5 class="text-muted ms-4">Difference
+                                                                                </h5>
+                                                                            </div>
+                                                                            <div class="col-6 me-auto">
+                                                                                <div id="difference"></div>
+                                                                            </div>
+                                                                            <hr>
+                                                                        </div>
+
+                                                                        <button
+                                                                            class="btn btn-outline-primary w-100 btn-lg mt-2">End
+                                                                            Current Shift</button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="card" style="overflow-y: auto; height: calc(100vh - 380px);">
+                                                            <div class="card-body">
+                                                                <div class="row">
+                                                                    <div class="col-12">
+
+                                                                        <div class="row">
+                                                                            <div class="col-12">
+                                                                                <div class="row">
+                                                                                    <strong>SHIFT DETAILS</strong>
+                                                                                </div>
+                                                                                <hr>
+
+                                                                                <div class="row">
+                                                                                    <div class="col-6">Name</div>
+                                                                                    <div class="col-6">Ardian</div>
+                                                                                </div>
+                                                                                <hr>
+
+                                                                                <div class="row">
+                                                                                    <div class="col-6">Outlet</div>
+                                                                                    <div class="col-6">Outlet 1</div>
+                                                                                </div>
+                                                                                <hr>
+
+                                                                                <div class="row">
+                                                                                    <div class="col-6">Starting Shift
+                                                                                    </div>
+                                                                                    <div class="col-6">Thursday,
+                                                                                        blabla</div>
+                                                                                </div>
+                                                                                <hr>
+
+                                                                                <div class="row">
+                                                                                    <div class="col-6">Expense /
+                                                                                        Income</div>
+                                                                                    <div class="col-6">0</div>
+                                                                                </div>
+                                                                                <hr>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div class="row">
+                                                                            <div class="col-12">
+                                                                                <div class="row">
+                                                                                    <strong>CASH</strong>
+                                                                                </div>
+                                                                                <hr>
+
+                                                                                <div class="row">
+                                                                                    <div class="col-6">Starting Cash In Drawer</div>
+                                                                                    <div class="col-6">Rp. 50.000</div>
+                                                                                </div>
+                                                                                <hr>
+
+                                                                                <div class="row">
+                                                                                    <div class="col-6">Cash Sales</div>
+                                                                                    <div class="col-6">Rp. 70.000</div>
+                                                                                </div>
+                                                                                <hr>
+
+                                                                                <div class="row">
+                                                                                    <div class="col-6">Cash From Invoice
+                                                                                    </div>
+                                                                                    <div class="col-6">Rp. 0</div>
+                                                                                </div>
+                                                                                <hr>
+
+                                                                                <div class="row">
+                                                                                    <div class="col-6">Cash Refunds</div>
+                                                                                    <div class="col-6">Rp. 0</div>
+                                                                                </div>
+                                                                                <hr>
+
+                                                                                <div class="row">
+                                                                                    <div class="col-6">Expense / Income</div>
+                                                                                    <div class="col-6">Rp. 0</div>
+                                                                                </div>
+                                                                                <hr>
+
+                                                                                <div class="row">
+                                                                                    <div class="col-6">Expected Ending Cash</div>
+                                                                                    <div class="col-6">Rp. 121.000</div>
+                                                                                </div>
+                                                                                <hr>
+
+                                                                            </div>
+                                                                        </div>
+
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -1405,10 +1542,19 @@
             var backBtnSetting = document.getElementById('back-btn-setting');
             if (backBtnSetting) {
                 backBtnSetting.addEventListener('click', function() {
-                    backBtnSetting.style.setProperty('display', 'none', 'important');
-                    $('#setting-section > .child-section').addClass('d-none'); // Hide all views
-                    $('#setting-view').removeClass('d-none'); // Show library view
-                    $('#text-title-setting').text("Setting")
+                    let section = $(this).data('section');
+                    
+                    if (section == "end-current-shift") {
+                        $(this).removeAttr('data-section').removeData('section');
+                        $('#shift-menu').removeClass('d-none');
+                        $('#end-current-shift-section').addClass('d-none');
+                    } else {
+                        backBtnSetting.style.setProperty('display', 'none', 'important');
+                        $('#setting-section > .child-section').addClass('d-none'); // Hide all views
+                        $('#setting-view').removeClass('d-none'); // Show library view
+                        $('#text-title-setting').text("Setting")
+                    }
+
                 });
             }
             // Handle click on list items to show specific views
@@ -1448,6 +1594,25 @@
             $('.card.list-setting').on('touchend', function() {
                 $(this).removeClass('hover-effect');
             });
+
+            $('#end-current-shift').on('click', function() {
+                $('#end-current-shift-section').removeClass('d-none');
+                $('#setting-section > .child-section').addClass('d-none'); // Hide all views                
+                $('#back-btn-setting').attr('data-section', 'end-current-shift');
+            });
+
+            var endingCashInput = document.getElementById('endingCash');
+
+            if (endingCashInput) {
+                endingCashInput.addEventListener("keyup", function(e) {
+                    this.value = formatRupiah(this.value, "Rp. ");
+                    if (this.value == '' || this.value == 'Rp. ') {
+                        $('#container-difference').addClass('d-none');
+                    } else {
+                        $('#container-difference').removeClass('d-none');
+                    }
+                })
+            }
 
 
         });
