@@ -243,6 +243,9 @@
                 }
             });
 
+            let idCustomer = (idPelanggan == '') ? null : idPelanggan;
+            console.log(idPelanggan);
+
             dataForm.append('nominal_bayar', nominalBayar);
             dataForm.append('change', Math.abs(change));
             dataForm.append('tipe_pembayaran', tipePembayaran);
@@ -250,7 +253,8 @@
             dataForm.append('diskonAllItems', JSON.stringify(listDiskonAllItem))
             dataForm.append('total_pajak', JSON.stringify(listPajak));
             dataForm.append('rounding', amountRounding);
-            dataForm.append('tanda_rounding', tandaRounding)
+            dataForm.append('tanda_rounding', tandaRounding);
+            dataForm.append('customer_id', idCustomer);
 
             $.ajax({
                 url: "{{ route('kasir/bayar') }}",

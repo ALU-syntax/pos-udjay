@@ -202,15 +202,11 @@ Route::middleware('auth')->group(function () {
     Route::prefix('kasir')->group(function(){
         Route::get('', [KasirController::class, 'index'])->name('kasir');
         Route::get('/choose-payment', [KasirController::class, 'choosePayment'])->name('kasir/choosePayment');
+        Route::get('/pilih-customer', [KasirController::class, 'pilihCustomer'])->name('kasir/pilihCustomer');
         Route::get('/custom-diskon/{diskon}', [KasirController::class, 'customDiskon'])->name('kasir/customDiskon');
         Route::get('/{product}', [KasirController::class, 'findProduct'])->name('kasir/findProduct');
         Route::post('/store-patty-cash', [KasirController::class, 'pattyCash'])->name('kasir/pattyCash');
         Route::post('/bayar', [KasirController::class, 'bayar'])->name('kasir/bayar');
-        // Route::get('/create', [CategoryController::class, 'create'])->name('category/create');
-        // Route::post('/store', [CategoryController::class, 'store'])->name('category/store');
-        // Route::get('/edit/{category}', [CategoryController::class, 'edit'])->name('category/edit');
-        // Route::put('/update/{category}', [CategoryController::class,'update'])->name('category/update');
-        // Route::delete('/destroy/{category}', [CategoryController::class,'destroy'])->name('category/destroy');
     });
 
     

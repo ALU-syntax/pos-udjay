@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('outlet_id');
             $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('cutomer_id')->nullable();
+            $table->unsignedBigInteger('customer_id')->nullable();
             $table->bigInteger('total')->nullable();
             $table->bigInteger('nominal_bayar')->nullable();
             $table->bigInteger('change')->nullable();

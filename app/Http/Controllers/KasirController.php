@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\DataTables\PilihPelangganDataTable;
 use App\Models\Category;
 use App\Models\Checkout;
 use App\Models\Discount;
@@ -128,7 +129,7 @@ class KasirController extends Controller
         $dataTransaction = [
             'outlet_id' => $dataOutletUser[0],
             'user_id' => auth()->user()->id,
-            'customer_id' => null,
+            'customer_id' => $request->customer_id,
             'total' => $request->total,
             'nominal_bayar' => $request->nominal_bayar,
             'change' => $request->change,
@@ -173,5 +174,9 @@ class KasirController extends Controller
         return view('layouts.kasir.modal-custom-amount', [
             'data' => $diskon
         ]);
+    }
+
+    public function pilihCustomer(PilihPelangganDataTable $datatable){
+        return $datatable->render('layouts.kasir.modal-pilih-customer');
     }
 }

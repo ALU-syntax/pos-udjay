@@ -28,15 +28,11 @@
     <script>
         document.getElementById('telfon').addEventListener('keyup', function (event) {
             const input = event.target;
-            const errorMessage = document.getElementById('error-message');
     
             // Hanya izinkan angka
             if (!/^\d*$/.test(input.value)) {
                 input.value = input.value.replace(/[^0-9]/g, ''); // Hapus karakter non-angka
-                errorMessage.style.display = 'inline'; // Tampilkan pesan error
-            } else {
-                errorMessage.style.display = 'none'; // Sembunyikan pesan error
-            }
+            } 
         });
     </script>
 </x-modal>

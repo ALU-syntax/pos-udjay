@@ -14,6 +14,10 @@
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous"> --}}
     <link rel="stylesheet" href="{{ asset('css/iziToast.min.css') }}">
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+
     <style>
         .product-card {
             border: 1px solid #ddd;
@@ -327,7 +331,8 @@
                                                             </div>
                                                         </div>
 
-                                                        <div class="card" style="overflow-y: auto; height: calc(100vh - 380px);">
+                                                        <div class="card"
+                                                            style="overflow-y: auto; height: calc(100vh - 380px);">
                                                             <div class="card-body">
                                                                 <div class="row">
                                                                     <div class="col-12">
@@ -376,39 +381,48 @@
                                                                                 <hr>
 
                                                                                 <div class="row">
-                                                                                    <div class="col-6">Starting Cash In Drawer</div>
-                                                                                    <div class="col-6">Rp. 50.000</div>
+                                                                                    <div class="col-6">Starting Cash
+                                                                                        In Drawer</div>
+                                                                                    <div class="col-6">Rp. 50.000
+                                                                                    </div>
                                                                                 </div>
                                                                                 <hr>
 
                                                                                 <div class="row">
-                                                                                    <div class="col-6">Cash Sales</div>
-                                                                                    <div class="col-6">Rp. 70.000</div>
+                                                                                    <div class="col-6">Cash Sales
+                                                                                    </div>
+                                                                                    <div class="col-6">Rp. 70.000
+                                                                                    </div>
                                                                                 </div>
                                                                                 <hr>
 
                                                                                 <div class="row">
-                                                                                    <div class="col-6">Cash From Invoice
+                                                                                    <div class="col-6">Cash From
+                                                                                        Invoice
                                                                                     </div>
                                                                                     <div class="col-6">Rp. 0</div>
                                                                                 </div>
                                                                                 <hr>
 
                                                                                 <div class="row">
-                                                                                    <div class="col-6">Cash Refunds</div>
+                                                                                    <div class="col-6">Cash Refunds
+                                                                                    </div>
                                                                                     <div class="col-6">Rp. 0</div>
                                                                                 </div>
                                                                                 <hr>
 
                                                                                 <div class="row">
-                                                                                    <div class="col-6">Expense / Income</div>
+                                                                                    <div class="col-6">Expense /
+                                                                                        Income</div>
                                                                                     <div class="col-6">Rp. 0</div>
                                                                                 </div>
                                                                                 <hr>
 
                                                                                 <div class="row">
-                                                                                    <div class="col-6">Expected Ending Cash</div>
-                                                                                    <div class="col-6">Rp. 121.000</div>
+                                                                                    <div class="col-6">Expected Ending
+                                                                                        Cash</div>
+                                                                                    <div class="col-6">Rp. 121.000
+                                                                                    </div>
                                                                                 </div>
                                                                                 <hr>
 
@@ -656,11 +670,12 @@
                 <div class="col-4 p-3">
                     <div class="order-section">
                         <div class="row">
-                            <div class="col-3">
+                            {{-- <div class="col-3">
                                 <h5>Billing list</h5>
-                            </div>
-                            <div class="col-9 d-flex">
-                                <button class="btn btn-primary w-100  rounded">Tambah Pelanggan</button>
+                            </div> --}}
+                            <div class="col-12 d-flex">
+                                <button class="btn btn-primary w-100 btn-lg mb-2 rounded" id="tambah-pelanggan">Tambah
+                                    Pelanggan</button>
                             </div>
                         </div>
                         <div class="card">
@@ -798,7 +813,7 @@
                     </center>
                 </div>
                 <div class="d-flex justify-content-center mb-4">
-                    <a type="submit" class="btn btn-primary w-50" href="/kasir">Buat Pesanan Baru</a>
+                    <a type="submit" class="btn btn-primary w-50" href="{{route('kasir')}}">Buat Pesanan Baru</a>
                 </div>
             </div>
         </div>
@@ -812,6 +827,13 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     {{-- IZI TOAST --}}
     <script src="{{ asset('js/plugin/izitoast/iziToast.min.js') }}"></script>
+    <!-- Datatables -->
+    {{-- <script src="{{ asset('js/plugin/datatables/datatables.min.js') }}"></script> --}}
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
     <script>
         $.ajaxSetup({
             headers: {
@@ -822,6 +844,7 @@
         var subTotal = [];
         var listDiskon = [];
         var totalDiskon = [];
+        var idPelanggan = '';
         var listDiskonAllItem = [];
         var tmpTampungCustomAmount = 0;
         var totalKeseluruhanPajak = 0;
@@ -1538,12 +1561,16 @@
                 updateScreen(screenValue);
             });
 
+            $('#tambah-pelanggan').on('click', function() {
+                handleAjax("{{ route('kasir/pilihCustomer') }}").excute();
+            });
+
 
             var backBtnSetting = document.getElementById('back-btn-setting');
             if (backBtnSetting) {
                 backBtnSetting.addEventListener('click', function() {
                     let section = $(this).data('section');
-                    
+
                     if (section == "end-current-shift") {
                         $(this).removeAttr('data-section').removeData('section');
                         $('#shift-menu').removeClass('d-none');
