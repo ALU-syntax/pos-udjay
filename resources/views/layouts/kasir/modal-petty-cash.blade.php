@@ -10,7 +10,7 @@
         <div class="modal-header">
             <button type="button" id="btnClosePattyCash" class="btn btn-outline-secondary btn-lg"
                 data-bs-dismiss="modal">Batal</button>
-            <h5 class="modal-title mx-auto text-center" id="productModalLabel">
+            <h5 class="modal-title mx-auto text-center" style="padding-right: 75px;" id="productModalLabel">
                 <strong id="namaProduct">Mulai Shift</strong><br>
             </h5>
         </div>
@@ -18,7 +18,7 @@
             <!-- Payment Options -->
             <div class="container">
                 <div class="row d-flex justify-content-center">
-                    <img width="250px" src="{{ asset('img/cashier-machine.png') }}" alt="">
+                    <img style="width: 20%;" src="{{ asset('img/cashier-machine.png') }}" alt="">
                 </div>
             </div>
             <hr>
@@ -41,7 +41,7 @@
 
                 <div class="row">
                     <button type="submit" id="btnSubmitPattyCash"
-                        class="btn btn-primary btn-lg w-100 mx-3">Submit</button>
+                    class="btn btn-primary btn-lg mt-4 ms-3" style="width: 96%">Submit</button>
                 </div>
             </form>
         </div>

@@ -145,6 +145,10 @@
             line-height: 100px;
             border: 1px solid #ddd;
         }
+
+        .text-muted {
+            color: #aeaeae !important;
+        }
     </style>
 </head>
 
@@ -552,6 +556,7 @@
         var subTotal = [];
         var listDiskon = [];
         var totalDiskon = [];
+        var listDiskonAllItem = [];
         var tmpTampungCustomAmount = 0;
         var totalKeseluruhanPajak = 0;
         var listPajak = [];
@@ -850,22 +855,8 @@
             let totalItem = listItem.length; // Total item di listItem
             let diskonContainer = $('#Diskon'); // Container untuk diskon
 
-            listDiskon.forEach(function(item) {
-                let tmpCheckId = []; // Temp untuk menyimpan ID diskon yang dipakai
-
-                // Iterasi melalui listItem untuk memeriksa diskon
-                listItem.forEach(function(itemData) {
-                    itemData.diskon.forEach(function(diskonItemData) {
-                        if (diskonItemData.id == item.id) {
-                            tmpCheckId.push(item.id); // Simpan jika diskon ditemukan
-                        }
-                    });
-                });
-
-                console.log(tmpCheckId.length)
-                console.log(totalItem)
-                // Cek apakah diskon sudah digunakan oleh semua item
-                if (tmpCheckId.length == totalItem) {
+            if (totalItem == 0) {
+                listDiskon.forEach(function(item) {
                     // Jika diskon dipakai oleh semua item, cari elemen terkait di HTML
                     let diskonElement = diskonContainer.find(`.list-diskon[data-id="${item.id}"]`);
 
@@ -874,15 +865,69 @@
 
                     // Tambahkan class text-muted pada span dengan id text-diskon-list
                     diskonElement.find('#text-diskon-list').addClass('text-muted');
-                } else {
-                    // Jika diskon tidak dipakai oleh semua item, pastikan elemen aktif
-                    let diskonElement = diskonContainer.find(`.list-diskon[data-id="${item.id}"]`);
-                    diskonElement.removeAttr('disabled');
-                    diskonElement.find('#text-diskon-list').removeClass('text-muted');
-                }
-            });
-        }
+                });
 
+            } else {
+                listDiskon.forEach(function(item) {
+
+                    if (item.satuan == "percent") {
+                        let tmpCheckId = []; // Temp untuk menyimpan ID diskon yang dipakai
+
+                        // Iterasi melalui listItem untuk memeriksa diskon
+                        listItem.forEach(function(itemData) {
+                            itemData.diskon.forEach(function(diskonItemData) {
+                                if (diskonItemData.id == item.id) {
+                                    tmpCheckId.push(item.id); // Simpan jika diskon ditemukan
+                                }
+                            });
+                        });
+
+                        // Cek apakah diskon sudah digunakan oleh semua item
+                        if (tmpCheckId.length == totalItem) {
+                            // Jika diskon dipakai oleh semua item, cari elemen terkait di HTML
+                            let diskonElement = diskonContainer.find(`.list-diskon[data-id="${item.id}"]`);
+
+                            // Tambahkan atribut disabled
+                            diskonElement.attr('disabled', true);
+
+                            // Tambahkan class text-muted pada span dengan id text-diskon-list
+                            diskonElement.find('#text-diskon-list').addClass('text-muted');
+                        } else {
+                            // Jika diskon tidak dipakai oleh semua item, pastikan elemen aktif
+                            let diskonElement = diskonContainer.find(`.list-diskon[data-id="${item.id}"]`);
+                            diskonElement.removeAttr('disabled');
+                            diskonElement.find('#text-diskon-list').removeClass('text-muted');
+                        }
+                    } else {
+
+                        if (listDiskonAllItem.length > 0) {
+                            listDiskonAllItem.forEach(function(diskonAllItem, diskonAllIndex) {
+                                if (item.id == diskonAllItem.id) {
+                                    let diskonElement = diskonContainer.find(
+                                        `.list-diskon[data-id="${item.id}"]`);
+
+                                    // Tambahkan atribut disabled
+                                    diskonElement.attr('disabled', true);
+
+                                    // Tambahkan class text-muted pada span dengan id text-diskon-list
+                                    diskonElement.find('#text-diskon-list').addClass('text-muted');
+                                } else {
+                                    //jika tidak dipakai
+                                    let diskonElement = diskonContainer.find(
+                                        `.list-diskon[data-id="${item.id}"]`);
+                                    diskonElement.removeAttr('disabled');
+                                    diskonElement.find('#text-diskon-list').removeClass('text-muted');
+                                }
+                            });
+                        } else {
+                            let diskonElement = diskonContainer.find(`.list-diskon[data-id="${item.id}"]`);
+                            diskonElement.removeAttr('disabled');
+                            diskonElement.find('#text-diskon-list').removeClass('text-muted');
+                        }
+                    }
+                });
+            }
+        }
 
         function syncDiskon() {
             var tmpTotalDiskon = [];
@@ -891,6 +936,10 @@
                 item.diskon.forEach(function(itemDiskon, indexDiskon) {
                     tmpTotalDiskon.push(itemDiskon.result);
                 });
+            });
+
+            listDiskonAllItem.forEach(function(itemDiskonAllItem, indexDiskonAllItem) {
+                tmpTotalDiskon.push(itemDiskonAllItem.value);
             });
 
             var totalDiskon = tmpTotalDiskon.reduce(function(acc, curr) {
@@ -1091,33 +1140,55 @@
                 let type = $(this).data('type');
                 let name = $(this).data('name')
 
-                console.log('masok click diskon')
                 let isDisabled = $(this).attr('disabled') !== undefined;
 
-                // console.log("ke klik ga sih");
                 if (isDisabled) {
                     console.log('Elemen ini disabled');
                     return; // Jika disabled, hentikan eksekusi
                 } else {
-                    console.log("masuk ga disable")
                     if (type == "fixed") {
-                        listItem.forEach(function(dataItem, indexItem) {
-                            let diskonExist = dataItem.diskon.find((diskon) => diskon.id ==
-                                idDiskon);
-                            if (!diskonExist) {
-                                let hasilDiskon = dataItem.harga / amount;
-                                let tmpDataDiskon = {
-                                    id: idDiskon,
-                                    nama: name,
-                                    result: hasilDiskon,
-                                    satuan: satuan,
-                                    tmpIdProduct: dataItem.tmpId,
-                                    value: amount,
+                        if (satuan == "percent") {
+                            listItem.forEach(function(dataItem, indexItem) {
+                                let diskonExist = dataItem.diskon.find((diskon) => diskon.id ==
+                                    idDiskon);
+                                if (!diskonExist) {
+                                    let hasilDiskon = dataItem.harga / amount;
+                                    let tmpDataDiskon = {
+                                        id: idDiskon,
+                                        nama: name,
+                                        result: hasilDiskon,
+                                        satuan: satuan,
+                                        tmpIdProduct: dataItem.tmpId,
+                                        value: amount,
+                                    }
+                                    dataItem.diskon.push(tmpDataDiskon);
                                 }
-                                dataItem.diskon.push(tmpDataDiskon);
+                            });
+                        } else {
+                            let tmpDataDiskonRupiah = {
+                                id: idDiskon,
+                                nama: name,
+                                satuan: satuan,
+                                value: amount,
                             }
-                        });
+
+                            listDiskonAllItem.push(tmpDataDiskonRupiah);
+                        }
+
+                        let diskonElement = $('#Diskon').find(`.list-diskon[data-id="${idDiskon}"]`);
+
+                        // Tambahkan atribut disabled
+                        diskonElement.attr('disabled', true);
+
+                        // Tambahkan class text-muted pada span dengan id text-diskon-list
+                        diskonElement.find('#text-diskon-list').addClass('text-muted');
+                    } else {
+                        let baseUrl = `{{ route('kasir/customDiskon', ':id') }}`;
+                        let url = baseUrl.replace(':id', idDiskon); // Ganti ':id' dengan nilai dataId
+                        handleAjax(url).excute();
                     }
+
+
                 }
 
                 syncItemCart();

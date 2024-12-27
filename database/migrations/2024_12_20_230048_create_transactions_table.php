@@ -19,10 +19,11 @@ return new class extends Migration
             $table->bigInteger('total')->nullable();
             $table->bigInteger('nominal_bayar')->nullable();
             $table->bigInteger('change')->nullable();
-            $table->string('tipe_pembayaran');
-            $table->json('total_pajak');
-            $table->bigInteger('total_modifier');
-            $table->bigInteger('total_diskon');
+            $table->string('tipe_pembayaran')->nullable();
+            $table->json('total_pajak')->nullable();
+            $table->bigInteger('total_modifier')->nullable();
+            $table->bigInteger('total_diskon')->nullable();
+            $table->json('diskon_all_item')->nullable();
             $table->bigInteger('rounding_amount')->nullable();
             $table->string('tanda_rounding')->nullable();
             $table->softDeletes();

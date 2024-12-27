@@ -49,7 +49,7 @@ class KasirController extends Controller
 
         $modifiers = $product->modifierGroups()->with(['modifier'])->get();
 
-        $discounts = Discount::where('type_input', 'fixed')->where('outlet_id', $dataOutletUser[0])->get();
+        $discounts = Discount::where('type_input', 'fixed')->where('outlet_id', $dataOutletUser[0])->where('satuan', 'percent')->get();
         return view('layouts.kasir.kasir-modal-product', [
             'data' => $dataProduct,
             'discounts' => $discounts,
@@ -118,6 +118,13 @@ class KasirController extends Controller
             }
         }
 
+        $dataDiscountAllItem = json_decode($request->diskonAllItems);
+        if(count($dataDiscountAllItem)){
+            foreach($dataDiscountAllItem as $discountAllItemData){
+                $totalNominalDiskon += $discountAllItemData->value;
+            }
+        }
+
         $dataTransaction = [
             'outlet_id' => $dataOutletUser[0],
             'user_id' => auth()->user()->id,
@@ -129,6 +136,7 @@ class KasirController extends Controller
             'total_pajak' => $request->total_pajak,
             'total_modifier' => $hargaModifier,
             'total_diskon' => $totalNominalDiskon,
+            'diskon_all_item' => $request->diskonAllItems,
             'rounding_amount' => $request->rounding,
             'tanda_rounding' => $request->tanda_rounding
         ];
@@ -159,5 +167,11 @@ class KasirController extends Controller
         ];
         // return responseSuccess(false, "Transaksi Berhasil");
         return response()->json($respond);
+    }
+
+    public function customDiskon(Discount $diskon){
+        return view('layouts.kasir.modal-custom-amount', [
+            'data' => $diskon
+        ]);
     }
 }

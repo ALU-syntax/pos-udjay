@@ -247,6 +247,7 @@
             dataForm.append('change', Math.abs(change));
             dataForm.append('tipe_pembayaran', tipePembayaran);
             dataForm.append('total', hargaTotal);
+            dataForm.append('diskonAllItems', JSON.stringify(listDiskonAllItem))
             dataForm.append('total_pajak', JSON.stringify(listPajak));
             dataForm.append('rounding', amountRounding);
             dataForm.append('tanda_rounding', tandaRounding)

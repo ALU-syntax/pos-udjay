@@ -191,6 +191,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('kasir')->group(function(){
         Route::get('', [KasirController::class, 'index'])->name('kasir');
         Route::get('/choose-payment', [KasirController::class, 'choosePayment'])->name('kasir/choosePayment');
+        Route::get('/custom-diskon/{diskon}', [KasirController::class, 'customDiskon'])->name('kasir/customDiskon');
         Route::get('/{product}', [KasirController::class, 'findProduct'])->name('kasir/findProduct');
         Route::post('/store-patty-cash', [KasirController::class, 'pattyCash'])->name('kasir/pattyCash');
         Route::post('/bayar', [KasirController::class, 'bayar'])->name('kasir/bayar');

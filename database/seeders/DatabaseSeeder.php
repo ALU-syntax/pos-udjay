@@ -30,6 +30,6 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Memanggil ProductFactory
-        Product::factory()->count(500)->create(); // Membuat 10
+        Product::factory()->count(100)->create(); // Membuat 10
     }
 }
