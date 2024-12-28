@@ -17,6 +17,14 @@
         @endif
         <div class="card mt-4">
             <div class="card-header d-flex justify-content-end">
+                <div class="col-4">
+                    <select id="filter-outlet" class="form-control select2">
+                        <option value="all" selected>-- Semua Outlet --</option>
+                        @foreach ($outlets as $outlet)
+                            <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 @can('create library/product')
                     <a href="{{ route('library/product/create') }}" type="button"
                         class="btn btn-primary btn-round ms-auto action"><i class="fa fa-plus"></i>Tambah Product</a>
@@ -34,16 +42,16 @@
         {!! $dataTable->scripts() !!}
 
         <script>
+            $("#filter-outlet").select2();
             var success = "{{ session('success') }}";
             const datatable = 'product-table';
 
             $(".select2InsideModal").select2({
                 dropdownParent: $("#modal_action")
             });
-            
+
             handleAction(datatable);
             handleDelete(datatable);
-
 
             if (success) {
                 Swal.fire({
@@ -58,6 +66,18 @@
                     buttonsStyling: false
                 });
             }
+
+            $(document).ready(function() {
+                // Event listener untuk dropdown filter
+                $('#filter-outlet').on('change', function() {
+                    console.log($('#filter-outlet').val());
+                    var table = $('#' + datatable).DataTable();
+
+                    // Refresh tabel
+                    table.ajax.url("{{ route('library/product') }}?outlet=" + $('#filter-outlet').val())
+                    .load();
+                });
+            })
         </script>
     @endpush
 @endsection

@@ -23,6 +23,7 @@ return new class extends Migration
             // $table->bigInteger('harga_jual')->nullable();
             // $table->bigInteger('harga_modal')->nullable();
             $table->bigInteger('stock')->nullable();
+            $table->foreignId('outlet_id');
             $table->timestamps();
         });
     }

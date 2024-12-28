@@ -23,13 +23,15 @@ class ProductStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', Rule::unique('products')->ignore($this->product)],
+            // 'name' => ['required', Rule::unique('products')->ignore($this->product)],
+            'name' => 'required',
             'category_id' => 'required',
             'photo' => 'nullable|image',
             'harga_jual' => 'required',
             'harga_modal' => 'required',
             'stock' => 'required',
             'status' => 'required',
+            'outlet_id' => 'required',
         ];
     }
 }

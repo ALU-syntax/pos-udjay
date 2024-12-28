@@ -84,9 +84,6 @@ Route::middleware('auth')->group(function () {
         Route::prefix('checkout')->group(function(){
             Route::get('/', [CheckoutController::class, 'index'])->name('checkout');
             Route::post('/store', [CheckoutController::class, 'store'])->name('checkout/store');
-            // Route::get('/edit/{outlet}', [OutletController::class, 'edit'])->name('outlets/edit');
-            // Route::put('/update/{outlet}', [OutletController::class, 'update'])->name('outlets/update');
-            // Route::delete('/destroy/{outlet}', [OutletController::class,'destroy'])->name('outlets/destroy');
         });
 
     });
@@ -124,7 +121,7 @@ Route::middleware('auth')->group(function () {
     Route::group(['prefix'=> 'library', 'as' => 'library/'], function () {
 
         Route::prefix('category')->group(function(){
-            Route::get('', [CategoryController::class, 'index'])->name('category');
+            Route::get('/', [CategoryController::class, 'index'])->name('category');
             Route::get('/create', [CategoryController::class, 'create'])->name('category/create');
             Route::post('/store', [CategoryController::class, 'store'])->name('category/store');
             Route::get('/edit/{category}', [CategoryController::class, 'edit'])->name('category/edit');
@@ -142,7 +139,7 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::prefix('tax')->group(function(){
-            Route::get('', [TaxController::class, 'index'])->name('tax');
+            Route::get('/', [TaxController::class, 'index'])->name('tax');
             Route::get('/create', [TaxController::class, 'create'])->name("tax/create");
             Route::get('/edit/{tax}', [TaxController::class, 'edit'])->name('tax/edit');
             Route::post('/store', [TaxController::class, 'store'])->name('tax/store');

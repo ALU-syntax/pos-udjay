@@ -20,6 +20,7 @@ class ProductFactory extends Factory
             'name' => fake()->unique()->name(),
             'category_id' => 1,
             'harga_jual' => fake()->numberBetween(20000, 50000),
+            'outlet_id' => 1
         ];
     }
 }

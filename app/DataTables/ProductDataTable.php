@@ -47,6 +47,9 @@ class ProductDataTable extends DataTable
             ->addColumn('harga_modal', function($row){
                 return formatRupiah(intval($row->harga_modal), "Rp. ");
             })  
+            ->addColumn('outlet_id', function($row){
+                return "<span class='badge badge-primary'>{$row->outlet->name} </span></br>";
+            })
             ->addColumn('photo', function($row){
                 if($row->photo != null && file_exists(public_path($row->photo))){
                     return '<img src="' . asset($row->photo) . '" width="80" style="border-radius: 20%;">';
@@ -54,7 +57,7 @@ class ProductDataTable extends DataTable
                     return '<img src="' . asset("img/img-placeholder.png") .'" width="80" style="border-radius: 20%;">';
                 }
             })
-            ->rawColumns(['photo'])
+            ->rawColumns(['photo', 'outlet_id'])
             ->addIndexColumn();
     }
 
@@ -62,8 +65,19 @@ class ProductDataTable extends DataTable
      * Get the query source of dataTable.
      */
     public function query(Product $model): QueryBuilder
-    {
-        return $model->newQuery();
+    {   
+        $query = $model->newQuery()->with(['outlet']);
+        if ($this->request()->has('outlet') && $this->request()->get('outlet') != '') {
+            if($this->request()->get('outlet') == 'all'){
+                $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
+            }else{
+                $query->where('outlet_id', $this->request()->get('outlet'));
+            }
+        } elseif($this->request()->has('outlet') && $this->request()->get('outlet') == ''){
+            $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
+        }
+
+        return $query;
     }
 
     /**
@@ -101,8 +115,7 @@ class ProductDataTable extends DataTable
             Column::make('harga_jual'),
             Column::make('harga_modal'),
             Column::make('stock'),
-            Column::make('created_at'),
-            Column::make('updated_at'),
+            Column::make('outlet_id')->title('OUTLET'),
             Column::computed('action')
                   ->exportable(false)
                   ->printable(false)

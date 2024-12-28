@@ -1,4 +1,4 @@
-<x-modal title="Tambah Product" description="Tambah Product berdasarkan Category" action={{$action}}
+<x-modal title="Tambah Product" description="Tambah Product berdasarkan Category" action="{{ $action }}"
     method="POST">
     @if ($data->id)
         @method('put')
@@ -8,6 +8,21 @@
             <label>Name <span class="text-danger">*</span></label>
             <input id="name" name="name" value="{{ $data->name }}" type="text" class="form-control"
                 placeholder="nama product.." required>
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="form-group">
+            <label for="category_id">Category <span class="text-danger ">*</span></label>
+            <select name="category_id" id="category_id" class="select2InsideModal form-select w-100"
+                style="width: 100% !important;" required>
+                <option selected disabled>Pilih Category</option>
+                @foreach ($categorys as $category)
+                    <option value="{{ $category->id }}" @if ($data->category_id == $category->id) selected @endif>
+                        {{ $category->name }}</option>
+                @endforeach
+            </select>
+            {{-- <small id="category_id_feedback" class="d-none text-danger"><i>*Pilih Category Terlebih
+                    Dahulu</i></small> --}}
         </div>
     </div>
     <div class="col-sm-12">
@@ -33,11 +48,27 @@
     </div>
     <div class="col-sm-12">
         <div class="form-group">
-            <label>Stock<span class="text-danger">*</span></label>
+            <label>Stok<span class="text-danger">*</span></label>
             <input id="stock" name="stock" value="{{ $data->stock }}" type="number" class="form-control"
-                placeholder="Harga Modal.." required>
+                placeholder="Stok" required>
         </div>
     </div>
+
+    <div class="col-12" @if ($data->id) hidden @endif>
+        <div class="form-group">
+            <label for="outlet_id">Outlet <span class="text-danger ">*</span></label>
+            <select @if ($data->id) name="outlet_id" @else name="outlet_id[]" @endif
+                class="select2InsideModal form-select w-100" style="width: 100% !important;" required multiple
+                @if ($data->id) hidden @endif>
+                <option disabled>Pilih Category</option>
+                @foreach (json_decode($outlets) as $outlet)
+                    <option value="{{ $outlet->id }}" @if ($data->outlet_id == $outlet->id) selected @endif>
+                        {{ $outlet->name }}</option>
+                @endforeach
+            </select>
+        </div>
+    </div>
+
     <div class="col-md-12">
         <div class="form-group">
             <label for="status">Status <span class="text-danger">*</span></label>
@@ -57,17 +88,17 @@
             dropdownParent: $("#modal_action")
         });
 
-        @if($data->id)
+        @if ($data->id)
             var valueHargaJual = "{{ $data->harga_jual }}";
             var valueHargaModal = "{{ $data->harga_modal }}";
 
-            let convertHargaJual = parseInt(valueHargaJual);
-            let convertHargaModal = parseInt(valueHargaModal);
+            var convertHargaJual = parseInt(valueHargaJual);
+            var convertHargaModal = parseInt(valueHargaModal);
 
             hargaJualInput.value = formatRupiah(convertHargaJual.toString(), "Rp. ");
             hargaModalInput.value = formatRupiah(convertHargaModal.toString(), "Rp. ");
         @endif
-        
+
         hargaJualInput.addEventListener("keyup", function(e) {
             this.value = formatRupiah(this.value, "Rp. ");
         });
