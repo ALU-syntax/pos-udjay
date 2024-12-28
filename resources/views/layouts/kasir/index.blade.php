@@ -903,6 +903,7 @@
         }
 
         function updateCustomAmount() {
+            let tmpId = generateRandomID();
             let html = `
             <div class="row mb-0 mt-2">
                 <div class="col-6" style="color:gray;">Custom Amount</div>
@@ -911,17 +912,31 @@
                 <input type="text" name="harga[]" value="${tmpTampungCustomAmount}" hidden>
                 <input type="text" name="quantity[]" value="1" hidden>
                 <div class="col-1 text-end text-danger">
-                    <button type="button" onclick="deleteItem(this)" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
+                    <button type="button" data-tmpId="${tmpId}" onclick="deleteItem(this)" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
                 </div>
             </div>
             `;
 
             subTotal.push(parseInt(tmpTampungCustomAmount));
 
+            let dataItemCustom = {
+                catatan: "",
+                diskon: [],
+                harga: parseInt(tmpTampungCustomAmount),
+                idProduct: null,
+                modifier: [],
+                namaProduct: 'custom',
+                promo: [],
+                quantity: "1",
+                resultTotal: parseInt(tmpTampungCustomAmount),
+                tmpId: tmpId,
+            }
+
+            listItem.push(dataItemCustom);
             // Tambahkan elemen ke dalam form di dalam #order-list
             $('#order-list').append(html);
 
-            updateHargaTotal();
+            syncItemCart();
 
         }
 

@@ -126,10 +126,12 @@ class KasirController extends Controller
             }
         }
 
+        $customerId = $request->customer_id == 'null' ? null : $request->customer_id;
+
         $dataTransaction = [
             'outlet_id' => $dataOutletUser[0],
             'user_id' => auth()->user()->id,
-            'customer_id' => $request->customer_id,
+            'customer_id' => $customerId,
             'total' => $request->total,
             'nominal_bayar' => $request->nominal_bayar,
             'change' => $request->change,
@@ -145,7 +147,7 @@ class KasirController extends Controller
         $transaction = Transaction::create($dataTransaction);
 
         for ($x = 0; $x < count($request->idProduct); $x++) {
-            $idProduct = intval($request->idProduct[$x]);
+            $idProduct = $request->idProduct[$x] == 'null' ? null : intval($request->idProduct[$x]);
             $dataProduct = [
                 'product_id' => $idProduct,
                 'discount_id' => $request->discount_id[$x],
