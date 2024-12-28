@@ -247,23 +247,67 @@
                         </div>
                     </div>
 
+                    <div class="container d-none" id="any_item_from_category">
+                        <div class="row">
+                            <div class="col-3">
+                                <input type="number" name="qty_requirement_item[]" class="form-control"
+                                    placeholder="Qty" required>
+                            </div>
+                            <div class="col-1 d-flex align-items-center justify-content-center">
+                                <strong class="text-muted">Of</strong>
+                            </div>
+                            <div class="col-8 mt-2">
+                                <div class="form-group p-0">
+                                    <select name="item_requirement[]" class="select2InsideModal form-select w-100"
+                                        style="width: 100% !important;" required>
+                                        <option selected disabled>Pilih Category</option>
+                                        <!-- Anda bisa mengganti dengan opsi dinamis -->
+                                        @foreach ($categorys as $category)
+                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
                     <button type="button" class="btn btn-round btn-outline-secondary mt-3 next-btn"
                         id="backToCollapseOne" data-target="#collapseOne">Previous</button>
                     <button type="button" class="btn btn-round btn-primary mt-3 next-btn"
-                        id="btnPurchasRequirementNext" data-target="#collapseThree" disabled>Next</button>
+                        id="btnPurchasRequirementNext" data-session="promo-information" data-target="#collapseThree"
+                        disabled>Next</button>
                 </div>
             </div>
         </div>
 
-        <!-- Accordion Level 3 -->
+        <!-- Reward -->
         <div class="accordion-item">
             <h2 class="accordion-header" id="headingThree">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                     data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree" disabled>
-                    Level 3
+                    Reward
                 </button>
             </h2>
             <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree"
+                data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                    <p>Final task:</p>
+                    <textarea id="task3" class="form-control" placeholder="Enter some text"></textarea>
+                    <button class="btn btn-success mt-3 finish-btn">Finish</button>
+                </div>
+            </div>
+        </div>
+
+        {{-- Promo Configuration --}}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingThree">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour" disabled>
+                    Promo Configuration
+                </button>
+            </h2>
+            <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingThree"
                 data-bs-parent="#accordionExample">
                 <div class="accordion-body">
                     <p>Final task:</p>
@@ -286,13 +330,24 @@
             }
         }
 
-        function tooglePurchaseRequirementType() {
+        function togglePurchaseRequirementType() {
+            const selectedValue = $("input[name='requirement_type']:checked").val();
 
+            if (selectedValue === "specific_item_requirement") {
+                $("#specific_item_list").removeClass("d-none");
+                $("#any_item_from_category").addClass("d-none");
+            } else if (selectedValue === "all_item_from_category_requirement") {
+                $("#any_item_from_category").removeClass("d-none");
+                $("#specific_item_list").addClass("d-none");
+            }
         }
 
         $(document).ready(function() {
             // Pengecekan awal saat halaman dimuat
             toggleSalesTypeSelect();
+
+            // Jalankan fungsi saat halaman dimuat untuk memastikan keadaan awal
+            togglePurchaseRequirementType();
 
             // Event listener ketika radio button berubah
             $('input[name="sales_type"]').on('change', function() {
@@ -502,8 +557,8 @@
 
                 if (previousRow.length) {
                     previousRow.remove();
-                }else{
-                    if(nextRow.length){
+                } else {
+                    if (nextRow.length) {
                         nextRow.remove();
                     }
                 }
@@ -516,8 +571,15 @@
             });
 
             $('#btnPurchasRequirementNext').on('click', function() {
-                
+                const target = $(this).data('target');
+                $(target).collapse('show'); // Tampilkan accordion berikutnya
+                $("#collapseTwo").collapse('hide'); // Sembunyikan accordion saat ini
             })
+
+            // Jalankan fungsi saat radio button diklik
+            $("input[name='requirement_type']").on("change", function() {
+                togglePurchaseRequirementType();
+            });
 
             // Disable proceeding to the next accordion unless the current task is fulfilled
             // $('.next-btn').on('click', function() {

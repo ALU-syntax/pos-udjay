@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\PromoDatatables;
+use App\Models\Category;
 use App\Models\Outlets;
 use App\Models\Product;
 use App\Models\Promo;
@@ -21,7 +22,8 @@ class PromoController extends Controller
             'data' =>  new Promo(),
             "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
             'salesTypes' => SalesType::all(),
-            'products' => Product::all()
+            'products' => Product::whereIn('outlet_id', json_decode(auth()->user()->outlet_id))->get(),
+            'categorys' => Category::all()
         ]);
     }
 }
