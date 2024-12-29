@@ -26,7 +26,7 @@
                     </select>
                 </div>
                 @can('create library/product')
-                    <a href="{{ route('library/product/create') }}" type="button"
+                    <a href="{{ route('library/product/create') }}" type="button" id="btnTambahProduct"
                         class="btn btn-primary btn-round ms-auto action"><i class="fa fa-plus"></i>Tambah Product</a>
                 @endcan
             </div>
@@ -42,6 +42,7 @@
         {!! $dataTable->scripts() !!}
 
         <script>
+            var listVarianLength = 0
             $("#filter-outlet").select2();
             var success = "{{ session('success') }}";
             const datatable = 'product-table';
@@ -77,6 +78,10 @@
                     table.ajax.url("{{ route('library/product') }}?outlet=" + $('#filter-outlet').val())
                     .load();
                 });
+
+                $('#btnTambahProduct').on('click', function(){
+                    listVarianLength = 0;
+                })
             })
         </script>
     @endpush

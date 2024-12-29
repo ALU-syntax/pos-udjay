@@ -27,9 +27,10 @@ class ProductStoreRequest extends FormRequest
             'name' => 'required',
             'category_id' => 'required',
             'photo' => 'nullable|image',
-            'harga_jual' => 'required',
             'harga_modal' => 'required',
-            'stock' => 'required',
+            'nama_varian' => 'nullable|array',
+            'harga_jual' => 'required|array',
+            'stock' => 'required|array',
             'status' => 'required',
             'outlet_id' => 'required',
         ];

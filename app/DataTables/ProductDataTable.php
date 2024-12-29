@@ -112,9 +112,9 @@ class ProductDataTable extends DataTable
             Column::make('category_id'),
             Column::make('status'),
             Column::make('photo'),
-            Column::make('harga_jual'),
+            // Column::make('harga_jual'),
             Column::make('harga_modal'),
-            Column::make('stock'),
+            // Column::make('stock'),
             Column::make('outlet_id')->title('OUTLET'),
             Column::computed('action')
                   ->exportable(false)

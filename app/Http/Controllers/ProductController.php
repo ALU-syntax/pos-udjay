@@ -7,13 +7,14 @@ use App\Http\Requests\ProductStoreRequest;
 use App\Models\Category;
 use App\Models\Outlets;
 use App\Models\Product;
+use App\Models\VariantProduct;
 use Illuminate\Support\Facades\File;
 
 class ProductController extends Controller
 {
     public function index(ProductDataTable $productDataTable)
     {
-        return $productDataTable->render("layouts.product.index",[
+        return $productDataTable->render("layouts.product.index", [
             "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
         ]);
     }
@@ -36,9 +37,9 @@ class ProductController extends Controller
             $dataProduct = [
                 "name" => $validatedData['name'],
                 'category_id' => $validatedData['category_id'],
-                'harga_jual' => getAmount($validatedData['harga_jual']),
+                // 'harga_jual' => getAmount($validatedData['harga_jual']),
                 'harga_modal' => getAmount($validatedData['harga_modal']),
-                'stock' => $validatedData['stock'],
+                // 'stock' => $validatedData['stock'],
                 'outlet_id' => $outlet,
                 'status' => $validatedData['status']
             ];
@@ -47,7 +48,34 @@ class ProductController extends Controller
                 $dataProduct['photo'] = $request->file('photo')->store('product');
             }
 
-            Product::create($dataProduct);
+            $product = Product::create($dataProduct);
+
+            // Buat data Modifiers
+            $dataVariant = [];
+            if(count($validatedData['harga_jual']) > 1){
+                for ($x = 0; $x < count($validatedData['harga_jual']); $x++) {
+                    $dataVariant[] = [
+                        'name' => $validatedData['nama_varian'][$x],
+                        'harga' => getAmount($validatedData['harga_jual'][$x]),
+                        'stok' => $validatedData['stock'][$x],
+                        'product_id' => $product->id, // Gunakan ID langsung dari instance ModifierGroup
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ];
+                }
+            }else{
+                $dataVariant[] = [
+                    'name' => $validatedData['name'],
+                    'harga' => getAmount($validatedData['harga_jual'][0]),
+                    'stok' => $validatedData['stock'][0],
+                    'product_id' => $product->id, // Gunakan ID langsung dari instance ModifierGroup
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+
+            // Simpan semua Modifiers secara bulk
+            VariantProduct::insert($dataVariant); // Bulk insert lebih efisien
         }
 
         return responseSuccess(false);

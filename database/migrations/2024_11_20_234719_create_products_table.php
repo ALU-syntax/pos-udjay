@@ -17,12 +17,12 @@ return new class extends Migration
             $table->foreignId('category_id')->nullable()->constrained()->onDelete('cascade');
             $table->boolean('status')->default(true);
             $table->string('photo')->nullable();
-            $table->decimal('harga_jual', 15, 2)->default(0)->unsigned();
+            // $table->decimal('harga_jual', 15, 2)->default(0)->unsigned();
             $table->decimal('harga_modal', 15, 2)->default(0)->unsigned();
             $table->softDeletes();
             // $table->bigInteger('harga_jual')->nullable();
             // $table->bigInteger('harga_modal')->nullable();
-            $table->bigInteger('stock')->nullable();
+            // $table->bigInteger('stock')->nullable();
             $table->foreignId('outlet_id');
             $table->timestamps();
         });
