@@ -89,6 +89,8 @@ class ModifiersController extends Controller
 
     public function update(Request $request, ModifierGroup $modifier)
     {
+        $modifier->load('modifier');
+
         $validateData = $request->validate([
             'name' => 'required',
             'option_name' => 'required|array',
@@ -117,9 +119,9 @@ class ModifiersController extends Controller
         $listStokModifier = $validateData['stok'];
         $listIdModifier = $validateData['id_modifier'];
 
-        $listModifierExist = $modifier->with('modifier')->get();
+        // $listModifierExist = $modifier->with('modifier')->get();
 
-        $idModifierExist = array_column($listModifierExist[0]->modifier->toArray(), 'id');
+        $idModifierExist = array_column($modifier->modifier->toArray(), 'id');
 
         $modifierToDelete = array_diff($idModifierExist, $listIdModifier);
 

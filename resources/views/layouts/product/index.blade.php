@@ -76,10 +76,17 @@
 
                     // Refresh tabel
                     table.ajax.url("{{ route('library/product') }}?outlet=" + $('#filter-outlet').val())
-                    .load();
+                        .load();
                 });
 
-                $('#btnTambahProduct').on('click', function(){
+                // Tambahkan kelas baru ke elemen <a> yang mengandung teks 'Edit'
+                $("a:contains('Edit')").addClass("edit-product");
+
+                $('.edit-product').off().on('click', function(){
+                    listVarianLength = 0;
+                });
+
+                $('#btnTambahProduct').on('click', function() {
                     listVarianLength = 0;
                 })
             })

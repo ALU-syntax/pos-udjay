@@ -23,6 +23,7 @@ class ProductController extends Controller
     {
         return view("layouts.product.product-modal", [
             "data" => new Product(),
+            "update" => false,
             "action" => route("library/product/store"),
             "categorys" => Category::all(),
             "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
@@ -52,27 +53,38 @@ class ProductController extends Controller
 
             // Buat data Modifiers
             $dataVariant = [];
-            if(count($validatedData['harga_jual']) > 1){
-                for ($x = 0; $x < count($validatedData['harga_jual']); $x++) {
-                    $dataVariant[] = [
-                        'name' => $validatedData['nama_varian'][$x],
-                        'harga' => getAmount($validatedData['harga_jual'][$x]),
-                        'stok' => $validatedData['stock'][$x],
-                        'product_id' => $product->id, // Gunakan ID langsung dari instance ModifierGroup
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ];
-                }
-            }else{
+            for ($x = 0; $x < count($validatedData['harga_jual']); $x++) {
                 $dataVariant[] = [
-                    'name' => $validatedData['name'],
-                    'harga' => getAmount($validatedData['harga_jual'][0]),
-                    'stok' => $validatedData['stock'][0],
+                    'name' => count($validatedData['harga_jual']) > 1 ? $validatedData['nama_varian'][$x] : $validatedData['name'],
+                    'harga' => getAmount($validatedData['harga_jual'][$x]),
+                    'stok' => $validatedData['stock'][$x],
                     'product_id' => $product->id, // Gunakan ID langsung dari instance ModifierGroup
                     'created_at' => now(),
                     'updated_at' => now()
                 ];
             }
+
+            // if(count($validatedData['harga_jual']) > 1){
+            //     for ($x = 0; $x < count($validatedData['harga_jual']); $x++) {
+            //         $dataVariant[] = [
+            //             'name' => $validatedData['nama_varian'][$x],
+            //             'harga' => getAmount($validatedData['harga_jual'][$x]),
+            //             'stok' => $validatedData['stock'][$x],
+            //             'product_id' => $product->id, // Gunakan ID langsung dari instance ModifierGroup
+            //             'created_at' => now(),
+            //             'updated_at' => now()
+            //         ];
+            //     }
+            // }else{
+            //     $dataVariant[] = [
+            //         'name' => $validatedData['name'],
+            //         'harga' => getAmount($validatedData['harga_jual'][0]),
+            //         'stok' => $validatedData['stock'][0],
+            //         'product_id' => $product->id, // Gunakan ID langsung dari instance ModifierGroup
+            //         'created_at' => now(),
+            //         'updated_at' => now()
+            //     ];
+            // }
 
             // Simpan semua Modifiers secara bulk
             VariantProduct::insert($dataVariant); // Bulk insert lebih efisien
@@ -83,11 +95,12 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        $products = $product->where('id', $product->id)->with(['outlet'])->get()[0];
+        $products = $product->where('id', $product->id)->with(['outlet', 'variants'])->get()[0];
         $outlet = Outlets::find($products->outlet_id);
         $dataOutlet = ['id' => $outlet->id, 'name' => $outlet->name];
         return view('layouts.product.product-modal', [
             'data' => $product,
+            'update' => true,
             'action' => route('library/product/update', $product->id),
             "categorys" => Category::all(),
             'outlets' => json_encode([$dataOutlet])
@@ -96,8 +109,11 @@ class ProductController extends Controller
 
     public function update(ProductStoreRequest $request, Product $product)
     {
+        // Muat relasi `variants` hanya untuk produk ini
+        $product->load('variants');
+
         $product->fill($request->validated());
-        $product->harga_jual = getAmount($request->harga_jual);
+        // $product->harga_jual = getAmount($request->harga_jual);
         $product->harga_modal = getAmount($request->harga_modal);
         if (!empty($request->file('photo'))) {
             $filePath = public_path('uploads/product/' . $product->photo);
@@ -110,11 +126,49 @@ class ProductController extends Controller
 
         $product->save();
 
+        $listNameVariant = $request['nama_varian'];
+        $listHargaJualVariant = $request['harga_jual'];
+        $listStockVariant = $request['stock'];
+        $listIdVariant = $request['id_variant'];
+
+        $idVariantExist = array_column($product->variants->toArray(), 'id');
+
+        $variantToDelete = array_diff($idVariantExist, $listIdVariant);
+
+        foreach ($variantToDelete as $deleteItem) {
+            VariantProduct::find($deleteItem)->delete();
+        }
+
+        foreach ($listHargaJualVariant as $key => $value) {
+            if (isset($listIdVariant[$key])) {
+                $varianItem = VariantProduct::find($listIdVariant[$key]);
+                $dataVariant = [
+                    'name' => $listNameVariant[$key],
+                    'harga' => getAmount($value),
+                    'stok' => $listStockVariant[$key],
+                ];
+
+                $varianItem->update($dataVariant);
+            } else {
+                $dataVariant = [
+                    'name' => $listNameVariant[$key],
+                    'harga' => getAmount($value),
+                    'stok' => $listStockVariant[$key],
+                    'product_id' => $product->id, // Gunakan ID langsung dari instance ModifierGroup
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+
+                VariantProduct::create($dataVariant);
+            }
+        }
+
         return responseSuccess(true);
     }
 
     public function destroy(Product $product)
     {
+        $product->variants()->delete();
         $product->delete();
 
         return responseSuccessDelete();

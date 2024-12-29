@@ -1,5 +1,7 @@
-<x-modal title="Tambah Product" addStyle="modal-xl" description="Tambah Product berdasarkan Category"
+<x-modal title="{{ $update ? 'Update Product' : 'Tambah Product' }}" addStyle="modal-xl" update="{{ $update }}"
+    description="{{ $update ? 'Update Product berdasarkan Category' : 'Update Product berdasarkan Category' }}"
     action="{{ $action }}" method="POST">
+
     @if ($data->id)
         @method('put')
     @endif
@@ -51,7 +53,7 @@
         </div>
     </div>
 
-    <div class="col-12 mt-3 px-4">
+    <div class="col-12 mt-3 px-4" id="container-list-variant">
         <button type="button" id="tambah-varian" class="btn btn-primary w-100"> Tambah Varian</button>
         <div class="input-group col-12 list-varian">
             <input id="harga-varian" name="harga_jual[]" placeholder="Harga Jual" type="text"
@@ -101,7 +103,7 @@
             listVarianLength++;
 
             // Menambahkan elemen baru ke dalam container
-            $(".list-varian").first().after(newVarian);
+            $(".list-varian").last().after(newVarian);
         });
 
         $(document).off().on('click', '.remove-varian', function() {
@@ -116,11 +118,78 @@
         @if ($data->id)
             var valueHargaJual = "{{ $data->harga_jual }}";
             var valueHargaModal = "{{ $data->harga_modal }}";
+            var listVariants = '{!! $data->variants !!}';
+            var jsonListVariants = JSON.parse(listVariants);
 
-            var convertHargaJual = parseInt(valueHargaJual);
+            $('#tambah-varian').nextAll().remove();
+            jsonListVariants.forEach(function(item, index) {
+                console.log(index)
+                if (jsonListVariants.length > 1) {
+                    if (index > 0) {
+                        $('.list-varian').last().after(`
+                                <div class="input-group col-12 mt-1 list-varian">
+                                    <input name="id_variant[]" type="hidden" value="${item.id}" class="form-control">
+                                    <input name="nama_varian[]" type="text" value="${item.name}" class="form-control" placeholder="Nama Varian" required>
+                                    <input id="harga-varian" name="harga_jual[]" value="Rp. ${formatRupiah(item.harga.toString())}" placeholder="Harga Jual" type="text" class="form-control harga_jual" required>
+                                    <input id="stok-varian" name="stock[]" type="number" value="${item.stok}" class="form-control" placeholder="Stok" required>
+                                    <button type="button" class="btn btn-danger btn-sm remove-varian">×</button>
+                                </div>
+                            `);
+                    } else {
+                        $('#tambah-varian').after(`
+                                <div class="input-group col-12 mt-1 list-varian">
+                                    <input name="id_variant[]" type="hidden" value="${item.id}" class="form-control">
+                                    <input name="nama_varian[]" id="nama-varian" type="text" value="${item.name}" class="form-control" placeholder="Nama Varian" required>
+                                    <input id="harga-varian" name="harga_jual[]" value="Rp. ${formatRupiah(item.harga.toString())}" placeholder="Harga Jual" type="text" class="form-control harga_jual" required>
+                                    <input id="stok-varian" name="stock[]" type="number" value="${item.stok}" class="form-control" placeholder="Stok" required>
+                                    <button type="button" class="btn btn-danger btn-sm remove-varian">×</button>
+                                </div>
+                            `);
+                    }
+                } else {
+                    $('#tambah-varian').after(`
+                            <div class="input-group col-12 mt-1 list-varian">
+                                <input name="id_variant[]" type="hidden" value="${item.id}" class="form-control">
+                                <input id="harga-varian" name="harga_jual[]" value="Rp. ${formatRupiah(item.harga.toString())}" placeholder="Harga Jual" type="text" class="form-control harga_jual" required>
+                                <input id="stok-varian" name="stock[]" type="number" value="${item.stok}" class="form-control" placeholder="Stok" required>
+                            </div>
+                        `);
+                }
+
+                listVarianLength = index;
+            });
+
+            $(document).off().on('click', '.remove-varian', function() {
+                $(this).closest('.list-varian').remove(); // Hapus row terpilih
+                if (listVarianLength == 1) {
+                    $('.remove-varian').remove();
+                }
+                console.log("masok pak mekcay")
+                listVarianLength--;
+            });
+
+            $('#tambah-varian').off().on('click', function() {
+                const newVarian = `
+        <div class="input-group col-12 mt-1 list-varian">
+            <input  name="nama_varian[]" type="text" class="form-control" placeholder="Nama Varian" required>
+            <input id="harga-varian" name="harga_jual[]" placeholder="Harga Jual" type="text" class="form-control harga_jual" required>
+            <input id="stok-varian" name="stock[]" type="number" class="form-control" placeholder="Stok" required>
+            <button type="button" class="btn btn-danger btn-sm remove-varian">×</button>
+        </div>`;
+
+                if (listVarianLength == 0) {
+                    $('.list-varian').first().append(`
+                    <button type="button" class="btn btn-danger btn-sm remove-varian">×</button>
+                `);
+                }
+                listVarianLength++;
+
+                // Menambahkan elemen baru ke dalam container
+                $(".list-varian").last().after(newVarian);
+            });
+
             var convertHargaModal = parseInt(valueHargaModal);
 
-            hargaJualInput.value = formatRupiah(convertHargaJual.toString(), "Rp. ");
             hargaModalInput.value = formatRupiah(convertHargaModal.toString(), "Rp. ");
         @endif
 

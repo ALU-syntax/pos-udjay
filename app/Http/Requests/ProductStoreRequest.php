@@ -33,6 +33,7 @@ class ProductStoreRequest extends FormRequest
             'stock' => 'required|array',
             'status' => 'required',
             'outlet_id' => 'required',
+            'id_variant' => 'nullable|array',
         ];
     }
 }
