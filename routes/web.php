@@ -11,6 +11,7 @@ use App\Http\Controllers\KasirController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ModifiersController;
 use App\Http\Controllers\OutletController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
@@ -94,6 +95,15 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/{categoryPayment}', [CategoryPaymentController::class, 'edit'])->name('category-payment/edit');
             Route::put('/update/{categoryPayment}', [CategoryPaymentController::class, 'update'])->name('category-payment/update');
             Route::delete('/destroy/{categoryPayment}', [CategoryPaymentController::class,'destroy'])->name('category-payment/destroy');
+        });
+
+        Route::prefix('payment')->group(function(){
+            Route::get('/', [PaymentController::class, 'index'])->name('payment');
+            Route::get('/create', [PaymentController::class, 'create'])->name('payment/create');
+            Route::post('/store', [PaymentController::class, 'store'])->name('payment/store');
+            Route::get('/edit/{payment}', [PaymentController::class, 'edit'])->name('payment/edit');
+            Route::put('/update/{payment}', [PaymentController::class, 'update'])->name('payment/update');
+            Route::delete('/destroy/{payment}', [PaymentController::class,'destroy'])->name('payment/destroy');
         });
 
     });

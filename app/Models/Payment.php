@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class CategoryPayment extends Model
+class Payment extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $guarded = ['id'];
 
-    public function payment(){
-        return $this->hasMany(Payment::class, 'category_payment_id', 'id');
+    public function categoryPayment(){
+        return $this->belongsTo(CategoryPayment::class, 'category_payment_id', 'id');
     }
 }
