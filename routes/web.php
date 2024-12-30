@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CategoryPaymentController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DiscountController;
@@ -84,6 +85,15 @@ Route::middleware('auth')->group(function () {
         Route::prefix('checkout')->group(function(){
             Route::get('/', [CheckoutController::class, 'index'])->name('checkout');
             Route::post('/store', [CheckoutController::class, 'store'])->name('checkout/store');
+        });
+
+        Route::prefix('category-payment')->group(function(){
+            Route::get('/', [CategoryPaymentController::class, 'index'])->name('category-payment');
+            Route::get('/create', [CategoryPaymentController::class, 'create'])->name('category-payment/create');
+            Route::post('/store', [CategoryPaymentController::class, 'store'])->name('category-payment/store');
+            Route::get('/edit/{categoryPayment}', [CategoryPaymentController::class, 'edit'])->name('category-payment/edit');
+            Route::put('/update/{categoryPayment}', [CategoryPaymentController::class, 'update'])->name('category-payment/update');
+            Route::delete('/destroy/{categoryPayment}', [CategoryPaymentController::class,'destroy'])->name('category-payment/destroy');
         });
 
     });

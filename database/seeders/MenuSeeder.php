@@ -86,6 +86,12 @@ class MenuSeeder extends Seeder
         $sm = $mm->subMenus()->create(['name' => 'Checkout', 'url' => $mm->url . '/checkout', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
 
+        $sm = $mm->subMenus()->create(['name' => 'Category Payment', 'url' => $mm->url . '/category-payment', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Payment', 'url' => $mm->url . '/payment', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
         // END KONFIGURASI
 
         //KASIR
