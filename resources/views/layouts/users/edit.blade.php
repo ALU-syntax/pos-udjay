@@ -91,15 +91,28 @@
                             </div>
                         @enderror
                     </div>
-                    <div class="col-md-6">
+
+                    <div class="col-md-6 @if($data->hasRole('Kasir')) d-none @endif" id="selectOutletMultiple">
                         <label for="outlet_id">Outlet <span class="text-danger ">*</span></label>
-                        <select name="outlet_id[]" id="outlet_id" class="select2InsideModal form-select w-100"
-                            style="width: 100% !important;" required multiple>
+                        <select @if (!$data->hasRole('Kasir')) name="outlet_id[]" @endif id="outlet_id_multiple"
+                            class="select2InsideModal form-select w-100" style="width: 100% !important;" required multiple>
                             <option disabled>Pilih Outlet</option>
                             @foreach ($outlets as $outlet)
-                                
-                                    <option value="{{ $outlet->id }}" @foreach (json_decode($data->outlet_id) as $outletData) @if ($outlet->id == $outletData) selected @endif @endforeach>
-                                        {{ $outlet->name }}</option>
+                                <option value="{{ $outlet->id }}"
+                                    @foreach (json_decode($data->outlet_id) as $outletData) @if ($outlet->id == $outletData) selected @endif @endforeach>
+                                    {{ $outlet->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6  @if (!$data->hasRole('Kasir')) d-none @endif" id="selectOutletSingle">
+                        <label for="outlet_id">Outlet <span class="text-danger ">*</span></label>
+                        <select @if ($data->hasRole('Kasir')) name="outlet_id[]" @endif id="outlet_id_single"
+                            class="select2InsideModal form-select w-100" style="width: 100% !important;" required>
+                            <option disabled>Pilih Outlet</option>
+                            @foreach ($outlets as $outlet)
+                                <option value="{{ $outlet->id }}"
+                                    @foreach (json_decode($data->outlet_id) as $outletData) @if ($outlet->id == $outletData) selected @endif @endforeach>
+                                    {{ $outlet->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -116,6 +129,30 @@
         <script>
             $(".select2InsideModal").select2({
                 closeOnSelect: false
+            });
+
+            $('#role').on('change', function() {
+                // Ambil nilai terpilih dan ubah ke huruf kecil
+                const selectedRoleName = $('#role option:selected').text().toLowerCase();
+
+                console.log(selectedRoleName)
+                // Sembunyikan kedua elemen select
+                $('#selectOutletMultiple').addClass('d-none');
+                $('#selectOutletSingle').addClass('d-none');
+
+                // Nonaktifkan atribut name kedua elemen
+                $('#outlet_id_multiple').removeAttr('name');
+                $('#outlet_id_single').removeAttr('name');
+
+                if (selectedRoleName === 'kasir') {
+                    // Tampilkan select single dan tambahkan atribut name
+                    $('#selectOutletSingle').removeClass('d-none');
+                    $('#outlet_id_single').attr('name', 'outlet_id[]');
+                } else {
+                    // Tampilkan select multiple dan tambahkan atribut name
+                    $('#selectOutletMultiple').removeClass('d-none');
+                    $('#outlet_id_multiple').attr('name', 'outlet_id[]');
+                }
             });
         </script>
     @endpush()

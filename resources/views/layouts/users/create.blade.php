@@ -85,10 +85,21 @@
                             </div>
                         @enderror
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 " id="selectOutletMultiple">
                         <label for="outlet_id">Outlet <span class="text-danger ">*</span></label>
-                        <select name="outlet_id[]" id="outlet_id[]" class="select2InsideModal form-select w-100"
+                        <select  name="outlet_id[]"  id="outlet_id_multiple" class="select2InsideModal form-select w-100"
                             style="width: 100% !important;" required multiple>
+                            <option disabled>Pilih Outlet</option>
+                            @foreach ($outlets as $outlet)
+                                <option value="{{ $outlet->id }}">
+                                    {{ $outlet->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6  d-none" id="selectOutletSingle">
+                        <label for="outlet_id">Outlet <span class="text-danger ">*</span></label>
+                        <select name="outlet_id[]" id="outlet_id_single" class="select2InsideModal form-select w-100"
+                            style="width: 100% !important;" required>
                             <option disabled>Pilih Outlet</option>
                             @foreach ($outlets as $outlet)
                                 <option value="{{ $outlet->id }}">
@@ -108,7 +119,31 @@
     @push('js')
         <script>
             $(".select2InsideModal").select2({
-                closeOnSelect: false
+                // closeOnSelect: false
+            });
+
+            // Pantau perubahan pada select role
+            $('#role').on('change', function() {
+                // Ambil nilai terpilih dan ubah ke huruf kecil
+                const selectedRoleName = $('#role option:selected').text().toLowerCase();
+
+                // Sembunyikan kedua elemen select
+                $('#selectOutletMultiple').addClass('d-none');
+                $('#selectOutletSingle').addClass('d-none');
+
+                // Nonaktifkan atribut name kedua elemen
+                $('#outlet_id_multiple').removeAttr('name');
+                $('#outlet_id_single').removeAttr('name');
+
+                if (selectedRoleName === 'kasir') {
+                    // Tampilkan select single dan tambahkan atribut name
+                    $('#selectOutletSingle').removeClass('d-none');
+                    $('#outlet_id_single').attr('name', 'outlet_id[]');
+                } else {
+                    // Tampilkan select multiple dan tambahkan atribut name
+                    $('#selectOutletMultiple').removeClass('d-none');
+                    $('#outlet_id_multiple').attr('name', 'outlet_id[]');
+                }
             });
         </script>
     @endpush

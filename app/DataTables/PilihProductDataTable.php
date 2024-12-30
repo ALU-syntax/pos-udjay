@@ -44,9 +44,9 @@ class PilihProductDataTable extends DataTable
                 }
                 return '<input type="checkbox" class="product-checkbox" name="products[]" value="' . $row->id . '" ' . $checked . '>';
             })
-            ->addColumn('price', function ($row) {
-                return formatRupiah(intval($row->harga_jual), "Rp. ");
-            })
+            // ->addColumn('price', function ($row) {
+            //     return formatRupiah(intval($row->harga_jual), "Rp. ");
+            // })
             ->rawColumns(['checkbox']);
     }
 
@@ -65,7 +65,7 @@ class PilihProductDataTable extends DataTable
 
         // Query dasar
         $query = $model->newQuery()
-            ->select('id', 'name', 'harga_jual');
+            ->select('id', 'name')->where('outlet_id', $modifierGroup->outlet_id);
 
         if (!empty($checkedProducts)) {
             // Jika ada produk yang dicentang, urutkan berdasarkan `checkedProducts`
@@ -112,7 +112,7 @@ class PilihProductDataTable extends DataTable
             // ['data' => 'checkbox', 'name' => 'checkbox', 'orderable' => false, 'searchable' => false, 'title' => '<input type="checkbox" id="checkAll">'],
             ['data' => 'checkbox', 'name' => 'checkbox', 'orderable' => false, 'searchable' => false, 'title' => ''],
             ['data' => 'name', 'name' => 'name', 'title' => 'Nama Produk'],
-            ['data' => 'price', 'name' => 'price', 'title' => 'Harga', 'orderable' => false, 'searchable' => false],
+            // ['data' => 'price', 'name' => 'price', 'title' => 'Harga', 'orderable' => false, 'searchable' => false],
         ];
     }
 

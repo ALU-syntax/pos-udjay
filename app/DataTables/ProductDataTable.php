@@ -42,7 +42,11 @@ class ProductDataTable extends DataTable
                 return $row->category ? $row->category->name : '-';
             })
             ->addColumn('harga_jual', function($row){
-                return formatRupiah(intval($row->harga_jual), "Rp. ");
+                if(count($row->variants) > 1){
+                    return "<span class='badge badge-primary'>" . count($row->variants) ." Price</span></br>";
+                }else{
+                    return formatRupiah(intval($row->variants[0]->harga), "Rp. ");
+                }
             })  
             ->addColumn('harga_modal', function($row){
                 return formatRupiah(intval($row->harga_modal), "Rp. ");
@@ -57,7 +61,7 @@ class ProductDataTable extends DataTable
                     return '<img src="' . asset("img/img-placeholder.png") .'" width="80" style="border-radius: 20%;">';
                 }
             })
-            ->rawColumns(['photo', 'outlet_id'])
+            ->rawColumns(['photo', 'outlet_id', 'harga_jual'])
             ->addIndexColumn();
     }
 
@@ -73,7 +77,9 @@ class ProductDataTable extends DataTable
             }else{
                 $query->where('outlet_id', $this->request()->get('outlet'));
             }
-        } elseif($this->request()->has('outlet') && $this->request()->get('outlet') == ''){
+        } elseif($this->request()->has('outlet') && $this->request()->get('outlet') == 'all'){
+            $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
+        }else{
             $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
         }
 
@@ -109,10 +115,10 @@ class ProductDataTable extends DataTable
     {
         return [
             Column::make('name'),
-            Column::make('category_id'),
+            Column::make('category_id')->title('CATEGORY'),
             Column::make('status'),
             Column::make('photo'),
-            // Column::make('harga_jual'),
+            Column::make('harga_jual'),
             Column::make('harga_modal'),
             // Column::make('stock'),
             Column::make('outlet_id')->title('OUTLET'),
