@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Outlets;
 use App\Models\Product;
 use App\Models\VariantProduct;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 
 class ProductController extends Controller
@@ -143,7 +144,7 @@ class ProductController extends Controller
             if (isset($listIdVariant[$key])) {
                 $varianItem = VariantProduct::find($listIdVariant[$key]);
                 $dataVariant = [
-                    'name' => $listNameVariant[$key],
+                    'name' => $listNameVariant[$key] ?? $request['name'],
                     'harga' => getAmount($value),
                     'stok' => $listStockVariant[$key],
                 ];
@@ -172,5 +173,45 @@ class ProductController extends Controller
         $product->delete();
 
         return responseSuccessDelete();
+    }
+
+    public function findVariantByProductId($id)
+    {
+        // Ambil variant berdasarkan product_id
+        $variants = VariantProduct::where('product_id', $id)->get();
+
+        // Kembalikan data dalam format JSON
+        return response()->json($variants);
+    }
+
+    public function getProductByOutlet(Request $request)
+    {
+        $idOutlet = $request->input('idOutlet'); // Ambil parameter 'idOutlet' dari request
+        if (count($idOutlet) > 1) {
+            $products = Product::whereIn('outlet_id', $idOutlet)
+                ->where('status', true)
+                ->select('name', \DB::raw('COUNT(name) as name_count'))
+                ->groupBy('name')
+                ->having('name_count', '>', 1) // Hanya ambil nama yang muncul lebih dari 1 kali
+                ->get();
+        } else {
+            $products = Product::where('outlet_id', $idOutlet[0])->where('status', true)->get();
+        }
+
+        return response()->json($products);
+    }
+
+    public function findVariantByProductName($name, Request $request)
+    {
+        // Ambil variant berdasarkan product_id
+        $idOutlet = $request->input('idOutlet'); // Ambil parameter 'idOutlet' dari request
+        $products = Product::with(['variants'])->whereIn('outlet_id', $idOutlet)->where('name', $name)->get();
+        // Looping untuk mendapatkan varian dari masing-masing product
+        $variants = $products->flatMap(function ($product) {
+            return $product->variants;
+        });
+
+        // Kembalikan data dalam format JSON
+        return response()->json($variants);
     }
 }

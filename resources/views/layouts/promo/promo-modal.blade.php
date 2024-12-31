@@ -54,7 +54,7 @@
         text-decoration: underline;
     }
 </style>
-<x-modal title="Tambah Promo" addStyle="modal-lg" action="{{ $action }}" method="POST">
+<x-modal title="Tambah Promo" addStyle="modal-xl" action="{{ $action }}" method="POST">
     @if ($data->id)
         @method('put')
     @endif
@@ -248,7 +248,92 @@
                     </div>
 
                     <div class="container d-none" id="any_item_from_category">
-                        <div class="row">
+
+                    </div>
+
+                    <button type="button" class="btn btn-round btn-outline-secondary mt-3 next-btn"
+                        id="backToCollapseOne" data-target="#collapseOne">Previous</button>
+                    <button type="button" class="btn btn-round btn-primary mt-3 next-btn"
+                        id="btnPurchasRequirementNext" data-session="promo-information" data-target="#collapseThree"
+                        disabled>Next</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reward -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingThree">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree" disabled>
+                    Reward
+                </button>
+            </h2>
+            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree"
+                data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                    <p>Final task:</p>
+                    <textarea id="task3" class="form-control" placeholder="Enter some text"></textarea>
+                    <button type="button" class="btn btn-round btn-outline-secondary mt-3 next-btn"
+                        id="backToCollapseOne" data-target="#collapseOne">Previous</button>
+                    <button type="button" class="btn btn-round btn-primary mt-3 next-btn"
+                        id="btnPurchasRequirementNext" data-session="promo-information" data-target="#collapseThree"
+                        disabled>Next</button>
+                </div>
+            </div>
+        </div>
+
+        {{-- Promo Configuration --}}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingThree">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour" disabled>
+                    Promo Configuration
+                </button>
+            </h2>
+            <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingThree"
+                data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                    <p>Final task:</p>
+                    <textarea id="task3" class="form-control" placeholder="Enter some text"></textarea>
+                    <button class="btn btn-success mt-3 finish-btn">Finish</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        var _totalSpesificItemPurchaseRequirement = 0;
+        var listProductBaseOnOutlet = [];
+        var outletTerpilih = [];
+
+        function toggleSalesTypeSelect() {
+            if ($('#specific_sales_type').is(':checked')) {
+                $('#salesTypeSelect').removeClass('d-none'); // Tampilkan select
+            } else {
+                $('#salesTypeSelect').addClass('d-none'); // Sembunyikan select
+            }
+        }
+
+        function togglePurchaseRequirementType() {
+            const selectedValue = $("input[name='requirement_type']:checked").val();
+
+            if (selectedValue === "specific_item_requirement") {
+                $("#specific_item_list").removeClass("d-none");
+                $("#any_item_from_category").addClass("d-none");
+                $("#row_any_item_from_category").remove();
+                $('#btnPurchasRequirementNext').attr('disabled', true);
+
+            } else if (selectedValue === "all_item_from_category_requirement") {
+                _totalSpesificItemPurchaseRequirement = 0;
+                $('#btnPurchasRequirementNext').attr('disabled', true);
+                $("#any_item_from_category").removeClass("d-none");
+                $("#specific_item_list").addClass("d-none");
+                $(".row_condition_purchase_requirement").remove();
+                $('.specific_item').remove();
+                $('.condition_purchase_requirement').remove();
+                $('.pembatas').remove();
+                let html = `<div class="row" id="row_any_item_from_category">
                             <div class="col-3">
                                 <input type="number" name="qty_requirement_item[]" class="form-control"
                                     placeholder="Qty" required>
@@ -279,78 +364,41 @@
                                     </select>
                                 </div>
                             </div>
-                        </div>
-
-                    </div>
-
-                    <button type="button" class="btn btn-round btn-outline-secondary mt-3 next-btn"
-                        id="backToCollapseOne" data-target="#collapseOne">Previous</button>
-                    <button type="button" class="btn btn-round btn-primary mt-3 next-btn"
-                        id="btnPurchasRequirementNext" data-session="promo-information" data-target="#collapseThree"
-                        disabled>Next</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Reward -->
-        <div class="accordion-item">
-            <h2 class="accordion-header" id="headingThree">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree" disabled>
-                    Reward
-                </button>
-            </h2>
-            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree"
-                data-bs-parent="#accordionExample">
-                <div class="accordion-body">
-                    <p>Final task:</p>
-                    <textarea id="task3" class="form-control" placeholder="Enter some text"></textarea>
-                    <button class="btn btn-success mt-3 finish-btn">Finish</button>
-                </div>
-            </div>
-        </div>
-
-        {{-- Promo Configuration --}}
-        <div class="accordion-item">
-            <h2 class="accordion-header" id="headingThree">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour" disabled>
-                    Promo Configuration
-                </button>
-            </h2>
-            <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingThree"
-                data-bs-parent="#accordionExample">
-                <div class="accordion-body">
-                    <p>Final task:</p>
-                    <textarea id="task3" class="form-control" placeholder="Enter some text"></textarea>
-                    <button class="btn btn-success mt-3 finish-btn">Finish</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <script>
-        var _totalSpesificItemPurchaseRequirement = 0;
-
-        function toggleSalesTypeSelect() {
-            if ($('#specific_sales_type').is(':checked')) {
-                $('#salesTypeSelect').removeClass('d-none'); // Tampilkan select
-            } else {
-                $('#salesTypeSelect').addClass('d-none'); // Sembunyikan select
+                        </div>`;
+                $("#any_item_from_category").append(html);
             }
         }
 
-        function togglePurchaseRequirementType() {
-            const selectedValue = $("input[name='requirement_type']:checked").val();
+        function initializeSelect2() {
+            $(".select2InsideModal").select2({
+                dropdownParent: $("#modal_action")
+            }).on("select2:open", function() {
+                const selectElement = $(this);
+                const dropdown = $(".select2-container--open");
 
-            if (selectedValue === "specific_item_requirement") {
-                $("#specific_item_list").removeClass("d-none");
-                $("#any_item_from_category").addClass("d-none");
-            } else if (selectedValue === "all_item_from_category_requirement") {
-                $("#any_item_from_category").removeClass("d-none");
-                $("#specific_item_list").addClass("d-none");
-            }
+                // Hitung posisi elemen input
+                const offset = selectElement.offset();
+                const height = selectElement.outerHeight();
+
+                // Atur posisi dropdown ke posisi fixed
+                dropdown.css({
+                    position: "fixed",
+                    top: offset.top + height - $(window)
+                        .scrollTop(), // Hitung posisi relatif terhadap layar
+                    left: offset.left,
+                    width: selectElement.outerWidth() - 392,
+                    zIndex: 9999, // Pastikan lebih tinggi dari modal
+                });
+            }).on("select2:close", function() {
+                const dropdown = $(".select2-container");
+
+                // Hapus style yang diterapkan saat dropdown ditutup
+                dropdown.css({
+                    position: "",
+                    top: "",
+                    left: "",
+                });
+            });
         }
 
         $(document).ready(function() {
@@ -365,9 +413,7 @@
                 toggleSalesTypeSelect();
             });
 
-            $(".select2InsideModal").select2({
-                dropdownParent: $("#modal_action")
-            });
+            initializeSelect2();
 
             $(".select2MultipleInsideModal").select2({
                     dropdownParent: $("#modal_action"), // Pastikan parent diatur untuk modal
@@ -476,93 +522,211 @@
             // Handle button click to add a new specific item
             $('#add_specific_item').on('click', function() {
                 $('#btnPurchasRequirementNext').removeAttr('disabled');
-                // Template HTML untuk elemen baru
+                let tmpId = generateRandomID();
+
                 var newItem = '';
                 if (_totalSpesificItemPurchaseRequirement < 1) {
                     newItem = `
-                        <div class="row specific_item mt-3">
-                            <div class="col-3">
-                                <input type="number" name="qty_requirement_item[]" class="form-control" placeholder="Qty" required>
+                    <div class="row specific_item mt-3">
+                        <div class="col-3">
+                            <input type="number" name="qty_requirement_item[]" class="form-control" placeholder="Qty" min="1" required>
+                        </div>
+                        <div class="col-1 d-flex align-items-center justify-content-center">
+                            <strong class="text-muted">Of</strong>
+                        </div>
+                        <div class="col-7 mt-2">
+                            <div class="form-group p-0">
+                                <select name="item_requirement[]" data-tmpid="${tmpId}" class="item_requirement select2InsideModal form-select w-100" style="width: 100% !important;" required>
+                                    <option selected disabled>Pilih Item</option>
+                                    ${listProductBaseOnOutlet.map(function(item) {
+                                        return `<option value="${item.name}">${item.name}</option>`;
+                                    }).join('')}
+                                </select>
                             </div>
-                            <div class="col-1 d-flex align-items-center justify-content-center">
-                                <strong class="text-muted">Of</strong>
-                            </div>
-                            <div class="col-7 mt-2">
-                                <div class="form-group p-0">
-                                    <select name="item_requirement[]" class="item_requirement select2InsideModal form-select w-100" style="width: 100% !important;" required>
-                                        <option selected disabled>Pilih Item</option>
-                                        <!-- Anda bisa mengganti dengan opsi dinamis -->
-                                        @foreach ($products as $product)
-                                            <option value="{{ $product->id }}">{{ $product->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group p-0 mt-3">
-                                    <select name="variant_item_requirement[]" class="variant_item_requirement select2InsideModal form-select w-100"
-                                        style="width: 100% !important;" disabled>
-                                        <option selected disabled>Pilih Variant</option>
-                                        <!-- Anda bisa mengganti dengan opsi dinamis -->
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-1 d-flex align-items-center justify-content-center">
-                                <button type="button" class="btn btn-danger btn-sm remove_specific_item">Remove</button>
+                            <div class="form-group p-0 mt-3">
+                                <select name="variant_item_requirement[]" data-tmpid="${tmpId}" class="variant_item_requirement select2InsideModal form-select w-100"
+                                    style="width: 100% !important;" disabled>
+                                    <option selected disabled>Pilih Variant</option>
+                                </select>
                             </div>
                         </div>
-                    `;
-
-
+                        <div class="col-1 d-flex align-items-center justify-content-center">
+                            <button type="button" class="btn btn-danger btn-sm remove_specific_item">Remove</button>
+                        </div>
+                    </div>
+                `;
                 } else {
                     newItem = `
-                        <div class="row row_condition_purchase_requirement">
-                            <div class="col-3 ">
-                                <div class="form-group">
-                                    <select class="form-select form-control" id="condition_purchase_requirement" name="condition_purchase_requirement[]">
-                                        <option selected>AND</option>
-                                        <option>OR</option>
-                                    </select>
-                                    
-                                    </div>
-                            </div>
-                            <div class="col-9 pt-3">
-                                <hr>
+                    <div class="row row_condition_purchase_requirement">
+                        <div class="col-3 ">
+                            <div class="form-group">
+                                <select class="form-select form-control condition_purchase_requirement" data-tmpid="${tmpId}" id="condition_purchase_requirement" name="condition_purchase_requirement[]">
+                                    <option selected>AND</option>
+                                    <option>OR</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="row specific_item mt-3">
-                            <div class="col-3">
-                                <input type="number" name="qty_requirement_item[]" class="form-control" placeholder="Qty" required>
+                        <div class="col-9 pt-3">
+                            <hr class="pembatas">
+                        </div>
+                    </div>
+                    <div class="row specific_item mt-3">
+                        <div class="col-3">
+                            <input type="number" name="qty_requirement_item[]" class="form-control" placeholder="Qty" required>
+                        </div>
+                        <div class="col-1 d-flex align-items-center justify-content-center">
+                            <strong class="text-muted">Of</strong>
+                        </div>
+                        <div class="col-7 mt-2">
+                            <div class="form-group p-0">
+                                <select name="item_requirement[]" data-tmpid="${tmpId}" class="select2InsideModal item_requirement form-select w-100" style="width: 100% !important;" required>
+                                    <option selected disabled>Pilih Item</option>
+                                    ${listProductBaseOnOutlet.map(function(item) {
+                                        return `<option value="${item.name}">${item.name}</option>`;
+                                    }).join('')}
+                                </select>
                             </div>
-                            <div class="col-1 d-flex align-items-center justify-content-center">
-                                <strong class="text-muted">Of</strong>
-                            </div>
-                            <div class="col-7 mt-2">
-                                <div class="form-group p-0">
-                                    <select name="item_requirement[]" class="select2InsideModal form-select w-100" style="width: 100% !important;" required>
-                                        <option disabled>Pilih Item</option>
-                                        <!-- Anda bisa mengganti dengan opsi dinamis -->
-                                        @foreach ($products as $product)
-                                            <option value="{{ $product->id }}">{{ $product->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-1 d-flex align-items-center justify-content-center">
-                                <button type="button" class="btn btn-danger btn-sm remove_specific_item">Remove</button>
+                            <div class="form-group p-0 mt-3">
+                                <select name="variant_item_requirement[]" data-tmpid="${tmpId}" class="variant_item_requirement select2InsideModal form-select w-100"
+                                    style="width: 100% !important;" disabled>
+                                    <option selected disabled>Pilih Variant</option>
+                                </select>
                             </div>
                         </div>
-                    `;
+                        <div class="col-1 d-flex align-items-center justify-content-center">
+                            <button type="button" class="btn btn-danger btn-sm remove_specific_item">Remove</button>
+                        </div>
+                    </div>
+                `;
                 }
 
                 _totalSpesificItemPurchaseRequirement++;
 
-                // Tambahkan elemen baru ke dalam container
                 $('#specific_item_list').append(newItem);
-
-                // Reinitialize Select2 jika Anda menggunakan plugin Select2
-                $(".select2InsideModal").select2({
-                    dropdownParent: $("#modal_action")
-                });
+                initializeSelect2();
             });
+
+            $('#outlet_id').on('select2:select select2:unselect', function(e) {
+                // hapus list item requirement
+                $('.specific_item').remove();
+                $('.condition_purchase_requirement').remove();
+                $('.pembatas').remove();
+                _totalSpesificItemPurchaseRequirement = 0;
+                // Ambil semua nilai yang masih dipilih
+                var selectedOptions = $(this).val();
+                outletTerpilih = selectedOptions;
+
+                // Panggil AJAX hanya jika ada nilai yang dipilih
+                if (selectedOptions && selectedOptions.length > 0) {
+                    $.ajax({
+                        url: `{{ route('library/product/getProductByOutlet') }}`, // URL endpoint Laravel
+                        type: 'GET',
+                        data: {
+                            idOutlet: selectedOptions // Kirim data array ke server
+                        },
+                        success: function(response) {
+                            console.log(response);
+                            listProductBaseOnOutlet = response;
+                            // Lakukan sesuatu dengan data produk (response)
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("Terjadi kesalahan:", error);
+                        }
+                    });
+                } else {
+                    console.log('Tidak ada outlet yang dipilih');
+                    // Lakukan sesuatu jika tidak ada outlet yang dipilih (opsional)
+                }
+            });
+
+            $('#modal_action').on('select2:select', '.item_requirement', function(e) {
+                let productValue = $(this).val();
+                let tmpIdSelect = $(this).data('tmpid');
+                let namaProduct = $(this).find(":selected").text();
+
+                let variantSelect = $(`.variant_item_requirement[data-tmpid="${tmpIdSelect}"]`);
+                let baseUrl =
+                    `{{ route('library/product/findVariantByProductName', ':name') }}`;
+                let url = baseUrl.replace(':name', productValue);
+
+                if (productValue) {
+                    // Lakukan AJAX
+                    $.ajax({
+                        url: url,
+                        type: 'GET',
+                        data: {
+                            idOutlet: outletTerpilih
+                        },
+                        success: function(response) {
+                            console.log(response)
+                            variantSelect.empty();
+                            if (outletTerpilih.length > 1) {
+                                // Langkah 1: Buat objek untuk menghitung jumlah kemunculan nama
+                                var nameCount = response.reduce((acc, item) => {
+                                    acc[item.name] = (acc[item.name] || 0) + 1;
+                                    return acc;
+                                }, {});
+
+                                // Langkah 2: Filter response untuk mendapatkan item yang memiliki nama muncul lebih dari 1 kali
+                                var duplicates = response.filter(item => nameCount[item.name] >
+                                    1);
+
+                                // Langkah 3: Ambil salah satu dari setiap nama yang muncul lebih dari sekali
+                                var uniqueDuplicates = duplicates.reduce((acc, item) => {
+                                    if (!acc.some(dup => dup.name === item.name)) {
+                                        acc.push(
+                                            item
+                                            ); // Ambil salah satu item dari setiap nama
+                                    }
+                                    return acc;
+                                }, []);
+
+                                variantSelect.append(
+                                    '<option value="all" selected>All Variant</option>'
+                                );
+                                if(uniqueDuplicates.length != 0){   
+                                    uniqueDuplicates.forEach(function(item, index){
+                                        variantSelect.append(
+                                        `<option value="${item.name}" >${item.name}</option>`
+                                    );
+                                    })
+                                }
+                            }else{
+                                if (response.length == 1 && response[0].name == namaProduct) {
+                                    variantSelect.append(
+                                        `<option value="${response[0].name}" disabled selected>Tidak Punya Varian</option>`
+                                    );
+    
+                                    variantSelect.prop('disabled', true);
+                                    variantSelect.prop('required', false);
+                                } else {
+                                    variantSelect.append(
+                                        '<option value="all" selected>Pilih Variant</option>');
+    
+    
+                                    $.each(response, function(key, variant) {
+                                        variantSelect.append('<option value="' + variant
+                                            .name +
+                                            '">' + variant.name + '</option>');
+                                    });
+                                    variantSelect.prop('disabled', false);
+                                    variantSelect.prop('required', true);
+                                }
+                            }
+                            
+                        },
+                        error: function() {
+                            console.error('Gagal mengambil data variant');
+                        }
+                    });
+                } else {
+                    // Reset select varian
+                    variantSelect.empty();
+                    variantSelect.append('<option disabled selected>Pilih Variant</option>');
+                    variantSelect.prop('disabled', true);
+                }
+            });
+
 
             // Handle click event untuk menghapus item tertentu
             $(document).on('click', '.remove_specific_item', function() {
@@ -588,38 +752,38 @@
 
             });
 
-            $('#btnPurchasRequirementNext').on('click', function() {
+            $('#btnPurchasRequirementNext').on('click', function(e) {
                 const target = $(this).data('target');
-                $(target).collapse('show'); // Tampilkan accordion berikutnya
-                $("#collapseTwo").collapse('hide'); // Sembunyikan accordion saat ini
+
+                e.preventDefault(); // Mencegah submit form atau aksi default tombol
+                let isValid = true; // Flag untuk validasi
+
+                // Loop melalui semua input dan select yang memiliki atribut "required"
+                $('input[required], select[required]').each(function() {
+                    if ($(this).val() === '' || $(this).val() === null) {
+                        isValid = false;
+                        $(this).addClass('is-invalid'); // Tambahkan kelas untuk styling kesalahan
+                        $(this).focus(); // Fokus pada elemen yang belum terisi
+                        return false; // Hentikan loop setelah menemukan elemen kosong
+                    } else {
+                        $(this).removeClass('is-invalid'); // Hapus kelas jika sudah valid
+                    }
+                });
+
+                if (isValid) {
+                    // Jika valid, lakukan aksi selanjutnya
+                    $(target).collapse('show'); // Tampilkan accordion berikutnya
+                    $("#collapseTwo").collapse('hide'); // Sembunyikan accordion saat ini
+                } else {
+                    showToast("error", "Harap lengkapi semua input yang wajib diisi.");
+                }
+
             })
 
             // Jalankan fungsi saat radio button diklik
             $("input[name='requirement_type']").on("change", function() {
                 togglePurchaseRequirementType();
             });
-
-            // Disable proceeding to the next accordion unless the current task is fulfilled
-            // $('.next-btn').on('click', function() {
-            //     const target = $(this).data('target');
-            //     const currentTask = $(this).closest('.accordion-body').find('input, textarea');
-            //     console.log(target);
-            //     console.log(currentTask)
-            //     console.log(currentTask.val())
-            //     // if (!$('input[name="promoType"]:checked').length) {
-            //     //     alert('Please select a promo type before proceeding.');
-            //     //     return false;
-            //     // }
-
-            //     if (currentTask.val().trim() === '') {
-            //         if (currentTask.type)
-
-            //             alert('Please complete the task before proceeding.');
-            //     } else {
-            //         // Open the next accordion
-            //         $(target).collapse('show');
-            //     }
-            // });
 
             // Handle finish button
             $('.finish-btn').on('click', function() {

@@ -152,6 +152,9 @@ Route::middleware('auth')->group(function () {
         Route::prefix('product')->group(function(){
             Route::get('/', [ProductController::class,'index'])->name('product');
             Route::get('/create', [ProductController::class, 'create'])->name('product/create');
+            Route::get('/getVariantByProductId/{id}', [ProductController::class, 'findVariantByProductId'])->name('product/findVariantByProductId');
+            Route::get('/getVariantByProductName/{name}', [ProductController::class, 'findVariantByProductName'])->name('product/findVariantByProductName');
+            Route::get('/getProductByOutlet', [ProductController::class, 'getProductByOutlet'])->name('product/getProductByOutlet');
             Route::post('/store', [ProductController::class, 'store'])->name('product/store');
             Route::get('/edit/{product}', [ProductController::class, 'edit'])->name('product/edit');
             Route::put('/update/{product}', [ProductController::class,'update'])->name('product/update');

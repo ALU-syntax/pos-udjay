@@ -45,7 +45,7 @@
 </head>
 
 <body>
-    <div class="wrapper" >
+    <div class="wrapper">
         @include('layouts.sidebar')
 
         <div class="modal fade" id="modal_action" tabindex="-1" role="dialog" aria-hidden="true">
@@ -122,7 +122,7 @@
         // // Close Offcanvas Programmatically
         // $('#offcanvasMenu').offcanvas('hide');
 
-        function handleDelete(datatable,customMessage = false, onSuccessAction) {
+        function handleDelete(datatable, customMessage = false, onSuccessAction) {
             let message = customMessage ? customMessage : "You won't be able to revert this!";
             $('#' + datatable).on('click', '.delete', function(e) {
                 e.preventDefault();
@@ -147,6 +147,10 @@
                 })
 
             });
+        }
+
+        function generateRandomID() {
+            return 'temp-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
         }
 
 
@@ -221,21 +225,21 @@
                     let data = new FormData(_form);
                     let dataForm;
                     let dataCustom = false;
-                    data.forEach(function(item, index){
-                        if(index == "input-modifier-product"){
+                    data.forEach(function(item, index) {
+                        if (index == "input-modifier-product") {
                             dataCustom = true;
                         }
                     });
 
-                    if(dataCustom){
+                    if (dataCustom) {
                         const token = document.querySelector('meta[name="csrf_token"]').getAttribute('content');
                         dataForm = new FormData();
                         dataForm.append("_token", token);
                         dataForm.append("_method", 'put');
-                        tmpDataProductModifier.forEach(function(item){
+                        tmpDataProductModifier.forEach(function(item) {
                             dataForm.append("products[]", item);
                         });
-                    }else{
+                    } else {
                         dataForm = data;
                     }
 

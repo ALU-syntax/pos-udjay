@@ -118,6 +118,7 @@
         @if ($data->id)
             var valueHargaJual = "{{ $data->harga_jual }}";
             var valueHargaModal = "{{ $data->harga_modal }}";
+            var valueNamaProduct = "{{$data->name}}";
             var listVariants = '{!! $data->variants !!}';
             var jsonListVariants = JSON.parse(listVariants);
 
@@ -146,7 +147,7 @@
                                 </div>
                             `);
                     }
-                } else {
+                } else if(jsonListVariants.length == 1 && item.name == valueNamaProduct){
                     $('#tambah-varian').after(`
                             <div class="input-group col-12 mt-1 list-varian">
                                 <input name="id_variant[]" type="hidden" value="${item.id}" class="form-control">
@@ -154,6 +155,16 @@
                                 <input id="stok-varian" name="stock[]" type="number" value="${item.stok}" class="form-control" placeholder="Stok" required>
                             </div>
                         `);
+                }else{
+                    $('#tambah-varian').after(`
+                                <div class="input-group col-12 mt-1 list-varian">
+                                    <input name="id_variant[]" type="hidden" value="${item.id}" class="form-control">
+                                    <input name="nama_varian[]" id="nama-varian" type="text" value="${item.name}" class="form-control" placeholder="Nama Varian" required>
+                                    <input id="harga-varian" name="harga_jual[]" value="Rp. ${formatRupiah(item.harga.toString())}" placeholder="Harga Jual" type="text" class="form-control harga_jual" required>
+                                    <input id="stok-varian" name="stock[]" type="number" value="${item.stok}" class="form-control" placeholder="Stok" required>
+                                    <button type="button" class="btn btn-danger btn-sm remove-varian">×</button>
+                                </div>
+                            `);
                 }
 
                 listVarianLength = index;
