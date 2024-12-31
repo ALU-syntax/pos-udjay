@@ -267,6 +267,17 @@
                                         @endforeach
                                     </select>
                                 </div>
+
+                                <div class="form-group p-0 mt-3">
+                                    <select name="item_requirement[]" class="select2InsideModal form-select w-100"
+                                        style="width: 100% !important;" required>
+                                        <option selected disabled>Pilih Category</option>
+                                        <!-- Anda bisa mengganti dengan opsi dinamis -->
+                                        @foreach ($categorys as $category)
+                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -478,12 +489,19 @@
                             </div>
                             <div class="col-7 mt-2">
                                 <div class="form-group p-0">
-                                    <select name="item_requirement[]" class="select2InsideModal form-select w-100" style="width: 100% !important;" required>
-                                        <option disabled>Pilih Item</option>
+                                    <select name="item_requirement[]" class="item_requirement select2InsideModal form-select w-100" style="width: 100% !important;" required>
+                                        <option selected disabled>Pilih Item</option>
                                         <!-- Anda bisa mengganti dengan opsi dinamis -->
                                         @foreach ($products as $product)
                                             <option value="{{ $product->id }}">{{ $product->name }}</option>
                                         @endforeach
+                                    </select>
+                                </div>
+                                <div class="form-group p-0 mt-3">
+                                    <select name="variant_item_requirement[]" class="variant_item_requirement select2InsideModal form-select w-100"
+                                        style="width: 100% !important;" disabled>
+                                        <option selected disabled>Pilih Variant</option>
+                                        <!-- Anda bisa mengganti dengan opsi dinamis -->
                                     </select>
                                 </div>
                             </div>

@@ -172,11 +172,53 @@
             background-color: #f1f1f1;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
+
+        /* Animasi rotasi */
+        .spinner {
+            /* animation: spin 1s linear infinite; */
+            animation: bounce 1.5s infinite;
+        }
+
+        /* Latar belakang semi-transparan */
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            /* Background semi-transparan */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1050;
+            /* Tetap di atas elemen lainnya */
+        }
+
+        /* Definisi keyframes untuk animasi bouncing */
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+                /* Posisi awal */
+            }
+
+            50% {
+                transform: translateY(-55px);
+                /* Melompat ke atas */
+            }
+        }
     </style>
 </head>
 
 <body>
     <div class="container-fluid vh-100 d-flex flex-column">
+
+        <!-- Loading Animation -->
+        <div id="preloader">
+            <img src="{{ asset('img/Logo Red.png') }}" alt="Loading" class="spinner" height="100">
+        </div>
         <!-- Main Content -->
         <div id="content-area" class="flex-grow-1">
             <div class="row">
@@ -842,6 +884,7 @@
                 'X-CSRF-TOKEN': $('meta[name=csrf_token]').attr('content')
             }
         })
+        showLoader();
         var listItem = [];
         var subTotal = [];
         var listDiskon = [];
@@ -853,6 +896,23 @@
         var listPajak = [];
         var tandaRounding = '';
         var amountRounding = 0;
+
+
+        function showLoader(show = true) {
+            const preloader = $("#preloader");
+
+            if (show) {
+                preloader.css({
+                    opacity: 1,
+                    visibility: "visible",
+                });
+            } else {
+                preloader.css({
+                    opacity: 0,
+                    visibility: "hidden",
+                });
+            }
+        }
 
         function generateRandomID() {
             return 'temp-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
@@ -900,9 +960,9 @@
 
             // Hapus elemen row dari DOM
             row.remove();
-            
+
             listItem = listItem.filter(item => item.tmpId !== dataTmpId);
-            
+
             syncItemCart()
         }
 
@@ -1020,7 +1080,7 @@
                 </div>
                 `;
 
-                if(item.namaProduct != item.namaVariant){
+                if (item.namaProduct != item.namaVariant) {
                     html += `
                     <div class="row mb-0 mt-0 variant" data-tmpId="${item.tmpId}">
                         <div class="col-6 text-muted">${item.namaVariant}</div>
@@ -1291,7 +1351,6 @@
 
         function syncRounding() {
             let dataRounding = @json($rounding);
-
             if (dataRounding) {
                 let dataRounded = dataRounding.rounded;
                 if (dataRounded == "true") {
@@ -1312,33 +1371,45 @@
                     let hasilRounded = 0;
                     let rounded = '';
 
-
-                    if (angkaBelakang > 500) {
-                        if (angkaBelakang > dataRoundBenchmark) {
-                            console.log("masuk tahap 1")
-                            let hasil = 1000 - angkaBelakang;
-                            hasilRounded = Math.abs(hasil);
-                            rounded = '+';
-                        } else {
-                            console.log("masuk tahap 2")
-                            let hasil = 500 - angkaBelakang;
-                            hasilRounded = -Math.abs(hasil);
-                            rounded = '-';
-                        }
+                    if (angkaBelakang < 500) {
+                        let hasil = 500 - angkaBelakang;
+                        rounded = '-';
                     } else {
-                        if (angkaBelakang > dataRoundBenchmark) {
-                            console.log("masuk tahap 3")
-                            let hasil = 500 - angkaBelakang;
-                            hasilRounded = Math.abs(hasil);
-                            rounded = '+';
-                        } else {
-                            console.log("masuk tahap 4x")
-                            let hasil = 500 - angkaBelakang;
-                            hasilRounded = Math.abs(hasil);
-                            rounded = '+';
-                        }
+                        let hasil = 500 - angkaBelakang;
+                        rounded = "+";
                     }
 
+                    // Perhitungan Sebelumnya yang salah pemahaman
+                    // if (angkaBelakang > 500) {
+                    //     if (angkaBelakang > dataRoundBenchmark) {
+                    //         console.log("masuk tahap 1")
+                    //         let hasil = 1000 - angkaBelakang;
+                    //         hasilRounded = Math.abs(hasil);
+                    //         rounded = '+';
+                    //     } else {
+                    //         console.log("masuk tahap 2")
+                    //         let hasil = 500 - angkaBelakang;
+                    //         hasilRounded = -Math.abs(hasil);
+                    //         rounded = '-';
+                    //     }
+                    // } else {
+                    //     if (angkaBelakang > dataRoundBenchmark) {
+                    //         console.log("masuk tahap 3")
+                    //         let hasil = 500 - angkaBelakang;
+                    //         hasilRounded = Math.abs(hasil);
+                    //         rounded = '+';
+                    //     } else {
+                    //         console.log("masuk tahap 4x")
+                    //         let hasil = 500 - angkaBelakang;
+                    //         hasilRounded = Math.abs(hasil);
+                    //         rounded = '+';
+                    //     }
+                    // }
+
+
+                    // **
+                    // BENCHMARK BAWAAN MOKA
+                    // *
                     // if (angkaBelakang > dataRoundBenchmark) {
                     //     // Jika bagian belakang lebih besar dari benchmark, bulatkan ke atas
                     //     hasilRounded = roundedType - angkaBelakang;
@@ -1362,6 +1433,7 @@
         }
 
         $(document).ready(function() {
+            showLoader(false)
             generateListDiskon()
 
             function handleAjax(url, method = 'get') {
