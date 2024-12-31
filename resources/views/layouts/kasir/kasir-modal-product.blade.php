@@ -4,7 +4,8 @@
         border-radius: 8px;
         padding: 10px 15px;
         display: flex;
-        height: 100px;
+        height: 140px;
+        font-size: 18px;
         align-items: center;
         justify-content: space-between;
     }
@@ -13,34 +14,65 @@
         width: 1.5rem;
         height: 1.5rem;
     }
+
+    .btn-variant{
+        height: 140px;
+        font-size: 18px;
+        color: black;
+    }
 </style>
 
-<div class="modal-dialog modal-dialog-centered modal-lg" id="productModal">
+<div class="modal-dialog modal-dialog-centered modal-xl" id="productModal">
     <div class="modal-content">
         <div class="modal-header">
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="btnBatal">Batal</button>
+            <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal" id="btnBatal">Batal</button>
             <h5 class="modal-title mx-auto text-center" id="productModalLabel">
                 <strong id="namaProduct">{{ $data->name }}</strong><br>
-                <span id="totalHargaItem">{{ formatRupiah($data->harga_jual, 'Rp. ') }}</span>
+                <span id="totalHargaItem">{{ formatRupiah($variants[0]->harga, 'Rp. ') }}</span>
             </h5>
-            <button id="saveItemToCart" type="button" class="btn btn-primary">Simpan</button>
+            <button id="saveItemToCart" type="button" class="btn btn-primary btn-lg">Simpan</button>
         </div>
         <div class="modal-body">
             <input type="text" value="{{ $data->id }}" name="idProduct" id="idProduct" hidden>
+
+            {{-- Variant --}}
+            @if (count($variants) > 1)
+                <div class="mb-4">
+                    <label for="quantity" class="form-label"><strong>Variants</strong></label> |
+                    <small>Single Choose</small>
+                    <div class="row mt-1">
+                        @foreach ($variants as $item)
+                            <div class="form-group col-md-6 mt-2">
+                                <button class="btn w-100 btn-xl btn-outline-primary btn-variant" data-variantid="{{$item->id}}" data-harga="{{$item->harga}}" data-name="{{$item->name}}">
+                                    <div class="row">
+                                        <div class="col-6 me-auto">
+                                            {{$item->name}} ({{$item->stok}})
+                                        </div>
+                                        <div class="col-4 ms-auto pe-0">
+                                            {{formatRupiah($item->harga, 'Rp. ')}}
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             <!-- Jumlah -->
             <div class="mb-4">
                 <label for="quantity" class="form-label"><strong>Jumlah</strong></label>
                 <div class="row">
                     <div class="col-6">
-                        <input type="number" class="form-control text-center form-control-lg" id="quantity"
+                        <input type="number" class="form-control text-center form-control-lg" id="quantity" style="height: 100px; font-size: 35px;"
                             value="1" min="1" readonly>
                     </div>
-                    <div class="col-3">
-                        <button class="text-center btn btn-lg btn-outline-primary w-100 d-flex" id="decrement"><span
+                    <div class="col-3 ">
+                        <button class="text-center align-items-center justify-content-center btn btn-lg btn-outline-primary w-100 d-flex" id="decrement" style="height: 100px; font-size:45px;"><span
                                 class="text-center"></span>-</button>
                     </div>
                     <div class="col-3">
-                        <button class="text-center btn btn-lg btn-outline-primary w-100 d-flex" id="increment"><span
+                        <button class="text-center btn btn-lg align-items-center justify-content-center btn-outline-primary w-100 d-flex" id="increment" style="height: 100px; font-size:45px;"><span
                                 class="text-center">+</span></button>
                     </div>
                 </div>
@@ -52,13 +84,13 @@
                     <small>Choose Many</small>
                     <div class="row mt-1">
                         @foreach ($dataModifier->modifier as $data)
-                            <div class="col-md-6">
+                            <div class="col-md-6 mt-2">
                                 <div class="custom-card">
                                     <span>{{ $data->name }}
                                         <small>{{ '(' . formatRupiah($data->harga, 'Rp. ') . ')' }}</small></span>
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input form-modifier form-switch" value="{{ $data->harga }}"
-                                            type="checkbox" data-id="{{ $data->id }}"
+                                        <input class="form-check-input form-modifier form-switch"
+                                            value="{{ $data->harga }}" type="checkbox" data-id="{{ $data->id }}"
                                             data-name="{{ $data->name }}">
                                     </div>
                                 </div>
@@ -74,7 +106,7 @@
                     <label class="form-label"><strong>Diskon</strong></label>
                     <div class="row mt-1">
                         @foreach ($discounts as $discount)
-                            <div class="col-md-6">
+                            <div class="col-md-6 mt-2">
                                 <div class="custom-card">
                                     <span>{{ $discount->name }} @if ($discount->satuan == 'rupiah')
                                             {{ '(' . formatRupiah($discount->amount, 'Rp. ') . ')' }}
@@ -83,8 +115,9 @@
                                         @endif
                                     </span>
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input form-diskon form-switch" value="{{ $discount->amount }}"
-                                            data-type="{{ $discount->satuan }}" data-name="{{$discount->name}}" type="checkbox"
+                                        <input class="form-check-input form-diskon form-switch"
+                                            value="{{ $discount->amount }}" data-type="{{ $discount->satuan }}"
+                                            data-name="{{ $discount->name }}" type="checkbox"
                                             data-id="{{ $discount->id }}" id="discount-{{ $discount->id }}">
                                     </div>
                                 </div>
@@ -100,7 +133,7 @@
             <!-- Catatan -->
             <div class="mb-4 mt-2">
                 <label for="note" class="form-label"><strong>Catatan</strong></label>
-                <textarea class="form-control" id="catatan" rows="3"></textarea>
+                <textarea style="height: 150px;" class="form-control" id="catatan" rows="3"></textarea>
             </div>
         </div>
     </div>
@@ -120,6 +153,9 @@
     var angkaSaja = stringHarga.replace(/[^\d]/g, "");
     var dataHarga = parseInt(angkaSaja, 10);
     var hargaAkhir = dataHarga;
+    
+    var variantId = '{{$variants[0]->id}}';
+    var variantName = '{{$variants[0]->name}}';
 
     var listModifierId = [];
     var listModifierName = [];
@@ -156,6 +192,8 @@
         return totalModifier;
     }
 
+    $('.btn-variant').first().addClass('active');
+
     // Fungsi untuk menghitung total diskon
     function hitungDiskon() {
         let totalDiskon = 0;
@@ -176,7 +214,14 @@
                 if (type === "rupiah") {
                     totalDiskon += amount;
                 } else if (type === "percent") {
-                    totalDiskon += (dataHarga * parseInt(quantity.value) * amount) / 100;
+                    if(listModifierHarga.length > 0){
+                        listModifierHarga.forEach(function(itemModifier){
+                            let hargaBarang = dataHarga + itemModifier;
+                            totalDiskon += (hargaBarang * parseInt(quantity.value) * amount) / 100;
+                        });
+                    }else{
+                        totalDiskon += (dataHarga * parseInt(quantity.value) * amount) / 100;
+                    }
                 }
 
                 totalDiskonId.push(id);
@@ -187,6 +232,7 @@
             }
         });
 
+        console.log(totalDiskonHarga);
         listDiskonAmount = totalDiskonHarga;
         listDiskonId = totalDiskonId;
         listDiskonName = totalDiskonNama;
@@ -198,8 +244,8 @@
     // Fungsi untuk menghitung harga akhir
     function updateHargaAkhir() {
         const quantityValue = parseInt(quantity.value);
-        const totalDiskon = hitungDiskon();
         const totalModifier = hitungModifier();
+        const totalDiskon = hitungDiskon();
 
         // Hitung harga akhir setelah diskon
         const hargaSebelumDiskon = dataHarga * quantityValue;
@@ -245,7 +291,22 @@
         })
     })
 
-    $("#btnBatal").on('click', function(e) {
+    $('.btn-variant').off().on('click', function(){
+        $('.btn-variant').removeClass('active');
+        $(this).addClass('active')
+
+        let id = $(this).data('variantid');
+        let harga = $(this).data('harga');
+        let name = $(this).data('name');
+
+        variantId = id;
+        dataHarga = harga;
+        variantName = name;
+
+        updateHargaAkhir();
+    });
+
+    $("#btnBatal").off().on('click', function(e) {
         // Tutup modal
         const modal = $('#itemModal');
         modal.modal('hide');
@@ -253,7 +314,7 @@
 
     $('#saveItemToCart').on('click', function(e) {
         let tmpRandomId = generateRandomID();
-        
+
         let dataNama = document.getElementById("namaProduct").textContent;
         let dataIdProduct = document.getElementById("idProduct").value;
         let dataHargaProduct = dataHarga;
@@ -266,7 +327,7 @@
         let dataModifierHarga = listModifierHarga;
 
         let dataModifier = [];
-        for (let x=0; x < dataModifierId.length; x++) {
+        for (let x = 0; x < dataModifierId.length; x++) {
             let tmpDataModifier = {
                 tmpIdProduct: tmpRandomId,
                 id: dataModifierId[x],
@@ -323,6 +384,8 @@
             quantity: quantityProduct,
             diskon: dataDiskon,
             promo: [],
+            idVariant: variantId,
+            namaVariant: variantName,
             modifier: dataModifier,
             catatan: catatan,
             resultTotal: totalHargaProduct, //result

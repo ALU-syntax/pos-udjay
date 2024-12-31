@@ -19,16 +19,21 @@ return new class extends Migration
             $table->bigInteger('total')->nullable();
             $table->bigInteger('nominal_bayar')->nullable();
             $table->bigInteger('change')->nullable();
-            $table->string('tipe_pembayaran')->nullable();
+            $table->unsignedBigInteger('category_payment_id')->nullable();
+            $table->unsignedBigInteger('tipe_pembayaran')->nullable();
+            $table->string('nama_tipe_pembayaran')->nullable();            
             $table->json('total_pajak')->nullable();
             $table->bigInteger('total_modifier')->nullable();
             $table->bigInteger('total_diskon')->nullable();
             $table->json('diskon_all_item')->nullable();
             $table->bigInteger('rounding_amount')->nullable();
             $table->string('tanda_rounding')->nullable();
+            $table->text('catatan')->nullable();
             $table->softDeletes();
             $table->timestamps();
             
+            $table->foreign('category_payment_id')->references('id')->on('category_payments')->onDelete('CASCADE');
+            $table->foreign('tipe_pembayaran')->references('id')->on('payments')->onDelete('CASCADE');
             $table->foreign('outlet_id')->references('id')->on('outlets')->onDelete('CASCADE');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('CASCADE');
         });

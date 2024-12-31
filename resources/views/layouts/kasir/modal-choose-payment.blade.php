@@ -1,22 +1,88 @@
 <style>
     .btn-choice {
-        width: 100px;
-        height: 100px;
+
+        height: 125px;
     }
 </style>
 
-<div class="modal-dialog modal-dialog-centered modal-lg" id="choosePayment">
+<div class="modal-dialog modal-dialog-centered modal-xl" id="choosePayment">
     <div class="modal-content">
         <div class="modal-header">
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal">Batal</button>
             <h5 class="modal-title mx-auto text-center" id="productModalLabel">
                 <strong id="totalHarga">Rp 80.000</strong><br>
             </h5>
-            <button id="pay" type="button" class="btn btn-primary" disabled>Simpan</button>
+            <button id="pay" type="button" class="btn btn-primary btn-lg" disabled>Simpan</button>
         </div>
         <div class="modal-body">
             <!-- Payment Options -->
+
+            @if (count($listPayment))
+                @foreach ($listPayment as $categoryPayment)
+                    <div class="row">
+                        <div class="col-3">
+                            <h6 class="d-flex text-center">{{ $categoryPayment->name }}</h6>
+                        </div>
+                        <div class="col-9">
+                            <div class="row">
+                                @if ($categoryPayment->name == 'Cash')
+                                    <div class="col-4 mt-2">
+                                        <button type="button" class="btn w-100 btn-lg btn-choice btn-outline-primary"
+                                            data-kategori-payment-id="{{ $categoryPayment->id }}"
+                                            data-kategori-payment-name="{{ $categoryPayment->name }}"
+                                            data-value="50000">Rp. 50.000</button>
+                                    </div>
+                                    <div class="col-4 mt-2">
+                                        <button type="button" class="btn w-100 btn-lg btn-choice btn-outline-primary"
+                                            data-kategori-payment-id="{{ $categoryPayment->id }}"
+                                            data-kategori-payment-name="{{ $categoryPayment->name }}"
+                                            data-value="100000">Rp. 100.000</button>
+                                    </div>
+                                    <div class="col-4 mt-2">
+                                        <button type="button" class="btn w-100 btn-lg btn-choice btn-outline-primary"
+                                            data-kategori-payment-id="{{ $categoryPayment->id }}"
+                                            data-kategori-payment-name="{{ $categoryPayment->name }}"
+                                            data-value="200000">Rp. 200.000</button>
+                                    </div>
+                                @else
+                                    @foreach ($categoryPayment->payment as $payment)
+                                        <div class="col-4 mt-2">
+                                            <button type="button"
+                                                class="btn w-100 btn-lg btn-choice btn-outline-primary"
+                                                data-kategori-payment-id="{{ $categoryPayment->id }}"
+                                                data-kategori-payment-name="{{ $categoryPayment->name }}"
+                                                data-payment-id="{{ $payment->id }}"
+                                                data-value="{{ $payment->name }}">{{ $payment->name }}</button>
+                                        </div>
+                                    @endforeach
+                                @endif
+                            </div>
+
+                            @if ($categoryPayment->name == 'Cash')
+                                <input style="height: 70px; font-size:20px;" type="numeric" id="inputMoney"
+                                    class="form-control input-xl mt-2" placeholder="Cash Amount">
+                            @endif
+                        </div>
+                    </div>
+
+                    <hr>
+                @endforeach
+            @else
+                    <p>Tambahkan Tipe Pembayaran Terlebih Dahulu</p>
+            @endif
+
+
             <div class="row">
+                <div class="col-12">
+                    <div class="mb-4 mt-2">
+                        <label for="note" class="form-label"><strong>Catatan</strong></label>
+                        <textarea style="height: 150px;" class="form-control" id="catatanTransaksi" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+
+
+            {{-- <div class="row">
                 <div class="col-3">
                     <h6 class="d-flex text-center">Cash</h6>
                 </div>
@@ -42,7 +108,7 @@
                         <button type="button" class="btn btn-lg btn-choice btn-outline-primary">DEBIT</button>
                     </div>
                 </div>
-            </div>
+            </div> --}}
 
         </div>
     </div>
@@ -51,6 +117,11 @@
 <script>
     var edcType = '';
     var cashAmoun = 0;
+
+    var dataListPayment = @json($listPayment);
+    var dataCash = dataListPayment.find(item => item.name == "Cash");
+    var idCash = dataCash.id;
+    
     var moneyInput = document.getElementById("inputMoney");
     moneyInput.addEventListener("keyup", function(e) {
 
@@ -62,10 +133,10 @@
         console.log(this.value);
         console.log(convertHargaToInt);
         console.log(totalHarga)
-        $('#btnEdc button').removeClass('active');
-        $('#btnCash button').removeClass('active');
+        $('.btn-choice').removeClass('active');
 
-        if (this.value == '' || convertHargaToInt < totalHarga || this.value == 'Rp. ') {
+        if (this.value == '' || convertHargaToInt < totalHarga || this.value == 'Rp. ' || isNaN(
+                convertHargaToInt)) {
             $("#pay").attr('disabled', true);
         } else {
             $("#pay").removeAttr('disabled');
@@ -102,78 +173,78 @@
     $(document).ready(function() {
         updateHargaText()
 
-        $('#btnEdc button').on('click', function() {
-            $("#pay").removeAttr('disabled');
-
-            // Hapus class 'active' dari semua tombol
-            $('#btnEdc button').removeClass('active');
-            $('#btnCash button').removeClass('active');
-            // Tambahkan class 'active' ke tombol yang diklik
+        $('.btn-choice').off().on('click', function() {
+            $('.btn-choice').removeClass('active');
             $(this).addClass('active');
 
-            // Ambil teks dari tombol yang aktif
-            var selectedButton = $('#btnEdc button.active').text();
-            console.log("Tombol yang dipilih: " + selectedButton);
-        });
+            $("#pay").attr('disabled', true);
+            let value = $(this).data('value');
+            console.log(value)
 
-        $('#btnCash button').on('click', function() {
+            if (typeof value == "number") {
+                let textHarga = document.getElementById("total").textContent;
+                let harga = textHarga.trim();
+                let totalHarga = parseInt(harga.replace(/[^\d]/g, ""));
 
-
-            // Hapus class 'active' dari semua tombol
-            $('#btnCash button').removeClass('active');
-            $('#btnEdc button').removeClass('active');
-            // Tambahkan class 'active' ke tombol yang diklik
-            $(this).addClass('active');
-
-            // Ambil teks dari tombol yang aktif
-            var selectedButton = $('#btnCash button.active').text();
-            let trimSelected = selectedButton.trim();
-            let hilangkanTextRp = trimSelected.replace(/[^\d]/g, "")
-            let convertTextHargaButton = parseInt(hilangkanTextRp);
-
-            //harga
-            let textHarga = document.getElementById("total").textContent;
-            let harga = textHarga.trim();
-            let totalHarga = parseInt(harga.replace(/[^\d]/g, ""));
-
-            if (convertTextHargaButton < totalHarga) {
-                $("#pay").attr('disabled', true);
+                if (value < totalHarga) {
+                    $("#pay").attr('disabled', true);
+                } else {
+                    $("#pay").removeAttr('disabled');
+                }
             } else {
                 $("#pay").removeAttr('disabled');
             }
-
-
-            console.log("Tombol yang dipilih: " + selectedButton);
         });
+
 
         $('#pay').on('click', function() {
             let selectButton = $('button.active').text();
             let selectButtonTrim = selectButton.trim();
             let selectButtonAngka = parseInt(selectButtonTrim.replace(/[^\d]/g, ""));
 
-            let checkTypeButton = $('button.active').closest('.btn-group').attr('id');
+            let checkTypeButton = $('button.active');
+            let categoryPaymentId = checkTypeButton.data('kategori-payment-id');
+            let categoryPaymentName = checkTypeButton.data('kategori-payment-name');
+            let paymentValue = checkTypeButton.data('value');
+            let paymentId = checkTypeButton.data('payment-id');
+
+            // let checkTypeButton = $('.btn-choice.active');
+            console.log(checkTypeButton);
+            console.log(categoryPaymentId);
+            console.log(categoryPaymentName);
+            console.log(paymentValue);
+            console.log(paymentId);
+
+            let valueCatatan = $('#catatanTransaksi').val();
 
             let cashInput = $("#inputMoney").val();
             let trimCashInput = cashInput.trim();
             let cashInputAngka = parseInt(trimCashInput.replace(/[^\d]/g, ""));
 
             let hargaTotal = ambilHargaTotal();
+            let category_payment_id = '';
+            let nama_tipe_pembayaran = '';
             let tipePembayaran = '';
             let nominalBayar = 0;
             let change = 0;
 
-            // Pengecekan apakah berasal dari btnEdc atau btnCash
-            if (checkTypeButton === 'btnEdc') {
-                tipePembayaran = selectButton.toLowerCase() == "qris" ? 'qris' : 'debit';
-                nominalBayar = hargaTotal;
-            } else if (checkTypeButton === 'btnCash') {
-                console.log("Pembayaran melalui Cash");
-                tipePembayaran = 'cash'
-                nominalBayar = selectButtonAngka;
-                change = hargaTotal - selectButtonAngka;
+            if (checkTypeButton.length > 0) {
+                if (categoryPaymentName == "Cash") {
+                    category_payment_id = categoryPaymentId;
+                    nama_tipe_pembayaran = "Cash";
+                    tipePembayaran = null;
+                    nominalBayar = paymentValue;
+                    change = hargaTotal - paymentValue;
+                } else {
+                    category_payment_id = categoryPaymentId;
+                    nama_tipe_pembayaran = paymentValue;
+                    tipePembayaran = paymentId;
+                    nominalBayar = hargaTotal;
+                }
             } else {
-                console.log("pembayaran melalui cash input")
-                tipePembayaran = 'cash';
+                tipePembayaran = null;
+                category_payment_id = idCash;;
+                nama_tipe_pembayaran = "Cash"
                 nominalBayar = cashInputAngka;
                 change = hargaTotal - cashInputAngka;
             }
@@ -249,12 +320,15 @@
             dataForm.append('nominal_bayar', nominalBayar);
             dataForm.append('change', Math.abs(change));
             dataForm.append('tipe_pembayaran', tipePembayaran);
+            dataForm.append('category_payment_id', category_payment_id);
+            dataForm.append('nama_tipe_pembayaran', nama_tipe_pembayaran);
             dataForm.append('total', hargaTotal);
             dataForm.append('diskonAllItems', JSON.stringify(listDiskonAllItem))
             dataForm.append('total_pajak', JSON.stringify(listPajak));
             dataForm.append('rounding', amountRounding);
             dataForm.append('tanda_rounding', tandaRounding);
             dataForm.append('customer_id', idCustomer);
+            dataForm.append('catatan', valueCatatan);
 
             $.ajax({
                 url: "{{ route('kasir/bayar') }}",
@@ -293,8 +367,8 @@
                         // }
 
                         modals.modal('show');
-                    } 
-                    
+                    }
+
                 },
                 complete: function() {
                     // submitLoader().hide()

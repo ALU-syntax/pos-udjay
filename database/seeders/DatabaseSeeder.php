@@ -26,7 +26,9 @@ class DatabaseSeeder extends Seeder
             OutletsSeeder::class,
             UserSeeder::class,
             MenuSeeder::class,
-            CategorySeeder::class
+            CategorySeeder::class,
+            CategoryPaymentSeeder::class,
+            PaymentSeeder::class
         ]);
 
         // Memanggil ProductFactory

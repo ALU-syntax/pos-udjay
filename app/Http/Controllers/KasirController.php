@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\DataTables\PilihPelangganDataTable;
 use App\Models\Category;
+use App\Models\CategoryPayment;
 use App\Models\Checkout;
 use App\Models\Discount;
 use App\Models\PettyCash;
@@ -11,6 +12,7 @@ use App\Models\Product;
 use App\Models\Taxes;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\VariantProduct;
 use Illuminate\Http\Request;
 
 class KasirController extends Controller
@@ -29,10 +31,11 @@ class KasirController extends Controller
         // dd($rounding);
 
         $pajak = Taxes::where('outlet_id', $dataOutletUser[0])->get();
+        $outletUser = json_decode(auth()->user()->outlet_id);
 
         return view('layouts.kasir.index', [
-            'categorys' => Category::with(['products' => function ($product) {
-                $product->orderBy('name', 'asc');
+            'categorys' => Category::with(['products' => function ($product) use($outletUser) {
+                $product->where('outlet_id', $outletUser[0])->orderBy('name', 'asc');
             }])->get(),
             'pajak' => $pajak,
             'rounding' => $rounding,
@@ -42,17 +45,21 @@ class KasirController extends Controller
 
     public function findProduct(Product $product)
     {
+        $product->load(['variants']);
         $outletUser = auth()->user()->outlet_id;
         $dataOutletUser = json_decode($outletUser);
 
         $dataProduct = $product;
         $dataProduct['harga_jual'] = round($dataProduct['harga_jual']);
 
+        $dataVariants = $dataProduct->variants()->get();
+
         $modifiers = $product->modifierGroups()->with(['modifier'])->get();
 
         $discounts = Discount::where('type_input', 'fixed')->where('outlet_id', $dataOutletUser[0])->where('satuan', 'percent')->get();
         return view('layouts.kasir.kasir-modal-product', [
             'data' => $dataProduct,
+            'variants' => $dataVariants,
             'discounts' => $discounts,
             'modifiers' => $modifiers
         ]);
@@ -60,15 +67,19 @@ class KasirController extends Controller
 
     public function choosePayment(Request $request)
     {
-
         // dd($request);
         $userData = auth()->user();
         $outletUser = json_decode($userData->outlet_id);
+        $listCategoryPayment = CategoryPayment::with(['payment' => function($payment){
+            $payment->where('status', true);
+        }])->where('status', true)->orderBy('name', 'asc')->get();
 
         $pettyCash = PettyCash::where('outlet_id', $outletUser[0])->where('close', null)->get();
 
         if (count($pettyCash) > 0) {
-            return view('layouts.kasir.modal-choose-payment');
+            return view('layouts.kasir.modal-choose-payment',[
+                'listPayment' => $listCategoryPayment
+            ]);
         } else {
             return view('layouts.kasir.modal-petty-cash');
         }
@@ -134,6 +145,8 @@ class KasirController extends Controller
             'customer_id' => $customerId,
             'total' => $request->total,
             'nominal_bayar' => $request->nominal_bayar,
+            'category_payment_id' => $request->category_payment_id,
+            'nama_tipe_pembayaran' => $request->nama_tipe_pembayaran,
             'change' => $request->change,
             'tipe_pembayaran' => $request->tipe_pembayaran,
             'total_pajak' => $request->total_pajak,
@@ -141,7 +154,8 @@ class KasirController extends Controller
             'total_diskon' => $totalNominalDiskon,
             'diskon_all_item' => $request->diskonAllItems,
             'rounding_amount' => $request->rounding,
-            'tanda_rounding' => $request->tanda_rounding
+            'tanda_rounding' => $request->tanda_rounding,
+            'catatan' => $request->catatan
         ];
 
         $transaction = Transaction::create($dataTransaction);
@@ -164,7 +178,7 @@ class KasirController extends Controller
             // 'id'        => base64_encode($id_penjualan),
             // 'waLink'    => $whatsappLink,
             'change'     => $request->change,
-            'metode'    => $request->tipe_pembayaran,
+            'metode'    => $request->nama_tipe_pembayaran,
             'message' => "Transaksi Berhasil"
             // 'pelanggan' => $pelanggan,
         ];

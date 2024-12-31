@@ -572,12 +572,14 @@
                                             </div>
 
                                             @foreach ($categorys as $category)
-                                                <div class="list-group-item list-category d-flex align-items-center"
-                                                    data-target="{{ $category->name }}">
-                                                    <div class="icon-box" data-text="{{ $category->name }}"></div>
-                                                    <span class="ms-3">{{ $category->name }}</span>
-                                                    <span class="ms-auto">&gt;</span>
-                                                </div>
+                                                @if (count($category->products))
+                                                    <div class="list-group-item list-category d-flex align-items-center"
+                                                        data-target="{{ $category->name }}">
+                                                        <div class="icon-box" data-text="{{ $category->name }}"></div>
+                                                        <span class="ms-3">{{ $category->name }}</span>
+                                                        <span class="ms-auto">&gt;</span>
+                                                    </div>
+                                                @endif
                                             @endforeach
                                         </div>
                                     </div>
@@ -813,7 +815,7 @@
                     </center>
                 </div>
                 <div class="d-flex justify-content-center mb-4">
-                    <a type="submit" class="btn btn-primary w-50" href="{{route('kasir')}}">Buat Pesanan Baru</a>
+                    <a type="submit" class="btn btn-primary w-50" href="{{ route('kasir') }}">Buat Pesanan Baru</a>
                 </div>
             </div>
         </div>
@@ -898,8 +900,10 @@
 
             // Hapus elemen row dari DOM
             row.remove();
-            // Perbarui subtotal
-            updateHargaTotal();
+            
+            listItem = listItem.filter(item => item.tmpId !== dataTmpId);
+            
+            syncItemCart()
         }
 
         function updateCustomAmount() {
@@ -1016,12 +1020,21 @@
                 </div>
                 `;
 
+                if(item.namaProduct != item.namaVariant){
+                    html += `
+                    <div class="row mb-0 mt-0 variant" data-tmpId="${item.tmpId}">
+                        <div class="col-6 text-muted">${item.namaVariant}</div>
+                    </div>
+                        `
+                }
+
                 if (item.modifier.length > 0) {
                     item.modifier.forEach(function(itemModifier, indexModifier) {
+                        let hargaModifierKaliQuantity = itemModifier.harga * parseInt(item.quantity);
                         html += `
-                        <div class="row mb-0 mt-0">
+                        <div class="row mb-0 mt-0 modifier" data-tmpId="${item.tmpId}">
                             <div class="col-6 text-muted">${itemModifier.nama}</div>
-                            <div class="col-5 text-end text-muted">${formatRupiah(itemModifier.harga.toString(), "Rp. ")}</div>
+                            <div class="col-5 text-end text-muted">${formatRupiah(hargaModifierKaliQuantity.toString(), "Rp. ")}</div>
                         </div>
                         `;
                     });
@@ -1029,7 +1042,7 @@
 
                 if (item.catatan != '') {
                     html += `
-                        <div class="row mb-0 mt-0">
+                        <div class="row mb-0 mt-0 catatan" data-tmpId="${item.tmpId}">
                             <div class="col-6 text-muted">${item.catatan}</div>
                         </div>
                         `;
@@ -1046,7 +1059,8 @@
                 tmpSubTotal.push(item.resultTotal);
 
                 item.modifier.forEach(function(itemModifier, indexModifier) {
-                    tmpSubTotal.push(itemModifier.harga);
+                    let modifierMultipleQuantity = itemModifier.harga * parseInt(item.quantity);
+                    tmpSubTotal.push(modifierMultipleQuantity);
                 });
             });
 
@@ -1237,7 +1251,10 @@
             var tmpTotalDiskon = [];
 
             listItem.forEach(function(item, index) {
+                console.log(item)
                 item.diskon.forEach(function(itemDiskon, indexDiskon) {
+                    console.log(itemDiskon);
+                    // let diskonMultipleQuantity = 
                     tmpTotalDiskon.push(itemDiskon.result);
                 });
             });
