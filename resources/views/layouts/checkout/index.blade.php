@@ -36,6 +36,7 @@
                                     </div>
                                 </div>
 
+                                <p class="text-muted">Saat ini Benchmark Tidak Berfungsi, diset berapapun nilainya akan menjadi seperti ini. 0 - 499 itu ke 0 , 500 - 999 itu ke 500</p>
                                 <p id="exampleText">10001 is 10000; 10002 is 11000</p>
                             </div>
 

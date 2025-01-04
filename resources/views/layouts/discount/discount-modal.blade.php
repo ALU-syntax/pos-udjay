@@ -208,10 +208,6 @@
             // Define keyup handler
         }
 
-        
-
-
-
         // Initialize
         satuanClicked();
 

@@ -214,4 +214,26 @@ class ProductController extends Controller
         // Kembalikan data dalam format JSON
         return response()->json($variants);
     }
+
+    public function getCategoryByOutlet(Request $request)
+    {
+        $idOutlet = $request->input('idOutlet');
+        if (count($idOutlet) > 1) {
+            $category = Product::with(['category'])
+                ->whereIn('outlet_id', $idOutlet)
+                ->select('category_id', \DB::raw('COUNT(*) as category_count')) // Hanya ambil category_id dan hitung
+                ->groupBy('category_id') // Kelompokkan berdasarkan category_id
+                ->having('category_count', '>', 1) // Hanya ambil kategori dengan lebih dari 1 produk
+                ->get();
+        } else {
+            $categoryIds = Product::where('outlet_id', $idOutlet[0])
+                ->pluck('category_id') // Ambil semua category_id
+                ->unique(); // Ambil yang unik
+
+            // Ambil data kategori berdasarkan category_id yang unik
+            $category = Category::whereIn('id', $categoryIds)->get();
+        }
+
+        return response()->json($category);
+    }
 }

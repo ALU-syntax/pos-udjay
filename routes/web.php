@@ -154,6 +154,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [ProductController::class, 'create'])->name('product/create');
             Route::get('/getVariantByProductId/{id}', [ProductController::class, 'findVariantByProductId'])->name('product/findVariantByProductId');
             Route::get('/getVariantByProductName/{name}', [ProductController::class, 'findVariantByProductName'])->name('product/findVariantByProductName');
+            Route::get('/getCategoryByOutlet', [ProductController::class, 'getCategoryByOutlet'])->name('product/getCategoryByOutlet');
             Route::get('/getProductByOutlet', [ProductController::class, 'getProductByOutlet'])->name('product/getProductByOutlet');
             Route::post('/store', [ProductController::class, 'store'])->name('product/store');
             Route::get('/edit/{product}', [ProductController::class, 'edit'])->name('product/edit');

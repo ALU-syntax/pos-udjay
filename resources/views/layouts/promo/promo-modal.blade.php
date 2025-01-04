@@ -271,20 +271,31 @@
             <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree"
                 data-bs-parent="#accordionExample">
                 <div class="accordion-body">
-                    <p>Final task:</p>
-                    <textarea id="task3" class="form-control" placeholder="Enter some text"></textarea>
+
+                    <div id="reward-discount" class="row">
+
+                    </div>
+
+                    <div class="row d-none" id="reward-free-item">
+                        <p>Customers will get free items specified below to their cart</p>
+
+                        <div class="row mt-3">
+                            <button class="btn btn-primary w-100" type="button" id="add_specific_item_reward">Add
+                                Item</button>
+                        </div>
+                    </div>
+
                     <button type="button" class="btn btn-round btn-outline-secondary mt-3 next-btn"
-                        id="backToCollapseOne" data-target="#collapseOne">Previous</button>
-                    <button type="button" class="btn btn-round btn-primary mt-3 next-btn"
-                        id="btnPurchasRequirementNext" data-session="promo-information" data-target="#collapseThree"
-                        disabled>Next</button>
+                        id="backToCollapseTwo" data-target="#collapseTwo">Previous</button>
+                    <button type="button" class="btn btn-round btn-primary mt-3 next-btn" id="btnRewardNext"
+                        data-session="promo-information" data-target="#collapseFour" disabled>Next</button>
                 </div>
             </div>
         </div>
 
         {{-- Promo Configuration --}}
         <div class="accordion-item">
-            <h2 class="accordion-header" id="headingThree">
+            <h2 class="accordion-header" id="headingFour">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                     data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour" disabled>
                     Promo Configuration
@@ -304,6 +315,7 @@
 
     <script>
         var _totalSpesificItemPurchaseRequirement = 0;
+        var _totalRewardItem = 0;
         var listProductBaseOnOutlet = [];
         var outletTerpilih = [];
 
@@ -313,6 +325,43 @@
             } else {
                 $('#salesTypeSelect').addClass('d-none'); // Sembunyikan select
             }
+        }
+
+        function getCategoryByOutlet() {
+            $.ajax({
+                url: `{{ route('library/product/getCategoryByOutlet') }}`, // URL endpoint Laravel
+                type: 'GET',
+                data: {
+                    idOutlet: outletTerpilih // Kirim data array ke server
+                },
+                success: function(response) {
+                    // Bersihkan opsi yang ada di select
+                    const selectElement = $('#category_requirement');
+                    selectElement.empty(); // Menghapus semua opsi yang ada
+
+                    // Tambahkan opsi default
+                    selectElement.append(
+                        '<option selected="" disabled="">Pilih Category</option>');
+
+                    if (outletTerpilih.length > 1) {
+                        response.forEach(function(item) {
+                            selectElement.append(
+                                `<option value="${item.category.id}">${item.category.name}</option>`
+                            );
+                        });
+                    } else {
+                        // Tambahkan opsi baru berdasarkan respons
+                        response.forEach(function(category) {
+                            selectElement.append(
+                                `<option value="${category.id}">${category.name}</option>`
+                            );
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Terjadi kesalahan:", error);
+                }
+            });
         }
 
         function togglePurchaseRequirementType() {
@@ -335,7 +384,7 @@
                 $('.pembatas').remove();
                 let html = `<div class="row" id="row_any_item_from_category">
                             <div class="col-3">
-                                <input type="number" name="qty_requirement_item[]" class="form-control"
+                                <input type="number" name="qty_requirement_category_item" class="form-control"
                                     placeholder="Qty" required>
                             </div>
                             <div class="col-1 d-flex align-items-center justify-content-center">
@@ -343,29 +392,27 @@
                             </div>
                             <div class="col-8 mt-2">
                                 <div class="form-group p-0">
-                                    <select name="item_requirement[]" class="select2InsideModal form-select w-100"
+                                    <select name="category_requirement" id="category_requirement" class="select2InsideModal form-select w-100"
                                         style="width: 100% !important;" required>
                                         <option selected disabled>Pilih Category</option>
                                         <!-- Anda bisa mengganti dengan opsi dinamis -->
-                                        @foreach ($categorys as $category)
-                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div class="form-group p-0 mt-3">
-                                    <select name="item_requirement[]" class="select2InsideModal form-select w-100"
-                                        style="width: 100% !important;" required>
-                                        <option selected disabled>Pilih Category</option>
-                                        <!-- Anda bisa mengganti dengan opsi dinamis -->
-                                        @foreach ($categorys as $category)
-                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                        @endforeach
+                                        
                                     </select>
                                 </div>
                             </div>
                         </div>`;
                 $("#any_item_from_category").append(html);
+
+                $('#category_requirement').off().on('change', function(e) {
+                    const selectedValue = $(this).val();
+                    if (selectedValue) {
+                        $('#btnPurchasRequirementNext').removeAttr('disabled');
+                    } else {
+                        $('#btnPurchasRequirementNext').attr('disabled', 'disabled');
+                    }
+                })
+
+                getCategoryByOutlet();
             }
         }
 
@@ -386,7 +433,7 @@
                     top: offset.top + height - $(window)
                         .scrollTop(), // Hitung posisi relatif terhadap layar
                     left: offset.left,
-                    width: selectElement.outerWidth() - 392,
+                    width: selectElement.outerWidth() - 534,
                     zIndex: 9999, // Pastikan lebih tinggi dari modal
                 });
             }).on("select2:close", function() {
@@ -399,6 +446,59 @@
                     left: "",
                 });
             });
+        }
+
+        // Handle choice and input
+        function satuanClicked() {
+            const radios = document.querySelectorAll('input[name="satuan"]');
+            var amountInput = document.getElementById("amountInput");
+
+
+            // Add event listener to radio buttons
+            radios.forEach((radio) => {
+                radio.addEventListener("change", () => {
+                    const satuanChoice = document.querySelector('input[name="satuan"]:checked').value;
+                    console.log(`Satuan selected: ${satuanChoice}`);
+                    amountInput.value = ""; // Reset input when selection changes
+
+                    $('#btnRewardNext').attr('disabled', true);
+                    // Handle keyup based on selected choice
+                    amountInput.removeEventListener("keyup", handleKeyup);
+                    amountInput.addEventListener("keyup", handleKeyup);
+                });
+            });
+
+            amountInput.addEventListener("keyup", handleKeyup);
+
+            function handleKeyup(e) {
+                const satuanChoice = document.querySelector('input[name="satuan"]:checked').value;
+                if (satuanChoice === "rupiah") {
+                    amountInput.type = "text";
+                    this.value = formatRupiah(this.value, "Rp. ");
+                    console.log(this.value);
+
+                    if(this.value != '' || this.value > 0 || this.value == "Rp. "){
+                        $('#btnRewardNext').removeAttr('disabled');
+                    }else{
+                        $('#btnRewardNext').attr('disabled', true);
+                    }
+                } else if (satuanChoice === "percent") {
+                    // Set input type to number and add min attribute
+                    amountInput.type = "number";
+                    amountInput.min = "1";
+                    
+
+                    console.log(this.value)
+
+                    if(this.value != '' || this.value > 0){
+                        $('#btnRewardNext').removeAttr('disabled');
+                    }else{
+                        $('#btnRewardNext').attr('disabled', true);
+                    }
+                }
+            }
+
+            // Define keyup handler
         }
 
         $(document).ready(function() {
@@ -514,7 +614,39 @@
                 }
             });
 
+            $('#btnRewardNext').on('click', function(e){
+                const target = $(this).data('target');
+
+                e.preventDefault(); // Mencegah submit form atau aksi default tombol
+                let isValid = true; // Flag untuk validasi
+
+                // Loop melalui semua input dan select yang memiliki atribut "required"
+                $('input[required], select[required]').each(function() {
+                    if ($(this).val() === '' || $(this).val() === null) {
+                        isValid = false;
+                        $(this).addClass('is-invalid'); // Tambahkan kelas untuk styling kesalahan
+                        $(this).focus(); // Fokus pada elemen yang belum terisi
+                        return false; // Hentikan loop setelah menemukan elemen kosong
+                    } else {
+                        $(this).removeClass('is-invalid'); // Hapus kelas jika sudah valid
+                    }
+                });
+
+                if (isValid) {
+                    // Jika valid, lakukan aksi selanjutnya
+                    $(target).collapse('show'); // Tampilkan accordion berikutnya
+                    $("#collapseTwo").collapse('hide'); // Sembunyikan accordion saat ini
+                } else {
+                    showToast("error", "Harap lengkapi semua input yang wajib diisi.");
+                }
+            })
+
             $('#backToCollapseOne').on('click', function() {
+                const target = $(this).data('target');
+                $(target).collapse('show');
+            });
+
+            $('#backToCollapseTwo').on('click', function() {
                 const target = $(this).data('target');
                 $(target).collapse('show');
             });
@@ -625,7 +757,6 @@
                             idOutlet: selectedOptions // Kirim data array ke server
                         },
                         success: function(response) {
-                            console.log(response);
                             listProductBaseOnOutlet = response;
                             // Lakukan sesuatu dengan data produk (response)
                         },
@@ -633,6 +764,8 @@
                             console.error("Terjadi kesalahan:", error);
                         }
                     });
+
+                    getCategoryByOutlet();
                 } else {
                     console.log('Tidak ada outlet yang dipilih');
                     // Lakukan sesuatu jika tidak ada outlet yang dipilih (opsional)
@@ -676,7 +809,7 @@
                                     if (!acc.some(dup => dup.name === item.name)) {
                                         acc.push(
                                             item
-                                            ); // Ambil salah satu item dari setiap nama
+                                        ); // Ambil salah satu item dari setiap nama
                                     }
                                     return acc;
                                 }, []);
@@ -684,26 +817,27 @@
                                 variantSelect.append(
                                     '<option value="all" selected>All Variant</option>'
                                 );
-                                if(uniqueDuplicates.length != 0){   
-                                    uniqueDuplicates.forEach(function(item, index){
+                                if (uniqueDuplicates.length != 0) {
+                                    uniqueDuplicates.forEach(function(item, index) {
                                         variantSelect.append(
-                                        `<option value="${item.name}" >${item.name}</option>`
-                                    );
+                                            `<option value="${item.name}" >${item.name}</option>`
+                                        );
                                     })
                                 }
-                            }else{
+                            } else {
                                 if (response.length == 1 && response[0].name == namaProduct) {
                                     variantSelect.append(
                                         `<option value="${response[0].name}" disabled selected>Tidak Punya Varian</option>`
                                     );
-    
+
                                     variantSelect.prop('disabled', true);
                                     variantSelect.prop('required', false);
                                 } else {
                                     variantSelect.append(
-                                        '<option value="all" selected>Pilih Variant</option>');
-    
-    
+                                        '<option value="all" selected>All Variant</option>'
+                                    );
+
+
                                     $.each(response, function(key, variant) {
                                         variantSelect.append('<option value="' + variant
                                             .name +
@@ -713,7 +847,7 @@
                                     variantSelect.prop('required', true);
                                 }
                             }
-                            
+
                         },
                         error: function() {
                             console.error('Gagal mengambil data variant');
@@ -751,6 +885,17 @@
                 specificItem.remove();
 
             });
+
+            $('#category_requirement').off().on('change', function(e) {
+                console.log(e)
+                const selectedValue = $(this).val();
+                console.log(selectedValue);
+                if (selectedValue) {
+                    $('#btnPurchasRequirementNext').removeAttr('disabled');
+                } else {
+                    $('#btnPurchasRequirementNext').attr('disabled', 'disabled');
+                }
+            })
 
             $('#btnPurchasRequirementNext').on('click', function(e) {
                 const target = $(this).data('target');
@@ -800,6 +945,228 @@
             //handle radio button promo information
             $('input[name="promoType"]').on('change', function() {
                 const selectedValue = $(this).val();
+            });
+
+            $('input[name="promo_type"]').on('change', function() {
+                // Mendapatkan nilai yang dipilih
+                const selectedValue = $(this).val();
+
+                // Menampilkan feedback atau melakukan tindakan berdasarkan nilai yang dipilih
+                if (selectedValue == "discount") {
+                    $('#reward-discount').removeClass('d-none');
+                    $('#reward-discount').empty();
+
+                    $('#reward-free-item').addClass('d-none');
+                    $('.specific_item_reward').remove();
+
+                    let html = `
+                    <div class="form-group">
+                        <label>Discount Amount</label>
+                        <div class="col-12 d-flex">
+                            <input type="text" name="amount" id="amountInput" value="{{ $data->amount }}" class="form-control"
+                                placeholder="Amount" aria-label="Amount" style="height: 36px !important; width: 80% !important;">
+                            <div class="selectgroup ms-4">
+                                <label class="selectgroup-item">
+                                    <input type="radio" name="satuan" id="satuan-rupiah" value="rupiah" class="selectgroup-input"
+                                        checked>
+                                    <span class="selectgroup-button">Rp</span>
+                                </label>
+                                <label class="selectgroup-item">
+                                    <input type="radio" name="satuan" id="satuan-percent" value="percent"
+                                        class="selectgroup-input">
+                                    <span class="selectgroup-button">%</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    `
+
+                    $('#reward-discount').append(html);
+
+                    satuanClicked();
+                } else {
+                    $('#reward-discount').empty();
+                    $('#reward-discount').addClass('d-none');
+
+                    $('#reward-free-item').removeClass('d-none');
+                    $('.specific_item_reward').remove();
+                }
+
+
+            });
+
+            $('#add_specific_item_reward').on('click', function() {
+                $('#btnRewardNext').removeAttr('disabled');
+                let tmpId = generateRandomID();
+
+                var newItem = '';
+                if (_totalRewardItem < 1) {
+                    newItem = `
+                    <div class="row specific_item_reward mt-3">
+                        <div class="col-3">
+                            <input type="number" name="qty_reward_item[]" class="form-control" placeholder="Qty" min="1" required>
+                        </div>
+                        <div class="col-1 d-flex align-items-center justify-content-center">
+                            <strong class="text-muted">Of</strong>
+                        </div>
+                        <div class="col-7 mt-2">
+                            <div class="form-group p-0">
+                                <select name="item_reward[]" data-tmpid="${tmpId}" class="item_reward select2InsideModal form-select w-100" style="width: 100% !important;" required>
+                                    <option selected disabled>Pilih Item</option>
+                                    ${listProductBaseOnOutlet.map(function(item) {
+                                        return `<option value="${item.name}">${item.name}</option>`;
+                                    }).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group p-0 mt-3">
+                                <select name="variant_item_reward[]" data-tmpid="${tmpId}" class="variant_item_reward select2InsideModal form-select w-100"
+                                    style="width: 100% !important;" disabled>
+                                    <option selected disabled>Pilih Variant</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-1 d-flex align-items-center justify-content-center">
+                            <button type="button" class="btn btn-danger btn-sm remove_specific_item_reward">Remove</button>
+                        </div>
+                    </div>
+                `;
+                } else {
+                    newItem = `
+                    <div class="row row_condition_purchase_reward">
+                        <div class="col-3 ">
+                            <div class="form-group">
+                                <select class="form-select form-control condition_purchase_reward" data-tmpid="${tmpId}" id="condition_purchase_reward" name="condition_purchase_reward[]">
+                                    <option selected>AND</option>
+                                    <option>OR</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-9 pt-3">
+                            <hr class="pembatas">
+                        </div>
+                    </div>
+                    <div class="row specific_item mt-3">
+                        <div class="col-3">
+                            <input type="number" name="qty_reward_item[]" class="form-control" placeholder="Qty" min="1" required>
+                        </div>
+                        <div class="col-1 d-flex align-items-center justify-content-center">
+                            <strong class="text-muted">Of</strong>
+                        </div>
+                        <div class="col-7 mt-2">
+                            <div class="form-group p-0">
+                                <select name="item_reward[]" data-tmpid="${tmpId}" class="select2InsideModal item_reward form-select w-100" style="width: 100% !important;" required>
+                                    <option selected disabled>Pilih Item</option>
+                                    ${listProductBaseOnOutlet.map(function(item) {
+                                        return `<option value="${item.name}">${item.name}</option>`;
+                                    }).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group p-0 mt-3">
+                                <select name="variant_item_reward[]" data-tmpid="${tmpId}" class="variant_item_reward select2InsideModal form-select w-100"
+                                    style="width: 100% !important;" disabled>
+                                    <option selected disabled>Pilih Variant</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-1 d-flex align-items-center justify-content-center">
+                            <button type="button" class="btn btn-danger btn-sm remove_specific_reward">Remove</button>
+                        </div>
+                    </div>
+                `;
+                }
+
+                _totalRewardItem++;
+
+                $('#reward-free-item').append(newItem);
+                initializeSelect2();
+            })
+
+            $('#modal_action').on('select2:select', '.item_reward', function(e) {
+                let productValue = $(this).val();
+                let tmpIdSelect = $(this).data('tmpid');
+                let namaProduct = $(this).find(":selected").text();
+
+                let variantSelect = $(`.variant_item_reward[data-tmpid="${tmpIdSelect}"]`);
+                let baseUrl =
+                    `{{ route('library/product/findVariantByProductName', ':name') }}`;
+                let url = baseUrl.replace(':name', productValue);
+
+                if (productValue) {
+                    // Lakukan AJAX
+                    $.ajax({
+                        url: url,
+                        type: 'GET',
+                        data: {
+                            idOutlet: outletTerpilih
+                        },
+                        success: function(response) {
+                            variantSelect.empty();
+                            if (outletTerpilih.length > 1) {
+                                // Langkah 1: Buat objek untuk menghitung jumlah kemunculan nama
+                                var nameCount = response.reduce((acc, item) => {
+                                    acc[item.name] = (acc[item.name] || 0) + 1;
+                                    return acc;
+                                }, {});
+
+                                // Langkah 2: Filter response untuk mendapatkan item yang memiliki nama muncul lebih dari 1 kali
+                                var duplicates = response.filter(item => nameCount[item.name] >
+                                    1);
+
+                                // Langkah 3: Ambil salah satu dari setiap nama yang muncul lebih dari sekali
+                                var uniqueDuplicates = duplicates.reduce((acc, item) => {
+                                    if (!acc.some(dup => dup.name === item.name)) {
+                                        acc.push(
+                                            item
+                                        ); // Ambil salah satu item dari setiap nama
+                                    }
+                                    return acc;
+                                }, []);
+
+                                variantSelect.append(
+                                    '<option value="all" selected>All Variant</option>'
+                                );
+                                if (uniqueDuplicates.length != 0) {
+                                    uniqueDuplicates.forEach(function(item, index) {
+                                        variantSelect.append(
+                                            `<option value="${item.name}" >${item.name}</option>`
+                                        );
+                                    })
+                                }
+                            } else {
+                                if (response.length == 1 && response[0].name == namaProduct) {
+                                    variantSelect.append(
+                                        `<option value="${response[0].name}" disabled selected>Tidak Punya Varian</option>`
+                                    );
+
+                                    variantSelect.prop('disabled', true);
+                                    variantSelect.prop('required', false);
+                                } else {
+                                    variantSelect.append(
+                                        '<option value="all" selected>All Variant</option>'
+                                    );
+
+
+                                    $.each(response, function(key, variant) {
+                                        variantSelect.append('<option value="' + variant
+                                            .name +
+                                            '">' + variant.name + '</option>');
+                                    });
+                                    variantSelect.prop('disabled', false);
+                                    variantSelect.prop('required', true);
+                                }
+                            }
+
+                        },
+                        error: function() {
+                            console.error('Gagal mengambil data variant');
+                        }
+                    });
+                } else {
+                    // Reset select varian
+                    variantSelect.empty();
+                    variantSelect.append('<option disabled selected>Pilih Variant</option>');
+                    variantSelect.prop('disabled', true);
+                }
             });
 
         });
