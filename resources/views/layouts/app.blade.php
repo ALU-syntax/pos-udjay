@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="{{ asset('css/plugins.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/sweetalert2.css') }}">
     <link rel="stylesheet" href="{{ asset('css/kaiadmin.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{asset('vendor/daterangepicker/daterangepicker.css')}}" />
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{{ asset('css/iziToast.min.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"
@@ -100,6 +101,12 @@
 
     {{-- IZI TOAST --}}
     <script src="{{ asset('js/plugin/izitoast/iziToast.min.js') }}"></script>
+
+    {{-- Moment --}}
+    <script type="text/javascript" src="{{asset('vendor/moment/moment.min.js')}}"></script>
+
+    {{-- DateRange Picker --}}
+    <script type="text/javascript" src="{{asset('vendor/daterangepicker/daterangepicker.min.js')}}"></script>
 
     <!-- Kaiadmin JS -->
     <script src="{{ asset('js/kaiadmin.min.js') }}"></script>

@@ -54,7 +54,7 @@
         text-decoration: underline;
     }
 </style>
-<x-modal title="Tambah Promo" addStyle="modal-xl" action="{{ $action }}" method="POST">
+<x-modal title="Tambah Promo" addStyle="modal-xl" action="{{ $action }}" method="POST" customSubmit="true">
     @if ($data->id)
         @method('put')
     @endif
@@ -304,9 +304,101 @@
             <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingThree"
                 data-bs-parent="#accordionExample">
                 <div class="accordion-body">
-                    <p>Final task:</p>
-                    <textarea id="task3" class="form-control" placeholder="Enter some text"></textarea>
-                    <button class="btn btn-success mt-3 finish-btn">Finish</button>
+                    <div class="row">
+                        <div class="form-check col-12">
+                            <input class="form-check-input" type="checkbox" value="true" name="apply_multiple"
+                                id="flexCheckChecked" placeholder="Tanggal">
+                            <label class="form-check-label" for="flexCheckChecked">
+                                Applies in multiple
+                            </label> <br>
+                            <small class="text-muted">
+                                (e.g. if there is a '5% off', customer who buy 2 will get 5% off for 2 items, buy 3 will
+                                get 5% off for 3 items, etc.)
+                            </small>
+                        </div>
+
+                        <div class="form-check col-12">
+                            <input class="form-check-input" type="checkbox" value="true" name="promo_time_period"
+                                id="promo_time_period">
+                            <label class="form-check-label" for="flexCheckChecked">
+                                Set promo time period
+                            </label> <br>
+                            <small class="text-muted">By not setting a promo time period, this promo will run
+                                forever
+                                starting tomorrow. You can setup it later.</small>
+                        </div>
+
+                        <div class="row d-none" id="row_promo_time_periode">
+
+                            <div class="form-check">
+                                <div class="input-group mb-3 mt-3">
+                                    <div class="input-group-prepend">
+                                        <button class="btn btn-outline-secondary" type="button"
+                                            id="prevDate">-</button>
+                                    </div>
+                                    <input type="text" id="schedule_promo" name="schedule_promo"
+                                        class="form-control">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary" type="button"
+                                            id="nextDat">+</button>
+                                    </div>
+                                </div>
+    
+                                <input class="form-check-input" type="checkbox" value="true" name="check_all_day"
+                                    id="flexCheckChecked">
+                                <label class="form-check-label" for="flexCheckChecked">
+                                    Select All
+                                </label> <br>
+    
+                                <input class="form-check-input" type="checkbox" value="true" name="minggu"
+                                    id="flexCheckChecked">
+                                <label class="form-check-label" for="flexCheckChecked">
+                                    Minggu
+                                </label> <br>
+    
+                                <input class="form-check-input" type="checkbox" value="true" name="senin"
+                                    id="flexCheckChecked">
+                                <label class="form-check-label" for="flexCheckChecked">
+                                    Senin
+                                </label> <br>
+    
+                                <input class="form-check-input" type="checkbox" value="true" name="selasa"
+                                    id="flexCheckChecked">
+                                <label class="form-check-label" for="flexCheckChecked">
+                                    Selasa
+                                </label> <br>
+    
+                                <input class="form-check-input" type="checkbox" value="true" name="rabu"
+                                    id="flexCheckChecked">
+                                <label class="form-check-label" for="flexCheckChecked">
+                                    Rabu
+                                </label> <br>
+    
+                                <input class="form-check-input" type="checkbox" value="true" name="kamis"
+                                    id="flexCheckChecked">
+                                <label class="form-check-label" for="flexCheckChecked">
+                                    Kamis
+                                </label> <br>
+    
+                                <input class="form-check-input" type="checkbox" value="true" name="jumat"
+                                    id="flexCheckChecked">
+                                <label class="form-check-label" for="flexCheckChecked">
+                                    Jumat
+                                </label> <br>
+    
+                                <input class="form-check-input" type="checkbox" value="true" name="sabtu"
+                                    id="flexCheckChecked">
+                                <label class="form-check-label" for="flexCheckChecked">
+                                    Sabtu
+                                </label> <br>
+                            </div>
+
+                        </div>
+
+                    </div>
+                    <button type="button" class="btn btn-round btn-outline-secondary mt-3 next-btn"
+                        id="backToCollapseThree" data-target="#collapseThree">Previous</button>
+                    <button type="button" class="btn btn-round btn-success mt-3 finish-btn" id="btnFinish" disabled>Finish</button>
                 </div>
             </div>
         </div>
@@ -477,22 +569,22 @@
                     this.value = formatRupiah(this.value, "Rp. ");
                     console.log(this.value);
 
-                    if(this.value != '' || this.value > 0 || this.value == "Rp. "){
+                    if (this.value != '' || this.value > 0 || this.value == "Rp. ") {
                         $('#btnRewardNext').removeAttr('disabled');
-                    }else{
+                    } else {
                         $('#btnRewardNext').attr('disabled', true);
                     }
                 } else if (satuanChoice === "percent") {
                     // Set input type to number and add min attribute
                     amountInput.type = "number";
                     amountInput.min = "1";
-                    
+
 
                     console.log(this.value)
 
-                    if(this.value != '' || this.value > 0){
+                    if (this.value != '' || this.value > 0) {
                         $('#btnRewardNext').removeAttr('disabled');
-                    }else{
+                    } else {
                         $('#btnRewardNext').attr('disabled', true);
                     }
                 }
@@ -614,7 +706,7 @@
                 }
             });
 
-            $('#btnRewardNext').on('click', function(e){
+            $('#btnRewardNext').on('click', function(e) {
                 const target = $(this).data('target');
 
                 e.preventDefault(); // Mencegah submit form atau aksi default tombol
@@ -650,6 +742,11 @@
                 const target = $(this).data('target');
                 $(target).collapse('show');
             });
+
+            $('#backToCollapseThree').on('click', function(){
+                const target = $(this).data('target');
+                $(target).collapse('show');
+            })
 
             // Handle button click to add a new specific item
             $('#add_specific_item').on('click', function() {
@@ -906,6 +1003,8 @@
                 // Loop melalui semua input dan select yang memiliki atribut "required"
                 $('input[required], select[required]').each(function() {
                     if ($(this).val() === '' || $(this).val() === null) {
+                        console.log($(this).val())
+                        console.log($(this))
                         isValid = false;
                         $(this).addClass('is-invalid'); // Tambahkan kelas untuk styling kesalahan
                         $(this).focus(); // Fokus pada elemen yang belum terisi
@@ -1166,6 +1265,67 @@
                     variantSelect.empty();
                     variantSelect.append('<option disabled selected>Pilih Variant</option>');
                     variantSelect.prop('disabled', true);
+                }
+            });
+
+            var startDate = moment().startOf('day');
+            var endDate = moment().endOf('day');
+
+            $('#schedule_promo').daterangepicker({
+                startDate: startDate,
+                endDate: endDate,
+                ranges: {
+                    'Today': [moment(), moment()],
+                    'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                    'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+                    'This Month': [moment().startOf('month'), moment().endOf('month')],
+                    'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1,
+                        'month').endOf('month')]
+                },
+                "linkedCalendars": false,
+                "autoUpdateInput": false,
+                "showCustomRangeLabel": true,
+                // "startDate": "12/30/2024",
+                // "endDate": "01/05/2025",
+                "drops": "up",
+                "buttonClasses": "btn btn-primary"
+            }, function(start, end, label) {
+                console.log("masok pak eko")
+                $('#schedule_promo').val(start.format('YYYY-MM-DD') + ' - ' + end.format('YYYY-MM-DD'));
+                console.log('New date range selected: ' + start.format('YYYY-MM-DD') + ' to ' + end.format(
+                    'YYYY-MM-DD') + ' (predefined range: ' + label + ')');
+            });
+
+            // Fungsi untuk mengubah tanggal
+            $('#prevDate').on('click', function() {
+                startDate.subtract(1, 'days');
+                endDate.subtract(1, 'days');
+                $('#schedule_promo').data('daterangepicker').setStartDate(startDate);
+                $('#schedule_promo').data('daterangepicker').setEndDate(endDate);
+            });
+
+            $('#nextDate').on('click', function() {
+                startDate.add(1, 'days');
+                endDate.add(1, 'days');
+                $('#schedule_promo').data('daterangepicker').setStartDate(startDate);
+                $('#schedule_promo').data('daterangepicker').setEndDate(endDate);
+            });
+
+            $('.ranges li').addClass('btn btn-primary w-75 ms-3 mt-2');
+
+            // Event untuk mengosongkan rentang saat daterangepicker dibuka
+            $('#schedule_promo').on('show.daterangepicker', function(ev, picker) {
+                picker.setStartDate(moment().startOf(
+                    'day')); // Set start date ke hari ini atau tanggal lain
+                picker.setEndDate(moment().startOf('day')); // Set end date ke hari ini atau tanggal lain
+            });
+
+            $('#promo_time_period').change(function() {
+                if ($(this).is(':checked')) {
+                    $('#row_promo_time_periode').removeClass('d-none'); // Menghapus kelas d-none
+                } else {
+                    $('#row_promo_time_periode').addClass('d-none'); // Menambahkan kelas d-none
                 }
             });
 

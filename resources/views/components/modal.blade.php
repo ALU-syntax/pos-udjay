@@ -1,5 +1,13 @@
-@props(['id', 'action', 'title' => false, 'update' => false, 'description' => null, 'addStyle' => ''])
-<div class="modal-dialog modal-dialog-centered {{$addStyle}}" role="document">
+@props([
+    'id',
+    'action',
+    'title' => false,
+    'update' => false,
+    'description' => null,
+    'addStyle' => '',
+    'customSubmit' => false,
+])
+<div class="modal-dialog modal-dialog-centered {{ $addStyle }}" role="document">
     <div class="modal-content">
         <form id="form_action" action="{{ $action }}" method="POST">
             <div class="modal-header border-0">
@@ -22,11 +30,19 @@
                 </div>
 
             </div>
-            <div class="modal-footer border-0">
-                <button type="submit" id="addRowButton" class="btn btn-primary">@if($update)Update @else Add @endif</button>
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+            @if (!$customSubmit)
+                <div class="modal-footer border-0">
+                    <button type="submit" id="addRowButton" class="btn btn-primary">
+                        @if ($update)
+                            Update
+                        @else
+                            Add
+                        @endif
+                    </button>
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
 
-            </div>
+                </div>
+            @endif
         </form>
     </div>
 </div>
