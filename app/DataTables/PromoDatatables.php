@@ -4,6 +4,7 @@ namespace App\DataTables;
 
 use App\Models\Promo;
 use App\Models\PromoDatatable;
+use App\Traits\DataTableHelper;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
@@ -15,6 +16,7 @@ use Yajra\DataTables\Services\DataTable;
 
 class PromoDatatables extends DataTable
 {
+    use DataTableHelper;
     /**
      * Build the DataTable class.
      *
@@ -23,7 +25,28 @@ class PromoDatatables extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
-            ->addColumn('action', 'promodatatables.action')
+            ->addColumn('action', function ($row) {
+                $actions = $this->basicActions($row);
+                return view('action', ['actions' => $actions]);
+            })
+            ->addColumn('time_periode', function ($row) {
+                if ($row->promo_date_periode_start != null) {
+                    return $row->promo_date_periode_start . ' - ' . $row->promo_date_periode_end;
+                } else {
+                    return ' - ';
+                }
+            })
+            ->addColumn('outlet_id', function ($row) {
+                return "<span class='badge badge-primary'>{$row->outlet->name} </span></br>";
+            })
+            ->addColumn('status', function ($row) {
+                if ($row->status) {
+                    return "<span class='badge badge-success'>Aktif</span></br>";
+                } else {
+                    return "<span class='badge badge-info'>Belum Aktif </span></br>";
+                }
+            })
+            ->rawColumns(['outlet_id', 'status'])
             ->setRowId('id');
     }
 
@@ -41,20 +64,20 @@ class PromoDatatables extends DataTable
     public function html(): HtmlBuilder
     {
         return $this->builder()
-                    ->setTableId('promodatatables-table')
-                    ->columns($this->getColumns())
-                    ->minifiedAjax()
-                    //->dom('Bfrtip')
-                    ->orderBy(1)
-                    ->selectStyleSingle()
-                    ->buttons([
-                        Button::make('excel'),
-                        Button::make('csv'),
-                        Button::make('pdf'),
-                        Button::make('print'),
-                        Button::make('reset'),
-                        Button::make('reload')
-                    ]);
+            ->setTableId('promodatatables-table')
+            ->columns($this->getColumns())
+            ->minifiedAjax()
+            //->dom('Bfrtip')
+            ->orderBy(1)
+            ->selectStyleSingle()
+            ->buttons([
+                Button::make('excel'),
+                Button::make('csv'),
+                Button::make('pdf'),
+                Button::make('print'),
+                Button::make('reset'),
+                Button::make('reload')
+            ]);
     }
 
     /**
@@ -63,15 +86,15 @@ class PromoDatatables extends DataTable
     public function getColumns(): array
     {
         return [
+            Column::make('name')->title('Promo Name'),
+            Column::make('time_periode'),
+            Column::make('outlet_id'),
+            Column::make('status'),
             Column::computed('action')
-                  ->exportable(false)
-                  ->printable(false)
-                  ->width(60)
-                  ->addClass('text-center'),
-            Column::make('id'),
-            Column::make('add your columns'),
-            Column::make('created_at'),
-            Column::make('updated_at'),
+                ->exportable(false)
+                ->printable(false)
+                ->width(60)
+                ->addClass('text-center'),
         ];
     }
 

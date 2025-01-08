@@ -195,9 +195,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [PromoController::class, 'index'])->name('promo');
             Route::get('/create', [PromoController::class, 'create'])->name('promo/create');
             Route::post('/store', [PromoController::class, 'store'])->name('promo/store');
-            // Route::get('/edit/{discount}', [DiscountController::class, 'edit'])->name('discount/edit');
-            // Route::put('/update/{discount}', [DiscountController::class, 'update'])->name('discount/update');
-            // Route::delete('/destroy/{discount}', [DiscountController::class,'destroy'])->name('discount/destroy');
+            Route::get('/edit/{promo}', [PromoController::class, 'edit'])->name('promo/edit');
+            Route::put('/update/{promo}', [PromoController::class, 'update'])->name('promo/update');
+            Route::delete('/destroy/{promo}', [PromoController::class,'destroy'])->name('promo/destroy');
         });
 
         Route::prefix('salestype')->group(function(){

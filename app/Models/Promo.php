@@ -11,4 +11,9 @@ class Promo extends Model
     use HasFactory, SoftDeletes;
 
     protected $guarded = ['id'];
+
+    public function outlet()
+    {
+        return $this->belongsTo(Outlets::class, 'outlet_id', 'id');
+    }
 }
