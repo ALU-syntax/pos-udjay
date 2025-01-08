@@ -43,7 +43,7 @@ class PromoDatatables extends DataTable
                 if ($row->status) {
                     return "<span class='badge badge-success'>Aktif</span></br>";
                 } else {
-                    return "<span class='badge badge-info'>Belum Aktif </span></br>";
+                    return "<span class='badge badge-info'>Terjadwal </span></br>";
                 }
             })
             ->rawColumns(['outlet_id', 'status'])
@@ -55,7 +55,20 @@ class PromoDatatables extends DataTable
      */
     public function query(Promo $model): QueryBuilder
     {
-        return $model->newQuery();
+        $query = $model->newQuery()->with(['outlet']);
+        if ($this->request()->has('outlet') && $this->request()->get('outlet') != '') {
+            if($this->request()->get('outlet') == 'all'){
+                $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
+            }else{
+                $query->where('outlet_id', $this->request()->get('outlet'));
+            }
+        } elseif($this->request()->has('outlet') && $this->request()->get('outlet') == 'all'){
+            $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
+        }else{
+            $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
+        }
+
+        return $query;
     }
 
     /**

@@ -378,43 +378,43 @@
                                         Select All
                                     </label> <br>
 
-                                    <input class="form-check-input day_check" type="checkbox" value="minggu"
+                                    <input class="form-check-input day_check" type="checkbox" value="Minggu"
                                         name="day[]" id="minggu">
                                     <label class="form-check-label" for="flexCheckChecked">
                                         Minggu
                                     </label> <br>
 
-                                    <input class="form-check-input day_check" type="checkbox" value="senin"
+                                    <input class="form-check-input day_check" type="checkbox" value="Senin"
                                         name="day[]" id="senin">
                                     <label class="form-check-label" for="flexCheckChecked">
                                         Senin
                                     </label> <br>
 
-                                    <input class="form-check-input day_check" type="checkbox" value="selasa"
+                                    <input class="form-check-input day_check" type="checkbox" value="Selasa"
                                         name="day[]" id="selasa">
                                     <label class="form-check-label" for="flexCheckChecked">
                                         Selasa
                                     </label> <br>
 
-                                    <input class="form-check-input day_check" type="checkbox" value="rabu"
+                                    <input class="form-check-input day_check" type="checkbox" value="Rabu"
                                         name="day[]" id="rabu">
                                     <label class="form-check-label" for="flexCheckChecked">
                                         Rabu
                                     </label> <br>
 
-                                    <input class="form-check-input day_check" type="checkbox" value="kamis"
+                                    <input class="form-check-input day_check" type="checkbox" value="Kamis"
                                         name="day[]" id="kamis">
                                     <label class="form-check-label" for="flexCheckChecked">
                                         Kamis
                                     </label> <br>
 
-                                    <input class="form-check-input day_check" type="checkbox" value="jumat"
+                                    <input class="form-check-input day_check" type="checkbox" value="Jumat"
                                         name="day[]" id="jumat">
                                     <label class="form-check-label" for="flexCheckChecked">
                                         Jumat
                                     </label> <br>
 
-                                    <input class="form-check-input day_check" type="checkbox" value="sabtu"
+                                    <input class="form-check-input day_check" type="checkbox" value="Sabtu"
                                         name="day[]" id="sabtu">
                                     <label class="form-check-label" for="flexCheckChecked">
                                         Sabtu

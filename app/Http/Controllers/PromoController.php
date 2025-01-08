@@ -17,7 +17,9 @@ class PromoController extends Controller
 {
     public function index(PromoDatatables $datatables)
     {
-        return $datatables->render('layouts.promo.index');
+        return $datatables->render('layouts.promo.index', [
+            "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
+        ]);
     }
 
     public function create()
@@ -158,6 +160,11 @@ class PromoController extends Controller
 
             $checkStatus = isset($dataValidate['promo_time_period']) ? false : true;
 
+            // Mendapatkan tanggal dan waktu saat ini  
+            $currentDate = Carbon::now();
+            $currentTime = Carbon::now()->format('H:i');
+            $currentDay = $currentDate->translatedFormat('l'); // Mengambil nama hari dalam bahasa Indonesia  
+
             $dates = explode(" - ", $dataValidate['schedule_promo']);
             if (!$checkStatus) {
                 $startDate = Carbon::createFromFormat('Y/m/d', $dates[0])->toDateString();
@@ -165,12 +172,25 @@ class PromoController extends Controller
                 $timeStart = Carbon::createFromFormat('H:i', $dataValidate['start_hour']);
                 $timeEnd = Carbon::createFromFormat('H:i', $dataValidate['end_hour']);
                 $dayAllowed = $dataValidate['day'];
+
+                // dd($currentDate->between($startDate, $endDate), ($currentTime >= $timeStart->format('H:i')), ($currentTime <= $timeEnd->format('H:i')), in_array($currentDay, $dayAllowed));
+                // Pengecekan kondisi  
+                $status = (
+                    $currentDate->between($startDate, $endDate) && // Cek apakah tanggal sekarang di antara startDate dan endDate  
+                    $currentTime >= $timeStart->format('H:i') && // Cek apakah waktu sekarang lebih besar atau sama dengan timeStart  
+                    $currentTime <= $timeEnd->format('H:i') && // Cek apakah waktu sekarang lebih kecil atau sama dengan timeEnd  
+                    in_array($currentDay, $dayAllowed) // Cek apakah hari sekarang ada dalam array dayAllowed  
+                );
+
+                // Hasil  
+                $status = $status ? true : false; // Mengatur status menjadi true atau false  
             } else {
                 $startDate = null;
                 $endDate = null;
                 $timeStart = null;
                 $timeEnd = null;
                 $dayAllowed = [];
+                $status = true;
             }
 
             $data = [
@@ -181,7 +201,7 @@ class PromoController extends Controller
                 'product_requirement' => json_encode($dataProductRequirement),
                 'reward' => json_encode($reward),
                 'multiple' => $multiple,
-                'status' => $checkStatus,
+                'status' => $status,
                 'promo_date_periode_start' => $startDate,
                 'promo_date_periode_end' => $endDate,
                 'promo_time_periode_start' => $timeStart,
@@ -297,8 +317,13 @@ class PromoController extends Controller
             'day' => 'nullable|array',
         ]);
 
-        $applyMultiple = isset($dataValidate['apply_multiple']) ? $dataValidate['apply_multiple'] : null;
+        $applyMultiple = isset($dataValidate['apply_multiple']) ? true : false;
         $checkStatus = isset($dataValidate['promo_time_period']) ? false : true;
+
+        // Mendapatkan tanggal dan waktu saat ini  
+        $currentDate = Carbon::now();
+        $currentTime = Carbon::now()->format('H:i');
+        $currentDay = $currentDate->translatedFormat('l'); // Mengambil nama hari dalam bahasa Indonesia  
 
         $dates = explode(" - ", $dataValidate['schedule_promo']);
         if (!$checkStatus) {
@@ -307,19 +332,31 @@ class PromoController extends Controller
             $timeStart = Carbon::createFromFormat('H:i', $dataValidate['start_hour']);
             $timeEnd = Carbon::createFromFormat('H:i', $dataValidate['end_hour']);
             $dayAllowed = $dataValidate['day'];
+
+            $status = (
+                $currentDate->between($startDate, $endDate) && // Cek apakah tanggal sekarang di antara startDate dan endDate  
+                $currentTime >= $timeStart->format('H:i') && // Cek apakah waktu sekarang lebih besar atau sama dengan timeStart  
+                $currentTime <= $timeEnd->format('H:i') && // Cek apakah waktu sekarang lebih kecil atau sama dengan timeEnd  
+                in_array($currentDay, $dayAllowed) // Cek apakah hari sekarang ada dalam array dayAllowed  
+            );
+
+            // Hasil  
+            $status = $status ? true : false; // Mengatur status menjadi true atau false  
         } else {
             $startDate = null;
             $endDate = null;
             $timeStart = null;
             $timeEnd = null;
             $dayAllowed = [];
+
+            $status = true;
         }
 
 
         $data = [
             'name' => $dataValidate['name'],
             'multiple' => $applyMultiple,
-            'status' => $checkStatus,
+            'status' => $status,
             'promo_date_periode_start' => $startDate,
             'promo_date_periode_end' => $endDate,
             'promo_time_periode_start' => $timeStart,
@@ -332,7 +369,8 @@ class PromoController extends Controller
         return responseSuccess(true);
     }
 
-    public function destroy(Promo $promo){
+    public function destroy(Promo $promo)
+    {
         $promo->delete();
 
         return responseSuccessDelete();

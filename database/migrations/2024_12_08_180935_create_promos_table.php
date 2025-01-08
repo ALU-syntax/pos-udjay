@@ -28,6 +28,7 @@ return new class extends Migration
             $table->time('promo_time_periode_end')->nullable();
             $table->json('day_allowed')->nullable();
             $table->softDeletes();
+            $table->foreign('outlet_id')->references('id')->on('outlets')->onDelete('CASCADE');
             $table->timestamps();
         });
     }
