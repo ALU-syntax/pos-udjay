@@ -27,6 +27,8 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             MenuSeeder::class,
             CategorySeeder::class,
+            ProductSeeder::class,
+            VariantProductSeeder::class,
             CategoryPaymentSeeder::class,
             PaymentSeeder::class
         ]);

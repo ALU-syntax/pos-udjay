@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('sales_types', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->foreignId('outlet_id');
+            $table->boolean('status');
             $table->timestamps();
         });
     }

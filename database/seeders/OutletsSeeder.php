@@ -18,5 +18,11 @@ class OutletsSeeder extends Seeder
             'address' => 'jalan jalan muter',
             'phone' => "08123",
         ]);
+
+        Outlets::create([
+            'name' => 'Udjay Malabar',
+            'address' => 'jalan malabar',
+            'phone' => "0878208123043",
+        ]);
     }
 }

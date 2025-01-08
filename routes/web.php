@@ -203,9 +203,11 @@ Route::middleware('auth')->group(function () {
         Route::prefix('salestype')->group(function(){
             Route::get('/', [SalesTypeController::class, 'index'])->name('salestype');
             Route::get('/create', [SalesTypeController::class, 'create'])->name('salestype/create');
+            Route::get('/getSalesTypeByOutlet', [SalesTypeController::class, 'getSalesTypeByOutlet'])->name('salestype/getSalesTypeByOutlet');
             Route::post('/store', [SalesTypeController::class, 'store'])->name('salestype/store');
             Route::get('/edit/{salesType}', [SalesTypeController::class, 'edit'])->name('salestype/edit');
             Route::put('/update/{salesType}', [SalesTypeController::class, 'update'])->name('salestype/update');
+            Route::put('/updateStatus/{id}', [SalesTypeController::class, 'updateStatus'])->name('salestype/update-status'); 
             Route::delete('/destroy/{salesType}', [SalesTypeController::class,'destroy'])->name('salestype/destroy');
         });
     });

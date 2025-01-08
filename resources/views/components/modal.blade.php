@@ -30,8 +30,8 @@
                 </div>
 
             </div>
-            @if (!$customSubmit)
-                <div class="modal-footer border-0">
+            <div class="modal-footer border-0">
+                @if (!$customSubmit)
                     <button type="submit" id="addRowButton" class="btn btn-primary">
                         @if ($update)
                             Update
@@ -41,8 +41,10 @@
                     </button>
                     <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
 
-                </div>
-            @endif
+                @endif
+
+            </div>
+
         </form>
     </div>
 </div>

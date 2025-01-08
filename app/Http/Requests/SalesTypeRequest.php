@@ -22,7 +22,9 @@ class SalesTypeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required'
+            'name' => 'required',
+            'outlet_id' => 'required|array',
+            'status' => 'required'
         ];
     }
 }

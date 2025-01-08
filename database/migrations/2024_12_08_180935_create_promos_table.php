@@ -15,8 +15,19 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('outlet_id');
-            $table->enum('type', ['discount per item', 'free item']);
-            $table->json('product');
+            $table->enum('type', ['discount', 'free-item']);
+            $table->json('sales_type')->nullable();
+            $table->enum('purchase_requirement', ['any_item', 'any_category']);
+            $table->json('product_requirement')->nullable();
+            $table->json('reward');
+            $table->boolean('multiple')->nullable();
+            $table->boolean('status')->nullable();
+            $table->date('promo_date_periode_start')->nullable();
+            $table->date('promo_date_periode_end')->nullable();
+            $table->time('promo_time_periode_start')->nullable();
+            $table->time('promo_time_periode_end')->nullable();
+            $table->json('day_allowed')->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

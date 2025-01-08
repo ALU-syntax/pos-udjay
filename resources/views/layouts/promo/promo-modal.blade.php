@@ -54,7 +54,7 @@
         text-decoration: underline;
     }
 </style>
-<x-modal title="Tambah Promo" addStyle="modal-xl" action="{{ $action }}" method="POST" customSubmit="true">
+<x-modal title="Tambah Promo" addStyle="modal-lg" action="{{ $action }}" method="POST" customSubmit="true">
     @if ($data->id)
         @method('put')
     @endif
@@ -167,23 +167,7 @@
                                     </div>
                                 </div>
                                 <div class="col-12 d-none" id="salesTypeSelect">
-                                    <div class="form-group p-0">
-                                        <label for="sales_type_choose">Sales Type<span
-                                                class="text-danger ">*</span></label>
-                                        <select name="sales_type_choose[]" id="sales_type_choose"
-                                            class="select2MultipleInsideModal form-select w-100"
-                                            style="width: 100% !important;" required multiple>
-                                            <option disabled>Pilih Sales Type</option>
-                                            @foreach (json_decode($salesTypes) as $salesType)
-                                                <option value="{{ $salesType->id }}"
-                                                    @if ($data->id == $salesType->id) selected @endif>
-                                                    {{ $salesType->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        <small id="sales_type_choose_feedback" class="d-none text-danger"><i>*Pilih
-                                                Sales Type Terlebih
-                                                Dahulu</i></small>
-                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -331,66 +315,101 @@
                         <div class="row d-none" id="row_promo_time_periode">
 
                             <div class="form-check">
-                                <div class="input-group mb-3 mt-3">
-                                    <div class="input-group-prepend">
-                                        <button class="btn btn-outline-secondary" type="button"
-                                            id="prevDate">-</button>
-                                    </div>
-                                    <input type="text" id="schedule_promo" name="schedule_promo"
-                                        class="form-control">
-                                    <div class="input-group-append">
-                                        <button class="btn btn-outline-secondary" type="button"
-                                            id="nextDat">+</button>
+                                <div class="form-group">
+                                    <label for="schedule_promo">Select Date</label>
+                                    <div class="input-group mb-3 mt-3">
+                                        <div class="input-group-prepend">
+                                            <button class="btn btn-outline-secondary" type="button"
+                                                id="prevDate">-</button>
+                                        </div>
+                                        <input type="text" id="schedule_promo" name="schedule_promo"
+                                            class="form-control" >
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-secondary" type="button"
+                                                id="nextDate">+</button>
+                                        </div>
                                     </div>
                                 </div>
-    
-                                <input class="form-check-input" type="checkbox" value="true" name="check_all_day"
-                                    id="flexCheckChecked">
-                                <label class="form-check-label" for="flexCheckChecked">
-                                    Select All
-                                </label> <br>
-    
-                                <input class="form-check-input" type="checkbox" value="true" name="minggu"
-                                    id="flexCheckChecked">
-                                <label class="form-check-label" for="flexCheckChecked">
-                                    Minggu
-                                </label> <br>
-    
-                                <input class="form-check-input" type="checkbox" value="true" name="senin"
-                                    id="flexCheckChecked">
-                                <label class="form-check-label" for="flexCheckChecked">
-                                    Senin
-                                </label> <br>
-    
-                                <input class="form-check-input" type="checkbox" value="true" name="selasa"
-                                    id="flexCheckChecked">
-                                <label class="form-check-label" for="flexCheckChecked">
-                                    Selasa
-                                </label> <br>
-    
-                                <input class="form-check-input" type="checkbox" value="true" name="rabu"
-                                    id="flexCheckChecked">
-                                <label class="form-check-label" for="flexCheckChecked">
-                                    Rabu
-                                </label> <br>
-    
-                                <input class="form-check-input" type="checkbox" value="true" name="kamis"
-                                    id="flexCheckChecked">
-                                <label class="form-check-label" for="flexCheckChecked">
-                                    Kamis
-                                </label> <br>
-    
-                                <input class="form-check-input" type="checkbox" value="true" name="jumat"
-                                    id="flexCheckChecked">
-                                <label class="form-check-label" for="flexCheckChecked">
-                                    Jumat
-                                </label> <br>
-    
-                                <input class="form-check-input" type="checkbox" value="true" name="sabtu"
-                                    id="flexCheckChecked">
-                                <label class="form-check-label" for="flexCheckChecked">
-                                    Sabtu
-                                </label> <br>
+
+                                <div class="form-group row">
+                                    <label for="schedule_promo">Select Hour</label>
+                                    <div class="col-2">
+                                        <div class="input-group date" id="timePicker">
+                                            <input type="time" class="form-control timePicker" value="00:00"
+                                                name="start_hour" required>
+                                            <span class="input-group-addon"><i class="fa fa-clock-o"
+                                                    aria-hidden="true"></i></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-1 d-flex justify-content-center align-items-center">
+                                        <span style="font-size: 30px">-</span>
+                                    </div>
+
+                                    <div class="col-2">
+                                        <div class="input-group date" id="timePicker">
+                                            <input type="time" class="form-control timePicker" value="23:59"
+                                                name="end_hour" required>
+                                            <span class="input-group-addon"><i class="fa fa-clock-o"
+                                                    aria-hidden="true"></i></span>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <div class="form-group">
+                                    <input class="form-check-input " type="checkbox" value="check_all_day"
+                                        id="check_all_day">
+                                    <label class="form-check-label" for="flexCheckChecked">
+                                        Select All
+                                    </label> <br>
+
+                                    <input class="form-check-input day_check" type="checkbox" value="minggu"
+                                        name="day[]">
+                                    <label class="form-check-label" for="flexCheckChecked">
+                                        Minggu
+                                    </label> <br>
+
+                                    <input class="form-check-input day_check" type="checkbox" value="senin"
+                                        name="day[]">
+                                    <label class="form-check-label" for="flexCheckChecked">
+                                        Senin
+                                    </label> <br>
+
+                                    <input class="form-check-input day_check" type="checkbox" value="selasa"
+                                        name="day[]">
+                                    <label class="form-check-label" for="flexCheckChecked">
+                                        Selasa
+                                    </label> <br>
+
+                                    <input class="form-check-input day_check" type="checkbox" value="rabu"
+                                        name="day[]">
+                                    <label class="form-check-label" for="flexCheckChecked">
+                                        Rabu
+                                    </label> <br>
+
+                                    <input class="form-check-input day_check" type="checkbox" value="kamis"
+                                        name="day[]">
+                                    <label class="form-check-label" for="flexCheckChecked">
+                                        Kamis
+                                    </label> <br>
+
+                                    <input class="form-check-input day_check" type="checkbox" value="jumat"
+                                        name="day[]">
+                                    <label class="form-check-label" for="flexCheckChecked">
+                                        Jumat
+                                    </label> <br>
+
+                                    <input class="form-check-input day_check" type="checkbox" value="sabtu"
+                                        name="day[]">
+                                    <label class="form-check-label" for="flexCheckChecked">
+                                        Sabtu
+                                    </label> <br>
+
+                                </div>
+
+
+
                             </div>
 
                         </div>
@@ -398,7 +417,9 @@
                     </div>
                     <button type="button" class="btn btn-round btn-outline-secondary mt-3 next-btn"
                         id="backToCollapseThree" data-target="#collapseThree">Previous</button>
-                    <button type="button" class="btn btn-round btn-success mt-3 finish-btn" id="btnFinish" disabled>Finish</button>
+                    <button type="submit" class="btn btn-round btn-success mt-3 finish-btn"
+                        id="btnFinish">Finish</button>
+
                 </div>
             </div>
         </div>
@@ -414,9 +435,100 @@
         function toggleSalesTypeSelect() {
             if ($('#specific_sales_type').is(':checked')) {
                 $('#salesTypeSelect').removeClass('d-none'); // Tampilkan select
+
+                initializeSalesTypeSelect();
             } else {
                 $('#salesTypeSelect').addClass('d-none'); // Sembunyikan select
+                $('#salesTypeSelect').empty();
             }
+        }
+
+        function initializeSalesTypeSelect() {
+            $('#salesTypeSelect').empty();
+            let html = `<div class="form-group p-0">
+                                <label for="sales_type_choose">Sales Type<span
+                                        class="text-danger ">*</span></label>
+                                <select name="sales_type_choose[]" id="sales_type_choose"
+                                    class="select2MultipleInsideModal form-select w-100"
+                                    style="width: 100% !important;" required multiple>
+                                    <option disabled>Pilih Sales Type</option>
+                                </select>
+                                <small id="sales_type_choose_feedback" class="d-none text-danger"><i>*Pilih
+                                        Sales Type Terlebih
+                                        Dahulu</i></small>
+                            </div>`
+
+            $('#salesTypeSelect').append(html);
+
+            $.ajax({
+                url: `{{ route('library/salestype/getSalesTypeByOutlet') }}`, // URL endpoint Laravel
+                type: 'GET',
+                data: {
+                    idOutlet: outletTerpilih // Kirim data array ke server
+                },
+                success: function(response) {
+                    // Bersihkan opsi yang ada di select
+                    const selectElement = $('#sales_type_choose');
+                    selectElement.empty(); // Menghapus semua opsi yang ada
+
+                    console.log(response)
+                    // Tambahkan opsi default
+                    selectElement.append(
+                        '<option disabled="">Pilih Sales Type</option>');
+
+                    if (outletTerpilih.length > 1) {
+                        response.forEach(function(item) {
+                            selectElement.append(
+                                `<option value="${item.name}">${item.name}</option>`
+                            );
+                        });
+                    } else {
+                        // Tambahkan opsi baru berdasarkan respons
+                        response.forEach(function(category) {
+                            selectElement.append(
+                                `<option value="${category.name}">${category.name}</option>`
+                            );
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Terjadi kesalahan:", error);
+                }
+            });
+
+            $("#sales_type_choose").off().select2({
+                    dropdownParent: $("#modal_action"), // Pastikan parent diatur untuk modal
+                    // Callback setelah dropdown dibuka
+                    closeOnSelect: false,
+                })
+                .on("select2:open", function() {
+                    const selectElement = $(this);
+                    const dropdown = $(".select2-container--open");
+
+                    // Hitung posisi elemen input
+                    const offset = selectElement.offset();
+                    const height = selectElement.outerHeight();
+
+                    // Atur posisi dropdown ke posisi fixed
+                    dropdown.css({
+                        position: "fixed",
+                        top: offset.top + height - $(window)
+                            .scrollTop(), // Hitung posisi relatif terhadap layar
+                        left: offset.left,
+                        width: selectElement.outerWidth() - 85,
+                        zIndex: 9999, // Pastikan lebih tinggi dari modal
+                    });
+                }).on("select2:close", function() {
+                    const dropdown = $(".select2-container");
+
+                    // Hapus style yang diterapkan saat dropdown ditutup
+                    dropdown.css({
+                        position: "",
+                        top: "",
+                        left: "",
+                    });
+                });
+
         }
 
         function getCategoryByOutlet() {
@@ -525,7 +637,7 @@
                     top: offset.top + height - $(window)
                         .scrollTop(), // Hitung posisi relatif terhadap layar
                     left: offset.left,
-                    width: selectElement.outerWidth() - 534,
+                    width: selectElement.outerWidth() - 392,
                     zIndex: 9999, // Pastikan lebih tinggi dari modal
                 });
             }).on("select2:close", function() {
@@ -538,6 +650,41 @@
                     left: "",
                 });
             });
+        }
+
+        function initializeSelect2Multiple() {
+            $(".select2MultipleInsideModal").off().select2({
+                    dropdownParent: $("#modal_action"), // Pastikan parent diatur untuk modal
+                    // Callback setelah dropdown dibuka
+                    closeOnSelect: false,
+                })
+                .on("select2:open", function() {
+                    const selectElement = $(this);
+                    const dropdown = $(".select2-container--open");
+
+                    // Hitung posisi elemen input
+                    const offset = selectElement.offset();
+                    const height = selectElement.outerHeight();
+
+                    // Atur posisi dropdown ke posisi fixed
+                    dropdown.css({
+                        position: "fixed",
+                        top: offset.top + height - $(window)
+                            .scrollTop(), // Hitung posisi relatif terhadap layar
+                        left: offset.left,
+                        width: selectElement.outerWidth() - 85,
+                        zIndex: 9999, // Pastikan lebih tinggi dari modal
+                    });
+                }).on("select2:close", function() {
+                    const dropdown = $(".select2-container");
+
+                    // Hapus style yang diterapkan saat dropdown ditutup
+                    dropdown.css({
+                        position: "",
+                        top: "",
+                        left: "",
+                    });
+                });
         }
 
         // Handle choice and input
@@ -607,38 +754,7 @@
 
             initializeSelect2();
 
-            $(".select2MultipleInsideModal").select2({
-                    dropdownParent: $("#modal_action"), // Pastikan parent diatur untuk modal
-                    // Callback setelah dropdown dibuka
-                    closeOnSelect: false,
-                })
-                .on("select2:open", function() {
-                    const selectElement = $(this);
-                    const dropdown = $(".select2-container--open");
-
-                    // Hitung posisi elemen input
-                    const offset = selectElement.offset();
-                    const height = selectElement.outerHeight();
-
-                    // Atur posisi dropdown ke posisi fixed
-                    dropdown.css({
-                        position: "fixed",
-                        top: offset.top + height - $(window)
-                            .scrollTop(), // Hitung posisi relatif terhadap layar
-                        left: offset.left,
-                        width: selectElement.outerWidth() - 85,
-                        zIndex: 9999, // Pastikan lebih tinggi dari modal
-                    });
-                }).on("select2:close", function() {
-                    const dropdown = $(".select2-container");
-
-                    // Hapus style yang diterapkan saat dropdown ditutup
-                    dropdown.css({
-                        position: "",
-                        top: "",
-                        left: "",
-                    });
-                });
+            initializeSelect2Multiple();
 
             $("#btnPromoInformationNext").on('click', function() {
                 const target = $(this).data('target');
@@ -743,7 +859,7 @@
                 $(target).collapse('show');
             });
 
-            $('#backToCollapseThree').on('click', function(){
+            $('#backToCollapseThree').on('click', function() {
                 const target = $(this).data('target');
                 $(target).collapse('show');
             })
@@ -774,7 +890,7 @@
                             </div>
                             <div class="form-group p-0 mt-3">
                                 <select name="variant_item_requirement[]" data-tmpid="${tmpId}" class="variant_item_requirement select2InsideModal form-select w-100"
-                                    style="width: 100% !important;" disabled>
+                                    style="width: 100% !important;" required>
                                     <option selected disabled>Pilih Variant</option>
                                 </select>
                             </div>
@@ -817,7 +933,7 @@
                             </div>
                             <div class="form-group p-0 mt-3">
                                 <select name="variant_item_requirement[]" data-tmpid="${tmpId}" class="variant_item_requirement select2InsideModal form-select w-100"
-                                    style="width: 100% !important;" disabled>
+                                    style="width: 100% !important;" required>
                                     <option selected disabled>Pilih Variant</option>
                                 </select>
                             </div>
@@ -863,6 +979,8 @@
                     });
 
                     getCategoryByOutlet();
+                    // initializeSalesTypeSelect();
+                    toggleSalesTypeSelect();
                 } else {
                     console.log('Tidak ada outlet yang dipilih');
                     // Lakukan sesuatu jika tidak ada outlet yang dipilih (opsional)
@@ -914,6 +1032,8 @@
                                 variantSelect.append(
                                     '<option value="all" selected>All Variant</option>'
                                 );
+
+                                variantSelect.removeAttr('disabled');
                                 if (uniqueDuplicates.length != 0) {
                                     uniqueDuplicates.forEach(function(item, index) {
                                         variantSelect.append(
@@ -924,10 +1044,11 @@
                             } else {
                                 if (response.length == 1 && response[0].name == namaProduct) {
                                     variantSelect.append(
-                                        `<option value="${response[0].name}" disabled selected>Tidak Punya Varian</option>`
+                                        // `<option value="${response[0].name}" disabled selected>Tidak Punya Varian</option>`
+                                        `<option value="${response[0].name}" selected>All Varian</option>`
                                     );
 
-                                    variantSelect.prop('disabled', true);
+                                    variantSelect.prop('disabled', false);
                                     variantSelect.prop('required', false);
                                 } else {
                                     variantSelect.append(
@@ -940,7 +1061,7 @@
                                             .name +
                                             '">' + variant.name + '</option>');
                                     });
-                                    variantSelect.prop('disabled', false);
+                                    // variantSelect.prop('disabled', false);
                                     variantSelect.prop('required', true);
                                 }
                             }
@@ -1029,17 +1150,6 @@
                 togglePurchaseRequirementType();
             });
 
-            // Handle finish button
-            $('.finish-btn').on('click', function() {
-                const finalTask = $('#task3');
-
-                if (finalTask.val().trim() === '') {
-                    alert('Please complete the final task.');
-                } else {
-                    alert('All tasks completed successfully!');
-                    $('#accordionModal').modal('hide');
-                }
-            });
 
             //handle radio button promo information
             $('input[name="promoType"]').on('change', function() {
@@ -1231,13 +1341,16 @@
                                         );
                                     })
                                 }
+
+                                variantSelect.prop('disabled', false);
                             } else {
                                 if (response.length == 1 && response[0].name == namaProduct) {
                                     variantSelect.append(
-                                        `<option value="${response[0].name}" disabled selected>Tidak Punya Varian</option>`
+                                        // `<option value="${response[0].name}" disabled selected>Tidak Punya Varian</option>`
+                                        `<option value="${response[0].name}" selected>All Variant</option>`
                                     );
 
-                                    variantSelect.prop('disabled', true);
+                                    variantSelect.prop('disabled', false);
                                     variantSelect.prop('required', false);
                                 } else {
                                     variantSelect.append(
@@ -1288,28 +1401,43 @@
                 "showCustomRangeLabel": true,
                 // "startDate": "12/30/2024",
                 // "endDate": "01/05/2025",
-                "drops": "up",
+                "drops": "auto",
                 "buttonClasses": "btn btn-primary"
             }, function(start, end, label) {
                 console.log("masok pak eko")
-                $('#schedule_promo').val(start.format('YYYY-MM-DD') + ' - ' + end.format('YYYY-MM-DD'));
+                $('#schedule_promo').val(start.format('YYYY/MM/DD') + ' - ' + end.format('YYYY/MM/DD'));
                 console.log('New date range selected: ' + start.format('YYYY-MM-DD') + ' to ' + end.format(
                     'YYYY-MM-DD') + ' (predefined range: ' + label + ')');
+
+                startDate = start;
+                endDate = end;
             });
 
             // Fungsi untuk mengubah tanggal
             $('#prevDate').on('click', function() {
                 startDate.subtract(1, 'days');
                 endDate.subtract(1, 'days');
+
+                console.log(startDate);
+                console.log(endDate);
                 $('#schedule_promo').data('daterangepicker').setStartDate(startDate);
                 $('#schedule_promo').data('daterangepicker').setEndDate(endDate);
+
+                $('#schedule_promo').val(startDate.format('YYYY/MM/DD') + ' - ' + endDate.format(
+                    'YYYY/MM/DD'));
             });
 
             $('#nextDate').on('click', function() {
                 startDate.add(1, 'days');
                 endDate.add(1, 'days');
+
+                console.log(startDate)
+                console.log(endDate)
                 $('#schedule_promo').data('daterangepicker').setStartDate(startDate);
                 $('#schedule_promo').data('daterangepicker').setEndDate(endDate);
+
+                $('#schedule_promo').val(startDate.format('YYYY/MM/DD') + ' - ' + endDate.format(
+                    'YYYY/MM/DD'));
             });
 
             $('.ranges li').addClass('btn btn-primary w-75 ms-3 mt-2');
@@ -1324,8 +1452,34 @@
             $('#promo_time_period').change(function() {
                 if ($(this).is(':checked')) {
                     $('#row_promo_time_periode').removeClass('d-none'); // Menghapus kelas d-none
+                    $('#schedule_promo').attr('required', true);
                 } else {
                     $('#row_promo_time_periode').addClass('d-none'); // Menambahkan kelas d-none
+                    $('#schedule_promo').removeAttr('required');
+                }
+            });
+
+            // Ketika checkbox "Select All" dicentang atau tidak dicentang
+            $('#check_all_day').on('change', function() {
+                // Jika checkbox "Select All" dicentang
+                if ($(this).is(':checked')) {
+                    // Centang semua checkbox hari
+                    $('.day_check').not(this).prop('checked', true);
+                } else {
+                    // Jika tidak dicentang, hilangkan centang dari semua checkbox hari
+                    $('.day_check').not(this).prop('checked', false);
+                }
+            });
+
+            // Ketika salah satu checkbox hari dicentang atau tidak dicentang
+            $('.day_check').on('change', function() {
+                // Jika ada checkbox hari yang tidak dicentang
+                if ($('.day_check:checked').length === $('.day_check').length) {
+                    // Centang checkbox "Select All"
+                    $('#check_all_day').prop('checked', true);
+                } else {
+                    // Jika tidak, hilangkan centang dari checkbox "Select All"
+                    $('#check_all_day').prop('checked', false);
                 }
             });
 

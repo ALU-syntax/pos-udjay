@@ -10,4 +10,8 @@ class SalesType extends Model
     use HasFactory;
 
     protected $guarded = ['id'];
+
+    public function outlet(){
+        return $this->belongsTo(Outlets::class, 'outlet_id', 'id');
+    }
 }

@@ -22,5 +22,15 @@ class UserSeeder extends Seeder
             'role' => 1,
             'outlet_id' => json_encode([1])
         ])->assignRole('admin');
+
+        User::create([
+            'name' => 'ardian',
+            'username' => 'ardian',
+            'email' => 'ardianiqbal40@gmail.com',
+            'password' => bcrypt('password'),
+            'status' => 1,
+            'role' => 1,
+            'outlet_id' => json_encode([1, 2])
+        ])->assignRole('admin');
     }
 }

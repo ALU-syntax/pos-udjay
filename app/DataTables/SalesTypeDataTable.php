@@ -25,10 +25,16 @@ class SalesTypeDataTable extends DataTable
     {
 
         return (new EloquentDataTable($query))
-            ->addColumn('action', function ($row) {
-                $actions = $this->basicActions($row);
-                return view('action', ['actions' => $actions]);
-            });
+            ->addColumn('status', function ($row) {
+                return '<div class="form-switch">  
+                        <input type="checkbox" class="form-check-input" onclick="changeStatus(' . $row->id . ')"  id="set_active' . $row->id . '" ' . ($row->status ? 'checked' : '') . '>  
+                        <label class="form-check-label" id="label_status_' . $row->id . '" for="set_active' . $row->id . '">' . ($row->status ? 'Aktif' : 'Tidak Aktif') . '</label>  
+                    </div>';
+            })
+            ->addColumn('outlet_id', function ($row) {
+                return "<span class='badge badge-primary'>{$row->outlet->name} </span></br>";
+            })
+            ->rawColumns(['status', 'outlet_id']);
     }
 
     /**
@@ -36,7 +42,15 @@ class SalesTypeDataTable extends DataTable
      */
     public function query(SalesType $model): QueryBuilder
     {
-        return $model->newQuery();
+        $query = $model->newQuery()->with(['outlet']);
+
+        if ($this->request()->has('outlet') && $this->request()->get('outlet') != '') {
+            $query->where('outlet_id', $this->request()->get('outlet'));
+        } elseif ($this->request()->has('outlet') && $this->request()->get('outlet') == '') {
+            $query->where('outlet_id', json_decode(auth()->user()->outlet_id));
+        }
+
+        return $query;
     }
 
     /**
@@ -68,7 +82,8 @@ class SalesTypeDataTable extends DataTable
     {
         return [
             Column::make('name'),
-            Column::computed('action')
+            Column::make('outlet_id')->title("OUTLET"),
+            Column::computed('status')
                 ->exportable(false)
                 ->printable(false)
                 ->width(60)
