@@ -832,6 +832,10 @@
     <div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel">
     </div>
 
+    <!-- Modal -->
+    <div class="modal fade" id="promoModal" tabindex="-1" aria-labelledby="itemModalLabel">
+    </div>
+
     <!-- Modal Success -->
     <div class="modal fade" id="modals" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
         aria-labelledby="staticBackdropLabel" aria-hidden="true">
@@ -883,7 +887,8 @@
             headers: {
                 'X-CSRF-TOKEN': $('meta[name=csrf_token]').attr('content')
             }
-        })
+        });
+
         showLoader();
         var listItem = [];
         var subTotal = [];
@@ -897,6 +902,11 @@
         var tandaRounding = '';
         var amountRounding = 0;
 
+        var listPromo = @json($promos);
+        var promoTerpasang = [];
+        var listItemPromo = [];
+        var listRewardItem = [];
+        var promoCocok = [];
 
         function showLoader(show = true) {
             const preloader = $("#preloader");
@@ -1049,7 +1059,87 @@
             });
         }
 
+        function syncPromo() {
+            // Filter listPromo untuk mendapatkan promo yang tidak ada di promoTerpasang  
+            var filteredPromo = listPromo.filter(function(promo) {
+                return !promoTerpasang.some(function(selectedPromo) {
+                    return (selectedPromo.id === promo.id || promo.multiple !=
+                        0); // Bandingkan berdasarkan ID  
+                });
+            });
+
+            promoCocok = [];
+            filteredPromo.forEach(function(item, index) {
+                let productRequirement = JSON.parse(item.product_requirement);
+                let tmpCondition = [];
+
+                if (item.purchase_requirement == "any_item") {
+                    productRequirement.forEach(function(listConditionProduct, listConditionIndex) {
+                        listConditionProduct.forEach(function(listProduct, listProductIndex) {
+                            let idProduct = listProduct[0];
+                            let idVariant = listProduct[1];
+                            let qtyProduct = listProduct[2];
+
+                            listItem.forEach(function(item, itemIndex) {
+                                if (idProduct == item.idProduct) {
+                                    if (idVariant != 0) {
+                                        if (idVariant == item.idVariant) {
+                                            if (item.quantity >= qtyProduct) {
+                                                tmpCondition.push(true);
+
+                                                return;
+                                            } else {
+                                                if ((qtyProduct - item.quantity) <= 0) {
+                                                    tmpCondition.push(true);
+
+                                                    return;
+                                                } else {
+                                                    qtyProduct - item.quantity;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        if (item.quantity >= qtyProduct) {
+                                            tmpCondition.push(true);
+
+                                            return;
+                                        } else {
+                                            if ((qtyProduct - item.quantity) <= 0) {
+                                                tmpCondition.push(true);
+
+                                                return;
+                                            } else {
+                                                qtyProduct - item.quantity;
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+
+                        });
+
+                        if (tmpCondition[listConditionIndex] === undefined) {
+                            tmpCondition.push(false);
+                        }
+                    });
+                }
+
+                let checkCondition = tmpCondition.every(element => element === true);
+
+                console.log(promoCocok);
+                if (checkCondition) {
+                    promoCocok.push(item)
+                }
+            });
+
+            if (promoCocok.length > 1) {
+                // diisi pilih promo salah satu
+                handleAjax("{{ route('kasir/choosePromo') }}", false).excute();
+            }
+        }
+
         function syncItemCart() {
+            syncPromo();
             syncAllItemInCart();
             syncSubTotal();
             syncPajak();
@@ -1432,58 +1522,73 @@
             }
         }
 
-        $(document).ready(function() {
-            showLoader(false)
-            generateListDiskon()
+        function handleAjax(url, primaryModal = true, method = 'get') {
 
-            function handleAjax(url, method = 'get') {
+            function onSuccess(cb, runDefault = true) {
+                this.onSuccessCallback = cb
+                this.runDefaultSuccessCallback = runDefault
 
-                function onSuccess(cb, runDefault = true) {
-                    this.onSuccessCallback = cb
-                    this.runDefaultSuccessCallback = runDefault
-
-                    return this
-                }
+                return this
+            }
 
 
-                function excute() {
-                    console.log(url)
-                    $.ajax({
-                        url,
-                        method,
-                        beforeSend: function() {
-                            // showLoading()
-                        },
-                        complete: function() {
-                            // hideLoading(false)
-                        },
-                        success: (res) => {
-                            if (this.runDefaultSuccessCallback) {
+            function excute() {
+                console.log(url)
+                $.ajax({
+                    url,
+                    method,
+                    beforeSend: function() {
+                        // showLoading()
+                    },
+                    complete: function() {
+                        // hideLoading(false)
+                    },
+                    success: (res) => {
+                        if (this.runDefaultSuccessCallback) {
+                            if (primaryModal) {
                                 const modal = $('#itemModal');
                                 modal.html(res);
+                                modal.modal({
+                                    backdrop: 'static', // Mengatur agar modal tidak dapat ditutup dengan klik di luar
+                                    keyboard: false // Opsional: Nonaktifkan tombol ESC untuk menutup modal
+                                });
+                                modal.modal('show');
+                            }else{
+                                const modal = $('#promoModal');
+                                modal.html(res);
+                                modal.modal({
+                                    backdrop: 'static', // Mengatur agar modal tidak dapat ditutup dengan klik di luar
+                                    keyboard: false // Opsional: Nonaktifkan tombol ESC untuk menutup modal
+                                });
                                 modal.modal('show');
                             }
 
-                            this.onSuccessCallback && this.onSuccessCallback(res)
-                        },
-                        error: function(err) {
-                            console.log(err);
                         }
-                    });
-                }
 
-                function onError(cb) {
-                    this.onErrorCallback = cb
-                    return this
-                }
-
-                return {
-                    excute,
-                    onSuccess,
-                    runDefaultSuccessCallback: true
-                }
-
+                        this.onSuccessCallback && this.onSuccessCallback(res)
+                    },
+                    error: function(err) {
+                        console.log(err);
+                    }
+                });
             }
+
+            function onError(cb) {
+                this.onErrorCallback = cb
+                return this
+            }
+
+            return {
+                excute,
+                onSuccess,
+                runDefaultSuccessCallback: true
+            }
+
+        }
+
+        $(document).ready(function() {
+            showLoader(false)
+            generateListDiskon()
 
 
             $('.nav-link').on('click', function(e) {
@@ -1580,7 +1685,6 @@
                         let url = baseUrl.replace(':id', idDiskon); // Ganti ':id' dengan nilai dataId
                         handleAjax(url).excute();
                     }
-
 
                 }
 

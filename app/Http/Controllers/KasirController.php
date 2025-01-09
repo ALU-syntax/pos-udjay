@@ -9,6 +9,7 @@ use App\Models\Checkout;
 use App\Models\Discount;
 use App\Models\PettyCash;
 use App\Models\Product;
+use App\Models\Promo;
 use App\Models\Taxes;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
@@ -33,12 +34,15 @@ class KasirController extends Controller
         $pajak = Taxes::where('outlet_id', $dataOutletUser[0])->get();
         $outletUser = json_decode(auth()->user()->outlet_id);
 
+        $promos = Promo::where('outlet_id', $userOutlet[0])->whereNull('deleted_at')->where('status', true)->get();
+
         return view('layouts.kasir.index', [
             'categorys' => Category::with(['products' => function ($product) use($outletUser) {
                 $product->where('outlet_id', $outletUser[0])->orderBy('name', 'asc');
             }])->get(),
             'pajak' => $pajak,
             'rounding' => $rounding,
+            'promos' => $promos,
             'discounts' => $diskon
         ]);
     }
@@ -194,5 +198,9 @@ class KasirController extends Controller
 
     public function pilihCustomer(PilihPelangganDataTable $datatable){
         return $datatable->render('layouts.kasir.modal-pilih-customer');
+    }
+
+    public function choosePromo(){
+        return view('layouts.kasir.modal-choose-promo');
     }
 }

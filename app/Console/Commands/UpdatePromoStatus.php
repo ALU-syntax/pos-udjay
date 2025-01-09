@@ -44,11 +44,15 @@ class UpdatePromoStatus extends Command
   
             // Jika semua kondisi terpenuhi, ubah status  
             if ($isDateInRange && $isTimeInRange && $isDayAllowed) {  
-                $promo->status = 1; // Atur status menjadi aktif  
-                $promo->save();  
+                if($promo->status != 1){
+                    $promo->status = 1; // Atur status menjadi aktif  
+                    $promo->save();  
+                }
             } else {  
-                $promo->status = 0; // Atur status menjadi tidak aktif  
-                $promo->save();  
+                if($promo->status != 0){
+                    $promo->status = 0; // Atur status menjadi tidak aktif  
+                    $promo->save();  
+                }
             }  
         }  
   
