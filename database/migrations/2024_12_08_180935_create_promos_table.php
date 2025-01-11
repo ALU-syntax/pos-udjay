@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('promos', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('outlet_id');
+            $table->unsignedBigInteger('outlet_id');
             $table->enum('type', ['discount', 'free-item']);
             $table->json('sales_type')->nullable();
             $table->enum('purchase_requirement', ['any_item', 'any_category']);

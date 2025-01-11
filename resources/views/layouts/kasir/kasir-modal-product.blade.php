@@ -232,7 +232,6 @@
             }
         });
 
-        console.log(totalDiskonHarga);
         listDiskonAmount = totalDiskonHarga;
         listDiskonId = totalDiskonId;
         listDiskonName = totalDiskonNama;
@@ -347,7 +346,7 @@
 
         let dataDiskon = [];
 
-        console.log(dataDiskonNama);
+        // console.log(dataDiskonNama);
         for (let i = 0; i < dataDiskonId.length; i++) {
             let tmpDataDiskon = {
                 tmpIdProduct: tmpRandomId,
@@ -373,8 +372,8 @@
         subTotal.push(resultModifierTotal);
 
 
-        console.log(totalHargaProduct)
-        console.log(resultModifierTotal);
+        // console.log(totalHargaProduct)
+        // console.log(resultModifierTotal);
 
         let data = {
             tmpId: tmpRandomId,
@@ -399,7 +398,7 @@
         let html = ''
         if (dataModifierId.length > 0 && dataDiskonId.length > 0) {
             // HTML baru yang akan ditambahkan ke dalam form
-            console.log("masok modifier diskon")
+            // console.log("masok modifier diskon")
             totalDiskon.push(...dataDiskonHarga);
             html = `
             <div class="row mb-0 mt-2">
@@ -435,7 +434,7 @@
                 `;
             }
         } else if (dataModifierId.length > 0) {
-            console.log("masok modifier")
+            // console.log("masok modifier")
             html = `
             <div class="row mb-0 mt-2">
                 <div class="col-6">${dataNama}</div>
@@ -461,7 +460,7 @@
                 `;
             }
         } else if (dataDiskonId.length > 0) {
-            console.log("masok diskon")
+            // console.log("masok diskon")
             totalDiskon.push(...dataDiskonHarga);
             html = `
             <div class="row mb-0 mt-2" data-tmpId="${tmpRandomId}">
@@ -486,7 +485,7 @@
                 `;
             }
         } else {
-            console.log("masok")
+            // console.log("masok")
             html = `
             <div class="row mb-0 mt-2">
                 <div class="col-7">${dataNama}</div>
@@ -502,7 +501,7 @@
             `;
         }
 
-        console.log(totalDiskon);
+        // console.log(totalDiskon);
         // updateHargaTotal();
         // Tambahkan elemen ke dalam form di dalam #order-list
         // $('#order-list').append(html);

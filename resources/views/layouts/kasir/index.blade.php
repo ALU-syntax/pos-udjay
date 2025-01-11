@@ -901,6 +901,13 @@
         var listPajak = [];
         var tandaRounding = '';
         var amountRounding = 0;
+        var listCategory = @json($categorys);
+        var listProduct = [];
+        listCategory.forEach(function(category) {
+            category.products.forEach(function(product) {
+                listProduct.push(product);
+            });
+        });
 
         var listPromo = @json($promos);
         var promoTerpasang = [];
@@ -972,6 +979,7 @@
             row.remove();
 
             listItem = listItem.filter(item => item.tmpId !== dataTmpId);
+            listItemPromo = listItemPromo.filter(item => item.tmpId !== dataTmpId);
 
             syncItemCart()
         }
@@ -1068,48 +1076,87 @@
                 });
             });
 
+
             promoCocok = [];
+            let dataItemCart = JSON.parse(JSON.stringify(listItem));
+            console.log(dataItemCart);
             filteredPromo.forEach(function(item, index) {
                 let productRequirement = JSON.parse(item.product_requirement);
                 let tmpCondition = [];
 
                 if (item.purchase_requirement == "any_item") {
+                    console.log("masok any_item")
                     productRequirement.forEach(function(listConditionProduct, listConditionIndex) {
                         listConditionProduct.forEach(function(listProduct, listProductIndex) {
                             let idProduct = listProduct[0];
                             let idVariant = listProduct[1];
                             let qtyProduct = listProduct[2];
+                            let tmpDataKebutuhan = [];
 
-                            listItem.forEach(function(item, itemIndex) {
-                                if (idProduct == item.idProduct) {
+                            dataItemCart.forEach(function(itemProduct, itemIndex) {
+                                if (idProduct == itemProduct.idProduct) {
                                     if (idVariant != 0) {
-                                        if (idVariant == item.idVariant) {
-                                            if (item.quantity >= qtyProduct) {
-                                                tmpCondition.push(true);
+                                        if (idVariant == itemProduct.idVariant) {
+                                            if (itemProduct.quantity >= qtyProduct) {
+                                                let data = {
+                                                    tmpId: itemProduct.tmpId,
+                                                    qty: qtyProduct
+                                                } //ambil data yang akan dikurangi
+                                                tmpCondition.push(data);
 
                                                 return;
                                             } else {
-                                                if ((qtyProduct - item.quantity) <= 0) {
-                                                    tmpCondition.push(true);
+                                                if ((qtyProduct - itemProduct
+                                                        .quantity) <= 0) {
+                                                    let data = {
+                                                        tmpId: itemProduct.tmpId,
+                                                        qty: qtyProduct
+                                                    } //ambil data yang akan dikurangi
+                                                    tmpDataKebutuhan.push(data);
+
+                                                    tmpCondition.push(tmpDataKebutuhan);
 
                                                     return;
                                                 } else {
-                                                    qtyProduct - item.quantity;
+                                                    let data = {
+                                                        tmpId: itemProduct.tmpId,
+                                                        qty: qtyProduct
+                                                    } //ambil data yang akan dikurangi
+                                                    tmpDataKebutuhan.push(data);
+
+                                                    qtyProduct - itemProduct.quantity;
                                                 }
                                             }
                                         }
                                     } else {
-                                        if (item.quantity >= qtyProduct) {
-                                            tmpCondition.push(true);
+                                        if (itemProduct.quantity >= qtyProduct) {
+                                            let data = {
+                                                tmpId: itemProduct.tmpId,
+                                                qty: qtyProduct
+                                            } //ambil data yang akan dikurangi
+                                            tmpCondition.push(data);
 
                                             return;
                                         } else {
-                                            if ((qtyProduct - item.quantity) <= 0) {
-                                                tmpCondition.push(true);
+                                            if ((qtyProduct - itemProduct.quantity) <=
+                                                0) {
+                                                let data = {
+                                                    tmpId: itemProduct.tmpId,
+                                                    qty: qtyProduct
+                                                } //ambil data yang akan dikurangi
+                                                tmpDataKebutuhan.push(data);
+
+                                                tmpCondition.push(tmpDataKebutuhan);
 
                                                 return;
                                             } else {
-                                                qtyProduct - item.quantity;
+                                                let data = {
+                                                    tmpId: itemProduct.tmpId,
+                                                    qty: qtyProduct
+                                                } //ambil data yang akan dikurangi
+                                                tmpDataKebutuhan.push(data);
+
+                                                qtyProduct - itemProduct.quantity;
                                             }
                                         }
                                     }
@@ -1122,21 +1169,406 @@
                             tmpCondition.push(false);
                         }
                     });
+                } else {
+                    let requirementProduct = JSON.parse(item.product_requirement);
+                    let categoryRequirement = requirementProduct[0][0];
+                    let quantityCategoryRequirement = requirementProduct[0][1];
+                    let tmpDataKebutuhanCategory = []
+
+                    dataItemCart.forEach(function(productInCart, indexProductInCart) {
+                        let dataProduct = listProduct.find((val) => productInCart.idProduct == val.id);
+                        let categoryProduct = dataProduct.category_id;
+                        console.log(categoryRequirement, categoryProduct)
+
+                        if (categoryRequirement == categoryProduct) {
+                            if (parseInt(productInCart.quantity) >= parseInt(
+                                    quantityCategoryRequirement)) {
+                                let data = {
+                                    tmpId: productInCart.tmpId,
+                                    qty: quantityCategoryRequirement
+                                } //ambil data yang akan dikurangi
+                                tmpCondition.push(data);
+
+
+                                return;
+                            } else {
+                                if ((quantityCategoryRequirement - productInCart.quantity) <= 0) {
+                                    let data = {
+                                        tmpId: item.tmpId,
+                                        qty: quantityCategoryRequirement
+                                    } //ambil data yang akan dikurangi
+                                    tmpDataKebutuhanCategory.push(data);
+
+                                    tmpCondition.push(tmpDataKebutuhanCategory);
+
+                                    return;
+                                } else {
+                                    let data = {
+                                        tmpId: item.tmpId,
+                                        qty: qtyProduct
+                                    } //ambil data yang akan dikurangi
+                                    tmpDataKebutuhanCategory.push(data);
+
+                                    qtyProduct - item.quantity;
+                                }
+                            }
+                        }
+
+                        if ((indexProductInCart + 1) == dataItemCart.length) {
+                            if (tmpCondition.length == 0) {
+                                tmpCondition.push(false);
+                            }
+                        }
+                    });
                 }
 
-                let checkCondition = tmpCondition.every(element => element === true);
+                let checkCondition = false;
+                if (tmpCondition.length != 0) {
+                    checkCondition = !tmpCondition.includes(false)
+                }
 
-                console.log(promoCocok);
+                console.log(checkCondition);
                 if (checkCondition) {
+                    // tmpCondition.forEach(function(itemCondition, indexCondition) {
+                    //     listItem.forEach(function(itemList, indexList) {
+                    //         if (itemCondition.tmpId == itemList.tmpId) {
+                    //             if (parseInt(itemList.quantity) - parseInt(itemCondition.qty) <=
+                    //                 0) {
+                    //                 itemList.promo.push(item);
+                    //                 listItemPromo.push(itemList);
+
+                    //                 listItem.splice(indexList, 1);
+                    //             } else {
+                    //                 let sisaQtyItem = parseInt(itemList.quantity) - parseInt(
+                    //                     itemCondition.qty);
+                    //                 itemList.quantity = sisaQtyItem;
+                    //                 itemList.resultTotal = itemList.harga * sisaQtyItem;
+                    //                 itemList.diskon.forEach(function(diskonItem) {
+                    //                     let valueDiskon = diskonItem.value * itemList
+                    //                         .harga / 100;
+                    //                     diskonItem.result = valueDiskon;
+                    //                 });
+
+                    //                 let randomId = generateRandomID();
+                    //                 let dataItemPromo = JSON.parse(JSON.stringify(itemList));
+                    //                 dataItemPromo.tmpId = randomId
+                    //                 let resultTotalBaru = dataItemPromo.harga * parseInt(
+                    //                     itemCondition.qty);
+                    //                 dataItemPromo.quantity = parseInt(itemCondition.qty);
+                    //                 dataItemPromo.resultTotal = resultTotalBaru;
+                    //                 dataItemPromo.promo = item;
+
+                    //                 dataItemPromo.diskon.forEach(function(diskonItem) {
+                    //                     let valueDiskon = diskonItem.value *
+                    //                         dataItemPromo
+                    //                         .harga / 100;
+                    //                     diskonItem.result = valueDiskon;
+
+                    //                     diskonItem.tmpIdProduct = randomId;
+                    //                 });
+
+                    //                 listItemPromo.push(dataItemPromo);
+                    //             }
+                    //         }
+                    //     });
+
+                    // });
+
                     promoCocok.push(item)
                 }
             });
 
+            console.log(promoCocok)
+
             if (promoCocok.length > 1) {
                 // diisi pilih promo salah satu
                 handleAjax("{{ route('kasir/choosePromo') }}", false).excute();
+            } else {
+                let checkAvailablePromo = true;
+
+                while (checkAvailablePromo) {
+                    // checkAvailablePromo = false;
+                    console.log(promoCocok);
+                    promoCocok.forEach(function(item, index) {
+                        let productRequirement = JSON.parse(item.product_requirement);
+                        let tmpCondition = [];
+
+                        if (item.purchase_requirement == "any_item") {
+                            productRequirement.forEach(function(listConditionProduct, listConditionIndex) {
+                                listConditionProduct.forEach(function(listProduct, listProductIndex) {
+                                    let idProduct = listProduct[0];
+                                    let idVariant = listProduct[1];
+                                    let qtyProduct = listProduct[2];
+                                    let tmpDataKebutuhan = [];
+
+                                    listItem.forEach(function(itemProduct, itemIndex) {
+                                        if (idProduct == itemProduct.idProduct) {
+                                            if (idVariant != 0) {
+                                                if (idVariant == itemProduct.idVariant) {
+                                                    if (itemProduct.quantity >=
+                                                        qtyProduct) {
+                                                        let data = {
+                                                            tmpId: itemProduct.tmpId,
+                                                            qty: qtyProduct
+                                                        } //ambil data yang akan dikurangi
+                                                        tmpCondition.push(data);
+
+                                                        return;
+                                                    } else {
+                                                        if ((qtyProduct - itemProduct
+                                                                .quantity) <= 0) {
+                                                            let data = {
+                                                                tmpId: itemProduct
+                                                                    .tmpId,
+                                                                qty: qtyProduct
+                                                            } //ambil data yang akan dikurangi
+                                                            tmpDataKebutuhan.push(data);
+
+                                                            tmpCondition.push(
+                                                                tmpDataKebutuhan);
+
+                                                            return;
+                                                        } else {
+                                                            let data = {
+                                                                tmpId: itemProduct
+                                                                    .tmpId,
+                                                                qty: qtyProduct
+                                                            } //ambil data yang akan dikurangi
+                                                            tmpDataKebutuhan.push(data);
+
+                                                            qtyProduct - itemProduct
+                                                                .quantity;
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                if (itemProduct.quantity >= qtyProduct) {
+                                                    let data = {
+                                                        tmpId: itemProduct.tmpId,
+                                                        qty: qtyProduct
+                                                    } //ambil data yang akan dikurangi
+                                                    tmpCondition.push(data);
+
+                                                    return;
+                                                } else {
+                                                    if ((qtyProduct - itemProduct
+                                                        .quantity) <=
+                                                        0) {
+                                                        let data = {
+                                                            tmpId: itemProduct.tmpId,
+                                                            qty: qtyProduct
+                                                        } //ambil data yang akan dikurangi
+                                                        tmpDataKebutuhan.push(data);
+
+                                                        tmpCondition.push(tmpDataKebutuhan);
+
+                                                        return;
+                                                    } else {
+                                                        let data = {
+                                                            tmpId: itemProduct.tmpId,
+                                                            qty: qtyProduct
+                                                        } //ambil data yang akan dikurangi
+                                                        tmpDataKebutuhan.push(data);
+
+                                                        qtyProduct - itemProduct.quantity;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    });
+
+                                });
+
+                                if (tmpCondition[listConditionIndex] === undefined) {
+                                    tmpCondition.push(false);
+                                }
+                            });
+                        } else {
+                            let requirementProduct = JSON.parse(item.product_requirement);
+                            let categoryRequirement = requirementProduct[0][0];
+                            let quantityCategoryRequirement = requirementProduct[0][1];
+                            let tmpDataKebutuhanCategory = []
+
+                            listItem.forEach(function(productInCart, indexProductInCart) {
+                                let dataProduct = listProduct.find((val) => productInCart.idProduct == val
+                                    .id);
+                                let categoryProduct = dataProduct.category_id;
+                                console.log(categoryRequirement, categoryProduct)
+
+                                if (categoryRequirement == categoryProduct) {
+                                    if (parseInt(productInCart.quantity) >= parseInt(
+                                            quantityCategoryRequirement)) {
+                                        let data = {
+                                            tmpId: productInCart.tmpId,
+                                            qty: quantityCategoryRequirement
+                                        } //ambil data yang akan dikurangi
+                                        tmpCondition.push(data);
+
+
+                                        return;
+                                    } else {
+                                        if ((quantityCategoryRequirement - productInCart.quantity) <= 0) {
+                                            let data = {
+                                                tmpId: item.tmpId,
+                                                qty: quantityCategoryRequirement
+                                            } //ambil data yang akan dikurangi
+                                            tmpDataKebutuhanCategory.push(data);
+
+                                            tmpCondition.push(tmpDataKebutuhanCategory);
+
+                                            return;
+                                        } else {
+                                            let data = {
+                                                tmpId: item.tmpId,
+                                                qty: qtyProduct
+                                            } //ambil data yang akan dikurangi
+                                            tmpDataKebutuhanCategory.push(data);
+
+                                            qtyProduct - item.quantity;
+                                        }
+                                    }
+                                }
+
+                                if ((indexProductInCart + 1) == listItem.length) {
+                                    if (tmpCondition.length == 0) {
+                                        tmpCondition.push(false);
+                                    }
+                                }
+                            });
+                        }
+
+                        let checkCondition = false;
+                        if (tmpCondition.length != 0) {
+                            checkCondition = !tmpCondition.includes(false)
+                        }
+
+                        if (checkCondition) {
+                            
+                            tmpCondition.forEach(function(itemCondition, indexCondition) {
+                                listItem.forEach(function(itemList, indexList) {
+                                    if (itemCondition.tmpId == itemList.tmpId) {
+                                        if (parseInt(itemList.quantity) - parseInt(itemCondition.qty) <=
+                                            0) {
+                                            itemList.promo.push(item);
+                                            if(item.type == "discount"){
+                                                let reward = JSON.parse(item.reward);
+                                                console.log(reward)
+
+                                                let satuanReward = Object.keys(reward[0])[0];   
+                                                if(satuanReward == "rupiah"){
+                                                    let amount = reward[0].rupiah;
+
+                                                    let dataDiscount = {
+                                                        id: "promo",
+                                                        nama: item.name,
+                                                        satuan: satuanReward,
+                                                        value: amount,
+                                                        idPromo: item.id,
+                                                    }
+
+                                                    listDiskonAllItem.push(dataDiscount)
+                                                }else{
+                                                    let amount = reward[0].percent;
+                                                    let resultDiskon = (itemList.harga * parseInt(itemList.quantity) *  amount) / 100;
+                                                    console.log(itemList)
+                                                    let dataDiscountPercent = {
+                                                        id: "promo",
+                                                        nama: item.name,
+                                                        result: resultDiskon,
+                                                        satuan: satuanReward,
+                                                        tmpIdProduct: itemList.tmpId,
+                                                        value: amount,
+                                                        idPromo: item.id,
+                                                    }
+
+                                                    console.log(dataDiscountPercent)
+
+                                                    itemList.diskon.push(dataDiscountPercent);
+                                                }
+                                            }
+
+
+                                            listItemPromo.push(itemList);
+
+                                            listItem.splice(indexList, 1);
+                                        } else {
+                                            let sisaQtyItem = parseInt(itemList.quantity) - parseInt(
+                                                itemCondition.qty);
+                                            itemList.quantity = sisaQtyItem;
+                                            itemList.resultTotal = itemList.harga * sisaQtyItem;
+                                            itemList.diskon.forEach(function(diskonItem) {
+                                                let valueDiskon = diskonItem.value * itemList
+                                                    .harga / 100;
+                                                diskonItem.result = valueDiskon;
+                                            });
+
+                                            let randomId = generateRandomID();
+                                            let dataItemPromo = JSON.parse(JSON.stringify(itemList));
+                                            dataItemPromo.tmpId = randomId
+                                            let resultTotalBaru = dataItemPromo.harga * parseInt(
+                                                itemCondition.qty);
+                                            dataItemPromo.quantity = parseInt(itemCondition.qty);
+                                            dataItemPromo.resultTotal = resultTotalBaru;
+                                            dataItemPromo.promo.push(item);
+
+                                            if(item.type == "discount"){
+                                                let reward = JSON.parse(item.reward);
+                                                console.log(reward)
+
+                                                let satuanReward = Object.keys(reward[0])[0];   
+                                                if(satuanReward == "rupiah"){
+                                                    let amount = reward[0].rupiah;
+
+                                                    let dataDiscount = {
+                                                        id: "promo",
+                                                        nama: item.name,
+                                                        satuan: satuanReward,
+                                                        value: amount,
+                                                        idPromo: item.id,
+                                                    }
+
+                                                    listDiskonAllItem.push(dataDiscount)
+                                                }else{
+                                                    let amount = reward[0].percent;
+                                                    let resultDiskon = (itemList.harga * parseInt(itemList.quantity) *  amount) / 100;
+                                                    console.log(itemList)
+                                                    let dataDiscountPercent = {
+                                                        id: "promo",
+                                                        nama: item.name,
+                                                        result: resultDiskon,
+                                                        satuan: satuanReward,
+                                                        tmpIdProduct: itemList.tmpId,
+                                                        value: amount,
+                                                        idPromo: item.id,
+                                                    }
+
+                                                    console.log(dataDiscountPercent)
+
+                                                    dataItemPromo.diskon.push(dataDiscountPercent);
+                                                }
+                                            }
+
+                                            listItemPromo.push(dataItemPromo);
+                                        }
+                                    }
+                                });
+
+                            });
+
+                        }else{
+                            checkAvailablePromo = false;
+                        }
+                    });
+
+                    if(promoCocok.length == 0 ){
+                        checkAvailablePromo = false;   
+                    }
+                }
             }
+
         }
+
+
 
         function syncItemCart() {
             syncPromo();
@@ -1148,7 +1580,7 @@
             syncRounding();
             updateHargaFinalButton();
 
-            if (listItem.length > 0) {
+            if (listItem.length > 0 || listItemPromo.length > 0) {
                 document.getElementById("produkKosong").style.display = "none";
                 document.getElementById("summary").style.setProperty('display', 'block', 'important');
             } else {
@@ -1200,6 +1632,58 @@
 
                 $('#order-list').append(html);
             })
+
+            listItemPromo.forEach(function(item, index) {
+                let html = `
+                <div class="row mb-0 mt-2">
+                    <div class="col-6">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
+                    <div class="col-5 text-end">${formatRupiah(item.resultTotal.toString(), "Rp. ")}</div>
+                    <div class="col-1 text-end text-danger">
+                        <button type="button" onclick="deleteItem(this)" data-tmpId="${item.tmpId}" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
+                    </div>
+                </div>
+                `;
+
+                if (item.namaProduct != item.namaVariant) {
+                    html += `
+                    <div class="row mb-0 mt-0 variant" data-tmpId="${item.tmpId}">
+                        <div class="col-6 text-muted">${item.namaVariant}</div>
+                    </div>
+                        `
+                }
+
+                if (item.modifier.length > 0) {
+                    item.modifier.forEach(function(itemModifier, indexModifier) {
+                        let hargaModifierKaliQuantity = itemModifier.harga * parseInt(item.quantity);
+                        html += `
+                        <div class="row mb-0 mt-0 modifier" data-tmpId="${item.tmpId}">
+                            <div class="col-6 text-muted">${itemModifier.nama}</div>
+                            <div class="col-5 text-end text-muted">${formatRupiah(hargaModifierKaliQuantity.toString(), "Rp. ")}</div>
+                        </div>
+                        `;
+                    });
+                }
+
+                if (item.promo.length > 0) {
+                    item.promo.forEach(function(itemPromo, indexPromo) {
+                        html += `
+                        <div class="row mb-0 mt-0 promo" data-tmpId="${item.tmpId}">
+                            <div class="col-6 text-muted">${itemPromo.name}</div>
+                        </div>
+                        `;
+                    });
+                }
+
+                if (item.catatan != '') {
+                    html += `
+                        <div class="row mb-0 mt-0 catatan" data-tmpId="${item.tmpId}">
+                            <div class="col-6 text-muted">${item.catatan}</div>
+                        </div>
+                        `;
+                }
+
+                $('#order-list').append(html);
+            })
         }
 
         function syncSubTotal() {
@@ -1211,6 +1695,16 @@
                 item.modifier.forEach(function(itemModifier, indexModifier) {
                     let modifierMultipleQuantity = itemModifier.harga * parseInt(item.quantity);
                     tmpSubTotal.push(modifierMultipleQuantity);
+                });
+            });
+
+            listItemPromo.forEach(function(itemPromo, indexPromo) {
+                tmpSubTotal.push(itemPromo.resultTotal);
+
+                itemPromo.modifier.forEach(function(itemPromoModifier, indexPromoModifier) {
+                    let itemPromoModifierMultipleQuantity = itemPromoModifier.harga * parseInt(itemPromo
+                        .quantity);
+                    tmpSubTotal.push(itemPromoModifierMultipleQuantity);
                 });
             });
 
@@ -1232,6 +1726,14 @@
             let tmpSubTotal = [];
 
             listItem.forEach(function(item, index) {
+                tmpSubTotal.push(item.resultTotal);
+
+                item.modifier.forEach(function(itemModifier, indexModifier) {
+                    tmpSubTotal.push(itemModifier.harga);
+                });
+            });
+
+            listItemPromo.forEach(function(item, index) {
                 tmpSubTotal.push(item.resultTotal);
 
                 item.modifier.forEach(function(itemModifier, indexModifier) {
@@ -1401,9 +1903,16 @@
             var tmpTotalDiskon = [];
 
             listItem.forEach(function(item, index) {
-                console.log(item)
                 item.diskon.forEach(function(itemDiskon, indexDiskon) {
-                    console.log(itemDiskon);
+                    // console.log(itemDiskon);
+                    // let diskonMultipleQuantity = 
+                    tmpTotalDiskon.push(itemDiskon.result);
+                });
+            });
+
+            listItemPromo.forEach(function(item, index) {
+                item.diskon.forEach(function(itemDiskon, indexDiskon) {
+                    // console.log(itemDiskon);
                     // let diskonMultipleQuantity = 
                     tmpTotalDiskon.push(itemDiskon.result);
                 });
@@ -1522,69 +2031,115 @@
             }
         }
 
+        // function handleAjax(url, primaryModal = true, method = 'get') {
+
+        //     function onSuccess(cb, runDefault = true) {
+        //         this.onSuccessCallback = cb
+        //         this.runDefaultSuccessCallback = runDefault
+
+        //         return this
+        //     }
+
+
+        //     function excute() {
+        //         console.log(url)
+        //         $.ajax({
+        //             url,
+        //             method,
+        //             beforeSend: function() {
+        //                 // showLoading()
+        //             },
+        //             complete: function() {
+        //                 // hideLoading(false)
+        //             },
+        //             success: (res) => {
+        //                 if (this.runDefaultSuccessCallback) {
+        //                     if (primaryModal) {
+        //                         const modal = $('#itemModal');
+        //                         modal.html(res);
+        //                         modal.modal({
+        //                             backdrop: 'static', // Mengatur agar modal tidak dapat ditutup dengan klik di luar
+        //                             keyboard: false // Opsional: Nonaktifkan tombol ESC untuk menutup modal
+        //                         });
+        //                         modal.modal('show');
+        //                     } else {
+        //                         const modal = $('#promoModal');
+        //                         modal.html(res);
+        //                         modal.modal({
+        //                             backdrop: 'static', // Mengatur agar modal tidak dapat ditutup dengan klik di luar
+        //                             keyboard: false // Opsional: Nonaktifkan tombol ESC untuk menutup modal
+        //                         });
+        //                         modal.modal('show');
+        //                     }
+
+        //                 }
+
+        //                 this.onSuccessCallback && this.onSuccessCallback(res)
+        //             },
+        //             error: function(err) {
+        //                 console.log(err);
+        //             }
+        //         });
+        //     }
+
+        //     function onError(cb) {
+        //         this.onErrorCallback = cb
+        //         return this
+        //     }
+
+        //     return {
+        //         excute,
+        //         onSuccess,
+        //         runDefaultSuccessCallback: true
+        //     }
+
+        // }
+
         function handleAjax(url, primaryModal = true, method = 'get') {
-
-            function onSuccess(cb, runDefault = true) {
-                this.onSuccessCallback = cb
-                this.runDefaultSuccessCallback = runDefault
-
-                return this
-            }
-
-
-            function excute() {
-                console.log(url)
-                $.ajax({
-                    url,
-                    method,
-                    beforeSend: function() {
-                        // showLoading()
-                    },
-                    complete: function() {
-                        // hideLoading(false)
-                    },
-                    success: (res) => {
-                        if (this.runDefaultSuccessCallback) {
-                            if (primaryModal) {
-                                const modal = $('#itemModal');
-                                modal.html(res);
-                                modal.modal({
-                                    backdrop: 'static', // Mengatur agar modal tidak dapat ditutup dengan klik di luar
-                                    keyboard: false // Opsional: Nonaktifkan tombol ESC untuk menutup modal
-                                });
-                                modal.modal('show');
-                            }else{
-                                const modal = $('#promoModal');
-                                modal.html(res);
-                                modal.modal({
-                                    backdrop: 'static', // Mengatur agar modal tidak dapat ditutup dengan klik di luar
-                                    keyboard: false // Opsional: Nonaktifkan tombol ESC untuk menutup modal
-                                });
-                                modal.modal('show');
-                            }
-
-                        }
-
-                        this.onSuccessCallback && this.onSuccessCallback(res)
-                    },
-                    error: function(err) {
-                        console.log(err);
-                    }
-                });
-            }
-
-            function onError(cb) {
-                this.onErrorCallback = cb
-                return this
-            }
-
             return {
-                excute,
-                onSuccess,
-                runDefaultSuccessCallback: true
-            }
+                excute: function() {
+                    return new Promise((resolve, reject) => {
+                        $.ajax({
+                            url,
+                            method,
+                            beforeSend: function() {
+                                // showLoading()  
+                            },
+                            complete: function() {
+                                // hideLoading(false)  
+                            },
+                            success: (res) => {
+                                if (primaryModal) {
+                                    const modal = $('#itemModal');
+                                    modal.html(res);
+                                    modal.modal({
+                                        backdrop: 'static',
+                                        keyboard: false
+                                    });
+                                    modal.modal('show');
+                                } else {
+                                    const modal = $('#promoModal');
+                                    modal.html(res);
+                                    modal.modal({
+                                        backdrop: 'static',
+                                        keyboard: false
+                                    });
+                                    modal.modal('show');
+                                }
 
+                                resolve(res); // Resolving the promise  
+                            },
+                            error: function(err) {
+                                console.log(err);
+                                reject(err); // Rejecting the promise on error  
+                            }
+                        });
+                    });
+                }
+            };
         }
+
+
 
         $(document).ready(function() {
             showLoader(false)

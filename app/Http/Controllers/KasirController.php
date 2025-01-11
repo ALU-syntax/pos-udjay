@@ -38,7 +38,7 @@ class KasirController extends Controller
 
         return view('layouts.kasir.index', [
             'categorys' => Category::with(['products' => function ($product) use($outletUser) {
-                $product->where('outlet_id', $outletUser[0])->orderBy('name', 'asc');
+                $product->with(['variants'])->where('outlet_id', $outletUser[0])->orderBy('name', 'asc');
             }])->get(),
             'pajak' => $pajak,
             'rounding' => $rounding,

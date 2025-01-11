@@ -5,7 +5,7 @@
     }
 </style>
 
-<div class="modal-dialog modal-dialog-centered modal-lg" id="pattyCash">
+<div class="modal-dialog modal-dialog-centered modal-lg" id="promoModal">
     <div class="modal-content">
         <div class="modal-header d-flex justify-content-center align-items-center">
             <h5 class="modal-title" id="productModalLabel">
@@ -26,7 +26,8 @@
                 <div class="row" id="rowListPromoCocok">
                     <div class="col-12">
 
-                        <button type="submit" id="btnApplyPromo" class="btn btn-primary btn-lg mt-4 w-100">Apply</button>
+                        <button type="button" id="btnApplyPromo"
+                            class="btn btn-primary btn-lg mt-4 w-100">Apply</button>
                     </div>
                 </div>
             </div>
@@ -50,7 +51,7 @@
                     <button type="button" class="btn mt-2 btn-outline-primary w-100 btn-lg ">
                         <div>
                             <p>${itemPromo.name}</p>
-                            <p>(${itemPromo.type} ${formatRupiah(reward[0].rupiah.toString(), "Rp. ")})</p>
+                            <p>(Diskon ${formatRupiah(reward[0].rupiah.toString(), "Rp. ")})</p>
                         </div>
                     </button>
                 `
@@ -59,17 +60,26 @@
                     <button type="button" class="btn mt-2 btn-outline-primary w-100 btn-lg ">
                         <div>
                             <p>${itemPromo.name}</p>
-                            <p>(${itemPromo.type} %${reward[0].percent})</p>
+                            <p>(Diskon %${reward[0].percent})</p>
                         </div>
                     </button>
                 `
             }
-        }else{
+        } else {
+
+            // <select name="item_requirement[]" data-tmpid="${tmpId}" class="item_requirement select2InsideModal form-select w-100" style="width: 100% !important;" required>
+            //                         <option selected disabled>Pilih Item</option>
+            //                         ${listProductBaseOnOutlet.map(function(item) {
+            //                             return `<option value="${item.name}">${item.name}</option>`;
+            //                         }).join('')}
+            //                     </select>
+
             html = `
                     <button type="button" class="btn mt-2 btn-outline-primary w-100 btn-lg ">
                         <div>
                             <p>${itemPromo.name}</p>
-                            <p>(${itemPromo.type} %${reward[0].percent})</p>
+                            
+                            
                         </div>
                     </button>
                 `
@@ -77,4 +87,10 @@
 
         $('#btnApplyPromo').before(html);
     });
+
+    $('#btnApplyPromo').on('click', function() {
+        const modal = $('#promoModal');
+        // modal.html(res);
+        modal.modal('hide');
+    })
 </script>
