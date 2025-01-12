@@ -224,6 +224,7 @@ Route::middleware('auth')->group(function () {
         
     Route::prefix('kasir')->group(function(){
         Route::get('', [KasirController::class, 'index'])->name('kasir');
+        Route::get('/viewPattyCash', [KasirController::class, 'viewPattyCash'])->name('kasir/viewPattyCash');
         Route::get('/choose-payment', [KasirController::class, 'choosePayment'])->name('kasir/choosePayment');
         Route::get('/choose-promo', [KasirController::class, 'choosePromo'])->name('kasir/choosePromo');
         Route::get('/choose-reward-item/{queue}/{idpromo}', [KasirController::class, 'chooseRewardItem'])->name('kasir/chooseRewardItem');
@@ -231,6 +232,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/custom-diskon/{diskon}', [KasirController::class, 'customDiskon'])->name('kasir/customDiskon');
         Route::get('/{product}', [KasirController::class, 'findProduct'])->name('kasir/findProduct');
         Route::post('/store-patty-cash', [KasirController::class, 'pattyCash'])->name('kasir/pattyCash');
+        Route::post('/close-patty-cash', [KasirController::class, 'closePattyCash'])->name('kasir/closePattyCash');
         Route::post('/bayar', [KasirController::class, 'bayar'])->name('kasir/bayar');
     });
 

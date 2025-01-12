@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\CategoryPayment;
 use App\Models\Checkout;
 use App\Models\Discount;
+use App\Models\Outlets;
 use App\Models\PettyCash;
 use App\Models\Product;
 use App\Models\Promo;
@@ -15,6 +16,8 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\VariantProduct;
 use Illuminate\Http\Request;
+
+use function PHPUnit\Framework\isNull;
 
 class KasirController extends Controller
 {
@@ -26,6 +29,8 @@ class KasirController extends Controller
         $userOutletJson = auth()->user()->outlet_id;
         $userOutlet = json_decode($userOutletJson);
 
+        $outlet = Outlets::find($userOutlet[0]);
+
         $diskon = Discount::where('outlet_id', '=', $userOutlet[0])->get();
 
         $rounding = Checkout::find(1);
@@ -36,6 +41,22 @@ class KasirController extends Controller
 
         $promos = Promo::where('outlet_id', $userOutlet[0])->whereNull('deleted_at')->where('status', true)->get();
 
+        $pettyCash = PettyCash::where('outlet_id', $outletUser[0])->where('close', null)->get();
+
+        if(count($pettyCash)){
+            $pettyCash[0]['user_data_started'] = auth()->user();
+            $pettyCash[0]['outlet_data'] = $outlet;
+        }
+
+        $listCategoryPayment = CategoryPayment::with(['transactions' => function($transaction)use($pettyCash){
+            if(count($pettyCash)){
+                $transaction->with(['payments'])->where('patty_cash_id', $pettyCash[0]->id);
+            }
+        }, 'payment' => function($payment){
+            $payment->with(['transactions']);
+        }])->get();
+        
+        // dd($listCategoryPayment);
         return view('layouts.kasir.index', [
             'categorys' => Category::with(['products' => function ($product) use($outletUser) {
                 $product->with(['variants'])->where('outlet_id', $outletUser[0])->orderBy('name', 'asc');
@@ -43,7 +64,9 @@ class KasirController extends Controller
             'pajak' => $pajak,
             'rounding' => $rounding,
             'promos' => $promos,
-            'discounts' => $diskon
+            'discounts' => $diskon,
+            'pettyCash' => $pettyCash,
+            'listCategoryPayment' =>$listCategoryPayment
         ]);
     }
 
@@ -94,6 +117,8 @@ class KasirController extends Controller
         $userData = auth()->user();
         $outletUser = json_decode($userData->outlet_id);
 
+        $outlet = Outlets::find($outletUser[0]);
+
         $data = [
             'outlet_id' => $outletUser[0],
             'amount_awal' => getAmount($request->saldo_awal),
@@ -101,9 +126,21 @@ class KasirController extends Controller
             'open' => now()
         ];
 
-        PettyCash::create($data);
+        $dataPattyCash = PettyCash::create($data);
 
-        return responseSuccess(false, "Shift Berhasil dibuka");
+        $dataPattyCash['user_data_started'] = $userData;
+        $dataPattyCash['outlet_data'] = $outlet;
+        // $data['tipe_pembayaran'] = $;
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => "Shift Berhasil dibuka",
+            'data' => $dataPattyCash
+        ]);
+    }
+
+    public function viewPattyCash(){
+        return view('layouts.kasir.modal-petty-cash');        
     }
 
     public function bayar(Request $request)
@@ -159,6 +196,7 @@ class KasirController extends Controller
             'diskon_all_item' => $request->diskonAllItems,
             'rounding_amount' => $request->rounding,
             'tanda_rounding' => $request->tanda_rounding,
+            'patty_cash_id' => $request->patty_cash_id,
             'catatan' => $request->catatan_transaksi,
         ];
 
@@ -239,6 +277,26 @@ class KasirController extends Controller
             'queue' => $queue,
             'dataPromo' => $promo,
             'reward' => $reward
+        ]);
+    }
+
+    public function closePattyCash(Request $request){
+        $dataEndingCash = $request->endingCash;
+        
+        $userData = auth()->user();
+        $outletUser = json_decode($userData->outlet_id);
+
+        $outlet = PettyCash::where('outlet_id', $outletUser[0])->whereNull('close')->get();
+
+        $outlet[0]->update([
+            'amount_akhir' => getAmount($dataEndingCash),
+            'close' => now(),
+            'user_id_ended' => $userData->id,
+        ]);
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => "Shift Berhasil ditutup",
         ]);
     }
 }

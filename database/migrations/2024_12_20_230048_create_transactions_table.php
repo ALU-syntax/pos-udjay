@@ -29,10 +29,12 @@ return new class extends Migration
             $table->bigInteger('rounding_amount')->nullable();
             $table->string('tanda_rounding')->nullable();
             $table->text('catatan')->nullable();
+            $table->unsignedBigInteger('patty_cash_id');
             $table->softDeletes();
             $table->timestamps();
             
             $table->foreign('category_payment_id')->references('id')->on('category_payments')->onDelete('CASCADE');
+            $table->foreign('patty_cash_id')->references('id')->on('petty_cashes')->onDelete('CASCADE');
             $table->foreign('tipe_pembayaran')->references('id')->on('payments')->onDelete('CASCADE');
             $table->foreign('outlet_id')->references('id')->on('outlets')->onDelete('CASCADE');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('CASCADE');

@@ -76,18 +76,7 @@
             }
         });
         dataForm = data;
-        console.log(dataForm)
-        // if (dataCustom) {
-        //     const token = document.querySelector('meta[name="csrf_token"]').getAttribute('content');
-        //     dataForm = new FormData();
-        //     dataForm.append("_token", token);
-        //     dataForm.append("_method", 'put');
-        //     tmpDataProductModifier.forEach(function(item) {
-        //         dataForm.append("products[]", item);
-        //     });
-        // } else {
-        //     dataForm = data;
-        // }
+        
         $.ajax({
             url: this.action,
             method: this.method,
@@ -103,6 +92,14 @@
                 console.log(res)
                 $('#itemModal').modal('hide')
                 showToast(res.status, res.message)
+
+                dataPattyCash.push(res.data);
+
+                if(listItem.length == 0){
+                    if(listItemPromo.length == 0){
+                        location.reload();
+                    }
+                }
             },
             complete: function() {
                 // submitLoader().hide()

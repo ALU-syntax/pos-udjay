@@ -8,7 +8,8 @@
 <div class="modal-dialog modal-dialog-centered modal-xl" id="choosePayment">
     <div class="modal-content">
         <div class="modal-header">
-            <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal">Batal</button>
+            <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal"
+                id="cancelPayment">Batal</button>
             <h5 class="modal-title mx-auto text-center" id="productModalLabel">
                 <strong id="totalHarga">Rp 80.000</strong><br>
             </h5>
@@ -68,7 +69,7 @@
                     <hr>
                 @endforeach
             @else
-                    <p>Tambahkan Tipe Pembayaran Terlebih Dahulu</p>
+                <p>Tambahkan Tipe Pembayaran Terlebih Dahulu</p>
             @endif
 
 
@@ -121,7 +122,7 @@
     var dataListPayment = @json($listPayment);
     var dataCash = dataListPayment.find(item => item.name == "Cash");
     var idCash = dataCash.id;
-    
+
     var moneyInput = document.getElementById("inputMoney");
     moneyInput.addEventListener("keyup", function(e) {
 
@@ -194,6 +195,12 @@
             } else {
                 $("#pay").removeAttr('disabled');
             }
+        });
+
+        $('#cancelPayment').on('click', function() {
+            // Tutup modal
+            const modal = $('#itemModal');
+            modal.modal('hide');
         });
 
 
@@ -281,7 +288,7 @@
                         })
 
                         let tmpPromoData = [];
-                        item.promo.forEach(function(itemPromo, indexPromo){
+                        item.promo.forEach(function(itemPromo, indexPromo) {
                             let promo = {
                                 id: itemPromo.id,
                                 nama: itemPromo.name,
@@ -293,10 +300,11 @@
                         });
 
                         dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
-                        
+
                         let resultCatatan = item.catatan == '' ? '' : item.catatan;
                         dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
                         dataForm.append('catatan[]', resultCatatan);
+                        dataForm.append('reward[]', false);
                     }
                 } else {
                     dataForm.append('idProduct[]', item.idProduct);
@@ -327,7 +335,7 @@
                     })
 
                     let tmpPromoData = [];
-                    item.promo.forEach(function(itemPromo, indexPromo){
+                    item.promo.forEach(function(itemPromo, indexPromo) {
                         let promo = {
                             id: itemPromo.id,
                             nama: itemPromo.name,
@@ -342,12 +350,12 @@
                     dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
                     dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
                     dataForm.append('catatan[]', resultCatatan);
-                }
 
-                dataForm.append('reward[]', false);
+                    dataForm.append('reward[]', false);
+                }
             });
 
-            listItemPromo.forEach(function(item, index){
+            listItemPromo.forEach(function(item, index) {
                 if (item.quantity > 1) {
                     for (let x = 0; x < item.quantity; x++) {
                         dataForm.append('idProduct[]', item.idProduct);
@@ -378,7 +386,7 @@
                         })
 
                         let tmpPromoData = [];
-                        item.promo.forEach(function(itemPromo, indexPromo){
+                        item.promo.forEach(function(itemPromo, indexPromo) {
                             let promo = {
                                 id: itemPromo.id,
                                 nama: itemPromo.name,
@@ -393,6 +401,7 @@
                         dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
                         dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
                         dataForm.append('catatan[]', resultCatatan);
+                        dataForm.append('reward[]', false);
                     }
                 } else {
                     dataForm.append('idProduct[]', item.idProduct);
@@ -423,26 +432,26 @@
                     })
 
                     let tmpPromoData = [];
-                        item.promo.forEach(function(itemPromo, indexPromo){
-                            let promo = {
-                                id: itemPromo.id,
-                                nama: itemPromo.name,
-                                purchaseRequirement: itemPromo.purchase_requirement,
-                                type: itemPromo.type
-                            }
+                    item.promo.forEach(function(itemPromo, indexPromo) {
+                        let promo = {
+                            id: itemPromo.id,
+                            nama: itemPromo.name,
+                            purchaseRequirement: itemPromo.purchase_requirement,
+                            type: itemPromo.type
+                        }
 
-                            tmpPromoData.push(promo);
-                        });
+                        tmpPromoData.push(promo);
+                    });
 
                     let resultCatatan = item.catatan == '' ? '' : item.catatan;
                     dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
                     dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
                     dataForm.append('catatan[]', resultCatatan);
+                    dataForm.append('reward[]', false);
                 }
-                dataForm.append('reward[]', false);
             });
 
-            listRewardItem.forEach(function(item, index){
+            listRewardItem.forEach(function(item, index) {
                 if (item.quantity > 1) {
                     for (let x = 0; x < item.quantity; x++) {
                         dataForm.append('idProduct[]', item.idProduct);
@@ -473,7 +482,7 @@
                         })
 
                         let tmpPromoData = [];
-                        item.promo.forEach(function(itemPromo, indexPromo){
+                        item.promo.forEach(function(itemPromo, indexPromo) {
                             let promo = {
                                 id: itemPromo.id,
                                 nama: itemPromo.name,
@@ -488,6 +497,7 @@
                         dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
                         dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
                         dataForm.append('catatan[]', resultCatatan);
+                        dataForm.append('reward[]', true);
                     }
                 } else {
                     dataForm.append('idProduct[]', item.idProduct);
@@ -518,23 +528,23 @@
                     })
 
                     let tmpPromoData = [];
-                        item.promo.forEach(function(itemPromo, indexPromo){
-                            let promo = {
-                                id: itemPromo.id,
-                                nama: itemPromo.name,
-                                purchaseRequirement: itemPromo.purchase_requirement,
-                                type: itemPromo.type
-                            }
+                    item.promo.forEach(function(itemPromo, indexPromo) {
+                        let promo = {
+                            id: itemPromo.id,
+                            nama: itemPromo.name,
+                            purchaseRequirement: itemPromo.purchase_requirement,
+                            type: itemPromo.type
+                        }
 
-                            tmpPromoData.push(promo);
-                        });
+                        tmpPromoData.push(promo);
+                    });
 
                     let resultCatatan = item.catatan == '' ? '' : item.catatan;
                     dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
                     dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
                     dataForm.append('catatan[]', resultCatatan);
+                    dataForm.append('reward[]', true);
                 }
-                dataForm.append('reward[]', true);
             });
 
             let idCustomer = (idPelanggan == '') ? null : idPelanggan;
@@ -552,6 +562,7 @@
             dataForm.append('tanda_rounding', tandaRounding);
             dataForm.append('customer_id', idCustomer);
             dataForm.append('catatan_transaksi', valueCatatan);
+            dataForm.append('patty_cash_id', dataPattyCash[0].id);
 
             $.ajax({
                 url: "{{ route('kasir/bayar') }}",

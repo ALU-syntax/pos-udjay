@@ -242,18 +242,18 @@
                                             <div class="card list-setting" id="shift" data-target="shift-menu"
                                                 data-name-section="Shift">
                                                 <div class="card-body">
-                                                    Shift
+                                                    <h4>Shift</h4>
                                                 </div>
                                             </div>
                                             <div class="card list-setting" data-target="logout">
-                                                <div class="card-body">
-                                                    <h4>Keluar</h4>
+                                                <div class="card-body bg-danger">
+                                                    <h4 class="text-white">Keluar</h4>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div class="card d-none child-section" id="shift-menu">
+                                    <div class="card d-none child-section" id="shift-menu" style="margin-bottom: 100px">
                                         <div class="card-body">
                                             <div class="container">
                                                 <div class="row">
@@ -262,7 +262,7 @@
                                                             class="btn btn-outline-primary w-100 btn-lg mb-4">End
                                                             Current Shift</button>
 
-                                                        <div class="container">
+                                                        <div class="container" id="container-shift">
                                                             <div class="row">
                                                                 <div class="col-12">
                                                                     <h5>Shift Details</h5>
@@ -271,7 +271,7 @@
                                                                         <div class="col-6">
                                                                             Name
                                                                         </div>
-                                                                        <div class="col-6">
+                                                                        <div class="col-6" id="txt-open-patty-cash">
                                                                             Ardian
                                                                         </div>
                                                                     </div>
@@ -280,7 +280,7 @@
                                                                         <div class="col-6">
                                                                             Outlet
                                                                         </div>
-                                                                        <div class="col-6">
+                                                                        <div class="col-6" id="txt-outlet">
                                                                             Outlet 1
                                                                         </div>
                                                                     </div>
@@ -289,44 +289,45 @@
                                                                         <div class="col-6">
                                                                             Starting Shift
                                                                         </div>
-                                                                        <div class="col-6">
+                                                                        <div class="col-6" id="txt-starting-shift">
                                                                             Thursday blablabla
                                                                         </div>
                                                                     </div>
                                                                     <hr>
-                                                                    <div class="row">
+                                                                    {{-- <div class="row">
                                                                         <div class="col-6">
                                                                             Expense / Income
                                                                         </div>
                                                                         <div class="col-6">
                                                                             0
                                                                         </div>
-                                                                    </div>
+                                                                    </div> --}}
                                                                     <hr>
                                                                 </div>
                                                             </div>
 
                                                             <div class="row mt-3">
                                                                 <div class="col-12">
-                                                                    <h5>Order Details (Except Moka Order Delivery)</h5>
+                                                                    {{-- <h5>Order Details (Except Moka Order Delivery)</h5> --}}
+                                                                    <h5>Order Details</h5>
                                                                     <hr>
                                                                     <div class="row">
                                                                         <div class="col-6">
                                                                             Sold Items
                                                                         </div>
-                                                                        <div class="col-6">
+                                                                        <div class="col-6" id="txt-sold-items">
                                                                             27
                                                                         </div>
                                                                     </div>
                                                                     <hr>
-                                                                    <div class="row">
+                                                                    {{-- <div class="row">
                                                                         <div class="col-6">
                                                                             Refunded Items
                                                                         </div>
                                                                         <div class="col-6">
                                                                             0
                                                                         </div>
-                                                                    </div>
+                                                                    </div> --}}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -366,7 +367,8 @@
                                                                         </div>
 
                                                                         <button
-                                                                            class="btn btn-outline-primary w-100 btn-lg mt-2">End
+                                                                            class="btn btn-outline-primary w-100 btn-lg mt-2"
+                                                                            id="btnEndCurrentShift">End
                                                                             Current Shift</button>
                                                                     </div>
                                                                 </div>
@@ -388,30 +390,30 @@
 
                                                                                 <div class="row">
                                                                                     <div class="col-6">Name</div>
-                                                                                    <div class="col-6">Ardian</div>
+                                                                                    <div class="col-6" id="txt-name-end-current-shift">Ardian</div>
                                                                                 </div>
                                                                                 <hr>
 
                                                                                 <div class="row">
                                                                                     <div class="col-6">Outlet</div>
-                                                                                    <div class="col-6">Outlet 1</div>
+                                                                                    <div class="col-6" id="txt-outlet-end-current-shift">Outlet 1</div>
                                                                                 </div>
                                                                                 <hr>
 
                                                                                 <div class="row">
                                                                                     <div class="col-6">Starting Shift
                                                                                     </div>
-                                                                                    <div class="col-6">Thursday,
+                                                                                    <div class="col-6" id="txt-start-end-current-shift">Thursday,
                                                                                         blabla</div>
                                                                                 </div>
                                                                                 <hr>
 
-                                                                                <div class="row">
+                                                                                {{-- <div class="row">
                                                                                     <div class="col-6">Expense /
                                                                                         Income</div>
                                                                                     <div class="col-6">0</div>
                                                                                 </div>
-                                                                                <hr>
+                                                                                <hr> --}}
                                                                             </div>
                                                                         </div>
 
@@ -425,7 +427,7 @@
                                                                                 <div class="row">
                                                                                     <div class="col-6">Starting Cash
                                                                                         In Drawer</div>
-                                                                                    <div class="col-6">Rp. 50.000
+                                                                                    <div class="col-6" id="txt-starting-cash-end-current-shift">Rp. 50.000
                                                                                     </div>
                                                                                 </div>
                                                                                 <hr>
@@ -433,37 +435,37 @@
                                                                                 <div class="row">
                                                                                     <div class="col-6">Cash Sales
                                                                                     </div>
-                                                                                    <div class="col-6">Rp. 70.000
+                                                                                    <div class="col-6" id="txt-sales-end-current-shift">Rp. 70.000
                                                                                     </div>
                                                                                 </div>
                                                                                 <hr>
 
-                                                                                <div class="row">
+                                                                                {{-- <div class="row">
                                                                                     <div class="col-6">Cash From
                                                                                         Invoice
                                                                                     </div>
                                                                                     <div class="col-6">Rp. 0</div>
                                                                                 </div>
-                                                                                <hr>
+                                                                                <hr> --}}
 
-                                                                                <div class="row">
+                                                                                {{-- <div class="row">
                                                                                     <div class="col-6">Cash Refunds
                                                                                     </div>
                                                                                     <div class="col-6">Rp. 0</div>
                                                                                 </div>
-                                                                                <hr>
+                                                                                <hr> --}}
 
-                                                                                <div class="row">
+                                                                                {{-- <div class="row">
                                                                                     <div class="col-6">Expense /
                                                                                         Income</div>
                                                                                     <div class="col-6">Rp. 0</div>
                                                                                 </div>
-                                                                                <hr>
+                                                                                <hr> --}}
 
                                                                                 <div class="row">
                                                                                     <div class="col-6">Expected Ending
                                                                                         Cash</div>
-                                                                                    <div class="col-6">Rp. 121.000
+                                                                                    <div class="col-6" id="txt-expected-ending-end-current-shift">Rp. 121.000
                                                                                     </div>
                                                                                 </div>
                                                                                 <hr>
@@ -726,7 +728,7 @@
                             <div class="card-body ">
 
                                 <!-- Dine In Section -->
-                                <p class="text-muted text-center mb-2">dine in</p>
+                                <p class="text-muted text-center mb-2">All Sales Type</p>
                                 <hr>
 
                                 <div class="container my-5" id="produkKosong">
@@ -772,9 +774,9 @@
 
                                 <!-- Action Buttons -->
                                 <div class="d-flex mb-3">
-                                    <button class="btn btn-secondary w-50 me-2" style="height: 60px;">Simpan
-                                        Bill</button>
-                                    <button class="btn btn-outline-primary w-50" style="height: 60px;">Cetak
+                                    {{-- <button class="btn btn-secondary w-50 me-2" style="height: 60px;">Simpan
+                                        Bill</button> --}}
+                                    <button class="btn btn-outline-primary w-100" style="height: 60px;">Cetak
                                         Bill</button>
                                 </div>
 
@@ -914,6 +916,10 @@
         var listItemPromo = [];
         var listRewardItem = [];
         var promoCocok = [];
+
+        var dataPattyCash = @json($pettyCash);
+        var listCategoryPayment = @json($listCategoryPayment);
+        var finalExpectedEndingCash = 0;
 
         function showLoader(show = true) {
             const preloader = $("#preloader");
@@ -1238,7 +1244,7 @@
 
             if (promoCocok.length > 1) {
                 // diisi pilih promo salah satu
-                handleAjax("{{ route('kasir/choosePromo') }}", false).excute();
+                // handleAjax("{{ route('kasir/choosePromo') }}", false).excute();
             } else {
                 let checkAvailablePromo = true;
 
@@ -1522,12 +1528,12 @@
                     }
                 }
 
-                if(promoCocok[0]){
+                if (promoCocok[0]) {
                     if (promoCocok[0].type == "free-item") {
                         console.log("masok free-item")
                         let baseUrl = `{{ route('kasir/chooseRewardItem', [':queue', ':idpromo']) }}`;
                         let url = baseUrl.replace(':queue', queueId).replace(':idpromo', promoCocok[0].id);
-    
+
                         handleAjax(url, false).excute();
                     }
                 }
@@ -1567,12 +1573,14 @@
                 </div>
                 `;
 
-                if (item.namaProduct != item.namaVariant) {
-                    html += `
-                    <div class="row mb-0 mt-0 variant" data-tmpId="${item.tmpId}">
-                        <div class="col-6 text-muted">${item.namaVariant}</div>
-                    </div>
-                        `
+                if (item.namaVariant) {
+                    if (item.namaProduct != item.namaVariant) {
+                        html += `
+                        <div class="row mb-0 mt-0 variant" data-tmpId="${item.tmpId}">
+                            <div class="col-6 text-muted">${item.namaVariant}</div>
+                        </div>
+                            `
+                    }
                 }
 
                 if (item.modifier.length > 0) {
@@ -1832,7 +1840,6 @@
                 diskonContainer.append(html);
             });
 
-            console.log(dataDiskon);
         }
 
         function checkDiskonUsage() {
@@ -2095,6 +2102,131 @@
             showLoader(false)
             generateListDiskon()
 
+            if (dataPattyCash.length > 0) {
+                let soldItem = 0;
+                let name = dataPattyCash[0].user_data_started.name;
+                $('#txt-open-patty-cash').text(name);
+                $('#txt-name-end-current-shift').text(name);
+
+                let namaOutlet = dataPattyCash[0].outlet_data.name;
+                $('#txt-outlet').text(namaOutlet);
+                $('#txt-outlet-end-current-shift').text(namaOutlet);
+                
+                let startingShift = dataPattyCash[0].open;
+                $('#txt-starting-shift').text(startingShift);
+                $('#txt-start-end-current-shift').text(startingShift);
+
+                $('#txt-starting-cash-end-current-shift').text(formatRupiah(dataPattyCash[0].amount_awal.toString(), "Rp. "));
+                
+
+                listCategoryPayment.forEach(function(item) {
+                    if(item.name == 'Cash'){
+                        let sales = 0;
+                        let expectedEndingCash = parseInt(dataPattyCash[0].amount_awal);
+                        soldItem += item.transactions.length;
+                        item.transactions.forEach(function(cashTransaction){
+                            sales += cashTransaction.total;
+                            expectedEndingCash += parseInt(cashTransaction.total);
+                        })
+
+                        finalExpectedEndingCash = expectedEndingCash;
+
+                        $('#txt-sales-end-current-shift').text(formatRupiah(sales.toString(), "Rp. "));
+                        $('#txt-expected-ending-end-current-shift').text(formatRupiah(expectedEndingCash.toString(), "Rp. "));
+                        
+                        let html = `
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h5>${item.name}</h5>
+                                    <hr>
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            Starting Cash In Drawer
+                                        </div>
+                                        <div class="col-6" >
+                                            ${formatRupiah(dataPattyCash[0].amount_awal.toString(), "Rp. ")}
+                                        </div>
+                                    </div> 
+                                    <hr>
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            Cash Sales
+                                        </div>
+                                        <div class="col-6" >
+                                            </div>
+                                            ${formatRupiah(sales.toString(), "Rp. ")}
+                                    </div> 
+                                    <hr>
+        
+                                    <div class="row">
+                                        <div class="col-6">
+                                            Expected Ending Cash
+                                        </div>
+                                        <div class="col-6" >
+                                            ${formatRupiah(expectedEndingCash.toString(), "Rp. ")}
+                                        </div>
+                                    </div> 
+                                    <hr>
+                                    
+                                </div>
+    
+                            </div>
+                            
+                        `
+                        $('#container-shift').append(html);
+                    }else{
+                        let totalPerCategory = 0;
+                        let html = `
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h5>${item.name}</h5>
+                                    <hr>
+                                    
+                                ${item.payment.map(function(itemPayment) {                                   
+                                    let total = 0;
+                                    soldItem += itemPayment.transactions.length;
+                                    itemPayment.transactions.forEach(function(transactionPaymentItem){
+                                        total += transactionPaymentItem.total;
+                                        totalPerCategory += transactionPaymentItem.total;
+                                    })
+                                    return `<div class="row">
+                                                <div class="col-6">
+                                                    ${itemPayment.name}
+                                                </div>
+                                                <div class="col-6" >
+                                                    ${formatRupiah(total.toString(), "Rp. ")}
+                                                </div>
+                                            </div> 
+                                                <hr>`;
+                                }).join('')}
+    
+                                <div class="row">
+                                    <div class="col-6">
+                                        Expected ${item.name} Payment
+                                    </div>
+                                    <div class="col-6" >
+                                        ${formatRupiah(totalPerCategory.toString(), "Rp. ")}
+                                    </div>
+                                </div> 
+                                <hr>
+                                    
+                                </div>
+    
+                            </div>
+                            
+                        `;
+
+
+                        $('#container-shift').append(html);
+                        $('#txt-sold-items').text(soldItem);
+                    }
+
+
+                });
+                console.log(listCategoryPayment);
+            }
 
             $('.nav-link').on('click', function(e) {
                 e.preventDefault();
@@ -2318,12 +2450,17 @@
                         })
                         .catch(error => console.error('Error:', error));
                 } else {
-                    backBtnSetting.style.setProperty('display', 'flex', 'important');
-                    let titleSectionSetting = $(this).data('name-section');
+                    if (dataPattyCash.length < 1) {
+                        handleAjax("{{ route('kasir/viewPattyCash') }}").excute();
+                    } else {
+                        backBtnSetting.style.setProperty('display', 'flex', 'important');
+                        let titleSectionSetting = $(this).data('name-section');
 
-                    $('#setting-section > .child-section').addClass('d-none'); // Hide all views
-                    $(`#${targetView}`).removeClass('d-none'); // Show selected view
-                    $('#text-title-setting').text(`${titleSectionSetting}`)
+                        $('#setting-section > .child-section').addClass('d-none'); // Hide all views
+                        $(`#${targetView}`).removeClass('d-none'); // Show selected view
+                        $('#text-title-setting').text(`${titleSectionSetting}`)
+                    }
+
                 }
             });
 
@@ -2348,11 +2485,60 @@
                     this.value = formatRupiah(this.value, "Rp. ");
                     if (this.value == '' || this.value == 'Rp. ') {
                         $('#container-difference').addClass('d-none');
+                        $('#difference').text(formatRupiah("0", "Rp. "));
                     } else {
                         $('#container-difference').removeClass('d-none');
+
+                        let hargaInput = this.value.match(/\d+/g).join('');
+                        let different =  hargaInput - finalExpectedEndingCash;
+                        console.log(different)
+                        if(different > 0){
+                            $('#difference').text(formatRupiah(different.toString(), "Rp. "));
+                        }else{
+                            $('#difference').text("-" + formatRupiah(different.toString(), "Rp. "));
+                        }
                     }
                 })
             }
+
+            $('#btnEndCurrentShift').on('click', function() {
+                let endingCash = $('#endingCash').val();
+                if (endingCash != '') {
+                    let dataForm = new FormData();
+                    dataForm.append('endingCash', endingCash);
+                    // Log dataForm untuk memastikan data yang dikirim  
+                    for (var pair of dataForm.entries()) {
+                        console.log(pair[0] + ', ' + pair[1]);
+                    }
+                    $.ajax({
+                        url: '{{ route('kasir/closePattyCash') }}',
+                        method: "POST",
+                        data: dataForm,
+                        contentType: false,
+                        processData: false,
+                        beforeSend: function() {
+                            showLoader();
+                        },
+                        success: (res) => {
+                            showToast(res.status, res.message);
+                            location.reload();
+
+                        },
+                        complete: function() {
+                            showLoader(false);
+                        },
+                        error: function(err) {
+                            const errors = err.responseJSON?.errors
+
+                            showToast('error', err.responseJSON?.message)
+                        }
+                    })
+
+                } else {
+                    showToast('error', "Masukan Ending Cash")
+                }
+
+            });
 
 
         });

@@ -15,4 +15,8 @@ class CategoryPayment extends Model
     public function payment(){
         return $this->hasMany(Payment::class, 'category_payment_id', 'id');
     }
+
+    public function transactions(){
+        return $this->hasMany(Transaction::class, 'category_payment_id', 'id');
+    }
 }
