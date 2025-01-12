@@ -279,8 +279,24 @@
 
                             tmpModifierData.push(modifier);
                         })
+
+                        let tmpPromoData = [];
+                        item.promo.forEach(function(itemPromo, indexPromo){
+                            let promo = {
+                                id: itemPromo.id,
+                                nama: itemPromo.name,
+                                purchaseRequirement: itemPromo.purchase_requirement,
+                                type: itemPromo.type
+                            }
+
+                            tmpPromoData.push(promo);
+                        });
+
+                        dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
+                        
+                        let resultCatatan = item.catatan == '' ? '' : item.catatan;
                         dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
-                        dataForm.append('catatan[]', item.catatan);
+                        dataForm.append('catatan[]', resultCatatan);
                     }
                 } else {
                     dataForm.append('idProduct[]', item.idProduct);
@@ -309,9 +325,216 @@
 
                         tmpModifierData.push(modifier);
                     })
+
+                    let tmpPromoData = [];
+                    item.promo.forEach(function(itemPromo, indexPromo){
+                        let promo = {
+                            id: itemPromo.id,
+                            nama: itemPromo.name,
+                            purchaseRequirement: itemPromo.purchase_requirement,
+                            type: itemPromo.type
+                        }
+
+                        tmpPromoData.push(promo);
+                    });
+
+                    let resultCatatan = item.catatan == '' ? '' : item.catatan;
+                    dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
                     dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
-                    dataForm.append('catatan[]', item.catatan);
+                    dataForm.append('catatan[]', resultCatatan);
                 }
+
+                dataForm.append('reward[]', false);
+            });
+
+            listItemPromo.forEach(function(item, index){
+                if (item.quantity > 1) {
+                    for (let x = 0; x < item.quantity; x++) {
+                        dataForm.append('idProduct[]', item.idProduct);
+                        let tmpDiscountData = [];
+                        item.diskon.forEach(function(discountItem, indexItem) {
+                            let discount = {
+                                id: discountItem.id,
+                                nama: discountItem.nama,
+                                result: discountItem.result,
+                                satuan: discountItem.satuan,
+                                value: discountItem.value
+                            }
+
+                            tmpDiscountData.push(discount);
+                        });
+
+                        dataForm.append('discount_id[]', JSON.stringify(tmpDiscountData));
+
+                        let tmpModifierData = [];
+                        item.modifier.forEach(function(itemModifier, indexModifier) {
+                            let modifier = {
+                                id: itemModifier.id,
+                                nama: itemModifier.nama,
+                                harga: itemModifier.harga
+                            }
+
+                            tmpModifierData.push(modifier);
+                        })
+
+                        let tmpPromoData = [];
+                        item.promo.forEach(function(itemPromo, indexPromo){
+                            let promo = {
+                                id: itemPromo.id,
+                                nama: itemPromo.name,
+                                purchaseRequirement: itemPromo.purchase_requirement,
+                                type: itemPromo.type
+                            }
+
+                            tmpPromoData.push(promo);
+                        });
+
+                        let resultCatatan = item.catatan == '' ? '' : item.catatan;
+                        dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
+                        dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
+                        dataForm.append('catatan[]', resultCatatan);
+                    }
+                } else {
+                    dataForm.append('idProduct[]', item.idProduct);
+                    let tmpDiscountData = [];
+                    item.diskon.forEach(function(discountItem, indexItem) {
+                        let discount = {
+                            id: discountItem.id,
+                            nama: discountItem.nama,
+                            result: discountItem.result,
+                            satuan: discountItem.satuan,
+                            value: discountItem.value
+                        }
+
+                        tmpDiscountData.push(discount);
+                    });
+
+                    dataForm.append('discount_id[]', JSON.stringify(tmpDiscountData));
+
+                    let tmpModifierData = [];
+                    item.modifier.forEach(function(itemModifier, indexModifier) {
+                        let modifier = {
+                            id: itemModifier.id,
+                            nama: itemModifier.nama,
+                            harga: itemModifier.harga
+                        }
+
+                        tmpModifierData.push(modifier);
+                    })
+
+                    let tmpPromoData = [];
+                        item.promo.forEach(function(itemPromo, indexPromo){
+                            let promo = {
+                                id: itemPromo.id,
+                                nama: itemPromo.name,
+                                purchaseRequirement: itemPromo.purchase_requirement,
+                                type: itemPromo.type
+                            }
+
+                            tmpPromoData.push(promo);
+                        });
+
+                    let resultCatatan = item.catatan == '' ? '' : item.catatan;
+                    dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
+                    dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
+                    dataForm.append('catatan[]', resultCatatan);
+                }
+                dataForm.append('reward[]', false);
+            });
+
+            listRewardItem.forEach(function(item, index){
+                if (item.quantity > 1) {
+                    for (let x = 0; x < item.quantity; x++) {
+                        dataForm.append('idProduct[]', item.idProduct);
+                        let tmpDiscountData = [];
+                        item.diskon.forEach(function(discountItem, indexItem) {
+                            let discount = {
+                                id: discountItem.id,
+                                nama: discountItem.nama,
+                                result: discountItem.result,
+                                satuan: discountItem.satuan,
+                                value: discountItem.value
+                            }
+
+                            tmpDiscountData.push(discount);
+                        });
+
+                        dataForm.append('discount_id[]', JSON.stringify(tmpDiscountData));
+
+                        let tmpModifierData = [];
+                        item.modifier.forEach(function(itemModifier, indexModifier) {
+                            let modifier = {
+                                id: itemModifier.id,
+                                nama: itemModifier.nama,
+                                harga: itemModifier.harga
+                            }
+
+                            tmpModifierData.push(modifier);
+                        })
+
+                        let tmpPromoData = [];
+                        item.promo.forEach(function(itemPromo, indexPromo){
+                            let promo = {
+                                id: itemPromo.id,
+                                nama: itemPromo.name,
+                                purchaseRequirement: itemPromo.purchase_requirement,
+                                type: itemPromo.type
+                            }
+
+                            tmpPromoData.push(promo);
+                        });
+
+                        let resultCatatan = item.catatan == '' ? '' : item.catatan;
+                        dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
+                        dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
+                        dataForm.append('catatan[]', resultCatatan);
+                    }
+                } else {
+                    dataForm.append('idProduct[]', item.idProduct);
+                    let tmpDiscountData = [];
+                    item.diskon.forEach(function(discountItem, indexItem) {
+                        let discount = {
+                            id: discountItem.id,
+                            nama: discountItem.nama,
+                            result: discountItem.result,
+                            satuan: discountItem.satuan,
+                            value: discountItem.value
+                        }
+
+                        tmpDiscountData.push(discount);
+                    });
+
+                    dataForm.append('discount_id[]', JSON.stringify(tmpDiscountData));
+
+                    let tmpModifierData = [];
+                    item.modifier.forEach(function(itemModifier, indexModifier) {
+                        let modifier = {
+                            id: itemModifier.id,
+                            nama: itemModifier.nama,
+                            harga: itemModifier.harga
+                        }
+
+                        tmpModifierData.push(modifier);
+                    })
+
+                    let tmpPromoData = [];
+                        item.promo.forEach(function(itemPromo, indexPromo){
+                            let promo = {
+                                id: itemPromo.id,
+                                nama: itemPromo.name,
+                                purchaseRequirement: itemPromo.purchase_requirement,
+                                type: itemPromo.type
+                            }
+
+                            tmpPromoData.push(promo);
+                        });
+
+                    let resultCatatan = item.catatan == '' ? '' : item.catatan;
+                    dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
+                    dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
+                    dataForm.append('catatan[]', resultCatatan);
+                }
+                dataForm.append('reward[]', true);
             });
 
             let idCustomer = (idPelanggan == '') ? null : idPelanggan;
@@ -328,7 +551,7 @@
             dataForm.append('rounding', amountRounding);
             dataForm.append('tanda_rounding', tandaRounding);
             dataForm.append('customer_id', idCustomer);
-            dataForm.append('catatan', valueCatatan);
+            dataForm.append('catatan_transaksi', valueCatatan);
 
             $.ajax({
                 url: "{{ route('kasir/bayar') }}",

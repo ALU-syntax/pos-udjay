@@ -975,11 +975,15 @@
             // Hapus semua elemen (produk dan modifier) dengan data-tmpId terkait dari DOM
             $(`[data-tmpId="${dataTmpId}"]`).remove();
 
+            //hapus reward jika ada
+            $(`[data-itempromoid=${dataTmpId}]`).remove();
+
             // Hapus elemen row dari DOM
             row.remove();
 
             listItem = listItem.filter(item => item.tmpId !== dataTmpId);
             listItemPromo = listItemPromo.filter(item => item.tmpId !== dataTmpId);
+            listRewardItem = listRewardItem.filter(item => item.idItemPromo !== dataTmpId);
 
             syncItemCart()
         }
@@ -1078,14 +1082,13 @@
 
 
             promoCocok = [];
+            let queueId = generateRandomID();
             let dataItemCart = JSON.parse(JSON.stringify(listItem));
-            console.log(dataItemCart);
             filteredPromo.forEach(function(item, index) {
                 let productRequirement = JSON.parse(item.product_requirement);
                 let tmpCondition = [];
 
                 if (item.purchase_requirement == "any_item") {
-                    console.log("masok any_item")
                     productRequirement.forEach(function(listConditionProduct, listConditionIndex) {
                         listConditionProduct.forEach(function(listProduct, listProductIndex) {
                             let idProduct = listProduct[0];
@@ -1227,58 +1230,11 @@
                     checkCondition = !tmpCondition.includes(false)
                 }
 
-                console.log(checkCondition);
                 if (checkCondition) {
-                    // tmpCondition.forEach(function(itemCondition, indexCondition) {
-                    //     listItem.forEach(function(itemList, indexList) {
-                    //         if (itemCondition.tmpId == itemList.tmpId) {
-                    //             if (parseInt(itemList.quantity) - parseInt(itemCondition.qty) <=
-                    //                 0) {
-                    //                 itemList.promo.push(item);
-                    //                 listItemPromo.push(itemList);
-
-                    //                 listItem.splice(indexList, 1);
-                    //             } else {
-                    //                 let sisaQtyItem = parseInt(itemList.quantity) - parseInt(
-                    //                     itemCondition.qty);
-                    //                 itemList.quantity = sisaQtyItem;
-                    //                 itemList.resultTotal = itemList.harga * sisaQtyItem;
-                    //                 itemList.diskon.forEach(function(diskonItem) {
-                    //                     let valueDiskon = diskonItem.value * itemList
-                    //                         .harga / 100;
-                    //                     diskonItem.result = valueDiskon;
-                    //                 });
-
-                    //                 let randomId = generateRandomID();
-                    //                 let dataItemPromo = JSON.parse(JSON.stringify(itemList));
-                    //                 dataItemPromo.tmpId = randomId
-                    //                 let resultTotalBaru = dataItemPromo.harga * parseInt(
-                    //                     itemCondition.qty);
-                    //                 dataItemPromo.quantity = parseInt(itemCondition.qty);
-                    //                 dataItemPromo.resultTotal = resultTotalBaru;
-                    //                 dataItemPromo.promo = item;
-
-                    //                 dataItemPromo.diskon.forEach(function(diskonItem) {
-                    //                     let valueDiskon = diskonItem.value *
-                    //                         dataItemPromo
-                    //                         .harga / 100;
-                    //                     diskonItem.result = valueDiskon;
-
-                    //                     diskonItem.tmpIdProduct = randomId;
-                    //                 });
-
-                    //                 listItemPromo.push(dataItemPromo);
-                    //             }
-                    //         }
-                    //     });
-
-                    // });
-
                     promoCocok.push(item)
                 }
             });
 
-            console.log(promoCocok)
 
             if (promoCocok.length > 1) {
                 // diisi pilih promo salah satu
@@ -1287,8 +1243,6 @@
                 let checkAvailablePromo = true;
 
                 while (checkAvailablePromo) {
-                    // checkAvailablePromo = false;
-                    console.log(promoCocok);
                     promoCocok.forEach(function(item, index) {
                         let productRequirement = JSON.parse(item.product_requirement);
                         let tmpCondition = [];
@@ -1352,7 +1306,7 @@
                                                     return;
                                                 } else {
                                                     if ((qtyProduct - itemProduct
-                                                        .quantity) <=
+                                                            .quantity) <=
                                                         0) {
                                                         let data = {
                                                             tmpId: itemProduct.tmpId,
@@ -1443,19 +1397,19 @@
                         }
 
                         if (checkCondition) {
-                            
                             tmpCondition.forEach(function(itemCondition, indexCondition) {
                                 listItem.forEach(function(itemList, indexList) {
                                     if (itemCondition.tmpId == itemList.tmpId) {
-                                        if (parseInt(itemList.quantity) - parseInt(itemCondition.qty) <=
+                                        if (parseInt(itemList.quantity) - parseInt(itemCondition
+                                                .qty) <=
                                             0) {
                                             itemList.promo.push(item);
-                                            if(item.type == "discount"){
+                                            itemList.queueItemId = queueId;
+                                            if (item.type == "discount") {
                                                 let reward = JSON.parse(item.reward);
-                                                console.log(reward)
 
-                                                let satuanReward = Object.keys(reward[0])[0];   
-                                                if(satuanReward == "rupiah"){
+                                                let satuanReward = Object.keys(reward[0])[0];
+                                                if (satuanReward == "rupiah") {
                                                     let amount = reward[0].rupiah;
 
                                                     let dataDiscount = {
@@ -1467,9 +1421,10 @@
                                                     }
 
                                                     listDiskonAllItem.push(dataDiscount)
-                                                }else{
+                                                } else {
                                                     let amount = reward[0].percent;
-                                                    let resultDiskon = (itemList.harga * parseInt(itemList.quantity) *  amount) / 100;
+                                                    let resultDiskon = (itemList.harga * parseInt(
+                                                        itemList.quantity) * amount) / 100;
                                                     console.log(itemList)
                                                     let dataDiscountPercent = {
                                                         id: "promo",
@@ -1492,31 +1447,34 @@
 
                                             listItem.splice(indexList, 1);
                                         } else {
-                                            let sisaQtyItem = parseInt(itemList.quantity) - parseInt(
-                                                itemCondition.qty);
+                                            let sisaQtyItem = parseInt(itemList.quantity) -
+                                                parseInt(
+                                                    itemCondition.qty);
                                             itemList.quantity = sisaQtyItem;
                                             itemList.resultTotal = itemList.harga * sisaQtyItem;
                                             itemList.diskon.forEach(function(diskonItem) {
-                                                let valueDiskon = diskonItem.value * itemList
+                                                let valueDiskon = diskonItem.value *
+                                                    itemList
                                                     .harga / 100;
                                                 diskonItem.result = valueDiskon;
                                             });
 
                                             let randomId = generateRandomID();
-                                            let dataItemPromo = JSON.parse(JSON.stringify(itemList));
+                                            let dataItemPromo = JSON.parse(JSON.stringify(
+                                                itemList));
                                             dataItemPromo.tmpId = randomId
                                             let resultTotalBaru = dataItemPromo.harga * parseInt(
                                                 itemCondition.qty);
                                             dataItemPromo.quantity = parseInt(itemCondition.qty);
                                             dataItemPromo.resultTotal = resultTotalBaru;
                                             dataItemPromo.promo.push(item);
+                                            dataItemPromo.queueItemId = queueId;
 
-                                            if(item.type == "discount"){
+                                            if (item.type == "discount") {
                                                 let reward = JSON.parse(item.reward);
-                                                console.log(reward)
 
-                                                let satuanReward = Object.keys(reward[0])[0];   
-                                                if(satuanReward == "rupiah"){
+                                                let satuanReward = Object.keys(reward[0])[0];
+                                                if (satuanReward == "rupiah") {
                                                     let amount = reward[0].rupiah;
 
                                                     let dataDiscount = {
@@ -1528,9 +1486,10 @@
                                                     }
 
                                                     listDiskonAllItem.push(dataDiscount)
-                                                }else{
+                                                } else {
                                                     let amount = reward[0].percent;
-                                                    let resultDiskon = (itemList.harga * parseInt(itemList.quantity) *  amount) / 100;
+                                                    let resultDiskon = (itemList.harga * parseInt(
+                                                        itemList.quantity) * amount) / 100;
                                                     console.log(itemList)
                                                     let dataDiscountPercent = {
                                                         id: "promo",
@@ -1541,8 +1500,6 @@
                                                         value: amount,
                                                         idPromo: item.id,
                                                     }
-
-                                                    console.log(dataDiscountPercent)
 
                                                     dataItemPromo.diskon.push(dataDiscountPercent);
                                                 }
@@ -1555,20 +1512,28 @@
 
                             });
 
-                        }else{
+                        } else {
                             checkAvailablePromo = false;
                         }
                     });
 
-                    if(promoCocok.length == 0 ){
-                        checkAvailablePromo = false;   
+                    if (promoCocok.length == 0) {
+                        checkAvailablePromo = false;
+                    }
+                }
+
+                if(promoCocok[0]){
+                    if (promoCocok[0].type == "free-item") {
+                        console.log("masok free-item")
+                        let baseUrl = `{{ route('kasir/chooseRewardItem', [':queue', ':idpromo']) }}`;
+                        let url = baseUrl.replace(':queue', queueId).replace(':idpromo', promoCocok[0].id);
+    
+                        handleAjax(url, false).excute();
                     }
                 }
             }
 
         }
-
-
 
         function syncItemCart() {
             syncPromo();
@@ -1677,6 +1642,55 @@
                 if (item.catatan != '') {
                     html += `
                         <div class="row mb-0 mt-0 catatan" data-tmpId="${item.tmpId}">
+                            <div class="col-6 text-muted">${item.catatan}</div>
+                        </div>
+                        `;
+                }
+
+                $('#order-list').append(html);
+            })
+
+            listRewardItem.forEach(function(item, index) {
+                let html = `
+                <div class="row mb-0 mt-2" data-itempromoid=${item.idItemPromo}>
+                    <div class="col-6">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
+                    <div class="col-5 text-end">Free</div>
+                </div>
+                `;
+
+                if (item.namaProduct != item.namaVariant) {
+                    html += `
+                    <div class="row mb-0 mt-0 reward" data-itempromoid=${item.idItemPromo}">
+                        <div class="col-6 text-muted">${item.namaVariant}</div>
+                    </div>
+                        `
+                }
+
+                if (item.modifier.length > 0) {
+                    item.modifier.forEach(function(itemModifier, indexModifier) {
+                        let hargaModifierKaliQuantity = itemModifier.harga * parseInt(item.quantity);
+                        html += `
+                        <div class="row mb-0 mt-0 modifier" data-itempromoid=${item.idItemPromo}">
+                            <div class="col-6 text-muted">${itemModifier.nama}</div>
+                            <div class="col-5 text-end text-muted">${formatRupiah(hargaModifierKaliQuantity.toString(), "Rp. ")}</div>
+                        </div>
+                        `;
+                    });
+                }
+
+                if (item.promo.length > 0) {
+                    item.promo.forEach(function(itemPromo, indexPromo) {
+                        html += `
+                        <div class="row mb-0 mt-0 promo" data-itempromoid=${item.idItemPromo}">
+                            <div class="col-6 text-muted">${itemPromo.name}</div>
+                        </div>
+                        `;
+                    });
+                }
+
+                if (item.catatan != '') {
+                    html += `
+                        <div class="row mb-0 mt-0 catatan" data-itempromoid=${item.idItemPromo}">
                             <div class="col-6 text-muted">${item.catatan}</div>
                         </div>
                         `;
@@ -2031,70 +2045,6 @@
             }
         }
 
-        // function handleAjax(url, primaryModal = true, method = 'get') {
-
-        //     function onSuccess(cb, runDefault = true) {
-        //         this.onSuccessCallback = cb
-        //         this.runDefaultSuccessCallback = runDefault
-
-        //         return this
-        //     }
-
-
-        //     function excute() {
-        //         console.log(url)
-        //         $.ajax({
-        //             url,
-        //             method,
-        //             beforeSend: function() {
-        //                 // showLoading()
-        //             },
-        //             complete: function() {
-        //                 // hideLoading(false)
-        //             },
-        //             success: (res) => {
-        //                 if (this.runDefaultSuccessCallback) {
-        //                     if (primaryModal) {
-        //                         const modal = $('#itemModal');
-        //                         modal.html(res);
-        //                         modal.modal({
-        //                             backdrop: 'static', // Mengatur agar modal tidak dapat ditutup dengan klik di luar
-        //                             keyboard: false // Opsional: Nonaktifkan tombol ESC untuk menutup modal
-        //                         });
-        //                         modal.modal('show');
-        //                     } else {
-        //                         const modal = $('#promoModal');
-        //                         modal.html(res);
-        //                         modal.modal({
-        //                             backdrop: 'static', // Mengatur agar modal tidak dapat ditutup dengan klik di luar
-        //                             keyboard: false // Opsional: Nonaktifkan tombol ESC untuk menutup modal
-        //                         });
-        //                         modal.modal('show');
-        //                     }
-
-        //                 }
-
-        //                 this.onSuccessCallback && this.onSuccessCallback(res)
-        //             },
-        //             error: function(err) {
-        //                 console.log(err);
-        //             }
-        //         });
-        //     }
-
-        //     function onError(cb) {
-        //         this.onErrorCallback = cb
-        //         return this
-        //     }
-
-        //     return {
-        //         excute,
-        //         onSuccess,
-        //         runDefaultSuccessCallback: true
-        //     }
-
-        // }
-
         function handleAjax(url, primaryModal = true, method = 'get') {
             return {
                 excute: function() {
@@ -2284,7 +2234,7 @@
 
             // Handle charge button
             $('#bayar').on('click', function() {
-                if (listItem.length > 0) {
+                if (listItem.length > 0 || listItemPromo.length > 0) {
                     handleAjax("{{ route('kasir/choosePayment') }}").excute();
                 } else {
                     iziToast['error']({

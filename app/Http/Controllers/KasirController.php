@@ -152,14 +152,14 @@ class KasirController extends Controller
             'category_payment_id' => $request->category_payment_id,
             'nama_tipe_pembayaran' => $request->nama_tipe_pembayaran,
             'change' => $request->change,
-            'tipe_pembayaran' => $request->tipe_pembayaran,
+            'tipe_pembayaran' => $request->tipe_pembayaran == 'null' ? null : $request->tipe_pembayaran,
             'total_pajak' => $request->total_pajak,
             'total_modifier' => $hargaModifier,
             'total_diskon' => $totalNominalDiskon,
             'diskon_all_item' => $request->diskonAllItems,
             'rounding_amount' => $request->rounding,
             'tanda_rounding' => $request->tanda_rounding,
-            'catatan' => $request->catatan
+            'catatan' => $request->catatan_transaksi,
         ];
 
         $transaction = Transaction::create($dataTransaction);
@@ -170,8 +170,10 @@ class KasirController extends Controller
                 'product_id' => $idProduct,
                 'discount_id' => $request->discount_id[$x],
                 'modifier_id' => $request->modifier_id[$x],
+                'promo_id' => $request->promo_id[$x],
+                'reward_item' => $request->reward[$x] == "true" ? true : false,
                 'transaction_id' => $transaction->id,
-                'catatan' => $request->catatan[$x]
+                'catatan' => isset($request->catatan[$x]) ? $request->catatan[$x] : '',
             ];
 
             TransactionItem::insert($dataProduct);
@@ -202,5 +204,41 @@ class KasirController extends Controller
 
     public function choosePromo(){
         return view('layouts.kasir.modal-choose-promo');
+    }
+
+    public function chooseRewardItem($queue, $idpromo){
+        $promo = Promo::find($idpromo);
+
+        $reward = [];
+        $dataReward = json_decode($promo->reward);
+        foreach($dataReward as $listReward){
+            $tmpReward = [];
+            foreach($listReward as $data){
+                $product = Product::with(relations: ['variants'])->where('id', $data[0])->get();
+                $dataProduct = [$product[0]->id, $product[0]->name];
+                $variant = [];
+                if($data[1] == 0){
+                    foreach($product[0]->variants as $dataVariant){
+                        $tmpVariant = [$dataVariant->id, $dataVariant->name];
+                        array_push($variant, $tmpVariant);
+                    }
+                }else{
+                    $itemVariant = VariantProduct::find($data[1]); 
+                    $tmpVariant = [$itemVariant->id, $itemVariant->name];
+
+                    array_push($variant, $tmpVariant);
+                }
+                $resultData = [$dataProduct, $variant, $data[2]];
+
+                array_push($tmpReward, $resultData);
+            }
+            array_push($reward, $tmpReward);
+        }
+
+        return view('layouts.kasir.modal-choose-reward-promo', [
+            'queue' => $queue,
+            'dataPromo' => $promo,
+            'reward' => $reward
+        ]);
     }
 }
