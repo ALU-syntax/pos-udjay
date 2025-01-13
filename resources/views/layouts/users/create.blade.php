@@ -138,10 +138,12 @@
                 if (selectedRoleName === 'kasir') {
                     // Tampilkan select single dan tambahkan atribut name
                     $('#selectOutletSingle').removeClass('d-none');
+                    $('#outlet_id_multiple').removeAttr('required');
                     $('#outlet_id_single').attr('name', 'outlet_id[]');
                 } else {
                     // Tampilkan select multiple dan tambahkan atribut name
                     $('#selectOutletMultiple').removeClass('d-none');
+                    $('#outlet_id_multiple').attr('required');
                     $('#outlet_id_multiple').attr('name', 'outlet_id[]');
                 }
             });

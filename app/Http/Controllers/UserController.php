@@ -28,7 +28,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
 
-        // dd($request->outlet_id);
+        // dd($request);
         $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'required|unique:users,username',
