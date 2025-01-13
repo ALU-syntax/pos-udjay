@@ -239,14 +239,14 @@
 
                                     <div id="setting-view" class="card mt-2 child-section">
                                         <div class="card-body">
-                                            <div class="card list-setting" id="shift" data-target="shift-menu"
+                                            <div class="card list-setting bg-primary" id="shift" data-target="shift-menu"
                                                 data-name-section="Shift">
                                                 <div class="card-body">
-                                                    <h4>Shift</h4>
+                                                    <h4 class="text-white">Shift</h4>
                                                 </div>
                                             </div>
-                                            <div class="card list-setting" data-target="logout">
-                                                <div class="card-body bg-danger">
+                                            <div class="bg-danger card list-setting mt-2" data-target="logout">
+                                                <div class="card-body ">
                                                     <h4 class="text-white">Keluar</h4>
                                                 </div>
                                             </div>
@@ -2155,8 +2155,8 @@
                                             Cash Sales
                                         </div>
                                         <div class="col-6" >
-                                            </div>
                                             ${formatRupiah(sales.toString(), "Rp. ")}
+                                        </div>
                                     </div> 
                                     <hr>
         

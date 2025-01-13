@@ -300,6 +300,7 @@
                         });
 
                         dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
+                        dataForm.append('sales_type[]', item.salesType);
 
                         let resultCatatan = item.catatan == '' ? '' : item.catatan;
                         dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
@@ -345,6 +346,8 @@
 
                         tmpPromoData.push(promo);
                     });
+
+                    dataForm.append('sales_type[]', item.salesType);
 
                     let resultCatatan = item.catatan == '' ? '' : item.catatan;
                     dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
@@ -397,6 +400,8 @@
                             tmpPromoData.push(promo);
                         });
 
+
+                        dataForm.append('sales_type[]', item.salesType);
                         let resultCatatan = item.catatan == '' ? '' : item.catatan;
                         dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
                         dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
@@ -442,6 +447,8 @@
 
                         tmpPromoData.push(promo);
                     });
+
+                    dataForm.append('sales_type[]', item.salesType);
 
                     let resultCatatan = item.catatan == '' ? '' : item.catatan;
                     dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
@@ -493,6 +500,8 @@
                             tmpPromoData.push(promo);
                         });
 
+                        dataForm.append('sales_type[]', item.salesType);
+
                         let resultCatatan = item.catatan == '' ? '' : item.catatan;
                         dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
                         dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
@@ -538,6 +547,8 @@
 
                         tmpPromoData.push(promo);
                     });
+
+                    dataForm.append('sales_type[]', item.salesType);
 
                     let resultCatatan = item.catatan == '' ? '' : item.catatan;
                     dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));

@@ -15,7 +15,13 @@
         height: 1.5rem;
     }
 
-    .btn-variant{
+    .btn-variant {
+        height: 140px;
+        font-size: 18px;
+        color: black;
+    }
+
+    .btn-sales-type {
         height: 140px;
         font-size: 18px;
         color: black;
@@ -25,7 +31,8 @@
 <div class="modal-dialog modal-dialog-centered modal-xl" id="productModal">
     <div class="modal-content">
         <div class="modal-header">
-            <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal" id="btnBatal">Batal</button>
+            <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal"
+                id="btnBatal">Batal</button>
             <h5 class="modal-title mx-auto text-center" id="productModalLabel">
                 <strong id="namaProduct">{{ $data->name }}</strong><br>
                 <span id="totalHargaItem">{{ formatRupiah($variants[0]->harga, 'Rp. ') }}</span>
@@ -43,13 +50,15 @@
                     <div class="row mt-1">
                         @foreach ($variants as $item)
                             <div class="form-group col-md-6 mt-2">
-                                <button class="btn w-100 btn-xl btn-outline-primary btn-variant" data-variantid="{{$item->id}}" data-harga="{{$item->harga}}" data-name="{{$item->name}}">
+                                <button class="btn w-100 btn-xl btn-outline-primary btn-variant"
+                                    data-variantid="{{ $item->id }}" data-harga="{{ $item->harga }}"
+                                    data-name="{{ $item->name }}">
                                     <div class="row">
                                         <div class="col-6 me-auto">
-                                            {{$item->name}} ({{$item->stok}})
+                                            {{ $item->name }} ({{ $item->stok }})
                                         </div>
                                         <div class="col-4 ms-auto pe-0">
-                                            {{formatRupiah($item->harga, 'Rp. ')}}
+                                            {{ formatRupiah($item->harga, 'Rp. ') }}
                                         </div>
                                     </div>
                                 </button>
@@ -64,19 +73,44 @@
                 <label for="quantity" class="form-label"><strong>Jumlah</strong></label>
                 <div class="row">
                     <div class="col-6">
-                        <input type="number" class="form-control text-center form-control-lg" id="quantity" style="height: 100px; font-size: 35px;"
-                            value="1" min="1" readonly>
+                        <input type="number" class="form-control text-center form-control-lg" id="quantity"
+                            style="height: 100px; font-size: 35px;" value="1" min="1" readonly>
                     </div>
                     <div class="col-3 ">
-                        <button class="text-center align-items-center justify-content-center btn btn-lg btn-outline-primary w-100 d-flex" id="decrement" style="height: 100px; font-size:45px;"><span
+                        <button
+                            class="text-center align-items-center justify-content-center btn btn-lg btn-outline-primary w-100 d-flex"
+                            id="decrement" style="height: 100px; font-size:45px;"><span
                                 class="text-center"></span>-</button>
                     </div>
                     <div class="col-3">
-                        <button class="text-center btn btn-lg align-items-center justify-content-center btn-outline-primary w-100 d-flex" id="increment" style="height: 100px; font-size:45px;"><span
+                        <button
+                            class="text-center btn btn-lg align-items-center justify-content-center btn-outline-primary w-100 d-flex"
+                            id="increment" style="height: 100px; font-size:45px;"><span
                                 class="text-center">+</span></button>
                     </div>
                 </div>
             </div>
+
+            
+                <div class="mb-4">
+                    <label for="quantity" class="form-label"><strong>Sales Type</strong></label> |
+                    <small>Single Choose</small>
+                    <div class="row mt-1">
+                        @foreach ($salesType as $item)
+                            <div class="form-group col-md-6 mt-2">
+                                <button class="btn w-100 btn-xl btn-outline-primary btn-sales-type"
+                                    data-salestypeid="{{ $item->id }}"
+                                    data-salestypename="{{ $item->name }}">
+                                    <div class="row">
+                                        <div class="col-6 me-auto">
+                                            <h5>{{ $item->name }} </h5>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
 
             @foreach ($modifiers as $dataModifier)
                 <div class="mb-4">
@@ -153,9 +187,19 @@
     var angkaSaja = stringHarga.replace(/[^\d]/g, "");
     var dataHarga = parseInt(angkaSaja, 10);
     var hargaAkhir = dataHarga;
-    
-    var variantId = '{{$variants[0]->id}}';
-    var variantName = '{{$variants[0]->name}}';
+
+    var variantId = '{{ $variants[0]->id }}';
+    var variantName = '{{ $variants[0]->name }}';
+
+    var dataSalesType = @json($salesType);
+    console.log(dataSalesType);
+    if(dataSalesType.length > 1){
+        var salesTypeId = dataSalesType[0].id;
+        var salesTypeName = dataSalesType[0].name;
+    }else{
+        var salesTypeId = null;
+        var salesTypeName = null;
+    }
 
     var listModifierId = [];
     var listModifierName = [];
@@ -193,6 +237,7 @@
     }
 
     $('.btn-variant').first().addClass('active');
+    $('.btn-sales-type').first().addClass('active');
 
     // Fungsi untuk menghitung total diskon
     function hitungDiskon() {
@@ -214,12 +259,12 @@
                 if (type === "rupiah") {
                     totalDiskon += amount;
                 } else if (type === "percent") {
-                    if(listModifierHarga.length > 0){
-                        listModifierHarga.forEach(function(itemModifier){
+                    if (listModifierHarga.length > 0) {
+                        listModifierHarga.forEach(function(itemModifier) {
                             let hargaBarang = dataHarga + itemModifier;
                             totalDiskon += (hargaBarang * parseInt(quantity.value) * amount) / 100;
                         });
-                    }else{
+                    } else {
                         totalDiskon += (dataHarga * parseInt(quantity.value) * amount) / 100;
                     }
                 }
@@ -290,7 +335,7 @@
         })
     })
 
-    $('.btn-variant').off().on('click', function(){
+    $('.btn-variant').off().on('click', function() {
         $('.btn-variant').removeClass('active');
         $(this).addClass('active')
 
@@ -301,6 +346,19 @@
         variantId = id;
         dataHarga = harga;
         variantName = name;
+
+        updateHargaAkhir();
+    });
+
+    $('.btn-sales-type').off().on('click', function() {
+        $('.btn-sales-type').removeClass('active');
+        $(this).addClass('active')
+
+        let id = $(this).data('salestypeid');
+        let name = $(this).data('name');
+
+        salesTypeId = id;
+        salesTypeName = name;
 
         updateHargaAkhir();
     });
@@ -382,6 +440,7 @@
             harga: dataHargaProduct,
             quantity: quantityProduct,
             diskon: dataDiskon,
+            salesType: salesTypeId,
             promo: [],
             idVariant: variantId,
             namaVariant: variantName,

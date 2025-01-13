@@ -11,6 +11,7 @@ use App\Models\Outlets;
 use App\Models\PettyCash;
 use App\Models\Product;
 use App\Models\Promo;
+use App\Models\SalesType;
 use App\Models\Taxes;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
@@ -83,12 +84,16 @@ class KasirController extends Controller
 
         $modifiers = $product->modifierGroups()->with(['modifier'])->get();
 
+        $salesType = SalesType::where('outlet_id', $dataOutletUser[0])->where('status', true)->get();
+        // dd($salesType);
+
         $discounts = Discount::where('type_input', 'fixed')->where('outlet_id', $dataOutletUser[0])->where('satuan', 'percent')->get();
         return view('layouts.kasir.kasir-modal-product', [
             'data' => $dataProduct,
             'variants' => $dataVariants,
             'discounts' => $discounts,
-            'modifiers' => $modifiers
+            'modifiers' => $modifiers,
+            'salesType' => $salesType,
         ]);
     }
 
@@ -148,7 +153,6 @@ class KasirController extends Controller
         $outletUser = auth()->user()->outlet_id;
         $dataOutletUser = json_decode($outletUser);
 
-        // dd($request);
 
         $hargaModifier = 0;
         foreach ($request->modifier_id as $modifier) {
@@ -212,6 +216,7 @@ class KasirController extends Controller
                 'reward_item' => $request->reward[$x] == "true" ? true : false,
                 'transaction_id' => $transaction->id,
                 'catatan' => isset($request->catatan[$x]) ? $request->catatan[$x] : '',
+                'sales_type_id' => ($request->sales_type[$x] == 'null' || $request->sales_type[$x] == 'undefined') ?  null : $request->sales_type[$x],
             ];
 
             TransactionItem::insert($dataProduct);

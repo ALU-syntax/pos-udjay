@@ -18,6 +18,7 @@ return new class extends Migration
             $table->json('discount_id')->nullable();
             $table->json('modifier_id')->nullable();
             $table->json('promo_id')->nullable();
+            $table->unsignedBigInteger('sales_type_id')->nullable();
             // $table->integer('quantity');
             $table->unsignedBigInteger('transaction_id');
             $table->string('catatan')->nullable();
@@ -25,6 +26,7 @@ return new class extends Migration
             $table->timestamps();
             $table->boolean('reward_item')->default(false);
 
+            $table->foreign('sales_type_id')->references('id')->on('sales_types')->onDelete('CASCADE');
             $table->foreign('product_id')->references('id')->on('products')->onDelete('CASCADE');
             $table->foreign('transaction_id')->references('id')->on('transactions')->onDelete('CASCADE');
         });
