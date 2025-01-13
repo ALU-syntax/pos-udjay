@@ -91,7 +91,8 @@
                 </div>
             </div>
 
-            
+
+            @if (count($salesType) > 1)
                 <div class="mb-4">
                     <label for="quantity" class="form-label"><strong>Sales Type</strong></label> |
                     <small>Single Choose</small>
@@ -99,8 +100,7 @@
                         @foreach ($salesType as $item)
                             <div class="form-group col-md-6 mt-2">
                                 <button class="btn w-100 btn-xl btn-outline-primary btn-sales-type"
-                                    data-salestypeid="{{ $item->id }}"
-                                    data-salestypename="{{ $item->name }}">
+                                    data-salestypeid="{{ $item->id }}" data-salestypename="{{ $item->name }}">
                                     <div class="row">
                                         <div class="col-6 me-auto">
                                             <h5>{{ $item->name }} </h5>
@@ -111,6 +111,7 @@
                         @endforeach
                     </div>
                 </div>
+            @endif
 
             @foreach ($modifiers as $dataModifier)
                 <div class="mb-4">
@@ -193,10 +194,10 @@
 
     var dataSalesType = @json($salesType);
     console.log(dataSalesType);
-    if(dataSalesType.length > 1){
+    if (dataSalesType.length > 1) {
         var salesTypeId = dataSalesType[0].id;
         var salesTypeName = dataSalesType[0].name;
-    }else{
+    } else {
         var salesTypeId = null;
         var salesTypeName = null;
     }
