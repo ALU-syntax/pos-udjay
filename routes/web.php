@@ -13,6 +13,7 @@ use App\Http\Controllers\ModifiersController;
 use App\Http\Controllers\OutletController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\PilihanController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PromoController;
@@ -175,7 +176,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [ModifiersController::class, 'index'])->name('modifiers');
             Route::get('/create', [ModifiersController::class, 'create'])->name('modifiers/create');
             Route::get('/edit/{modifier}', [ModifiersController::class, 'edit'])->name('modifiers/edit');
-            ROute::get('/getProduct/{modifierGroup}', [ModifiersController::class, 'getProduct'])->name('modifiers/getProduct');
+            Route::get('/getProduct/{modifierGroup}', [ModifiersController::class, 'getProduct'])->name('modifiers/getProduct');
             Route::post('/store', [ModifiersController::class, 'store'])->name("modifiers/store");
             Route::put('/update/{modifier}', [ModifiersController::class, 'update'])->name('modifiers/update');
             Route::put('/update/product/{modifier}', [ModifiersController::class, 'updateProductModifier'])->name('modifiers/update-product');
@@ -209,6 +210,17 @@ Route::middleware('auth')->group(function () {
             Route::put('/update/{salesType}', [SalesTypeController::class, 'update'])->name('salestype/update');
             Route::put('/updateStatus/{id}', [SalesTypeController::class, 'updateStatus'])->name('salestype/update-status'); 
             Route::delete('/destroy/{salesType}', [SalesTypeController::class,'destroy'])->name('salestype/destroy');
+        });
+
+        Route::prefix('pilihan')->group(function(){
+            Route::get('/', [PilihanController::class, 'index'])->name('pilihan');
+            Route::get('/create', [PilihanController::class, 'create'])->name('pilihan/create');
+            Route::get('/edit/{pilihan}', [PilihanController::class, 'edit'])->name('pilihan/edit');
+            Route::get('/getProduct/{pilihanGroup}', [PilihanController::class, 'getProduct'])->name('pilihan/getProduct');
+            Route::post('/store', [PilihanController::class, 'store'])->name("pilihan/store");
+            Route::put('/update/{pilihan}', [PilihanController::class, 'update'])->name('pilihan/update');
+            Route::put('/update/product/{pilihan}', [PilihanController::class, 'updateProductPilihan'])->name('pilihan/update-product');
+            Route::delete('/destroy/{pilihan}', [PilihanController::class, 'destroy'])->name('pilihan/destroy');
         });
     });
 

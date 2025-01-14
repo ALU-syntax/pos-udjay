@@ -46,6 +46,9 @@ class MenuSeeder extends Seeder
 
         $sm = $mm->subMenus()->create(['name' => 'Sales Type', 'url' => $mm->url . '/salestype', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Pilihan Item', 'url' => $mm->url . '/pilihan', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
         // END LIBRARY
 
         // EMPLOYEES
