@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('password');
             $table->integer('deleted')->default(0);
             $table->json("outlet_id");
+            $table->string('pin')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

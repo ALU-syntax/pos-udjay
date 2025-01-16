@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\Partai;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -28,7 +29,6 @@ class UserController extends Controller
     public function store(Request $request)
     {
 
-        // dd($request);
         $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'required|unique:users,username',
@@ -37,6 +37,7 @@ class UserController extends Controller
             'status' => 'required',
             'role' => 'required',
             'outlet_id' => 'required',
+            'pin' => 'nullable|string|size:6',
         ], [
             'username.unique' => 'username sudah terdaftar'
         ]);
@@ -48,7 +49,8 @@ class UserController extends Controller
             'email' => $request->email,
             'status' => $request->status,
             'role' => $request->role,
-            'outlet_id' => json_encode($request->outlet_id)
+            'outlet_id' => json_encode($request->outlet_id),
+            'pin' => Hash::make($request->pin)
         ]);
 
         $role = Role::find($request->role);

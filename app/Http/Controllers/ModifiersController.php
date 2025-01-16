@@ -166,6 +166,7 @@ class ModifiersController extends Controller
 
     public function updateProductModifier(Request $request, ModifierGroup $modifier)
     {
+        dd($request);
         $data = [
             'product_id' => json_encode($request->products)
         ];

@@ -36,7 +36,8 @@ class User extends Authenticatable
         'kelurahan_id',
         'role2',
         'deleted',
-        'outlet_id'
+        'outlet_id',
+        'pin'
     ];
 
     /**

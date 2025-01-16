@@ -57,6 +57,18 @@
                         @enderror
                     </div>
                     <div class="col-md-6">
+                        <label class="form-label" for="pin">Pin</label>
+                        <input type="number" name="pin" id="pin" class="form-control" placeholder="Masukan pin" maxlength="6"
+                            value="{{ old('pin') }}" required
+                            style="@if ($errors->has('pin')) border-color:red; @endif" 
+                            oninput="this.value = this.value.slice(0, 6)"/>
+                        @error('pin')
+                            <div style="color:red">
+                                {{ $message }}
+                            </div>
+                        @enderror
+                    </div>
+                    <div class="col-md-6">
                         <label for="status" class="form-label">Status</label>
                         <select id="status" name="status" class="dropdown-custom selectpicker w-100"
                             data-style="btn-default" style="@if ($errors->has('status')) border-color:red; @endif">

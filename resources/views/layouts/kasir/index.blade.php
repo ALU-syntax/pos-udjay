@@ -857,8 +857,8 @@
                                 id="btninvoice"><i class="fab fa-whatsapp me-1"></i>Kirim Invoice</a> --}}
                             <a href="javascript:void(0);" class="btn btn-secondary me-4" target="_blank"
                                 id="btnstruk"><i class="fas fa-receipt me-1"></i>Cetak Struk</a>
-                            {{-- <a href="javascript:void(0);" class="btn btn-secondary" target="_blank"
-                                id="btnSettingDevice"><i class="fas fa-gear me-1"></i>Setting Device</a> --}}
+                            <a href="javascript:void(0);" class="btn btn-secondary" target="_blank"
+                                id="btnSettingDevice"><i class="fas fa-gear me-1"></i>Setting Device</a>
                         </div>
                     </center>
                 </div>

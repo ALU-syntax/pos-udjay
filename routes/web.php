@@ -251,4 +251,7 @@ Route::middleware('auth')->group(function () {
     
 });
 
+Route::get('/api-struk', [KasirController::class, 'apiStruk'])->name('kasir/apiStruk');
+Route::get('/get-akun/{outlet_id}', [OutletController::class, 'getAkun']); 
+
 require __DIR__.'/auth.php';

@@ -68,6 +68,29 @@
                 </div>
             @endif
 
+            {{-- Pilihan --}}
+            @foreach ($pilihans as $dataPilihan)
+                <div class="mb-4">
+                    <label for="quantity" class="form-label"><strong>{{ $dataPilihan->name }}</strong></label> |
+                    <small>Choose Many</small>
+                    <div class="row mt-1">
+                        @foreach ($dataPilihan->pilihans as $data)
+                            <div class="col-md-6 mt-2">
+                                <div class="custom-card">
+                                    <span>{{ $data->name }}
+                                        <small>{{ '(' . formatRupiah($data->harga, 'Rp. ') . ')' }}</small></span>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input form-pilihan form-switch"
+                                            value="{{ $data->harga }}" type="checkbox" data-id="{{ $data->id }}"
+                                            data-name="{{ $data->name }}">
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+
             <!-- Jumlah -->
             <div class="mb-4">
                 <label for="quantity" class="form-label"><strong>Jumlah</strong></label>
@@ -182,6 +205,7 @@
     var hargaTag = document.getElementById('totalHargaItem');
     var diskonCheckboxes = document.querySelectorAll('.form-diskon');
     var modifierCheckboxes = document.querySelectorAll('.form-modifier');
+    var pilihanCheckboxes = document.querySelectorAll('.form-pilihan');
 
     // Ambil harga asli dari produk
     var stringHarga = hargaTag.textContent;
@@ -205,6 +229,10 @@
     var listModifierId = [];
     var listModifierName = [];
     var listModifierHarga = [];
+
+    var listPilihanId = [];
+    var listPilihanName = [];
+    var listPilihanHarga = [];
 
     var listDiskonId = [];
     var listDiskonName = [];
@@ -235,6 +263,31 @@
         listModifierHarga = totalModifierHarga;
         listModifierName = totalModifierName;
         return totalModifier;
+    }
+
+    function hitungPilihan(){
+        let totalPilihan = 0;
+        let totalPilihanId = [];
+        let totalPilihanName = [];
+        let totalPilihanHarga = [];
+
+        pilihanCheckboxes.forEach((pilihan) => {
+            if(pilihan.checked){
+                const amount = parseFloat(pilihan.value);
+                const id = pilihan.dataset.id;
+                const name = pilihan.dataset.name;
+                totalPilihan += parseInt(quantity.value) * amount;
+
+                totalPilihanId.push(id);
+                totalPilihanHarga.push(amount);
+                totalPilihanName.push(name);
+            }
+        });
+
+        listPilihanId = totalPilihanId;
+        listPilihanHarga = totalPilihanHarga;
+        listPilihanName = totalPilihanName;
+        return totalPilihan;
     }
 
     $('.btn-variant').first().addClass('active');
@@ -290,11 +343,12 @@
     function updateHargaAkhir() {
         const quantityValue = parseInt(quantity.value);
         const totalModifier = hitungModifier();
+        const totalPilihan = hitungPilihan();
         const totalDiskon = hitungDiskon();
 
         // Hitung harga akhir setelah diskon
         const hargaSebelumDiskon = dataHarga * quantityValue;
-        hargaAkhir = hargaSebelumDiskon - totalDiskon + totalModifier;
+        hargaAkhir = hargaSebelumDiskon - totalDiskon + totalModifier + totalPilihan;
 
         // Pastikan harga tidak negatif
 
@@ -333,7 +387,13 @@
     modifierCheckboxes.forEach((checkbox) => {
         checkbox.addEventListener('change', () => {
             updateHargaAkhir();
-        })
+        });
+    })
+
+    pilihanCheckboxes.forEach((pilihan) => {
+        pilihan.addEventListener('change', () => {
+            updateHargaAkhir();
+        });
     })
 
     $('.btn-variant').off().on('click', function() {
@@ -395,6 +455,23 @@
 
             dataModifier.push(tmpDataModifier);
         }
+        
+        // Pilihan
+        let dataPilihanId = listPilihanId;
+        let dataPilihanNama = listPilihanName;
+        let dataPilihanHarga = listPilihanHarga;
+
+        let dataPilihan = [];
+        for(let i = 0; i < dataPilihanId.length; i++){
+            let tmpDataPilihan = {
+                tmpIdProduct: tmpRandomId,
+                id: dataPilihanId[i],
+                nama: dataPilihanNama[i],
+                harga: dataPilihanHarga[i],
+            }
+
+            dataPilihan.push(tmpDataPilihan);
+        }
 
         // DISKON
         let dataDiskonId = listDiskonId;
@@ -446,6 +523,7 @@
             idVariant: variantId,
             namaVariant: variantName,
             modifier: dataModifier,
+            pilihan: dataPilihan,
             catatan: catatan,
             resultTotal: totalHargaProduct, //result
         }

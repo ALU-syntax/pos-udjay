@@ -6,6 +6,7 @@ use App\DataTables\PilihPelangganDataTable;
 use App\Models\Category;
 use App\Models\CategoryPayment;
 use App\Models\Checkout;
+use App\Models\Customer;
 use App\Models\Discount;
 use App\Models\Outlets;
 use App\Models\PettyCash;
@@ -85,6 +86,8 @@ class KasirController extends Controller
         $modifiers = $product->modifierGroups()->with(['modifier'])->get();
 
         $salesType = SalesType::where('outlet_id', $dataOutletUser[0])->where('status', true)->get();
+
+        $pilihan = $product->pilihanGroups()->with(['pilihans'])->get();
         // dd($salesType);
 
         $discounts = Discount::where('type_input', 'fixed')->where('outlet_id', $dataOutletUser[0])->where('satuan', 'percent')->get();
@@ -94,6 +97,7 @@ class KasirController extends Controller
             'discounts' => $discounts,
             'modifiers' => $modifiers,
             'salesType' => $salesType,
+            'pilihans' => $pilihan,
         ]);
     }
 
@@ -184,6 +188,12 @@ class KasirController extends Controller
 
         $customerId = $request->customer_id == 'null' ? null : $request->customer_id;
 
+        if($customerId){
+            $customer = Customer::find($customerId);
+        }else{
+            $customer = '';
+        }
+
         $dataTransaction = [
             'outlet_id' => $dataOutletUser[0],
             'user_id' => auth()->user()->id,
@@ -224,12 +234,12 @@ class KasirController extends Controller
 
         $respond = [
             'status'    => 'success',
-            // 'id'        => base64_encode($id_penjualan),
+            'id'        => $transaction->id,
             // 'waLink'    => $whatsappLink,
             'change'     => $request->change,
             'metode'    => $request->nama_tipe_pembayaran,
-            'message' => "Transaksi Berhasil"
-            // 'pelanggan' => $pelanggan,
+            'message' => "Transaksi Berhasil",
+            'pelanggan' => $customer,
         ];
         // return responseSuccess(false, "Transaksi Berhasil");
         return response()->json($respond);
@@ -302,6 +312,17 @@ class KasirController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => "Shift Berhasil ditutup",
+        ]);
+    }
+
+    public function apiStruk($id){
+        $transaction = Transaction::find($id);
+        $transactionItems = TransactionItem::where('transaction_id', $id);
+
+        return response()->json([
+            'status' => true,
+            'transaction' => $transaction,
+            'transactionItems' => $transactionItems
         ]);
     }
 }

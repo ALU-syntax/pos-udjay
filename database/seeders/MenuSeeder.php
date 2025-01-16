@@ -70,7 +70,7 @@ class MenuSeeder extends Seeder
 
         $mm = Menu::firstOrCreate(['url' => 'customer'], ['name' => 'Customer', 'category' => 'CUSTOMER', 'icon' => 'fa-users']);
         $this->attachMenuPermission($mm, null, ['admin']);
-        
+
         // END CUSTOMER MANAGEMENT
 
         //  KONFIGURASI
@@ -98,8 +98,8 @@ class MenuSeeder extends Seeder
         // END KONFIGURASI
 
         //KASIR
-            $mm = Menu::firstOrCreate(['url' => 'kasir'], ['name' => 'Kasir', 'category' => 'KASIR', 'icon' => 'fa-money-bill']);
-            $this->attachMenuPermission($mm, ['read '], ['admin']);
+        $mm = Menu::firstOrCreate(['url' => 'kasir'], ['name' => 'Kasir', 'category' => 'KASIR', 'icon' => 'fa-money-bill']);
+        $this->attachMenuPermission($mm, ['read '], ['admin']);
         //END KASIR
 
     }

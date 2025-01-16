@@ -22,6 +22,10 @@ class Product extends Model
         return ModifierGroup::whereJsonContains('product_id', strval($this->id));
     }
 
+    public function pilihanGroups(){
+        return PilihanGroup::whereJsonContains('product_id', strval($this->id));
+    }
+
     public function outlet(){
         return $this->belongsTo(Outlets::class, 'outlet_id', 'id');
     }
