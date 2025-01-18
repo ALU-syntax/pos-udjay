@@ -12,6 +12,7 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ModifiersController;
 use App\Http\Controllers\OutletController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PilihanController;
 use App\Http\Controllers\ProductController;
@@ -248,6 +249,16 @@ Route::middleware('auth')->group(function () {
         Route::post('/bayar', [KasirController::class, 'bayar'])->name('kasir/bayar');
     });
 
+    Route::group(['prefix' => 'accounting', 'as' => 'accounting/'], function(){
+        Route::prefix('pengeluaran')->group(function () {
+            Route::get('/', [PengeluaranController::class, 'index'])->name('pengeluaran');
+            Route::get('/create', [PengeluaranController::class, 'create'])->name('pengeluaran/create');
+            Route::get('/edit/{pengeluaran}', [PengeluaranController::class, 'edit'])->name('pengeluaran/edit');
+            Route::post('/store', [PengeluaranController::class, 'store'])->name('pengeluaran/store');
+            Route::put('/update/{pengeluaran}', [PengeluaranController::class, 'update'])->name('pengeluaran/update');
+            Route::delete('/destroy/{pengeluaran}', [PengeluaranController::class, 'destroy'])->name('pengeluaran/destroy');
+        });
+    });
     
 });
 

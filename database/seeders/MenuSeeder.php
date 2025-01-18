@@ -51,6 +51,14 @@ class MenuSeeder extends Seeder
         $this->attachMenuPermission($sm, null, ['admin']);
         // END LIBRARY
 
+        // ACCOUNTING
+        $mm = Menu::firstOrCreate(['url' => 'accounting'], ['name' => 'Accounting', 'category' => 'ACCOUNTING', 'icon' => 'fa-calculator']);
+        $this->attachMenuPermission($mm, null, ['admin']);
+        
+        $sm = $mm->subMenus()->create(['name' => 'Pengeluaran', 'url' => $mm->url . '/pengeluaran', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+        // END ACCOUNTING
+
         // EMPLOYEES
         $mm = Menu::firstOrCreate(['url' => 'employee'], ['name' => 'Employee', 'category' => 'EMPLOYEE', 'icon' => 'fa-user-tie']);
         $this->attachMenuPermission($mm, null, ['admin']);

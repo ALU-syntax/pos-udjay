@@ -30,7 +30,8 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             VariantProductSeeder::class,
             CategoryPaymentSeeder::class,
-            PaymentSeeder::class
+            PaymentSeeder::class,
+            KategoriPengeluaranSeeder::class,
         ]);
 
         // Memanggil ProductFactory

@@ -750,17 +750,19 @@
                                             <div class="col-6 text-end" id="sub-total">Rp 27.000</div>
                                         </div>
 
-                                        <div id="pajak">
-                                        </div>
-
                                         <div class="row mb-2 d-none" id="group-diskon">
                                             <div class="col-6">Diskon:</div>
                                             <div class="col-6 text-end" id="diskon"></div>
                                         </div>
+
+                                        <div id="pajak">
+                                        </div>
+
                                         <div class="row mb-2">
                                             <div class="col-6">Total:</div>
                                             <div class="col-6 text-end" id="total"></div>
                                         </div>
+                                        
                                         <div class="row mb-3 d-none" id="group-rounding">
                                             <div class="col-6" style="color:gray;">Rounding:</div>
                                             <div class="col-6 text-end" id="rounding"></div>
@@ -1753,6 +1755,10 @@
                 item.modifier.forEach(function(itemModifier, indexModifier) {
                     tmpSubTotal.push(itemModifier.harga);
                 });
+
+                item.diskon.forEach(function(itemDiskon){
+                    tmpSubTotal.push(-itemDiskon.result);
+                });
             });
 
             listItemPromo.forEach(function(item, index) {
@@ -1762,6 +1768,8 @@
                     tmpSubTotal.push(itemModifier.harga);
                 });
             });
+
+            console.log(tmpSubTotal);
 
             var subTotal = tmpSubTotal.reduce(function(acc, curr) {
                 return acc + curr;

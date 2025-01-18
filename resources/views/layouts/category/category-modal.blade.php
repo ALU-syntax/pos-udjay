@@ -1,4 +1,4 @@
-<x-modal title="Tambah Category" description="Tambah Category Untuk Product" action={{$action}} method="POST">
+<x-modal title="Tambah Category" description="Tambah Category Untuk Product" action="{{$action}}" method="POST">
     @if ($data->id)
         @method('put')
     @endif
