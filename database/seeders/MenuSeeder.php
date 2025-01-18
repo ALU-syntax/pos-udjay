@@ -57,6 +57,9 @@ class MenuSeeder extends Seeder
         
         $sm = $mm->subMenus()->create(['name' => 'Pengeluaran', 'url' => $mm->url . '/pengeluaran', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Pendapatan Diluar Transaksi', 'url' => $mm->url . '/pemasukan', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
         // END ACCOUNTING
 
         // EMPLOYEES

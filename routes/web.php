@@ -12,6 +12,7 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ModifiersController;
 use App\Http\Controllers\OutletController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PemasukanController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PilihanController;
@@ -257,6 +258,15 @@ Route::middleware('auth')->group(function () {
             Route::post('/store', [PengeluaranController::class, 'store'])->name('pengeluaran/store');
             Route::put('/update/{pengeluaran}', [PengeluaranController::class, 'update'])->name('pengeluaran/update');
             Route::delete('/destroy/{pengeluaran}', [PengeluaranController::class, 'destroy'])->name('pengeluaran/destroy');
+        });
+
+        Route::prefix('pemasukan')->group(function () {
+            Route::get('/', [PemasukanController::class, 'index'])->name('pemasukan');
+            Route::get('/create', [PemasukanController::class, 'create'])->name('pemasukan/create');
+            Route::get('/edit/{pemasukan}', [PemasukanController::class, 'edit'])->name('pemasukan/edit');
+            Route::post('/store', [PemasukanController::class, 'store'])->name('pemasukan/store');
+            Route::put('/update/{pemasukan}', [PemasukanController::class, 'update'])->name('pemasukan/update');
+            Route::delete('/destroy/{pemasukan}', [PemasukanController::class, 'destroy'])->name('pemasukan/destroy');
         });
     });
     
