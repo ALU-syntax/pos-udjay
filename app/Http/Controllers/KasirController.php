@@ -16,9 +16,11 @@ use App\Models\SalesType;
 use App\Models\Taxes;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\User;
 use App\Models\VariantProduct;
 use Illuminate\Http\Request;
 
+use Jenssegers\Agent\Agent;
 use function PHPUnit\Framework\isNull;
 
 class KasirController extends Controller
@@ -222,6 +224,7 @@ class KasirController extends Controller
                 'product_id' => $idProduct,
                 'discount_id' => $request->discount_id[$x],
                 'modifier_id' => $request->modifier_id[$x],
+                'variant_id' => $request->idVariant[$x],
                 'promo_id' => $request->promo_id[$x],
                 'reward_item' => $request->reward[$x] == "true" ? true : false,
                 'transaction_id' => $transaction->id,
@@ -316,13 +319,33 @@ class KasirController extends Controller
     }
 
     public function apiStruk($id){
-        $transaction = Transaction::find($id);
-        $transactionItems = TransactionItem::where('transaction_id', $id);
+        $transaction = Transaction::with(['outlet', 'user'])->find($id);
+        $transactionPajak = $transaction->pajak();
+
+        $transaction['tax'] = $transactionPajak;
+
+        $transactionItems = TransactionItem::with(['product', 'variant'])->where('transaction_id', $id)->get();
+        foreach($transactionItems as $transactionItem){
+            $tmpModifier = [];
+            $modifierItem = $transactionItem->modifiers();
+            foreach ($modifierItem as $modifier) {  
+                array_push($tmpModifier, $modifier->name);
+            }  
+            $transactionItem['modifier'] = $tmpModifier;
+
+
+        }
+        $user = User::find($transaction->user_id);
+        
+        $agent = new Agent();
+        $device = $agent->device();
 
         return response()->json([
             'status' => true,
             'transaction' => $transaction,
-            'transactionItems' => $transactionItems
+            'transactionItems' => $transactionItems,
+            'user' => $user,
+            'device' => $device,
         ]);
     }
 }

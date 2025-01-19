@@ -42,7 +42,20 @@ class TaxDatatables extends DataTable
      */
     public function query(Taxes $model): QueryBuilder
     {
-        return $model->newQuery();
+        $query = $model->newQuery()->with(['outlets']);
+        if ($this->request()->has('outlet') && $this->request()->get('outlet') != '') {
+            if($this->request()->get('outlet') == 'all'){
+                $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
+            }else{
+                $query->where('outlet_id', $this->request()->get('outlet'));
+            }
+        } elseif($this->request()->has('outlet') && $this->request()->get('outlet') == 'all'){
+            $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
+        }else{
+            $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
+        }
+
+        return $query;
     }
 
     /**

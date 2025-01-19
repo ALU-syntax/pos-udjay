@@ -261,6 +261,7 @@
                 if (item.quantity > 1) {
                     for (let x = 0; x < item.quantity; x++) {
                         dataForm.append('idProduct[]', item.idProduct);
+                        dataForm.append('idVariant[]', item.idVariant);
                         let tmpDiscountData = [];
                         item.diskon.forEach(function(discountItem, indexItem) {
                             let discount = {
@@ -309,6 +310,7 @@
                     }
                 } else {
                     dataForm.append('idProduct[]', item.idProduct);
+                    dataForm.append('idVariant[]', item.idVariant);
                     let tmpDiscountData = [];
                     item.diskon.forEach(function(discountItem, indexItem) {
                         let discount = {
@@ -597,12 +599,16 @@
                         $('#change').text(formatRupiah(res.change.toString(), "Rp. "));
                         $('#metodetrx').text(res.metode);
                         // $('#btnstruk').attr('href', '/kasir/struk/' + res.id);
-                        // $('#btnstruk').attr('href', 'intent://cetak-struk?id=' + res
-                        //     .id);
-                        // $('#btnSettingDevice').attr('href',
-                        //     'intent://list-bluetooth-device');
-                        // console.log("intent://cetak-struk?id=" + res.id)
+                        $('#btnstruk').attr('href', 'intent://cetak-struk?id=' + res
+                            .id);
+                        $('#btnSettingDevice').attr('href',
+                            'intent://list-bluetooth-device');
+                        console.log("intent://cetak-struk?id=" + res.id)
 
+                        if(window.Android){
+                            // Panggil metode JavaScript Interface dengan ID transaksi  
+                           window.Android.handlePaymentSuccess(res.id);  
+                        }
 
                         // if (res.pelanggan) {
                         //     $('#btninvoice').data('id', res.id)

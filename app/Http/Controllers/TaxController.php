@@ -11,14 +11,16 @@ use Illuminate\Http\Request;
 class TaxController extends Controller
 {
     public function index(TaxDatatables $taxDatatables){
-        return $taxDatatables->render('layouts.tax.index');
+        return $taxDatatables->render('layouts.tax.index',[
+            "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
+        ]);
     }
 
     public function create(){
         return view("layouts.tax.tax-modal", [
             "data" => new Taxes(),
             "action" => route("library/tax/store"),
-            "outlets" => Outlets::all()
+            "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
         ]);
     }
 
@@ -45,7 +47,7 @@ class TaxController extends Controller
         return view('layouts.tax.tax-modal',[
             'data' => $tax,
             'action' => route('library/tax/update', $tax),
-            'outlets' => Outlets::all()
+            "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
         ]);
     }
 

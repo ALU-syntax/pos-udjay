@@ -29,6 +29,7 @@ return new class extends Migration
             $table->foreign('sales_type_id')->references('id')->on('sales_types')->onDelete('CASCADE');
             $table->foreign('product_id')->references('id')->on('products')->onDelete('CASCADE');
             $table->foreign('transaction_id')->references('id')->on('transactions')->onDelete('CASCADE');
+            $table->foreign('variant_id')->references('id')->on('variant_products')->onDelete('CASCADE');
         });
     }
 

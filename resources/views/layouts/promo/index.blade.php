@@ -43,6 +43,7 @@
         {!! $dataTable->scripts() !!}
 
         <script>
+            $("#filter-outlet").select2();
             var success = "{{ session('success') }}";
             const datatable = 'promodatatables-table';
 

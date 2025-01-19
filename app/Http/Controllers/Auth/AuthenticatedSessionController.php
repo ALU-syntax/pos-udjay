@@ -41,17 +41,19 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         // Mendapatkan pengguna yang sedang login  
-        $user = $request->user();
+        // $user = $request->user();
 
-        // Memeriksa role ID  
-        if ($user->role == 3) {
-            // dd($user);
-            // Jika role ID adalah 3, arahkan ke '/kasir'  
-            return redirect()->intended('/kasir');
-        }
+        // // Memeriksa role ID  
+        // if ($user->role == 3) {
+        //     // dd($user);
+        //     // Jika role ID adalah 3, arahkan ke '/kasir'  
+        //     return redirect()->intended('/kasir');
+        // }
+
+        return redirect()->intended('/kasir');
 
         // Jika bukan, arahkan ke '/'  
-        return redirect()->intended(RouteServiceProvider::HOME);
+        // return redirect()->intended(RouteServiceProvider::HOME);
     }
 
     /**

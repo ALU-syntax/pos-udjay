@@ -7,6 +7,15 @@
 
         <div class="card mt-4">
             <div class="card-header d-flex justify-content-end" >
+                <div class="col-4">
+                    <select id="filter-outlet" class="form-control select2">
+                        <option value="all" selected>-- Semua Outlet --</option>
+                        @foreach ($outlets as $outlet)
+                            <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
                 @can('create library/tax')
                     <a href="{{ route('library/tax/create') }}" type="button" class="btn btn-lg btn-primary btn-round ms-auto action"><i
                             class="fa fa-plus"></i> Tambah Tax</a>
@@ -24,6 +33,7 @@
     @push('js')
         {!! $dataTable->scripts() !!}
         <script>
+            $("#filter-outlet").select2();
             var success = "{{ session('success') }}";
             const datatable = 'taxdatatables-table';
 

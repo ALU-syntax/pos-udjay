@@ -20,4 +20,26 @@ class Transaction extends Model
         return $this->belongsTo(Payment::class, 'tipe_pembayaran', 'id');
     }
 
+    public function outlet(){
+        return $this->belongsTo(Outlets::class, 'outlet_id', 'id');
+    }
+
+    public function user(){
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function pajak(){
+        $pajakIds = json_decode($this->total_pajak, true);
+
+        if(!empty($pajakIds)){
+            $tmpIdPajak = [];
+            foreach($pajakIds as $data){
+                array_push($tmpIdPajak, $data['id']);
+            }
+            return Taxes::whereIn('id', $tmpIdPajak)->get();
+        }
+
+        return collect([]);
+    }
+
 }

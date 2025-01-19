@@ -16,6 +16,7 @@ use App\Http\Controllers\PemasukanController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PilihanController;
+use App\Http\Controllers\PiutangController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PromoController;
@@ -268,11 +269,20 @@ Route::middleware('auth')->group(function () {
             Route::put('/update/{pemasukan}', [PemasukanController::class, 'update'])->name('pemasukan/update');
             Route::delete('/destroy/{pemasukan}', [PemasukanController::class, 'destroy'])->name('pemasukan/destroy');
         });
+
+        Route::prefix('piutang')->group(function () {
+            Route::get('/', [PiutangController::class, 'index'])->name('piutang');
+            Route::get('/create', [PiutangController::class, 'create'])->name('piutang/create');
+            // Route::get('/edit/{pemasukan}', [PemasukanController::class, 'edit'])->name('pemasukan/edit');
+            Route::post('/store', [PiutangController::class, 'store'])->name('piutang/store');
+            // Route::put('/update/{pemasukan}', [PemasukanController::class, 'update'])->name('pemasukan/update');
+            // Route::delete('/destroy/{pemasukan}', [PemasukanController::class, 'destroy'])->name('pemasukan/destroy');
+        });
     });
     
 });
 
-Route::get('/api-struk', [KasirController::class, 'apiStruk'])->name('kasir/apiStruk');
+Route::get('/api-struk/{id}', [KasirController::class, 'apiStruk'])->name('kasir/apiStruk');
 Route::get('/get-akun/{outlet_id}', [OutletController::class, 'getAkun']); 
 
 require __DIR__.'/auth.php';
