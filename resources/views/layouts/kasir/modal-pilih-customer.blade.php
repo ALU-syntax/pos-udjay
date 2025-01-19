@@ -1,4 +1,4 @@
-<div class="modal-dialog modal-dialog-centered modal-lg" id="pilihCustomer">
+<div class="modal-dialog  modal-xl" id="pilihCustomer">
     <div class="modal-content">
         <div class="modal-header">
             <button type="button" class="btn btn-outline-secondary" id="btn-batal-pilih-customer"

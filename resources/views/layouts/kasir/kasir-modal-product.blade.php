@@ -4,8 +4,8 @@
         border-radius: 8px;
         padding: 10px 15px;
         display: flex;
-        height: 140px;
-        font-size: 18px;
+        height: 100px;
+        font-size: 12px;
         align-items: center;
         justify-content: space-between;
     }
@@ -16,19 +16,19 @@
     }
 
     .btn-variant {
-        height: 140px;
-        font-size: 18px;
+        height: 100px;
+        font-size: 12px;
         color: black;
     }
 
     .btn-sales-type {
-        height: 140px;
-        font-size: 18px;
+        height: 100px;
+        font-size: 12px;
         color: black;
     }
 </style>
 
-<div class="modal-dialog modal-dialog-centered modal-xl" id="productModal">
+<div class="modal-dialog modal-xl" id="productModal">
     <div class="modal-content">
         <div class="modal-header">
             <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal"
@@ -49,7 +49,7 @@
                     <small>Single Choose</small>
                     <div class="row mt-1">
                         @foreach ($variants as $item)
-                            <div class="form-group col-md-6 mt-2">
+                            <div class="form-group col-6 mt-2">
                                 <button class="btn w-100 btn-xl btn-outline-primary btn-variant"
                                     data-variantid="{{ $item->id }}" data-harga="{{ $item->harga }}"
                                     data-name="{{ $item->name }}">
@@ -75,7 +75,7 @@
                     <small>Choose Many</small>
                     <div class="row mt-1">
                         @foreach ($dataPilihan->pilihans as $data)
-                            <div class="col-md-6 mt-2">
+                            <div class="col-6 mt-2">
                                 <div class="custom-card">
                                     <span>{{ $data->name }}
                                         <small>{{ '(' . formatRupiah($data->harga, 'Rp. ') . ')' }}</small></span>
@@ -97,18 +97,18 @@
                 <div class="row">
                     <div class="col-6">
                         <input type="number" class="form-control text-center form-control-lg" id="quantity"
-                            style="height: 100px; font-size: 35px;" value="1" min="1" readonly>
+                            style="height: 75px; font-size: 17px;" value="1" min="1" readonly>
                     </div>
-                    <div class="col-3 ">
+                    <div class="col-3">
                         <button
                             class="text-center align-items-center justify-content-center btn btn-lg btn-outline-primary w-100 d-flex"
-                            id="decrement" style="height: 100px; font-size:45px;"><span
+                            id="decrement" style="height: 75px; font-size:25px;"><span
                                 class="text-center"></span>-</button>
                     </div>
                     <div class="col-3">
                         <button
                             class="text-center btn btn-lg align-items-center justify-content-center btn-outline-primary w-100 d-flex"
-                            id="increment" style="height: 100px; font-size:45px;"><span
+                            id="increment" style="height: 75px; font-size:25px;"><span
                                 class="text-center">+</span></button>
                     </div>
                 </div>
@@ -126,7 +126,7 @@
                                     data-salestypeid="{{ $item->id }}" data-salestypename="{{ $item->name }}">
                                     <div class="row">
                                         <div class="col-6 me-auto">
-                                            <h5>{{ $item->name }} </h5>
+                                            {{ $item->name }}
                                         </div>
                                     </div>
                                 </button>
@@ -191,7 +191,7 @@
             <!-- Catatan -->
             <div class="mb-4 mt-2">
                 <label for="note" class="form-label"><strong>Catatan</strong></label>
-                <textarea style="height: 150px;" class="form-control" id="catatan" rows="3"></textarea>
+                <textarea style="height: 220px;" class="form-control" id="catatan" rows="3"></textarea>
             </div>
         </div>
     </div>

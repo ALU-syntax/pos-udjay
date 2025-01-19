@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf_token" content="{{ csrf_token() }}">
-    <title>POS System with Div and jQuery</title>
+    <title>UDJAYA POS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
         integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -57,12 +57,12 @@
         }
 
         .bottom-nav-li {
-            height: 80px
+            height: 55px
         }
 
         .icon-box {
-            width: 100px;
-            height: 100px;
+            width: 60px;
+            height: 60px;
             margin: 10px;
             background-color: #d3d3d3;
             /* Warna latar belakang */
@@ -125,9 +125,9 @@
         }
 
         .calculator-btn {
-            height: 130px;
-            font-size: 40px;
-            width: 114% !important;
+            height: 100px;
+            font-size: 25px;
+            width: 100% !important;
         }
 
         .calculator-row {
@@ -135,14 +135,14 @@
         }
 
         .calculator-btn-footer {
-            height: 130px;
-            font-size: 40px;
-            width: 106% !important;
+            height: 100px;
+            font-size: 25px;
+            width: 100% !important;
         }
 
         .screen {
-            height: 100px;
-            font-size: 36px;
+            height: 90px;
+            font-size: 30px;
             background-color: #f8f9fa;
             text-align: right;
             padding-right: 10px;
@@ -155,7 +155,7 @@
         }
 
         .list-setting {
-            height: 75px;
+            height: 60px;
         }
 
         .card.list-setting {
@@ -222,7 +222,7 @@
         <!-- Main Content -->
         <div id="content-area" class="flex-grow-1">
             <div class="row">
-                <div class="col-8">
+                <div class="col-7">
                     <!-- All Items Section -->
                     <div id="setting" class="content-section">
                         <div class="row vh-100">
@@ -242,12 +242,12 @@
                                             <div class="card list-setting bg-primary" id="shift" data-target="shift-menu"
                                                 data-name-section="Shift">
                                                 <div class="card-body">
-                                                    <h4 class="text-white">Shift</h4>
+                                                    <h5 class="text-white">Shift</h5>
                                                 </div>
                                             </div>
                                             <div class="bg-danger card list-setting mt-2" data-target="logout">
                                                 <div class="card-body ">
-                                                    <h4 class="text-white">Keluar</h4>
+                                                    <h5 class="text-white">Keluar</h5>
                                                 </div>
                                             </div>
                                         </div>
@@ -713,7 +713,7 @@
                 </div>
 
                 <!-- Order Section -->
-                <div class="col-4 p-3">
+                <div class="col-5 p-3">
                     <div class="order-section">
                         <div class="row">
                             {{-- <div class="col-3">
@@ -799,32 +799,32 @@
         <!-- Bottom Navigation -->
         <ul class="nav nav-pills nav-fill fixed-bottom bg-light">
             <li class="nav-item-small ">
-                <a class="nav-link bottom-nav-li" data-target="#setting" href="#">
+                <a class="nav-link bottom-nav-li pb-1" data-target="#setting" href="#">
                     <div class="contianer mt-2">
-                        <i class="fa-solid fa-list" style="font-size: 40px;"></i>
+                        <i class="fa-solid fa-list" style="font-size: 26px;"></i>
                     </div>
                 </a>
             </li>
             <li class="nav-item ">
-                <a class="nav-link active bottom-nav-li" data-target="#favorite" href="#">
+                <a class="nav-link active bottom-nav-li pb-1" data-target="#favorite" href="#">
                     <div class="container">
-                        <i class="fa-solid fa-star" style="font-size: 40px;"></i>
+                        <i class="fa-solid fa-star" style="font-size: 26px;"></i>
                     </div>
                     Favorites
                 </a>
             </li>
             <li class="nav-item ">
-                <a class="nav-link bottom-nav-li" data-target="#library" href="#">
+                <a class="nav-link bottom-nav-li pb-1" data-target="#library" href="#">
                     <div class="container">
-                        <i class="fa-solid fa-table-list" style="font-size: 40px;"></i>
+                        <i class="fa-solid fa-table-list" style="font-size: 26px;"></i>
                     </div>
                     Library
                 </a>
             </li>
             <li class="nav-item ">
-                <a class="nav-link bottom-nav-li" data-target="#custom" href="#">
+                <a class="nav-link bottom-nav-li pb-1" data-target="#custom" href="#">
                     <div class="container">
-                        <i class="fa-solid fa-calculator" style="font-size: 40px;"></i>
+                        <i class="fa-solid fa-calculator" style="font-size: 26px;"></i>
                     </div>
                     Custom
                 </a>
@@ -2068,9 +2068,11 @@
                             url,
                             method,
                             beforeSend: function() {
+                                showLoader();
                                 // showLoading()  
                             },
                             complete: function() {
+                                showLoader(false);
                                 // hideLoading(false)  
                             },
                             success: (res) => {
