@@ -34,20 +34,12 @@ class ModifiersController extends Controller
             'option_name' => 'required|array',
             'price' => 'required|array',
             'stok' => 'nullable|array',
-            'required' => 'nullable',
-            'max' => 'nullable|integer',
-            'min' => 'nullable|integer',
             'outlet_id' => 'required|array'
         ]);
-
-        $required = $validatedData['required'] === "true";
 
         foreach ($validatedData['outlet_id'] as $outlet) {
             $dataModifierGroup = [
                 "name" => $validatedData['name'],
-                'required' => $required,
-                'max_selected' => $validatedData['max'],
-                'min_selected' => $required ? $validatedData['min'] : null,
                 'outlet_id' => $outlet
             ];
 
@@ -97,19 +89,11 @@ class ModifiersController extends Controller
             'id_modifier' => 'required',
             'price' => 'required|array',
             'stok' => 'nullable|array',
-            'required' => 'nullable',
-            'max' => 'nullable|integer',
-            'min' => 'nullable|integer',
             'outlet_id' => 'required'
         ]);
 
-        $required = $validateData['required'] === "true";
-
         $dataModifierGroupUpdate = [
             'name' => $validateData['name'],
-            'required' => $required,
-            'max_selected' => $validateData['max'],
-            'min_selected' => $validateData['min'],
         ];
 
         $modifier->update($dataModifierGroupUpdate);

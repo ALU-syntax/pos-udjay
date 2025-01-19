@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('amount');
             $table->string('satuan');
             $table->foreignId('outlet_id');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

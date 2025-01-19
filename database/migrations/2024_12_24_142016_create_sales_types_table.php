@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->foreignId('outlet_id');
             $table->boolean('status');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

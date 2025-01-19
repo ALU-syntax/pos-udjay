@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('satuan')->nullable();
             $table->unsignedBigInteger('outlet_id');
             $table->foreign('outlet_id')->references('id')->on('outlets')->onDelete('CASCADE');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

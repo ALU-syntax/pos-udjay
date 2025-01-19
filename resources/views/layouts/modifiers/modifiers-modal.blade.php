@@ -69,50 +69,7 @@
             Row</button>
     </div>
     <hr class="ms-4 me-4 mt-4" style="width: 95%;">
-    <div class="col-md-12">
-        <div class="form-group">
-            <label>Required? <span class="text-danger">*</span> <small><i>belum digunakan, kasus dimoka mode required hanya digunakan untuk pesanan online</i></small></label><br>
-            <div class="d-flex" onload="radioClicked()" onclick="radioClicked()">
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="required" id="requiredYes" value="true"
-                        @if ($data->id) @if ($data->required == 1)checked @endif @endif>
-                    <label class="form-check-label" for="requiredYes">Yes</label> <br>
-                    <small>*Modifier selection is required</small>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="required" id="requiredNo"
-                    @if ($data->id) @if ($data->required == 0)checked @endif @else checked
-                        @endif
-                    value="false">
-                    <label class="form-check-label" for="requiredNo">
-                        No
-                    </label> <br>
-                    <small>*Modifier is optional</small>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-6">
-                <div class="form-group">
-                    <label>Max. number of modified selected</label>
-                    <input id="max" name="max" type="number" class="form-control" min="1"
-                        placeholder="Max" value="{{ $data->max_selected }}" required>
-                </div>
-            </div>
-
-            <div class="col-6">
-                <div class="form-group" id="min-input"
-                @if ($data->id) @if ($data->required == 0) hidden @endif @else hidden
-                    @endif>
-                    <label>Min. number of modified selected</label>
-                    <input id="min" name="min" type="number" class="form-control" min="1"
-                        placeholder="Min" value="{{ $data->min_selected }}">
-                </div>
-            </div>
-        </div>
-    </div>
-    <hr class="ms-4 me-4" style="width: 95%;">
+    
     <div class="col-md-12" @if ($data->id) hidden @endif>
         <div class="form-group">
             <label for="outlet_id">Outlet <span class="text-danger ">*</span></label>
@@ -181,18 +138,6 @@
             <button type="button" class="btn btn-danger btn-sm removeRow">Remove</button>
         </td>
     `;
-
-    // newRow.innerHTML = `
-    //     <td style="padding: 5px !important">
-    //         <input type="text" class="form-control" name="option_name[]" placeholder="Name">
-    //     </td>
-    //     <td style="padding: 5px !important">
-    //         <input type="text" class="form-control harga-modifier" name="price[]" placeholder="Rp">
-    //     </td>
-    //     <td>
-    //         <button type="button" class="btn btn-danger btn-sm removeRow">Remove</button>
-    //     </td>
-    // `;
 
             // Tambahkan baris baru ke tabel
             tableBody.appendChild(newRow);

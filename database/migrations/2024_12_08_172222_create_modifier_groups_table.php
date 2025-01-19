@@ -15,9 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->json('product_id')->nullable();
-            $table->boolean('required')->nullable();
-            $table->integer('max_selected')->nullable();
-            $table->integer('min_selected')->nullable();
             $table->string('outlet_id');
             $table->softDeletes();
             $table->timestamps();

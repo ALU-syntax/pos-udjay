@@ -40,9 +40,6 @@ class PilihanController extends Controller
         foreach ($validatedData['outlet_id'] as $outlet) {
             $dataPilihanGroup = [
                 "name" => $validatedData['name'],
-                // 'required' => $required,
-                // 'max_selected' => $validatedData['max'],
-                // 'min_selected' => $required ? $validatedData['min'] : null,
                 'outlet_id' => $outlet
             ];
 
