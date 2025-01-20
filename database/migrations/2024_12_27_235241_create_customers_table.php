@@ -14,8 +14,13 @@ return new class extends Migration
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->bigInteger('umur')->nullable();
             $table->string('telfon', 20)->nullable();
+            $table->bigInteger('umur')->nullable();
+            $table->string('email')->nullable();
+            $table->date('tanggal_lahir')->nullable();
+            $table->string('domisili')->nullable();
+            $table->enum('gender', ['laki-laki', 'perempuan']);
+            $table->unsignedBigInteger('community_id')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

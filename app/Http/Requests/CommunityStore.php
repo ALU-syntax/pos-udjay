@@ -3,8 +3,9 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class CustomerRequest extends FormRequest
+class CommunityStore extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,14 +23,8 @@ class CustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required',
-            'umur' => 'required',
-            'telfon' => 'required|string|max:20|regex:/^\+?[0-9\-]+$/',
-            'email' => 'required',
-            'tanggal_lahir' => 'required',
-            'domisili' => 'required',
-            'gender' => 'required',
-            'community_id' => 'nullable'
+            'name' => ['required', Rule::unique('communities')->ignore($this->community)],
+            'status' => 'required'
         ];
     }
 }

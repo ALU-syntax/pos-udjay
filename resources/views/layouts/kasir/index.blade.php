@@ -342,7 +342,6 @@
                                             <div class="container">
                                                 <div class="row">
                                                     <div class="col-12">
-
                                                         <div class="card">
                                                             <div class="card-body">
                                                                 <div class="row">
@@ -618,7 +617,7 @@
                                             @foreach ($categorys as $category)
                                                 @if (count($category->products))
                                                     <div class="list-group-item list-category d-flex align-items-center"
-                                                        data-target="{{ $category->name }}">
+                                                        data-target="kategori-{{ $category->id }}" data-name="{{$category->name}}">
                                                         <div class="icon-box" data-text="{{ $category->name }}"></div>
                                                         <span class="ms-3">{{ $category->name }}</span>
                                                         <span class="ms-auto">&gt;</span>
@@ -631,7 +630,7 @@
                                     <!-- Product View -->
 
                                     @foreach ($categorys as $item)
-                                        <div id="{{ $item->name }}" class="card d-none child-section"
+                                        <div id="kategori-{{ $item->id }}" class="card d-none child-section"
                                             style="overflow-y: auto; height: calc(100vh - 240px);">
                                             @foreach ($item->products as $data)
                                                 <div class="list-group-item list-item d-flex align-items-center"
@@ -2254,15 +2253,18 @@
             var backBtn = document.getElementById('back-btn');
             // Handle click on list items to show specific views
             $('.list-category').on('click', function() {
+                
                 // backBtn.style.display = 'block !important;';
                 backBtn.style.setProperty('display', 'flex', 'important');
                 const targetView = $(this).data('target');
+                const namaKategori = $(this).data('name');
                 if (targetView == "Diskon") {
                     checkDiskonUsage();
                 }
+
                 $('#content-section > .child-section').addClass('d-none'); // Hide all views
                 $(`#${targetView}`).removeClass('d-none'); // Show selected view
-                $('#text-judul').text(`${targetView}`)
+                $('#text-judul').text(`${namaKategori}`)
             });
 
 

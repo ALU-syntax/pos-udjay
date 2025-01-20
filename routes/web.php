@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CategoryPaymentController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\HakAksesController;
@@ -227,14 +228,26 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-    Route::prefix('customer')->group(function(){
-        Route::get('', [CustomerController::class, 'index'])->name('customer');
-        Route::get('/create', [CustomerController::class, 'create'])->name('customer/create');
-        Route::post('/store', [CustomerController::class, 'store'])->name('customer/store');
-        Route::get('/edit/{customer}', [CustomerController::class, 'edit'])->name('customer/edit');
-        Route::put('/update/{customer}', [CustomerController::class, 'update'])->name('customer/update');
-        Route::delete('/destroy/{customer}', [CustomerController::class, 'destroy'])->name('customer/destroy');
+    Route::group(['prefix'=> 'membership', 'as' => 'membership/'], function () {
+        Route::prefix('customer')->group(function(){
+            Route::get('', [CustomerController::class, 'index'])->name('customer');
+            Route::get('/create', [CustomerController::class, 'create'])->name('customer/create');
+            Route::post('/store', [CustomerController::class, 'store'])->name('customer/store');
+            Route::get('/edit/{customer}', [CustomerController::class, 'edit'])->name('customer/edit');
+            Route::put('/update/{customer}', [CustomerController::class, 'update'])->name('customer/update');
+            Route::delete('/destroy/{customer}', [CustomerController::class, 'destroy'])->name('customer/destroy');
+        });
+
+        Route::prefix('community')->group(function(){
+            Route::get('', [CommunityController::class, 'index'])->name('community');
+            Route::get('/create', [CommunityController::class, 'create'])->name('community/create');
+            Route::post('/store', [CommunityController::class, 'store'])->name('community/store');
+            Route::get('/edit/{community}', [CommunityController::class, 'edit'])->name('community/edit');
+            Route::put('/update/{community}', [CommunityController::class, 'update'])->name('community/update');
+            Route::delete('/destroy/{community}', [CommunityController::class, 'destroy'])->name('community/destroy');
+        });
     });
+
 
         
     Route::prefix('kasir')->group(function(){

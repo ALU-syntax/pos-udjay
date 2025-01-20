@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\DataTables\CustomerDataTable;
 use App\Http\Requests\CustomerRequest;
+use App\Models\Community;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 
@@ -18,7 +19,8 @@ class CustomerController extends Controller
     {
         return view('layouts.customer.customer-modal', [
             'data' => new Customer(),
-            'action' => route('customer/store')
+            'action' => route('membership/customer/store'),
+            'communities' => Community::all()
         ]);
     }
 
@@ -33,7 +35,8 @@ class CustomerController extends Controller
     public function edit(Customer $customer){
         return view('layouts.customer.customer-modal',[
             'data' => $customer,
-            'action' => route('customer/update', $customer->id),
+            'action' => route('membership/customer/update', $customer->id),
+            'communities' => Community::all()
         ]);
     }
 

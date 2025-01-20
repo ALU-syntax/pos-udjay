@@ -2,7 +2,7 @@
 @section('content')
     <div class="main-content">
         <div class="card text-center">
-            <h5 class="card-header">Customer</h5>
+            <h5 class="card-header">Community</h5>
         </div>
         @if (session()->has('success'))
             <div class="alert alert-success mt-2" role="alert">
@@ -17,9 +17,9 @@
         @endif
         <div class="card mt-4">
             <div class="card-header d-flex justify-content-end">
-                @can('create membership/customer')
-                    <a href="{{ route('membership/customer/create') }}" type="button"
-                        class="btn btn-primary btn-round ms-auto action"><i class="fa fa-plus"></i>Tambah Customer</a>
+                @can('create membership/community')
+                    <a href="{{ route('membership/community/create') }}" type="button"
+                        class="btn btn-primary btn-round ms-auto action"><i class="fa fa-plus"></i>Tambah Community</a>
                 @endcan
             </div>
             <div class="card-body">
@@ -35,7 +35,7 @@
 
         <script>
             var success = "{{ session('success') }}";
-            const datatable = 'customer-table';
+            const datatable = 'community-table';
 
             $(".select2InsideModal").select2({
                 dropdownParent: $("#modal_action")

@@ -82,8 +82,14 @@ class MenuSeeder extends Seeder
 
         // CUSTOMER MANAGEMENT
 
-        $mm = Menu::firstOrCreate(['url' => 'customer'], ['name' => 'Customer', 'category' => 'CUSTOMER', 'icon' => 'fa-users']);
+        $mm = Menu::firstOrCreate(['url' => 'membership'], ['name' => 'Membership', 'category' => 'MEMBERSHIP', 'icon' => 'fa-users']);
         $this->attachMenuPermission($mm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Customer', 'url' => $mm->url . '/customer', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Community', 'url' => $mm->url . '/community', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
 
         // END CUSTOMER MANAGEMENT
 

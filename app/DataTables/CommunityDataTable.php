@@ -2,8 +2,9 @@
 
 namespace App\DataTables;
 
-use App\Models\Customer;
+use App\Models\Community;
 use App\Traits\DataTableHelper;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
@@ -13,7 +14,7 @@ use Yajra\DataTables\Html\Editor\Editor;
 use Yajra\DataTables\Html\Editor\Fields;
 use Yajra\DataTables\Services\DataTable;
 
-class CustomerDataTable extends DataTable
+class CommunityDataTable extends DataTable
 {
     use DataTableHelper;
     /**
@@ -28,16 +29,19 @@ class CustomerDataTable extends DataTable
                 $actions = $this->basicActions($row);
                 return view('action', ['actions' => $actions]);
             })
-            ->addColumn('community_id', function($row){
-                return $row->community_id ? $row->community_id : '-';
+            ->addColumn('status', function ($row) {
+                return view('components.badge', ['data' => $row]);
             })
-            ->setRowId('id');
+            ->addColumn('created_at', function ($row) {
+                return Carbon::parse($row->created_at)->diffForHumans();
+            })
+            ->addIndexColumn();
     }
 
     /**
      * Get the query source of dataTable.
      */
-    public function query(Customer $model): QueryBuilder
+    public function query(Community $model): QueryBuilder
     {
         return $model->newQuery();
     }
@@ -48,7 +52,7 @@ class CustomerDataTable extends DataTable
     public function html(): HtmlBuilder
     {
         return $this->builder()
-            ->setTableId('customer-table')
+            ->setTableId('community-table')
             ->columns($this->getColumns())
             ->minifiedAjax()
             //->dom('Bfrtip')
@@ -70,19 +74,15 @@ class CustomerDataTable extends DataTable
     public function getColumns(): array
     {
         return [
+            Column::make('DT_RowIndex')->title('No')->searchable(false)->orderable(false),
             Column::make('name'),
-            Column::make('umur'),
-            Column::make('telfon'),
-            Column::make('email'),
-            Column::make('tanggal_lahir'),
-            Column::make('domisili'),
-            Column::make('gender'),
-            Column::make('community_id'),
+            Column::make('status'),
+            Column::make('created_at'),
             Column::computed('action')
                 ->exportable(false)
                 ->printable(false)
                 ->width(60)
-                ->addClass('text-center'),
+                ->addClass('text-center')
         ];
     }
 
@@ -91,6 +91,6 @@ class CustomerDataTable extends DataTable
      */
     protected function filename(): string
     {
-        return 'Customer_' . date('YmdHis');
+        return 'Community_' . date('YmdHis');
     }
 }
