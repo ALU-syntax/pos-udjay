@@ -22,6 +22,17 @@ class MenuSeeder extends Seeder
          * @var Menu $mm
          */
 
+        //  REPORT 
+        $mm = Menu::firstOrCreate(['url' => 'report'], ['name' => 'Reports', 'category' => 'REPORTS', 'icon' => 'fa-file']);
+        $this->attachMenuPermission($mm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Sales', 'url' => $mm->url . '/sales', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Transactions', 'url' => $mm->url . '/transactions', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+        // END REPORT
+
         // LIBRARY
         $mm = Menu::firstOrCreate(['url' => 'library'], ['name' => 'Library', 'category' => 'LIBRARY', 'icon' => 'fa-book']);
         $this->attachMenuPermission($mm, null, ['admin']);

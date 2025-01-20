@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\ModifiersDatatables;
+use Illuminate\Support\Facades\DB;  
 use App\DataTables\PilihProductDataTable;
 use App\Models\ModifierGroup;
 use App\Models\Modifiers;
@@ -37,31 +38,33 @@ class ModifiersController extends Controller
             'outlet_id' => 'required|array'
         ]);
 
-        foreach ($validatedData['outlet_id'] as $outlet) {
-            $dataModifierGroup = [
-                "name" => $validatedData['name'],
-                'outlet_id' => $outlet
-            ];
-
-            // Simpan ModifierGroup
-            $modifierGroup = ModifierGroup::create($dataModifierGroup); // `create()` lebih ringkas daripada `new` + `save()`
-
-            // Buat data Modifiers
-            $dataModifier = [];
-            for ($x = 0; $x < count($validatedData['option_name']); $x++) {
-                $dataModifier[] = [
-                    'name' => $validatedData['option_name'][$x],
-                    'harga' => getAmount($validatedData['price'][$x]),
-                    'stok' => $validatedData['stok'][$x],
-                    'modifiers_group_id' => $modifierGroup->id, // Gunakan ID langsung dari instance ModifierGroup
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ];
-            }
-
-            // Simpan semua Modifiers secara bulk
-            Modifiers::insert($dataModifier); // Bulk insert lebih efisien
-        }
+        DB::transaction(function () use ($validatedData) {  
+            foreach ($validatedData['outlet_id'] as $outlet) {  
+                $dataModifierGroup = [  
+                    "name" => $validatedData['name'],  
+                    'outlet_id' => $outlet  
+                ];  
+      
+                // Simpan ModifierGroup  
+                $modifierGroup = ModifierGroup::create($dataModifierGroup);  
+      
+                // Buat data Modifiers  
+                $dataModifier = [];  
+                for ($x = 0; $x < count($validatedData['option_name']); $x++) {  
+                    $dataModifier[] = [  
+                        'name' => $validatedData['option_name'][$x],  
+                        'harga' => getAmount($validatedData['price'][$x]),  
+                        'stok' => $validatedData['stok'][$x],  
+                        'modifiers_group_id' => $modifierGroup->id,  
+                        'created_at' => now(),  
+                        'updated_at' => now()  
+                    ];  
+                }  
+      
+                // Simpan semua Modifiers secara bulk  
+                Modifiers::insert($dataModifier);  
+            }  
+        });  
 
         return responseSuccess(false);
     }

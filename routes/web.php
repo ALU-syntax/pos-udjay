@@ -24,6 +24,7 @@ use App\Http\Controllers\PromoController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesTypeController;
 use App\Http\Controllers\TaxController;
+use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\UserController;
 use App\Models\ModifierGroup;
 use Illuminate\Support\Facades\Route;
@@ -290,6 +291,18 @@ Route::middleware('auth')->group(function () {
             Route::post('/store', [PiutangController::class, 'store'])->name('piutang/store');
             // Route::put('/update/{pemasukan}', [PemasukanController::class, 'update'])->name('pemasukan/update');
             // Route::delete('/destroy/{pemasukan}', [PemasukanController::class, 'destroy'])->name('pemasukan/destroy');
+        });
+    });
+
+    Route::group(['prefix' => 'report', 'as' => 'report/'], function(){
+        Route::prefix('transactions')->group(function () {
+            Route::get('/', [TransactionsController::class, 'index'])->name('transaction');
+            Route::get('/getTransactionData', [TransactionsController::class, 'getTransactionData'])->name('transaction/getTransactionData');
+            // Route::get('/create', [PengeluaranController::class, 'create'])->name('pengeluaran/create');
+            // Route::get('/edit/{pengeluaran}', [PengeluaranController::class, 'edit'])->name('pengeluaran/edit');
+            // Route::post('/store', [PengeluaranController::class, 'store'])->name('pengeluaran/store');
+            // Route::put('/update/{pengeluaran}', [PengeluaranController::class, 'update'])->name('pengeluaran/update');
+            // Route::delete('/destroy/{pengeluaran}', [PengeluaranController::class, 'destroy'])->name('pengeluaran/destroy');
         });
     });
     

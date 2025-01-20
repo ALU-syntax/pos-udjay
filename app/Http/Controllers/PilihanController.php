@@ -8,6 +8,7 @@ use App\Models\Outlets;
 use App\Models\Pilihan;
 use App\Models\PilihanGroup;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PilihanController extends Controller
 {
@@ -37,31 +38,34 @@ class PilihanController extends Controller
             'outlet_id' => 'required|array'
         ]);
 
-        foreach ($validatedData['outlet_id'] as $outlet) {
-            $dataPilihanGroup = [
-                "name" => $validatedData['name'],
-                'outlet_id' => $outlet
-            ];
-
-            // Simpan PilihanGroup
-            $pilihanGroup = PilihanGroup::create($dataPilihanGroup); // `create()` lebih ringkas daripada `new` + `save()`
-
-            // Buat data Pilihans
-            $dataPilihan = [];
-            for ($x = 0; $x < count($validatedData['option_name']); $x++) {
-                $dataPilihan[] = [
-                    'name' => $validatedData['option_name'][$x],
-                    'harga' => getAmount($validatedData['price'][$x]),
-                    'stok' => $validatedData['stok'][$x],
-                    'pilihan_group_id' => $pilihanGroup->id, // Gunakan ID langsung dari instance PilihanGroup
-                    'created_at' => now(),
-                    'updated_at' => now()
+        DB::transaction(function () use ($validatedData) {  
+            foreach ($validatedData['outlet_id'] as $outlet) {
+                $dataPilihanGroup = [
+                    "name" => $validatedData['name'],
+                    'outlet_id' => $outlet
                 ];
+    
+                // Simpan PilihanGroup
+                $pilihanGroup = PilihanGroup::create($dataPilihanGroup); // `create()` lebih ringkas daripada `new` + `save()`
+    
+                // Buat data Pilihans
+                $dataPilihan = [];
+                for ($x = 0; $x < count($validatedData['option_name']); $x++) {
+                    $dataPilihan[] = [
+                        'name' => $validatedData['option_name'][$x],
+                        'harga' => getAmount($validatedData['price'][$x]),
+                        'stok' => $validatedData['stok'][$x],
+                        'pilihan_group_id' => $pilihanGroup->id, // Gunakan ID langsung dari instance PilihanGroup
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ];
+                }
+    
+                // Simpan semua Piilhans secara bulk
+                Pilihan::insert($dataPilihan); // Bulk insert lebih efisien
             }
-
-            // Simpan semua Piilhans secara bulk
-            Pilihan::insert($dataPilihan); // Bulk insert lebih efisien
-        }
+        });
+        
         return responseSuccess(false);
     }
 

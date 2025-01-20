@@ -86,7 +86,7 @@
                     listVarianLength = 0;
                 });
 
-                $('#btnTambahProduct').on('click', function() {
+                $('#btnTambahProduct').off().on('click', function() {
                     listVarianLength = 0;
                 })
             })
