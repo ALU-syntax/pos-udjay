@@ -10,4 +10,8 @@ class PettyCash extends Model
     use HasFactory;
 
     protected $guarded = ['id'];
+
+    public function userStarted(){
+        return $this->belongsTo(User::class, 'user_id_started', 'id');
+    }
 }

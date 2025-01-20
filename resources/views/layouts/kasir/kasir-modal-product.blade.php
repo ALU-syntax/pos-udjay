@@ -115,7 +115,7 @@
             </div>
 
 
-            @if (count($salesType) > 1)
+            @if (count($salesType) > 0)
                 <div class="mb-4">
                     <label for="quantity" class="form-label"><strong>Sales Type</strong></label> |
                     <small>Single Choose</small>

@@ -34,12 +34,33 @@
     <!--===============================================================================================-->
     <link rel="stylesheet" type="text/css"
         href="{{ asset('login-kasir-asset/vendor/pincode/bootstrap-pincode-input.css') }}">
+
+    <style>
+        /* Latar belakang semi-transparan */
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            /* Background semi-transparan */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1050;
+            /* Tetap di atas elemen lainnya */
+        }
+    </style>
 </head>
 
 <body>
 
     <div class="limiter">
         <div class="container-login100" style="background-color: #d03c3c">
+            <div id="preloader">
+                <img src="{{ asset('img/Logo Red.png') }}" alt="Loading" class="spinner" height="100">
+            </div>
             <div class="wrap-login100">
                 <div class="login100-form-title"
                     style="background-image: url({{ asset('img/logo.jpeg') }}); 
@@ -50,13 +71,13 @@
                     </span>
                 </div>
 
-                <form class="login100-form validate-form" method="POST" action="{{route('auth/kasir')}}">
+                <form class="login100-form validate-form" method="POST" action="{{ route('auth/kasir') }}">
                     @csrf
                     <div class="wrap-input100 validate-input m-b-26" data-validate="Username is required"
                         style="border-bottom: 0; !important">
                         <span class="label-input100">Outlet</span>
                         {{-- <input class="input100" type="text" name="username" placeholder="Enter username"> --}}
-                        <select name="outlet_id" id="outlet_id" class="select2 w-100" required>
+                        <select name="outlet_id" id="outlet_id" class="custom-select w-100" required>
                             <option selected disabled>Pilih Outlet</option>
                             @foreach ($outlets as $outlet)
                                 <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
@@ -69,7 +90,7 @@
                         style="border-bottom: 0; !important">
                         <span class="label-input100">Akun</span>
                         {{-- <input class="input100" type="text" name="username" placeholder="Enter username"> --}}
-                        <select name="email" id="akun" class="select2 w-100" required>
+                        <select name="email" id="akun" class="custom-select w-100" required>
                             <option selected disabled>Pilih Akun</option>
                         </select>
                         {{-- <span class="focus-input100"></span> --}}
@@ -103,7 +124,7 @@
 					</div> --}}
 
                     <div class="container-login100-form-btn">
-                        <button type="submit" class="login100-form-btn">
+                        <button type="submit" id="login-btn" class="login100-form-btn">
                             Login
                         </button>
                     </div>
@@ -146,7 +167,25 @@
             }
         });
 
+        function showLoader(show = true) {
+            console.log("masok")
+            const preloader = $("#preloader");
+
+            if (show) {
+                preloader.css({
+                    opacity: 1,
+                    visibility: "visible",
+                });
+            } else {
+                preloader.css({
+                    opacity: 0,
+                    visibility: "hidden",
+                });
+            }
+        }
+
         $(document).ready(function() {
+            showLoader(false)
             $('#outlet_id').change(function() {
                 var outletId = $(this).val(); // Ambil nilai outlet yang dipilih  
 
@@ -160,11 +199,13 @@
                             console.log(data);
                             $('#akun').empty(); // Kosongkan dropdown akun  
                             $('#akun').append(
-                            '<option selected disabled>Pilih Akun</option>'); // Tambahkan opsi default  
+                                '<option selected disabled>Pilih Akun</option>'
+                                ); // Tambahkan opsi default  
 
                             // Tambahkan opsi akun ke dropdown  
                             $.each(data, function(key, value) {
-                                $('#akun').append('<option value="' + value.email + '">' +
+                                $('#akun').append('<option value="' + value.email +
+                                    '">' +
                                     value.name + '</option>');
                             });
                         },
@@ -176,6 +217,10 @@
                     $('#akun').empty(); // Kosongkan dropdown akun jika tidak ada outlet yang dipilih  
                     $('#akun').append('<option selected disabled>Pilih Akun</option>');
                 }
+            });
+
+            $("#login-btn").on('click', function(){
+                showLoader();
             });
         });
     </script>

@@ -493,7 +493,8 @@
                             <div class="container my-5">
                                 <div class="row">
                                     <!-- Card 1 -->
-                                    <div class="col-md-3 col-sm-6 mb-4">
+                                    <center>Comming Soon</center>
+                                    {{-- <div class="col-md-3 col-sm-6 mb-4">
                                         <div class="product-card">
                                             <img src="https://via.placeholder.com/150" alt="Cappuccino">
                                             <p>Cappuccino</p>
@@ -519,58 +520,8 @@
                                             <img src="https://via.placeholder.com/150" alt="Espresso">
                                             <p>Espresso</p>
                                         </div>
-                                    </div>
-                                    <!-- Card 5 -->
-                                    <div class="col-md-3 col-sm-6 mb-4">
-                                        <div class="product-card">
-                                            <img src="https://via.placeholder.com/150" alt="GRILL">
-                                            <p>GRILL</p>
-                                        </div>
-                                    </div>
-                                    <!-- Card 6 -->
-                                    <div class="col-md-3 col-sm-6 mb-4">
-                                        <div class="product-card">
-                                            <img src="https://via.placeholder.com/150" alt="Bruschetta Beef">
-                                            <p>Bruschetta Beef</p>
-                                        </div>
-                                    </div>
-                                    <!-- Card 7 -->
-                                    <div class="col-md-3 col-sm-6 mb-4">
-                                        <div class="product-card">
-                                            <img src="https://via.placeholder.com/150" alt="Ayam Kampung">
-                                            <p>Ayam Kampung</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-sm-6 mb-4">
-                                        <div class="product-card">
-                                            <img src="https://via.placeholder.com/150" alt="Ayam Kampung">
-                                            <p>Ayam Kampung</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-sm-6 mb-4">
-                                        <div class="product-card">
-                                            <img src="https://via.placeholder.com/150" alt="Ayam Kampung">
-                                            <p>Ayam Kampung</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-sm-6 mb-4">
-                                        <div class="product-card">
-                                            <img src="https://via.placeholder.com/150" alt="Ayam Kampung">
-                                            <p>Ayam Kampung</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-sm-6 mb-4">
-                                        <div class="product-card">
-                                            <img src="https://via.placeholder.com/150" alt="Ayam Kampung">
-                                            <p>Ayam Kampung</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3 col-sm-6 mb-4">
-                                        <div class="product-card">
-                                            <img src="https://via.placeholder.com/150" alt="Ayam Kampung">
-                                            <p>Ayam Kampung</p>
-                                        </div>
-                                    </div>
+                                    </div> --}}
+                                    
 
                                 </div>
                             </div>
@@ -771,7 +722,7 @@
                                 </div>
 
                                 <!-- Empty Cart Section -->
-                                <p class="text-muted text-center mb-3 card">Kosongkan Keranjang Belanja</p>
+                                <p class="text-muted text-center mb-3 card" id="empty-cart">Kosongkan Keranjang Belanja</p>
 
                                 <!-- Action Buttons -->
                                 <div class="d-flex mb-3">
@@ -2113,7 +2064,7 @@
 
             if (dataPattyCash.length > 0) {
                 let soldItem = 0;
-                let name = dataPattyCash[0].user_data_started.name;
+                let name = dataPattyCash[0].user_started.name;
                 $('#txt-open-patty-cash').text(name);
                 $('#txt-name-end-current-shift').text(name);
 
@@ -2370,12 +2321,6 @@
                 // Logic to update subtotal, total, etc.
             });
 
-            // Handle empty cart
-            $('.text-muted').on('click', function() {
-                alert('Cart emptied!');
-                // Logic to clear cart items
-            });
-
             // Handle charge button
             $('#bayar').on('click', function() {
                 if (listItem.length > 0 || listItemPromo.length > 0) {
@@ -2552,6 +2497,13 @@
 
             });
 
+            $("#empty-cart").on('click', function(){
+                listItem = [];
+                listItemPromo = [];
+                listRewardItem = [];
+
+                syncItemCart();
+            });
 
         });
     </script>

@@ -45,10 +45,10 @@ class KasirController extends Controller
 
         $promos = Promo::where('outlet_id', $userOutlet[0])->whereNull('deleted_at')->where('status', true)->get();
 
-        $pettyCash = PettyCash::where('outlet_id', $outletUser[0])->where('close', null)->get();
+        $pettyCash = PettyCash::with(['userStarted'])->where('outlet_id', $outletUser[0])->where('close', null)->get();
 
         if(count($pettyCash)){
-            $pettyCash[0]['user_data_started'] = auth()->user();
+            // $pettyCash[0]['user_data_started'] = auth()->user();
             $pettyCash[0]['outlet_data'] = $outlet;
         }
 

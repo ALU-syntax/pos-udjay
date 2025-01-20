@@ -231,7 +231,7 @@ Route::middleware('auth')->group(function () {
 
     Route::group(['prefix'=> 'membership', 'as' => 'membership/'], function () {
         Route::prefix('customer')->group(function(){
-            Route::get('', [CustomerController::class, 'index'])->name('customer');
+            Route::get('/', [CustomerController::class, 'index'])->name('customer');
             Route::get('/create', [CustomerController::class, 'create'])->name('customer/create');
             Route::post('/store', [CustomerController::class, 'store'])->name('customer/store');
             Route::get('/edit/{customer}', [CustomerController::class, 'edit'])->name('customer/edit');
@@ -240,7 +240,7 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::prefix('community')->group(function(){
-            Route::get('', [CommunityController::class, 'index'])->name('community');
+            Route::get('/', [CommunityController::class, 'index'])->name('community');
             Route::get('/create', [CommunityController::class, 'create'])->name('community/create');
             Route::post('/store', [CommunityController::class, 'store'])->name('community/store');
             Route::get('/edit/{community}', [CommunityController::class, 'edit'])->name('community/edit');
@@ -252,7 +252,7 @@ Route::middleware('auth')->group(function () {
 
         
     Route::prefix('kasir')->group(function(){
-        Route::get('', [KasirController::class, 'index'])->name('kasir');
+        Route::get('/', [KasirController::class, 'index'])->name('kasir');
         Route::get('/viewPattyCash', [KasirController::class, 'viewPattyCash'])->name('kasir/viewPattyCash');
         Route::get('/choose-payment', [KasirController::class, 'choosePayment'])->name('kasir/choosePayment');
         Route::get('/choose-promo', [KasirController::class, 'choosePromo'])->name('kasir/choosePromo');

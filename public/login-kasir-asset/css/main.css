@@ -176,7 +176,7 @@ iframe {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
+  align-items: baseline;
   padding: 15px;
   background: #ebeeef;
 }
