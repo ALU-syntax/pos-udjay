@@ -38,10 +38,17 @@ class TransactionsDataTable extends DataTable
                 $itemWithProduct = $items->load(['product']);
                 $itemText = '';
                 foreach ($itemWithProduct as $item) {
-                    $itemText .= "<span>{$item->product->name}, </span>";
+                    if($item->product){
+                        $itemText .= "<span>{$item->product->name}, </span>";
+                    }
                 }
-
-                $result = substr($itemText, 0, -9);
+                
+                if(count($itemWithProduct)){
+                    $result = substr($itemText, 0, -9);    
+                }else{
+                    $result = '-';
+                }
+                
                 return $result;
             })
             ->addColumn('total', function ($row) {
@@ -67,7 +74,8 @@ class TransactionsDataTable extends DataTable
             $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
         } else {
             $dataOutletUser = json_decode(auth()->user()->outlet_id);
-            $query->where('outlet_id', $dataOutletUser[0])->where('created_at', Carbon::now());
+            $query->where('outlet_id', $dataOutletUser[0])->whereDate('created_at', Carbon::today());
+            
         }
 
         // Filter berdasarkan rentang tanggal untuk kolom created_at  
