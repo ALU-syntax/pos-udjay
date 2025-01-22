@@ -28,13 +28,51 @@
         });
     </script>
 
+    <style>
+        .spinner {
+            /* animation: spin 1s linear infinite; */
+            animation: bounce 1.5s infinite;
+        }
+
+        /* Latar belakang semi-transparan */
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            /* Background semi-transparan */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1050;
+            /* Tetap di atas elemen lainnya */
+        }
+
+        /* Definisi keyframes untuk animasi bouncing */
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+                /* Posisi awal */
+            }
+
+            50% {
+                transform: translateY(-55px);
+                /* Melompat ke atas */
+            }
+        }
+    </style>
+
     <!-- CSS Files -->
 
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/plugins.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/sweetalert2.css') }}">
     <link rel="stylesheet" href="{{ asset('css/kaiadmin.min.css') }}">
-    <link rel="stylesheet" type="text/css" href="{{asset('vendor/daterangepicker/daterangepicker.css')}}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('vendor/daterangepicker/daterangepicker.css') }}" />
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{{ asset('css/iziToast.min.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"
@@ -47,6 +85,10 @@
 
 <body>
     <div class="wrapper">
+        <!-- Loading Animation -->
+        <div id="preloader" style="visibility: hidden; opacity: 0;">
+            <img src="{{ asset('img/Logo Red.png') }}" alt="Loading" class="spinner" height="100">
+        </div>
         @include('layouts.sidebar')
 
         <div class="modal fade" id="modal_action" tabindex="-1" role="dialog" aria-hidden="true">
@@ -361,6 +403,22 @@
 
             rupiah = split[1] != undefined ? rupiah + "," + split[1] : rupiah;
             return prefix == undefined ? rupiah : rupiah ? "Rp. " + rupiah : "";
+        }
+
+        function showLoader(show = true) {
+            const preloader = $("#preloader");
+
+            if (show) {
+                preloader.css({
+                    opacity: 1,
+                    visibility: "visible",
+                });
+            } else {
+                preloader.css({
+                    opacity: 0,
+                    visibility: "hidden",
+                });
+            }
         }
     </script>
 

@@ -22,6 +22,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SalesTypeController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\TransactionsController;
@@ -295,6 +296,13 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::group(['prefix' => 'report', 'as' => 'report/'], function(){
+        Route::prefix('sales')->group(function () {
+            Route::get('/', [SalesController::class, 'index'])->name('sales');
+            Route::get('/sales-summary', [SalesController::class, 'getSalesSummary'])->name('sales/getSalesSummary'); 
+            Route::get('/payment-method', [SalesController::class, 'getPaymentMethodSales'])->name('sales/getPaymentMethodSales');
+            // Route::get('/getTransactionData', [SalesController::class, 'getTransactionData'])->name('transaction/getTransactionData');
+        });
+
         Route::prefix('transactions')->group(function () {
             Route::get('/', [TransactionsController::class, 'index'])->name('transaction');
             Route::get('/getTransactionData', [TransactionsController::class, 'getTransactionData'])->name('transaction/getTransactionData');
