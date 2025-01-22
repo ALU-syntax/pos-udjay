@@ -56,8 +56,10 @@ class KasirController extends Controller
             if(count($pettyCash)){
                 $transaction->with(['payments'])->where('patty_cash_id', $pettyCash[0]->id);
             }
-        }, 'payment' => function($payment){
-            $payment->with(['transactions']);
+        }, 'payment' => function($payment)use($pettyCash){
+            $payment->with(['transactions' => function($transaction)use($pettyCash){
+                $transaction->where('patty_cash_id', $pettyCash[0]->id);
+            }]);
         }])->get();
         
         // dd($listCategoryPayment);
