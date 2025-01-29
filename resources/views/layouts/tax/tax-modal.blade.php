@@ -7,7 +7,7 @@
         <div class="form-group">
             <label>Name <span class="text-danger">*</span></label>
             <input id="name" name="name" value="{{ $data->name }}" type="text" class="form-control"
-                placeholder="nama product.." required>
+                placeholder="nama tax.." required>
         </div>
     </div>
     <div class="col-sm-12 px-4">

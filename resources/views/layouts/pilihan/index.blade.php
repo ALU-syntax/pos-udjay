@@ -65,7 +65,7 @@
                     var table = $('#' + datatable).DataTable();
 
                     // Refresh tabel
-                    table.ajax.url("{{ route('library/modifiers') }}?outlet=" + $('#filter-outlet').val()).load();
+                    table.ajax.url("{{ route('library/pilihan') }}?outlet=" + $('#filter-outlet').val()).load();
                 });
             });
 

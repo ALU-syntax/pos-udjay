@@ -545,10 +545,11 @@
                         <div class="row vh-100">
                             <div class="col-12 mt-3">
                                 <!-- Search Bar -->
-                                <div class="input-group mb-3">
-                                    <input type="text" class="form-control" placeholder="Cari"
+                                <div class="input-group mb-3 " id="input-search-item">
+                                    <input type="text" id="search-item" class="form-control" placeholder="Cari"
                                         aria-label="Search">
-                                    <button class="btn btn-outline-secondary" type="button">Search</button>
+                                    <button class="btn btn-outline-secondary" id="clear-search"
+                                        type="button">Clear</button>
                                 </div>
 
                                 <!-- Content Section -->
@@ -571,9 +572,16 @@
                                         style="overflow-y: auto; height: calc(100vh - 240px);">
                                         <div class="list-group">
                                             <div class="list-group-item list-category d-flex align-items-center"
-                                                data-target="Diskon">
+                                                data-target="Diskon" data-name="Diskon">
                                                 <div class="icon-box" data-text="diskon"></div>
                                                 <span class="ms-3">Diskon</span>
+                                                <span class="ms-auto">&gt;</span>
+                                            </div>
+
+                                            <div class="list-group-item list-category d-flex align-items-center"
+                                                data-target="all-item" data-name="All Item">
+                                                <div class="icon-box" data-text="all-item"></div>
+                                                <span class="ms-3">All Item</span>
                                                 <span class="ms-auto">&gt;</span>
                                             </div>
 
@@ -592,9 +600,9 @@
                                     </div>
 
                                     <!-- Product View -->
-
                                     @foreach ($categorys as $item)
-                                        <div id="kategori-{{ $item->id }}" class="card d-none child-section"
+                                        <div id="kategori-{{ $item->id }}"
+                                            class="card d-none child-section list-product-category"
                                             style="overflow-y: auto; height: calc(100vh - 240px);">
                                             @foreach ($item->products as $data)
                                                 <div class="list-group-item list-item d-flex align-items-center"
@@ -610,6 +618,22 @@
                                     {{-- Menu Diskon --}}
                                     <div id="Diskon" class="card d-none child-section"
                                         style="overflow-y: auto; height: calc(100vh - 240px);">
+
+                                    </div>
+
+                                    {{-- Menu All Item --}}
+                                    <div id="all-item" class="card d-none child-section"
+                                        style="overflow-y: auto; height: calc(100vh - 240px);">
+                                        @foreach ($categorys as $item)
+                                            @foreach ($item->products as $data)
+                                                <div class="list-group-item list-item list-all-item d-flex align-items-center"
+                                                    data-harga="{{ $data->harga_jual }}"
+                                                    data-nama="{{ $data->name }}" data-id="{{ $data->id }}">
+                                                    <div class="icon-box" data-text="{{ $data->name }}"></div>
+                                                    <span class="ms-3">{{ $data->name }}</span>
+                                                </div>
+                                            @endforeach
+                                        @endforeach
 
                                     </div>
                                 </div>
@@ -2263,10 +2287,14 @@
                 backBtn.style.setProperty('display', 'flex', 'important');
                 const targetView = $(this).data('target');
                 const namaKategori = $(this).data('name');
+                console.log(targetView);
+                console.log(namaKategori);
                 if (targetView == "Diskon") {
                     checkDiskonUsage();
                 }
 
+                $('#input-search-item').addClass('d-none');
+                $('#search-item').val('');
                 $('#content-section > .child-section').addClass('d-none'); // Hide all views
                 $(`#${targetView}`).removeClass('d-none'); // Show selected view
                 $('#text-judul').text(`${namaKategori}`)
@@ -2349,6 +2377,7 @@
             $('.back-btn').on('click', function() {
                 // backBtn.style.display = 'none !important;';
                 backBtn.style.setProperty('display', 'none', 'important');
+                $('#input-search-item').removeClass('d-none');
                 $('#content-section > .child-section').addClass('d-none'); // Hide all views
                 $('#library-view').removeClass('d-none'); // Show library view
                 $('#text-judul').text("Library")
@@ -2652,6 +2681,42 @@
 
             $('#bill-list').on('click', function() {
                 handleAjax('{{ route('kasir/billList') }}').excute();
+            });
+
+            $('#search-item').on('keyup', function() {
+                var value = $(this).val().toLowerCase();
+                console.log(value);
+                if (value.length > 0) {
+                    $('#library-view').addClass('d-none');
+                    $('.list-group').addClass('d-none');
+                    $('#all-item').removeClass('d-none');
+                } else {
+                    $('#library-view').removeClass('d-none');
+                    $('#all-item').addClass('d-none');
+                    $('.list-group').removeClass('d-none');
+                }
+
+                $('.list-all-item').each(function() {
+                    var nama = $(this).data('nama').toLowerCase();
+                    if (nama.indexOf(value) > -1) {
+                        console.log(nama);
+                        // $(this).show();
+                        $(this).removeClass('d-none');
+                    } else {
+                        // $(this).hide();
+                        $(this).addClass('d-none');
+                    }
+                });
+            });
+
+            $('#clear-search').on('click', function() {
+                $('#search-item').val('')
+                $('#library-view').removeClass('d-none');
+                $('#all-item').addClass('d-none');
+                $('.list-group').removeClass('d-none');
+                $('.list-all-item').each(function() {
+                    $(this).addClass('d-none');
+                });
             });
         });
     </script>
