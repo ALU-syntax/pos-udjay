@@ -576,6 +576,7 @@
             dataForm.append('customer_id', idCustomer);
             dataForm.append('catatan_transaksi', valueCatatan);
             dataForm.append('patty_cash_id', dataPattyCash[0].id);
+            dataForm.append('bill_id', billId);
 
             $.ajax({
                 url: "{{ route('kasir/bayar') }}",

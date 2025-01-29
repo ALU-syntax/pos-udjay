@@ -9,6 +9,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\HakAksesController;
 use App\Http\Controllers\KasirController;
+use App\Http\Controllers\LogController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ModifiersController;
 use App\Http\Controllers\OutletController;
@@ -260,10 +261,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/choose-reward-item/{queue}/{idpromo}', [KasirController::class, 'chooseRewardItem'])->name('kasir/chooseRewardItem');
         Route::get('/pilih-customer', [KasirController::class, 'pilihCustomer'])->name('kasir/pilihCustomer');
         Route::get('/custom-diskon/{diskon}', [KasirController::class, 'customDiskon'])->name('kasir/customDiskon');
+        Route::get('/view-open-bill', [KasirController::class, 'viewOpenBill'])->name('kasir/viewOpenBill');
+        Route::get('/choose-bill/{bill}', [KasirController::class, 'chooseBill'])->name('kasir/chooseBill');
+        Route::get('/bill-list', [KasirController::class, 'billList'])->name('kasir/billList');
         Route::get('/{product}', [KasirController::class, 'findProduct'])->name('kasir/findProduct');
         Route::post('/store-patty-cash', [KasirController::class, 'pattyCash'])->name('kasir/pattyCash');
         Route::post('/close-patty-cash', [KasirController::class, 'closePattyCash'])->name('kasir/closePattyCash');
         Route::post('/bayar', [KasirController::class, 'bayar'])->name('kasir/bayar');
+        Route::post('/open-bill', [KasirController::class, 'openBill'])->name('kasir/openBill');
+        Route::post('/update-bill-item', [KasirController::class, 'updateBill'])->name('kasir/updateBill');
     });
 
     Route::group(['prefix' => 'accounting', 'as' => 'accounting/'], function(){
@@ -317,6 +323,8 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/api-struk/{id}', [KasirController::class, 'apiStruk'])->name('kasir/apiStruk');
+Route::get('/api-open-bill/{bill_id}', [KasirController::class, 'printOpenBillOrder']); 
 Route::get('/get-akun/{outlet_id}', [OutletController::class, 'getAkun']); 
+Route::post('/log-error-android', [LogController::class, 'logErrorAndroid'])->name('log/logErrorAndroid');
 
 require __DIR__.'/auth.php';

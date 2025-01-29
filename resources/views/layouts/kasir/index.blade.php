@@ -239,8 +239,8 @@
 
                                     <div id="setting-view" class="card mt-2 child-section">
                                         <div class="card-body">
-                                            <div class="card list-setting bg-primary" id="shift" data-target="shift-menu"
-                                                data-name-section="Shift">
+                                            <div class="card list-setting bg-primary" id="shift"
+                                                data-target="shift-menu" data-name-section="Shift">
                                                 <div class="card-body">
                                                     <h5 class="text-white">Shift</h5>
                                                 </div>
@@ -389,20 +389,26 @@
 
                                                                                 <div class="row">
                                                                                     <div class="col-6">Name</div>
-                                                                                    <div class="col-6" id="txt-name-end-current-shift">Ardian</div>
+                                                                                    <div class="col-6"
+                                                                                        id="txt-name-end-current-shift">
+                                                                                        Ardian</div>
                                                                                 </div>
                                                                                 <hr>
 
                                                                                 <div class="row">
                                                                                     <div class="col-6">Outlet</div>
-                                                                                    <div class="col-6" id="txt-outlet-end-current-shift">Outlet 1</div>
+                                                                                    <div class="col-6"
+                                                                                        id="txt-outlet-end-current-shift">
+                                                                                        Outlet 1</div>
                                                                                 </div>
                                                                                 <hr>
 
                                                                                 <div class="row">
                                                                                     <div class="col-6">Starting Shift
                                                                                     </div>
-                                                                                    <div class="col-6" id="txt-start-end-current-shift">Thursday,
+                                                                                    <div class="col-6"
+                                                                                        id="txt-start-end-current-shift">
+                                                                                        Thursday,
                                                                                         blabla</div>
                                                                                 </div>
                                                                                 <hr>
@@ -426,7 +432,9 @@
                                                                                 <div class="row">
                                                                                     <div class="col-6">Starting Cash
                                                                                         In Drawer</div>
-                                                                                    <div class="col-6" id="txt-starting-cash-end-current-shift">Rp. 50.000
+                                                                                    <div class="col-6"
+                                                                                        id="txt-starting-cash-end-current-shift">
+                                                                                        Rp. 50.000
                                                                                     </div>
                                                                                 </div>
                                                                                 <hr>
@@ -434,7 +442,9 @@
                                                                                 <div class="row">
                                                                                     <div class="col-6">Cash Sales
                                                                                     </div>
-                                                                                    <div class="col-6" id="txt-sales-end-current-shift">Rp. 70.000
+                                                                                    <div class="col-6"
+                                                                                        id="txt-sales-end-current-shift">
+                                                                                        Rp. 70.000
                                                                                     </div>
                                                                                 </div>
                                                                                 <hr>
@@ -464,7 +474,9 @@
                                                                                 <div class="row">
                                                                                     <div class="col-6">Expected Ending
                                                                                         Cash</div>
-                                                                                    <div class="col-6" id="txt-expected-ending-end-current-shift">Rp. 121.000
+                                                                                    <div class="col-6"
+                                                                                        id="txt-expected-ending-end-current-shift">
+                                                                                        Rp. 121.000
                                                                                     </div>
                                                                                 </div>
                                                                                 <hr>
@@ -521,7 +533,7 @@
                                             <p>Espresso</p>
                                         </div>
                                     </div> --}}
-                                    
+
 
                                 </div>
                             </div>
@@ -568,7 +580,8 @@
                                             @foreach ($categorys as $category)
                                                 @if (count($category->products))
                                                     <div class="list-group-item list-category d-flex align-items-center"
-                                                        data-target="kategori-{{ $category->id }}" data-name="{{$category->name}}">
+                                                        data-target="kategori-{{ $category->id }}"
+                                                        data-name="{{ $category->name }}">
                                                         <div class="icon-box" data-text="{{ $category->name }}"></div>
                                                         <span class="ms-3">{{ $category->name }}</span>
                                                         <span class="ms-auto">&gt;</span>
@@ -665,12 +678,15 @@
                 <!-- Order Section -->
                 <div class="col-5 p-3">
                     <div class="order-section">
-                        <div class="row">
-                            {{-- <div class="col-3">
-                                <h5>Billing list</h5>
-                            </div> --}}
+                        <div class="row mb-1">
                             <div class="col-12 d-flex">
-                                <button class="btn btn-primary w-100 btn-lg mb-2 rounded" id="tambah-pelanggan">Tambah
+                                <button class="btn btn-primary-outline w-25 btn-lg m-0 px-0 pb-0 rounded"
+                                    style="border-style:solid; border-radius: 2px; border-color: #3b5998;"
+                                    id="bill-list">
+                                    <img src="{{ asset('img/billing.png') }}" alt="" width="40">
+                                    <p class="m-0" style="font-size: 12px;">Billing list</p>
+                                </button>
+                                <button class="btn btn-primary w-100 btn-lg  rounded" id="tambah-pelanggan">Tambah
                                     Pelanggan</button>
                             </div>
                         </div>
@@ -712,7 +728,7 @@
                                             <div class="col-6">Total:</div>
                                             <div class="col-6 text-end" id="total"></div>
                                         </div>
-                                        
+
                                         <div class="row mb-3 d-none" id="group-rounding">
                                             <div class="col-6" style="color:gray;">Rounding:</div>
                                             <div class="col-6 text-end" id="rounding"></div>
@@ -722,13 +738,15 @@
                                 </div>
 
                                 <!-- Empty Cart Section -->
-                                <p class="text-muted text-center mb-3 card" id="empty-cart">Kosongkan Keranjang Belanja</p>
+                                <p class="text-muted text-center mb-3 card" id="empty-cart">Kosongkan Keranjang
+                                    Belanja</p>
 
                                 <!-- Action Buttons -->
                                 <div class="d-flex mb-3">
-                                    {{-- <button class="btn btn-secondary w-50 me-2" style="height: 60px;">Simpan
-                                        Bill</button> --}}
-                                    <button class="btn btn-outline-primary w-100" style="height: 60px;">Cetak
+                                    <button class="btn btn-secondary w-50 me-2" id="simpan-bill"
+                                        style="height: 60px;">Simpan
+                                        Bill</button>
+                                    <button class="btn btn-outline-primary w-50" style="height: 60px;">Cetak
                                         Bill</button>
                                 </div>
 
@@ -786,7 +804,7 @@
     <div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel">
     </div>
 
-    <!-- Modal -->
+    <!-- Modal Promo-->
     <div class="modal fade" id="promoModal" tabindex="-1" aria-labelledby="itemModalLabel">
     </div>
 
@@ -872,6 +890,9 @@
         var dataPattyCash = @json($pettyCash);
         var listCategoryPayment = @json($listCategoryPayment);
         var finalExpectedEndingCash = 0;
+
+        let openBillForm = new FormData();
+        var billId = 0;
 
         function showLoader(show = true) {
             const preloader = $("#preloader");
@@ -968,12 +989,17 @@
                 diskon: [],
                 harga: parseInt(tmpTampungCustomAmount),
                 idProduct: null,
+                idProduct: null,
                 modifier: [],
                 namaProduct: 'custom',
+                namaVariant: 'custom',
+                pilihan: [],
                 promo: [],
                 quantity: "1",
                 resultTotal: parseInt(tmpTampungCustomAmount),
+                salesType: null,
                 tmpId: tmpId,
+
             }
 
             listItem.push(dataItemCustom);
@@ -1515,15 +1541,25 @@
         function syncAllItemInCart() {
             $('#order-list').empty();
             listItem.forEach(function(item, index) {
-                let html = `
-                <div class="row mb-0 mt-2">
-                    <div class="col-6">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
-                    <div class="col-5 text-end">${formatRupiah(item.resultTotal.toString(), "Rp. ")}</div>
-                    <div class="col-1 text-end text-danger">
-                        <button type="button" onclick="deleteItem(this)" data-tmpId="${item.tmpId}" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
+                let html = '';
+                if (item.openBillId) {
+                    html = `
+                    <div class="row mb-0 mt-2">
+                        <div class="col-6">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
+                        <div class="col-5 text-end">${formatRupiah(item.resultTotal.toString(), "Rp. ")}</div>
                     </div>
-                </div>
-                `;
+                    `;
+                } else {
+                    html = `
+                    <div class="row mb-0 mt-2">
+                        <div class="col-6">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
+                        <div class="col-5 text-end">${formatRupiah(item.resultTotal.toString(), "Rp. ")}</div>
+                        <div class="col-1 text-end text-danger">
+                            <button type="button" onclick="deleteItem(this)" data-tmpId="${item.tmpId}" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
+                        </div>
+                    </div>
+                    `;
+                }
 
                 if (item.namaVariant) {
                     if (item.namaProduct != item.namaVariant) {
@@ -1559,15 +1595,24 @@
             })
 
             listItemPromo.forEach(function(item, index) {
-                let html = `
-                <div class="row mb-0 mt-2">
-                    <div class="col-6">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
-                    <div class="col-5 text-end">${formatRupiah(item.resultTotal.toString(), "Rp. ")}</div>
-                    <div class="col-1 text-end text-danger">
-                        <button type="button" onclick="deleteItem(this)" data-tmpId="${item.tmpId}" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
+                let html = '';
+                if (item.openBillId) {
+                    html = `
+                    <div class="row mb-0 mt-2">
+                        <div class="col-6">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
+                        <div class="col-5 text-end">${formatRupiah(item.resultTotal.toString(), "Rp. ")}</div>
                     </div>
-                </div>
-                `;
+                    `;
+                } else {
+                    html = `
+                    <div class="row mb-0 mt-2">
+                        <div class="col-6">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
+                        <div class="col-5 text-end">${formatRupiah(item.resultTotal.toString(), "Rp. ")}</div>
+                        <div class="col-1 text-end text-danger">
+                            <button type="button" onclick="deleteItem(this)" data-tmpId="${item.tmpId}" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
+                        </div>
+                    </div>`;
+                }
 
                 if (item.namaProduct != item.namaVariant) {
                     html += `
@@ -1706,7 +1751,7 @@
                     tmpSubTotal.push(itemModifier.harga);
                 });
 
-                item.diskon.forEach(function(itemDiskon){
+                item.diskon.forEach(function(itemDiskon) {
                     tmpSubTotal.push(-itemDiskon.result);
                 });
             });
@@ -2011,6 +2056,7 @@
         }
 
         function handleAjax(url, primaryModal = true, method = 'get') {
+            console.log("masok lagi")
             return {
                 excute: function() {
                     return new Promise((resolve, reject) => {
@@ -2026,12 +2072,13 @@
                                 // hideLoading(false)  
                             },
                             success: (res) => {
+                                console.log(res)
                                 if (primaryModal) {
                                     const modal = $('#itemModal');
                                     modal.html(res);
                                     modal.modal({
                                         backdrop: 'static',
-                                        keyboard: false
+                                        keyboard: true
                                     });
                                     modal.modal('show');
                                 } else {
@@ -2039,7 +2086,7 @@
                                     modal.html(res);
                                     modal.modal({
                                         backdrop: 'static',
-                                        keyboard: false
+                                        keyboard: true
                                     });
                                     modal.modal('show');
                                 }
@@ -2071,20 +2118,21 @@
                 let namaOutlet = dataPattyCash[0].outlet_data.name;
                 $('#txt-outlet').text(namaOutlet);
                 $('#txt-outlet-end-current-shift').text(namaOutlet);
-                
+
                 let startingShift = dataPattyCash[0].open;
                 $('#txt-starting-shift').text(startingShift);
                 $('#txt-start-end-current-shift').text(startingShift);
 
-                $('#txt-starting-cash-end-current-shift').text(formatRupiah(dataPattyCash[0].amount_awal.toString(), "Rp. "));
-                
+                $('#txt-starting-cash-end-current-shift').text(formatRupiah(dataPattyCash[0].amount_awal.toString(),
+                    "Rp. "));
+
 
                 listCategoryPayment.forEach(function(item) {
-                    if(item.name == 'Cash'){
+                    if (item.name == 'Cash') {
                         let sales = 0;
                         let expectedEndingCash = parseInt(dataPattyCash[0].amount_awal);
                         soldItem += item.transactions.length;
-                        item.transactions.forEach(function(cashTransaction){
+                        item.transactions.forEach(function(cashTransaction) {
                             sales += cashTransaction.total;
                             expectedEndingCash += parseInt(cashTransaction.total);
                         })
@@ -2092,8 +2140,9 @@
                         finalExpectedEndingCash = expectedEndingCash;
 
                         $('#txt-sales-end-current-shift').text(formatRupiah(sales.toString(), "Rp. "));
-                        $('#txt-expected-ending-end-current-shift').text(formatRupiah(expectedEndingCash.toString(), "Rp. "));
-                        
+                        $('#txt-expected-ending-end-current-shift').text(formatRupiah(expectedEndingCash
+                            .toString(), "Rp. "));
+
                         let html = `
                             <div class="row mt-3">
                                 <div class="col-12">
@@ -2136,7 +2185,7 @@
                             
                         `
                         $('#container-shift').append(html);
-                    }else{
+                    } else {
                         let totalPerCategory = 0;
                         let html = `
                             <div class="row mt-3">
@@ -2151,15 +2200,20 @@
                                         total += transactionPaymentItem.total;
                                         totalPerCategory += transactionPaymentItem.total;
                                     })
-                                    return `<div class="row">
-                                                <div class="col-6">
-                                                    ${itemPayment.name}
-                                                </div>
-                                                <div class="col-6" >
-                                                    ${formatRupiah(total.toString(), "Rp. ")}
-                                                </div>
-                                            </div> 
-                                                <hr>`;
+                                    return ` < div class = "row" >
+                            <
+                            div class = "col-6" >
+                            $ {
+                                itemPayment.name
+                            } <
+                            /div> <
+                        div class = "col-6" >
+                        $ {
+                            formatRupiah(total.toString(), "Rp. ")
+                        } <
+                        /div> < /
+                        div > <
+                            hr > `;
                                 }).join('')}
     
                                 <div class="row">
@@ -2204,7 +2258,7 @@
             var backBtn = document.getElementById('back-btn');
             // Handle click on list items to show specific views
             $('.list-category').on('click', function() {
-                
+
                 // backBtn.style.display = 'block !important;';
                 backBtn.style.setProperty('display', 'flex', 'important');
                 const targetView = $(this).data('target');
@@ -2447,11 +2501,11 @@
                         $('#container-difference').removeClass('d-none');
 
                         let hargaInput = this.value.match(/\d+/g).join('');
-                        let different =  hargaInput - finalExpectedEndingCash;
+                        let different = hargaInput - finalExpectedEndingCash;
                         console.log(different)
-                        if(different > 0){
+                        if (different > 0) {
                             $('#difference').text(formatRupiah(different.toString(), "Rp. "));
-                        }else{
+                        } else {
                             $('#difference').text("-" + formatRupiah(different.toString(), "Rp. "));
                         }
                     }
@@ -2489,7 +2543,7 @@
 
                             showToast('error', err.responseJSON?.message)
                         }
-                    })
+                    });
 
                 } else {
                     showToast('error', "Masukan Ending Cash")
@@ -2497,7 +2551,7 @@
 
             });
 
-            $("#empty-cart").on('click', function(){
+            $("#empty-cart").on('click', function() {
                 listItem = [];
                 listItemPromo = [];
                 listRewardItem = [];
@@ -2505,6 +2559,100 @@
                 syncItemCart();
             });
 
+            $('#simpan-bill').on('click', function() {
+                if (listItem.length > 0 || listItemPromo.length > 0) {
+                    if (billId != 0 || billId != "0") {
+                        var itemBaru = 0;
+                        openBillForm = new FormData();
+                        openBillForm.append('name', $('#name-open-bill').val());
+                        openBillForm.append('outlet_id', dataPattyCash[0].outlet_data.id);
+
+                        listItem.forEach(function(item, index) {
+                            if (!item.openBillId) {
+                                itemBaru++;
+                                openBillForm.append('catatan[]', item.catatan);
+                                openBillForm.append('diskon[]', JSON.stringify(item.diskon));
+                                openBillForm.append('harga[]', item.harga);
+                                openBillForm.append('idProduct[]', item.idProduct);
+                                openBillForm.append('idVariant[]', item.idVariant);
+                                openBillForm.append('modifier[]', JSON.stringify(item.modifier));
+                                openBillForm.append('namaProduct[]', item.namaProduct);
+                                openBillForm.append('namaVariant[]', item.namaVariant);
+                                openBillForm.append('pilihan[]', JSON.stringify(item.pilihan));
+                                openBillForm.append('promo[]', JSON.stringify(item.promo));
+                                openBillForm.append('quantity[]', item.quantity);
+                                openBillForm.append('resultTotal[]', item.resultTotal);
+                                openBillForm.append('salesType[]', item.salesType);
+                                openBillForm.append('tmpId[]', item.tmpId);
+                            }
+                        });
+
+                        openBillForm.append('bill_id', billId);
+
+                        if (itemBaru > 0) {
+                            console.log(billId);
+                            $.ajax({
+                                url: "{{ route('kasir/updateBill') }}",
+                                method: "POST",
+                                data: openBillForm,
+                                contentType: false,
+                                processData: false,
+                                beforeSend: function() {
+                                    showLoader();
+                                },
+                                success: (res) => {
+                                    listItem = [];
+                                    listItemPromo = [];
+                                    listRewardItem = [];
+
+                                    syncItemCart();
+                                    if (window.Android) {
+                                        // Panggil metode JavaScript Interface dengan ID transaksi  
+                                        window.Android.handlePrintOpenBill(res.id);
+                                    }
+                                    iziToast['success']({
+                                        title: "Success",
+                                        message: "Berhasil Memperbarui Bill",
+                                        position: 'topRight'
+                                    });
+
+                                    const modal = $('#itemModal');
+                                    modal.modal('hide');
+
+                                    billId = 0;
+                                },
+                                complete: function() {
+                                    showLoader(false);
+                                },
+                                error: function(err) {
+                                    const errors = err.responseJSON?.errors
+
+                                    showToast('error', err.responseJSON?.message)
+                                }
+                            })
+                        } else {
+                            iziToast['warning']({
+                                title: "Oopss",
+                                message: "Tidak ada item baru",
+                                position: 'topRight'
+                            });
+                        }
+                    } else {
+                        handleAjax("{{ route('kasir/viewOpenBill') }}").excute();
+                    }
+                } else {
+                    iziToast['error']({
+                        title: "Gagal",
+                        message: "Product Belum Dipilih",
+                        position: 'topRight'
+                    });
+                }
+
+            });
+
+            $('#bill-list').on('click', function() {
+                handleAjax('{{ route('kasir/billList') }}').excute();
+            });
         });
     </script>
 </body>

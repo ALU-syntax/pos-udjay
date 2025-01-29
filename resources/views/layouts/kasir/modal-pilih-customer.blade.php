@@ -82,7 +82,7 @@
         dataForm.append('telfon', nomorTelfonCustomer);
 
         $.ajax({
-            url: "{{ route('customer/store') }}",
+            url: "{{ route('membership/customer/store') }}",
             method: "POST",
             data: dataForm,
             contentType: false,

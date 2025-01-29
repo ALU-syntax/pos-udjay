@@ -8,6 +8,8 @@ use App\Models\CategoryPayment;
 use App\Models\Checkout;
 use App\Models\Customer;
 use App\Models\Discount;
+use App\Models\ItemOpenBill;
+use App\Models\OpenBill;
 use App\Models\Outlets;
 use App\Models\PettyCash;
 use App\Models\Product;
@@ -18,8 +20,9 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
 use App\Models\VariantProduct;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\DB;
 use Jenssegers\Agent\Agent;
 use function PHPUnit\Framework\isNull;
 
@@ -47,26 +50,26 @@ class KasirController extends Controller
 
         $pettyCash = PettyCash::with(['userStarted'])->where('outlet_id', $outletUser[0])->where('close', null)->get();
 
-        if(count($pettyCash)){
+        if (count($pettyCash)) {
             // $pettyCash[0]['user_data_started'] = auth()->user();
             $pettyCash[0]['outlet_data'] = $outlet;
         }
 
-        $listCategoryPayment = CategoryPayment::with(['transactions' => function($transaction)use($pettyCash){
-            if(count($pettyCash)){
+        $listCategoryPayment = CategoryPayment::with(['transactions' => function ($transaction) use ($pettyCash) {
+            if (count($pettyCash)) {
                 $transaction->with(['payments'])->where('patty_cash_id', $pettyCash[0]->id);
             }
-        }, 'payment' => function($payment)use($pettyCash){
-            $payment->with(['transactions' => function($transaction)use($pettyCash){
-                if(count($pettyCash)){
+        }, 'payment' => function ($payment) use ($pettyCash) {
+            $payment->with(['transactions' => function ($transaction) use ($pettyCash) {
+                if (count($pettyCash)) {
                     $transaction->where('patty_cash_id', $pettyCash[0]->id);
                 }
             }]);
         }])->get();
-        
+
         // dd($listCategoryPayment);
         return view('layouts.kasir.index', [
-            'categorys' => Category::with(['products' => function ($product) use($outletUser) {
+            'categorys' => Category::with(['products' => function ($product) use ($outletUser) {
                 $product->with(['variants'])->where('outlet_id', $outletUser[0])->orderBy('name', 'asc');
             }])->get(),
             'pajak' => $pajak,
@@ -74,7 +77,7 @@ class KasirController extends Controller
             'promos' => $promos,
             'discounts' => $diskon,
             'pettyCash' => $pettyCash,
-            'listCategoryPayment' =>$listCategoryPayment
+            'listCategoryPayment' => $listCategoryPayment
         ]);
     }
 
@@ -112,14 +115,14 @@ class KasirController extends Controller
         // dd($request);
         $userData = auth()->user();
         $outletUser = json_decode($userData->outlet_id);
-        $listCategoryPayment = CategoryPayment::with(['payment' => function($payment){
+        $listCategoryPayment = CategoryPayment::with(['payment' => function ($payment) {
             $payment->where('status', true);
         }])->where('status', true)->orderBy('name', 'asc')->get();
 
         $pettyCash = PettyCash::where('outlet_id', $outletUser[0])->where('close', null)->get();
 
         if (count($pettyCash) > 0) {
-            return view('layouts.kasir.modal-choose-payment',[
+            return view('layouts.kasir.modal-choose-payment', [
                 'listPayment' => $listCategoryPayment
             ]);
         } else {
@@ -146,7 +149,7 @@ class KasirController extends Controller
         $dataPattyCash['user_data_started'] = $userData;
         $dataPattyCash['outlet_data'] = $outlet;
         // $data['tipe_pembayaran'] = $;
-        
+
         return response()->json([
             'status' => 'success',
             'message' => "Shift Berhasil dibuka",
@@ -154,8 +157,9 @@ class KasirController extends Controller
         ]);
     }
 
-    public function viewPattyCash(){
-        return view('layouts.kasir.modal-petty-cash');        
+    public function viewPattyCash()
+    {
+        return view('layouts.kasir.modal-petty-cash');
     }
 
     public function bayar(Request $request)
@@ -163,6 +167,11 @@ class KasirController extends Controller
         $outletUser = auth()->user()->outlet_id;
         $dataOutletUser = json_decode($outletUser);
 
+        if ($request->bill_id != "0" || $request->bill_id != 0) {
+            $bill = OpenBill::with(['item'])->where('id', $request->bill_id)->first();
+            $bill->item()->delete();
+            $bill->delete();
+        }
 
         $hargaModifier = 0;
         foreach ($request->modifier_id as $modifier) {
@@ -186,17 +195,17 @@ class KasirController extends Controller
         }
 
         $dataDiscountAllItem = json_decode($request->diskonAllItems);
-        if(count($dataDiscountAllItem)){
-            foreach($dataDiscountAllItem as $discountAllItemData){
+        if (count($dataDiscountAllItem)) {
+            foreach ($dataDiscountAllItem as $discountAllItemData) {
                 $totalNominalDiskon += $discountAllItemData->value;
             }
         }
 
         $customerId = $request->customer_id == 'null' ? null : $request->customer_id;
 
-        if($customerId){
+        if ($customerId) {
             $customer = Customer::find($customerId);
-        }else{
+        } else {
             $customer = '';
         }
 
@@ -252,38 +261,42 @@ class KasirController extends Controller
         return response()->json($respond);
     }
 
-    public function customDiskon(Discount $diskon){
+    public function customDiskon(Discount $diskon)
+    {
         return view('layouts.kasir.modal-custom-amount', [
             'data' => $diskon
         ]);
     }
 
-    public function pilihCustomer(PilihPelangganDataTable $datatable){
+    public function pilihCustomer(PilihPelangganDataTable $datatable)
+    {
         return $datatable->render('layouts.kasir.modal-pilih-customer');
     }
 
-    public function choosePromo(){
+    public function choosePromo()
+    {
         return view('layouts.kasir.modal-choose-promo');
     }
 
-    public function chooseRewardItem($queue, $idpromo){
+    public function chooseRewardItem($queue, $idpromo)
+    {
         $promo = Promo::find($idpromo);
 
         $reward = [];
         $dataReward = json_decode($promo->reward);
-        foreach($dataReward as $listReward){
+        foreach ($dataReward as $listReward) {
             $tmpReward = [];
-            foreach($listReward as $data){
+            foreach ($listReward as $data) {
                 $product = Product::with(relations: ['variants'])->where('id', $data[0])->get();
                 $dataProduct = [$product[0]->id, $product[0]->name];
                 $variant = [];
-                if($data[1] == 0){
-                    foreach($product[0]->variants as $dataVariant){
+                if ($data[1] == 0) {
+                    foreach ($product[0]->variants as $dataVariant) {
                         $tmpVariant = [$dataVariant->id, $dataVariant->name];
                         array_push($variant, $tmpVariant);
                     }
-                }else{
-                    $itemVariant = VariantProduct::find($data[1]); 
+                } else {
+                    $itemVariant = VariantProduct::find($data[1]);
                     $tmpVariant = [$itemVariant->id, $itemVariant->name];
 
                     array_push($variant, $tmpVariant);
@@ -302,9 +315,10 @@ class KasirController extends Controller
         ]);
     }
 
-    public function closePattyCash(Request $request){
+    public function closePattyCash(Request $request)
+    {
         $dataEndingCash = $request->endingCash;
-        
+
         $userData = auth()->user();
         $outletUser = json_decode($userData->outlet_id);
 
@@ -315,32 +329,34 @@ class KasirController extends Controller
             'close' => now(),
             'user_id_ended' => $userData->id,
         ]);
-        
+
         return response()->json([
             'status' => 'success',
             'message' => "Shift Berhasil ditutup",
         ]);
     }
 
-    public function apiStruk($id){
+    public function apiStruk($id)
+    {
         $transaction = Transaction::with(['outlet', 'user'])->find($id);
+        
         $transactionPajak = $transaction->pajak();
 
         $transaction['tax'] = $transactionPajak;
 
         $transactionItems = TransactionItem::with(['product', 'variant'])->where('transaction_id', $id)->get();
-        foreach($transactionItems as $transactionItem){
+        foreach ($transactionItems as $transactionItem) {
             $tmpModifier = [];
             $modifierItem = $transactionItem->modifiers();
-            foreach ($modifierItem as $modifier) {  
+            foreach ($modifierItem as $modifier) {
                 array_push($tmpModifier, $modifier->name);
-            }  
+            }
             $transactionItem['modifier'] = $tmpModifier;
-
-
         }
-        $user = User::find($transaction->user_id);
+
         
+        $user = User::find($transaction->user_id);
+
         $agent = new Agent();
         $device = $agent->device();
 
@@ -350,6 +366,171 @@ class KasirController extends Controller
             'transactionItems' => $transactionItems,
             'user' => $user,
             'device' => $device,
+        ]);
+    }
+
+    public function viewOpenBill()
+    {
+        $userData = auth()->user();
+        $outletUser = json_decode($userData->outlet_id);
+
+        $pettyCash = PettyCash::where('outlet_id', $outletUser[0])->where('close', null)->get();
+
+        if (count($pettyCash) > 0) {
+            return view('layouts.kasir.modal-open-bill');
+        } else {
+            return view('layouts.kasir.modal-petty-cash');
+        }
+    }
+
+    public function openBill(Request $request)
+    {
+        $validatedData = $request->validate([
+            'name' => 'required',
+            'outlet_id' => 'required',
+            'catatan' => 'array',
+            'diskon' => 'array',
+            'harga' => 'array',
+            'idProduct' => 'array',
+            'idVariant' => 'array',
+            'modifier' => 'array',
+            'namaProduct' => 'array',
+            'namaVariant' => 'array',
+            'pilihan' => 'array',
+            'promo' => 'array',
+            'quantity' => 'array',
+            'resultTotal' => 'array',
+            'salesType' => 'array',
+            'tmpId' => 'array'
+        ]);
+
+        DB::transaction(function () use ($validatedData) {
+            $dataOpenBill = [
+                'name' => $validatedData['name'],
+                'user_id' => auth()->user()->id,
+                'outlet_id' => $validatedData['outlet_id'],
+                'queue_order' => 1
+            ];
+
+            $openBill = OpenBill::create($dataOpenBill);
+
+            $dataItemOpenBill = [];
+            for ($x = 0; $x < count($validatedData['tmpId']); $x++) {
+                $dataItemOpenBill[] = [
+                    'open_bill_id' => $openBill->id,
+                    'catatan' => $validatedData['catatan'][$x],
+                    'diskon' => $validatedData['diskon'][$x],
+                    'harga' => $validatedData['harga'][$x],
+                    'product_id' => $validatedData['idProduct'][$x],
+                    'variant_id' => $validatedData['idVariant'][$x],
+                    'modifier' => $validatedData['modifier'][$x],
+                    'nama_product' => $validatedData['namaProduct'][$x],
+                    'nama_variant' => $validatedData['namaVariant'][$x],
+                    'pilihan' => $validatedData['pilihan'][$x],
+                    'promo' => $validatedData['promo'][$x],
+                    'quantity' => $validatedData['quantity'][$x],
+                    'result_total' => $validatedData['resultTotal'][$x],
+                    'sales_type' => $validatedData['salesType'][$x],
+                    'tmp_id' => $validatedData['tmpId'][$x],
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now(),
+                    'queue_order' => 1,
+                ];
+            }
+
+            ItemOpenBill::insert($dataItemOpenBill);
+        });
+
+
+        return responseSuccess(false);
+    }
+
+    public function billList()
+    {
+        $userOutletJson = auth()->user()->outlet_id;
+        $userOutlet = json_decode($userOutletJson);
+        $listBill = OpenBill::with(['user', 'outlet'])
+            ->where('outlet_id', $userOutlet[0])
+            ->get()
+            ->map(function ($bill) {
+                $bill->created_at_human = Carbon::parse($bill->created_at)->diffForHumans();
+                return $bill;
+            });
+        // $listBill['created_at'] = Carbon::parse($listBill->created_at)->diffForHumans()
+        return view('layouts.kasir.modal-bill-list', [
+            'listBills' => $listBill
+        ]);
+    }
+
+    public function chooseBill($id)
+    {
+        $data = OpenBill::with(['item'])->where('id', $id)->first();
+
+        return response()->json([
+            'data' => $data
+        ]);
+    }
+
+    public function updateBill(Request $request)
+    {
+        $openBill = OpenBill::where('id', $request->bill_id)->first();
+        $openBill->queue_order += 1;
+
+        $openBill->save();
+        DB::transaction(function () use ($request, $openBill) {
+            $dataItemOpenBill = [];
+            for ($x = 0; $x < count($request['tmpId']); $x++) {
+                $dataItemOpenBill[] = [
+                    'open_bill_id' => $request->bill_id,
+                    'catatan' => $request['catatan'][$x],
+                    'diskon' => $request['diskon'][$x],
+                    'harga' => $request['harga'][$x],
+                    'product_id' => $request['idProduct'][$x],
+                    'variant_id' => $request['idVariant'][$x],
+                    'modifier' => $request['modifier'][$x],
+                    'nama_product' => $request['namaProduct'][$x],
+                    'nama_variant' => $request['namaVariant'][$x],
+                    'pilihan' => $request['pilihan'][$x],
+                    'promo' => $request['promo'][$x],
+                    'quantity' => $request['quantity'][$x],
+                    'result_total' => $request['resultTotal'][$x],
+                    'sales_type' => $request['salesType'][$x],
+                    'tmp_id' => $request['tmpId'][$x],
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now(),
+                    'queue_order' => $openBill->queue_order,
+                ];
+            }
+
+            ItemOpenBill::insert($dataItemOpenBill);
+        });
+
+        return responseSuccess(true);
+    }
+
+    public function printOpenBillOrder($bill_id)
+    {
+        $openBill = OpenBill::where('id', $bill_id)->first();
+
+        // Jika OpenBill ditemukan, ambil item berdasarkan queue_order  
+        if ($openBill) {
+            $openBill->load(['item' => function ($query) use ($openBill) {
+                // Ambil queue_order dari objek $openBill  
+                $query->where('queue_order', $openBill->queue_order);
+            },
+             'user']);
+
+            // Decode the modifier field from JSON string to array of objects for each item  
+            foreach ($openBill->item as $item) {
+                $item->modifier = json_decode($item->modifier, true);
+                $item->pilihan = json_decode($item->pilihan, true);
+            }
+
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $openBill
         ]);
     }
 }
