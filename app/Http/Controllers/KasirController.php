@@ -404,45 +404,89 @@ class KasirController extends Controller
             'tmpId' => 'array'
         ]);
 
-        DB::transaction(function () use ($validatedData) {
-            $dataOpenBill = [
-                'name' => $validatedData['name'],
-                'user_id' => auth()->user()->id,
-                'outlet_id' => $validatedData['outlet_id'],
-                'queue_order' => 1
+        // DB::transaction(function () use ($validatedData) {
+        //     $dataOpenBill = [
+        //         'name' => $validatedData['name'],
+        //         'user_id' => auth()->user()->id,
+        //         'outlet_id' => $validatedData['outlet_id'],
+        //         'queue_order' => 1
+        //     ];
+
+        //     $openBill = OpenBill::create($dataOpenBill);
+
+        //     $dataItemOpenBill = [];
+        //     for ($x = 0; $x < count($validatedData['tmpId']); $x++) {
+        //         $dataItemOpenBill[] = [
+        //             'open_bill_id' => $openBill->id,
+        //             'catatan' => $validatedData['catatan'][$x],
+        //             'diskon' => $validatedData['diskon'][$x],
+        //             'harga' => $validatedData['harga'][$x],
+        //             'product_id' => $validatedData['idProduct'][$x],
+        //             'variant_id' => $validatedData['idVariant'][$x],
+        //             'modifier' => $validatedData['modifier'][$x],
+        //             'nama_product' => $validatedData['namaProduct'][$x],
+        //             'nama_variant' => $validatedData['namaVariant'][$x],
+        //             'pilihan' => $validatedData['pilihan'][$x],
+        //             'promo' => $validatedData['promo'][$x],
+        //             'quantity' => $validatedData['quantity'][$x],
+        //             'result_total' => $validatedData['resultTotal'][$x],
+        //             'sales_type' => $validatedData['salesType'][$x],
+        //             'tmp_id' => $validatedData['tmpId'][$x],
+        //             'created_at' => Carbon::now(),
+        //             'updated_at' => Carbon::now(),
+        //             'queue_order' => 1,
+        //         ];
+        //     }
+
+        //     ItemOpenBill::insert($dataItemOpenBill);
+
+        //     return response()->json([
+        //         'data' => $openBill
+        //     ]);
+        // });
+
+        $dataOpenBill = [
+            'name' => $validatedData['name'],
+            'user_id' => auth()->user()->id,
+            'outlet_id' => $validatedData['outlet_id'],
+            'queue_order' => 1
+        ];
+
+        $openBill = OpenBill::create($dataOpenBill);
+
+        $dataItemOpenBill = [];
+        for ($x = 0; $x < count($validatedData['tmpId']); $x++) {
+            $dataItemOpenBill[] = [
+                'open_bill_id' => $openBill->id,
+                'catatan' => $validatedData['catatan'][$x],
+                'diskon' => $validatedData['diskon'][$x],
+                'harga' => $validatedData['harga'][$x],
+                'product_id' => $validatedData['idProduct'][$x],
+                'variant_id' => $validatedData['idVariant'][$x],
+                'modifier' => $validatedData['modifier'][$x],
+                'nama_product' => $validatedData['namaProduct'][$x],
+                'nama_variant' => $validatedData['namaVariant'][$x],
+                'pilihan' => $validatedData['pilihan'][$x],
+                'promo' => $validatedData['promo'][$x],
+                'quantity' => $validatedData['quantity'][$x],
+                'result_total' => $validatedData['resultTotal'][$x],
+                'sales_type' => $validatedData['salesType'][$x],
+                'tmp_id' => $validatedData['tmpId'][$x],
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+                'queue_order' => 1,
             ];
+        }
 
-            $openBill = OpenBill::create($dataOpenBill);
+        ItemOpenBill::insert($dataItemOpenBill);
 
-            $dataItemOpenBill = [];
-            for ($x = 0; $x < count($validatedData['tmpId']); $x++) {
-                $dataItemOpenBill[] = [
-                    'open_bill_id' => $openBill->id,
-                    'catatan' => $validatedData['catatan'][$x],
-                    'diskon' => $validatedData['diskon'][$x],
-                    'harga' => $validatedData['harga'][$x],
-                    'product_id' => $validatedData['idProduct'][$x],
-                    'variant_id' => $validatedData['idVariant'][$x],
-                    'modifier' => $validatedData['modifier'][$x],
-                    'nama_product' => $validatedData['namaProduct'][$x],
-                    'nama_variant' => $validatedData['namaVariant'][$x],
-                    'pilihan' => $validatedData['pilihan'][$x],
-                    'promo' => $validatedData['promo'][$x],
-                    'quantity' => $validatedData['quantity'][$x],
-                    'result_total' => $validatedData['resultTotal'][$x],
-                    'sales_type' => $validatedData['salesType'][$x],
-                    'tmp_id' => $validatedData['tmpId'][$x],
-                    'created_at' => Carbon::now(),
-                    'updated_at' => Carbon::now(),
-                    'queue_order' => 1,
-                ];
-            }
-
-            ItemOpenBill::insert($dataItemOpenBill);
-        });
+        return response()->json([
+            'data' => $openBill
+        ]);
 
 
-        return responseSuccess(false);
+        // return responseSuccess(false);
+        
     }
 
     public function billList()
@@ -504,8 +548,11 @@ class KasirController extends Controller
 
             ItemOpenBill::insert($dataItemOpenBill);
         });
-
-        return responseSuccess(true);
+        
+        // return responseSuccess(true);
+        return response()->json([
+            'data' => $openBill
+        ]);
     }
 
     public function printOpenBillOrder($bill_id)

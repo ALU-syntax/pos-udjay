@@ -2637,7 +2637,7 @@
                                     syncItemCart();
                                     if (window.Android) {
                                         // Panggil metode JavaScript Interface dengan ID transaksi  
-                                        window.Android.handlePrintOpenBill(res.id);
+                                        window.Android.handlePrintOpenBill(res.data.id);
                                     }
                                     iziToast['success']({
                                         title: "Success",

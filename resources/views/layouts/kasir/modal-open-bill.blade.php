@@ -68,6 +68,13 @@
                 listItemPromo = [];
                 listRewardItem = [];
 
+                console.log(res);
+
+                if (window.Android) {
+                    // Panggil metode JavaScript Interface dengan ID transaksi  
+                    window.Android.handlePrintOpenBill(res.data.id);
+                }
+
                 syncItemCart();
                 iziToast['success']({
                     title: "Success",
