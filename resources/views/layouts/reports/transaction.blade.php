@@ -2,7 +2,7 @@
 @section('content')
     <div class="main-content">
         <div class="card text-center">
-            <h5 class="card-header">Taxes</h5>
+            <h5 class="card-header">Transaction</h5>
         </div>
 
         <div class="card mt-4">
@@ -82,7 +82,7 @@
                                     <div class="col-7 col-stats">
                                         <div class="numbers">
                                             <p class="card-category">Transactions</p>
-                                            <h4 class="card-title" id="transaction">{{count($data)}}</h4>
+                                            <h4 class="card-title" id="transaction">{{ count($data) }}</h4>
                                         </div>
                                     </div>
                                 </div>
@@ -143,37 +143,37 @@
         <script>
             var dataTransaksi = @json($data);
             let totalTransaksi = 0;
-            dataTransaksi.forEach(function(item){
+            dataTransaksi.forEach(function(item) {
                 totalTransaksi += item.total;
             });
-            
 
-            function getNewData(){
+
+            function getNewData() {
                 let outletTerpilih = $('#filter-outlet').val();
                 let date = $('#date_range_transaction').val();
 
                 $.ajax({
-                url: `{{ route('report/transaction/getTransactionData') }}`, // URL endpoint Laravel
-                type: 'GET',
-                data: {
-                    idOutlet: outletTerpilih, // Kirim data array ke server
-                    date: date
-                },
-                success: function(response) {
-                    console.log(response)
-                    let totalTransaksi = 0;
-                    response.data.forEach(function(item){
-                        totalTransaksi += item.total;
-                    });
+                    url: `{{ route('report/transaction/getTransactionData') }}`, // URL endpoint Laravel
+                    type: 'GET',
+                    data: {
+                        idOutlet: outletTerpilih, // Kirim data array ke server
+                        date: date
+                    },
+                    success: function(response) {
+                        console.log(response)
+                        let totalTransaksi = 0;
+                        response.data.forEach(function(item) {
+                            totalTransaksi += item.total;
+                        });
 
-                    $('#transaction').text(response.data.length);
-                    $("#total-collected").text(formatRupiah(totalTransaksi.toString(), "Rp. "));
-                    $("#net-sales").text(formatRupiah(totalTransaksi.toString(), "Rp. "));
-                },
-                error: function(xhr, status, error) {
-                    console.error("Terjadi kesalahan:", error);
-                }
-            });
+                        $('#transaction').text(response.data.length);
+                        $("#total-collected").text(formatRupiah(totalTransaksi.toString(), "Rp. "));
+                        $("#net-sales").text(formatRupiah(totalTransaksi.toString(), "Rp. "));
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Terjadi kesalahan:", error);
+                    }
+                });
             }
             $(document).ready(function() {
                 $("#total-collected").text(formatRupiah(totalTransaksi.toString(), "Rp. "));
@@ -243,6 +243,13 @@
 
                     $('#date_range_transaction').val(startDate.format('YYYY/MM/DD') + ' - ' + endDate.format(
                         'YYYY/MM/DD'));
+
+                    var table = $('#' + datatable).DataTable();
+                    table.ajax.url("{{ route('report/transaction') }}?outlet=" + $('#filter-outlet').val() +
+                            "&date=" + $('#date_range_transaction').val())
+                        .load();
+
+                    getNewData();
                 });
 
                 $('#nextDate').on('click', function() {
@@ -256,6 +263,13 @@
 
                     $('#date_range_transaction').val(startDate.format('YYYY/MM/DD') + ' - ' + endDate.format(
                         'YYYY/MM/DD'));
+
+                    var table = $('#' + datatable).DataTable();
+                    table.ajax.url("{{ route('report/transaction') }}?outlet=" + $('#filter-outlet').val() +
+                            "&date=" + $('#date_range_transaction').val())
+                        .load();
+
+                    getNewData();
                 });
 
                 $('.ranges li').addClass('btn btn-primary w-75 ms-3 mt-2');
