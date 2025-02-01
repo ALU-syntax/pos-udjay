@@ -116,11 +116,79 @@
                         <div class="tab-content" id="v-pills-tabContent">
                             <div class="tab-pane fade show active" id="sales-summary-nobd" role="tabpanel"
                                 aria-labelledby="sales-summary-tab-nobd">
-                                <p>Comming Soon</p>
+                                <div class="container">
+                                    <div class="row" style="background-color: #ccc; height: 50px; margin-bottom: 5px;"></div>
+                                    <div class="row ">
+                                        <div class="col-6">
+                                            Gross Sales
+                                        </div>
+                                        <div class="col-6  justify-content-end d-flex" id="gross-sales-summary">
+                                            Rp. 0
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            Discounts
+                                        </div>
+                                        <div class=" justify-content-end d-flex col-6" id="discount-sales-summary">
+                                            Rp. 0
+                                        </div>
+                                    </div>
+                                    {{-- <hr> --}}
+                                    {{-- <div class="row">
+                                        <div class="col-6">
+                                            Refunds
+                                        </div>
+                                        <div class=" justify-content-end d-flex col-6">
+                                            Rp. 0
+                                        </div>
+                                    </div> --}}
+                                    <hr style="border: 2px solid black;">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>Net Sales</strong>
+                                        </div>
+                                        <div class="col-6 justify-content-end d-flex ">
+                                            <strong id="net-sales-summary">Rp. 0</strong>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            Tax
+                                        </div>
+                                        <div class=" justify-content-end d-flex col-6" id="tax-sales-summary">
+                                            Rp. 0
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            Rounding
+                                        </div>
+                                        <div class=" justify-content-end d-flex col-6" id="rounding-sales-summary">
+                                            Rp. 0
+                                        </div>
+                                    </div>
+                                    <hr style="border: 2px solid black;">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>Total Collected</strong>
+                                        </div>
+                                        <div class="col-6 justify-content-end d-flex ">
+                                            <strong id="total-collected-sales-summary">Rp. 0</strong>
+                                        </div>
+                                    </div>
+                                    <hr style="border: 2px solid black;">
+                                </div>
                             </div>
                             <div class="tab-pane fade" id="gross-profit-nobd" role="tabpanel"
                                 aria-labelledby="gross-profit-tab-nobd">
-                                <p>Comming Soon</p>
+                                <div class="alert alert-primary" role="alert">
+                                    <p><b>Gross Profit</b></p>
+                                    Gross Profit is your Net sales minus cost of Goods Sold (COGS). <b>To Report Gross Profit Accuratel, please make sure all items have a COGS</b>
+                                </div>
                             </div>
                             <div class="tab-pane fade" id="payment-method-nobd" role="tabpanel"
                                 aria-labelledby="payment-method-tab-nobd">
@@ -191,13 +259,42 @@
                 var activeTab = $('a.nav-link.active').attr('href');
                 console.log('Active Tab:', activeTab);
 
+                var outlet = $('#filter-outlet').val();
+                var date = $('#date_range_transaction').val();
+
                 if (activeTab === '#sales-summary-nobd') {
                     // Logika untuk Sales Summary  
+                    $.ajax({
+                        url: '{{ route('report/sales/getSalesSummary') }}',
+                        method: 'GET',
+                        data: {
+                            date: date,
+                            outlet: outlet
+                        },
+                        beforeSend: function() {
+                            showLoader();
+                        },
+                        complete: function() {
+                            showLoader(false);
+                        },
+                        success: function(data) {
+                            console.log(data);
+
+                            $('#gross-sales-summary').text(formatRupiah(data.grossSales.toString(), 'Rp. '));
+                            $('#discount-sales-summary').text(formatRupiah(data.discount.toString(), 'Rp. '));
+                            $('#net-sales-summary').text(formatRupiah(data.netSales.toString(), 'Rp. '));
+                            $('#tax-sales-summary').text(formatRupiah(data.tax.toString(), 'Rp. '));
+                            $('#rounding-sales-summary').text(formatRupiah(data.rounding.toString(), 'Rp. '));
+                            $('#total-collected-sales-summary').text(formatRupiah(data.totalCollect.toString(), 'Rp. '));
+
+                        },
+                        error: function(xhr) {
+                            console.error(xhr);
+                        }
+                    });
                 } else if (activeTab === '#gross-profit-nobd') {
                     // Logika untuk Gross Profit  
                 } else if (activeTab === '#payment-method-nobd') {
-                    var outlet = $('#filter-outlet').val();
-                    var date = $('#date_range_transaction').val();
 
                     $.ajax({
                         url: '{{ route('report/sales/getPaymentMethodSales') }}',
@@ -229,39 +326,39 @@
                                 if (transaction.parent) {
                                     if (transaction.payment_method == "Cash") {
                                         tbody.append(`  
-                                <tr>  
-                                    <td>${transaction.payment_method}</td>  
-                                    <td>${transaction.number_of_transactions}</td>  
-                                    <td>${formatRupiah(transaction.total_collected.toString(), "Rp. ")}</td>  
-                                </tr>  
-                            `);
+                                            <tr>  
+                                                <td>${transaction.payment_method}</td>  
+                                                <td>${transaction.number_of_transactions}</td>  
+                                                <td>${formatRupiah(transaction.total_collected.toString(), "Rp. ")}</td>  
+                                            </tr>  
+                                        `);
                                     } else {
                                         tbody.append(`  
-                                <tr>  
-                                    <td>${transaction.payment_method}</td>  
-                                    <td>${transaction.number_of_transactions}</td>  
-                                    <td></td>  
-                                </tr>  
-                            `);
+                                            <tr>  
+                                                <td>${transaction.payment_method}</td>  
+                                                <td>${transaction.number_of_transactions}</td>  
+                                                <td></td>  
+                                            </tr>  
+                                        `);
                                     }
                                 } else {
                                     tbody.append(`  
-                            <tr>  
-                                <td style="color: rgb(133 133 133 / 75%) !important;">&nbsp ${transaction.payment_method}</td>  
-                                <td>${transaction.number_of_transactions}</td>  
-                                <td>${formatRupiah(transaction.total_collected.toString(), "Rp. ")}</td>  
-                            </tr>  
-                        `);
+                                        <tr>  
+                                            <td style="color: rgb(133 133 133 / 75%) !important;">&nbsp ${transaction.payment_method}</td>  
+                                            <td>${transaction.number_of_transactions}</td>  
+                                            <td>${formatRupiah(transaction.total_collected.toString(), "Rp. ")}</td>  
+                                        </tr>  
+                                    `);
                                 }
                             });
 
                             tbody.append(`  
-                    <tr>  
-                        <td>Total</td>  
-                        <td>${numberOfTransaction}</td>  
-                        <td>${formatRupiah(totalCollected.toString(), "Rp. ")}</td>  
-                    </tr>  
-                `);
+                                <tr>  
+                                    <td>Total</td>  
+                                    <td>${numberOfTransaction}</td>  
+                                    <td>${formatRupiah(totalCollected.toString(), "Rp. ")}</td>  
+                                </tr>  
+                            `);
                         },
                         error: function(xhr) {
                             console.error(xhr);

@@ -11,11 +11,67 @@ use Illuminate\Http\Request;
 
 class SalesController extends Controller
 {
-
-    public function getSalesSummary()
+    public function index()
     {
-        $data = Transaction::all(); // Ambil data sesuai kebutuhan  
-        return DataTables::of($data)->make(true);
+        return view('layouts.sales.index', [
+            "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
+        ]);
+    }
+
+    public function getSalesSummary(Request $request)
+    {
+        $dates = explode(' - ', $request->input('date'));
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        }else {
+            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+            $startDate = Carbon::yesterday()->startOfDay();
+            $endDate = Carbon::yesterday()->endOfDay();
+        }
+
+        $outlet = $request->input('outlet');
+
+        $dataTransaction = Transaction::with(['itemTransaction'])
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->where('outlet_id', $outlet)->get(); // Ambil data sesuai kebutuhan  
+        // dd($data);
+
+        // dd(json_decode($dataTransaction[0]->total_pajak));
+        $grossSales = 0;
+        $discount = 0;
+        $netSales = 0;
+        $tax = 0;
+        $rounding = 0;
+        
+
+        foreach($dataTransaction as $data){
+            
+            $discount += $data->total_diskon;
+
+            $totalTax = 0;
+            foreach(json_decode($data->total_pajak) as $itemPajak){
+                $totalTax += $itemPajak->total;
+            }
+            $grossSales += $data->total + $data->total_diskon - $totalTax;
+
+            $netSales += $data->total - $totalTax;
+
+            $tax += $totalTax;
+            $rounding += $data->rounding_amount;
+        }
+
+        $totalCollected = $netSales + $tax + $rounding;
+        
+
+        return response()->json([
+            'grossSales' => $grossSales,
+            'discount' => $discount,
+            'netSales' => $netSales,
+            'tax' => $tax,
+            'rounding' => $rounding,
+            'totalCollect' => $totalCollected
+        ]);
     }
 
     public function getPaymentMethodSales(Request $request)
@@ -81,10 +137,5 @@ class SalesController extends Controller
 
         return response()->json($result);
     }
-    public function index()
-    {
-        return view('layouts.sales.index', [
-            "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
-        ]);
-    }
+    
 }

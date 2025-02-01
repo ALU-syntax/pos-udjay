@@ -1788,6 +1788,10 @@
                 });
             });
 
+            listDiskonAllItem.forEach(function(item, index){
+                tmpSubTotal.push(-item.value);
+            });
+
             console.log(tmpSubTotal);
 
             var subTotal = tmpSubTotal.reduce(function(acc, curr) {
@@ -2224,31 +2228,25 @@
                                         total += transactionPaymentItem.total;
                                         totalPerCategory += transactionPaymentItem.total;
                                     })
-                                    return ` < div class = "row" >
-                            <
-                            div class = "col-6" >
-                            $ {
-                                itemPayment.name
-                            } <
-                            /div> <
-                        div class = "col-6" >
-                        $ {
-                            formatRupiah(total.toString(), "Rp. ")
-                        } <
-                        /div> < /
-                        div > <
-                            hr > `;
-                                }).join('')}
+                                    return `<div class = "row" >
+                                                <div class = "col-6" >
+                                                    ${itemPayment.name} 
+                                                </div> 
+                                                <div class = "col-6" >
+                                                    ${formatRupiah(total.toString(), "Rp. ")} 
+                                                </div> 
+                                            </div> 
+                                            <hr> `;}).join('')}
     
-                                <div class="row">
-                                    <div class="col-6">
-                                        Expected ${item.name} Payment
-                                    </div>
-                                    <div class="col-6" >
-                                        ${formatRupiah(totalPerCategory.toString(), "Rp. ")}
-                                    </div>
-                                </div> 
-                                <hr>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            Expected ${item.name} Payment
+                                        </div>
+                                        <div class="col-6" >
+                                            ${formatRupiah(totalPerCategory.toString(), "Rp. ")}
+                                        </div>
+                                    </div> 
+                                    <hr>
                                     
                                 </div>
     
