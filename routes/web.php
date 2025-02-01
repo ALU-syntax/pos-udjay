@@ -305,6 +305,7 @@ Route::middleware('auth')->group(function () {
         Route::prefix('sales')->group(function () {
             Route::get('/', [SalesController::class, 'index'])->name('sales');
             Route::get('/sales-summary', [SalesController::class, 'getSalesSummary'])->name('sales/getSalesSummary'); 
+            Route::get('/gross-profit', [SalesController::class, 'getGrossProfit'])->name('sales/getGrossProfit'); 
             Route::get('/payment-method', [SalesController::class, 'getPaymentMethodSales'])->name('sales/getPaymentMethodSales');
             // Route::get('/getTransactionData', [SalesController::class, 'getTransactionData'])->name('transaction/getTransactionData');
         });

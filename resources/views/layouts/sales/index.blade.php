@@ -189,6 +189,56 @@
                                     <p><b>Gross Profit</b></p>
                                     Gross Profit is your Net sales minus cost of Goods Sold (COGS). <b>To Report Gross Profit Accuratel, please make sure all items have a COGS</b>
                                 </div>
+
+                                <div class="container">
+                                    <div class="row" style="background-color: #ccc; height: 50px; margin-bottom: 5px;"></div>
+                                    <div class="row ">
+                                        <div class="col-6">
+                                            Gross Sales
+                                        </div>
+                                        <div class="col-6  justify-content-end d-flex" id="gross-sales-gross-profit">
+                                            Rp. 0
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            Discounts
+                                        </div>
+                                        <div class=" justify-content-end d-flex col-6" id="discount-gross-profit">
+                                            Rp. 0
+                                        </div>
+                                    </div>
+                                    <hr style="border: 2px solid black;">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>Net Sales</strong>
+                                        </div>
+                                        <div class="col-6 justify-content-end d-flex ">
+                                            <strong id="net-sales-gross-profit">Rp. 0 <span class="badge badge-success">100%</span></strong>
+                                        </div>
+                                        
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>Cost Of Goods Sold (COGS)</strong>
+                                        </div>
+                                        <div class="col-6 justify-content-end d-flex ">
+                                            <strong id="cogs-gross-profit">Rp. 0 <span class="badge badge-danger">0%</span></strong>
+                                        </div>
+                                    </div>
+                                    <hr style="border: 2px solid black;">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>Gross Profit</strong>
+                                        </div>
+                                        <div class="col-6 justify-content-end d-flex ">
+                                            <strong id="gross-profit">Rp. 0 <span class="badge badge-success">100%</span></strong>
+                                        </div>
+                                    </div>
+                                    <hr style="border: 2px solid black;">
+                                </div>
                             </div>
                             <div class="tab-pane fade" id="payment-method-nobd" role="tabpanel"
                                 aria-labelledby="payment-method-tab-nobd">
@@ -293,7 +343,32 @@
                         }
                     });
                 } else if (activeTab === '#gross-profit-nobd') {
-                    // Logika untuk Gross Profit  
+                    $.ajax({
+                        url: '{{ route('report/sales/getGrossProfit') }}',
+                        method: 'GET',
+                        data: {
+                            date: date,
+                            outlet: outlet
+                        },
+                        beforeSend: function() {
+                            showLoader();
+                        },
+                        complete: function() {
+                            showLoader(false);
+                        },
+                        success: function(data) {
+                            console.log(data);
+
+                            $('#gross-sales-gross-profit').text(formatRupiah(data.grossSales.toString(), 'Rp. '));
+                            $('#discount-gross-profit').text(formatRupiah(data.discount.toString(), 'Rp. '));
+                            $('#net-sales-gross-profit').html(formatRupiah(data.netSales.toString(), 'Rp. ') + ' ' + '<span class="badge badge-success">100%</span>');
+                            $('#gross-profit').html(formatRupiah(data.netSales.toString(), 'Rp. ') + ' ' + '<span class="badge badge-success">100%</span>');
+                        },
+                        error: function(xhr) {
+                            console.error(xhr);
+                        }
+                    });
+                    
                 } else if (activeTab === '#payment-method-nobd') {
 
                     $.ajax({
