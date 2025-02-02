@@ -40,6 +40,10 @@
             background: #d03c3c;
             border: 1px solid #d03c3c
         }
+
+        .text-col-right {
+            text-align: right;
+        }
     </style>
     <div class="main-content">
         <div class="card text-center">
@@ -117,7 +121,8 @@
                             <div class="tab-pane fade show active" id="sales-summary-nobd" role="tabpanel"
                                 aria-labelledby="sales-summary-tab-nobd">
                                 <div class="container">
-                                    <div class="row" style="background-color: #ccc; height: 50px; margin-bottom: 5px;"></div>
+                                    <div class="row" style="background-color: #ccc; height: 50px; margin-bottom: 5px;">
+                                    </div>
                                     <div class="row ">
                                         <div class="col-6">
                                             Gross Sales
@@ -187,11 +192,13 @@
                                 aria-labelledby="gross-profit-tab-nobd">
                                 <div class="alert alert-primary" role="alert">
                                     <p><b>Gross Profit</b></p>
-                                    Gross Profit is your Net sales minus cost of Goods Sold (COGS). <b>To Report Gross Profit Accuratel, please make sure all items have a COGS</b>
+                                    Gross Profit is your Net sales minus cost of Goods Sold (COGS). <b>To Report Gross
+                                        Profit Accuratel, please make sure all items have a COGS</b>
                                 </div>
 
                                 <div class="container">
-                                    <div class="row" style="background-color: #ccc; height: 50px; margin-bottom: 5px;"></div>
+                                    <div class="row" style="background-color: #ccc; height: 50px; margin-bottom: 5px;">
+                                    </div>
                                     <div class="row ">
                                         <div class="col-6">
                                             Gross Sales
@@ -215,9 +222,10 @@
                                             <strong>Net Sales</strong>
                                         </div>
                                         <div class="col-6 justify-content-end d-flex ">
-                                            <strong id="net-sales-gross-profit">Rp. 0 <span class="badge badge-success">100%</span></strong>
+                                            <strong id="net-sales-gross-profit">Rp. 0 <span
+                                                    class="badge badge-success">100%</span></strong>
                                         </div>
-                                        
+
                                     </div>
                                     <hr>
                                     <div class="row">
@@ -225,7 +233,8 @@
                                             <strong>Cost Of Goods Sold (COGS)</strong>
                                         </div>
                                         <div class="col-6 justify-content-end d-flex ">
-                                            <strong id="cogs-gross-profit">Rp. 0 <span class="badge badge-danger">0%</span></strong>
+                                            <strong id="cogs-gross-profit">Rp. 0 <span
+                                                    class="badge badge-danger">0%</span></strong>
                                         </div>
                                     </div>
                                     <hr style="border: 2px solid black;">
@@ -234,7 +243,8 @@
                                             <strong>Gross Profit</strong>
                                         </div>
                                         <div class="col-6 justify-content-end d-flex ">
-                                            <strong id="gross-profit">Rp. 0 <span class="badge badge-success">100%</span></strong>
+                                            <strong id="gross-profit">Rp. 0 <span
+                                                    class="badge badge-success">100%</span></strong>
                                         </div>
                                     </div>
                                     <hr style="border: 2px solid black;">
@@ -257,7 +267,15 @@
                             </div>
                             <div class="tab-pane fade" id="sales-type-nobd" role="tabpanel"
                                 aria-labelledby="sales-type-tab-nobd">
-                                <p>Comming Soon</p>
+                                <table id="sales-type" class="display table table-bordered" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th>Sales Type</th>
+                                            <th>Count</th>
+                                            <th>Total Collected</th>
+                                        </tr>
+                                    </thead>
+                                </table>
                             </div>
                             <div class="tab-pane fade" id="item-sales-nobd" role="tabpanel"
                                 aria-labelledby="item-sales-tab-nobd">
@@ -335,7 +353,8 @@
                             $('#net-sales-summary').text(formatRupiah(data.netSales.toString(), 'Rp. '));
                             $('#tax-sales-summary').text(formatRupiah(data.tax.toString(), 'Rp. '));
                             $('#rounding-sales-summary').text(formatRupiah(data.rounding.toString(), 'Rp. '));
-                            $('#total-collected-sales-summary').text(formatRupiah(data.totalCollect.toString(), 'Rp. '));
+                            $('#total-collected-sales-summary').text(formatRupiah(data.totalCollect.toString(),
+                                'Rp. '));
 
                         },
                         error: function(xhr) {
@@ -361,14 +380,16 @@
 
                             $('#gross-sales-gross-profit').text(formatRupiah(data.grossSales.toString(), 'Rp. '));
                             $('#discount-gross-profit').text(formatRupiah(data.discount.toString(), 'Rp. '));
-                            $('#net-sales-gross-profit').html(formatRupiah(data.netSales.toString(), 'Rp. ') + ' ' + '<span class="badge badge-success">100%</span>');
-                            $('#gross-profit').html(formatRupiah(data.netSales.toString(), 'Rp. ') + ' ' + '<span class="badge badge-success">100%</span>');
+                            $('#net-sales-gross-profit').html(formatRupiah(data.netSales.toString(), 'Rp. ') + ' ' +
+                                '<span class="badge badge-success">100%</span>');
+                            $('#gross-profit').html(formatRupiah(data.netSales.toString(), 'Rp. ') + ' ' +
+                                '<span class="badge badge-success">100%</span>');
                         },
                         error: function(xhr) {
                             console.error(xhr);
                         }
                     });
-                    
+
                 } else if (activeTab === '#payment-method-nobd') {
 
                     $.ajax({
@@ -437,6 +458,61 @@
                         },
                         error: function(xhr) {
                             console.error(xhr);
+                        }
+                    });
+                } else if (activeTab === '#sales-type-nobd') {
+                    // Hancurkan instance DataTable jika sudah ada
+                    if ($.fn.dataTable.isDataTable('#sales-type')) {
+                        $('#sales-type').DataTable().destroy();
+                    }
+
+                    var tableSales = $('#sales-type').DataTable({
+                        processing: true,
+                        serverSide: true,
+                        ajax: {
+                            url: '{{ route('report/sales/getSalesType') }}', // Make sure this URL matches your Laravel route
+                            type: 'GET',
+                            data: {
+                                date: date,
+                                outlet: outlet
+                            },
+                        },
+                        columns: [{
+                                data: 'sales_type',
+                                name: 'sales_type'
+                            },
+                            {
+                                data: 'count',
+                                name: 'count'
+                            },
+                            {
+                                data: 'total_collected',
+                                name: 'total_collected',
+                                className: 'text-col-right'
+                            }
+                        ],
+                        paging: false, // Menghilangkan pagination
+                        searching: false, // Menghilangkan search bar
+                        ordering: false,
+                        initComplete: function(settings, json) {
+                            var totalTransaction = 0;
+                            console.log(json);
+                            json.data.forEach(function(item) {
+                                item.item_transaction.forEach(function(transactionItem) {
+                                    totalTransaction += transactionItem.variant.harga;
+                                })
+                            });
+                            console.log(totalTransaction);
+                            // Menambahkan baris kustom setelah semua data dimuat
+                            var customRow = {
+                                sales_type: "Total Collected",
+                                count: '',
+                                total_collected: formatRupiah(totalTransaction.toString(), "Rp. ")
+                            };
+
+                            $(customRow).addClass('border-top');
+
+                            tableSales.row.add(customRow).draw(true); // Menambahkan baris kustom
                         }
                     });
                 }

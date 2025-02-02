@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CategoryPayment;
 use App\Models\Outlets;
+use App\Models\SalesType;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Yajra\DataTables\DataTables;
@@ -24,7 +25,7 @@ class SalesController extends Controller
         if (count($dates) == 2) {
             $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
             $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
-        }else {
+        } else {
             // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
             $startDate = Carbon::yesterday()->startOfDay();
             $endDate = Carbon::yesterday()->endOfDay();
@@ -33,8 +34,8 @@ class SalesController extends Controller
         $outlet = $request->input('outlet');
 
         $dataTransaction = Transaction::with(['itemTransaction'])
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->where('outlet_id', $outlet)->get(); // Ambil data sesuai kebutuhan  
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where('outlet_id', $outlet)->get(); // Ambil data sesuai kebutuhan  
         // dd($data);
 
         // dd(json_decode($dataTransaction[0]->total_pajak));
@@ -43,14 +44,14 @@ class SalesController extends Controller
         $netSales = 0;
         $tax = 0;
         $rounding = 0;
-        
 
-        foreach($dataTransaction as $data){
-            
+
+        foreach ($dataTransaction as $data) {
+
             $discount += $data->total_diskon;
 
             $totalTax = 0;
-            foreach(json_decode($data->total_pajak) as $itemPajak){
+            foreach (json_decode($data->total_pajak) as $itemPajak) {
                 $totalTax += $itemPajak->total;
             }
             $grossSales += $data->total + $data->total_diskon - $totalTax;
@@ -62,7 +63,7 @@ class SalesController extends Controller
         }
 
         $totalCollected = $netSales + $tax + $rounding;
-        
+
 
         return response()->json([
             'grossSales' => $grossSales,
@@ -138,12 +139,13 @@ class SalesController extends Controller
         return response()->json($result);
     }
 
-    public function getGrossProfit(Request $request){
+    public function getGrossProfit(Request $request)
+    {
         $dates = explode(' - ', $request->input('date'));
         if (count($dates) == 2) {
             $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
             $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
-        }else {
+        } else {
             // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
             $startDate = Carbon::yesterday()->startOfDay();
             $endDate = Carbon::yesterday()->endOfDay();
@@ -152,18 +154,18 @@ class SalesController extends Controller
         $outlet = $request->input('outlet');
 
         $dataTransaction = Transaction::with(['itemTransaction'])
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->where('outlet_id', $outlet)->get(); // Ambil data sesuai kebutuhan  
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where('outlet_id', $outlet)->get(); // Ambil data sesuai kebutuhan  
 
         $grossSales = 0;
         $discount = 0;
         $netSales = 0;
 
-        foreach($dataTransaction as $transaction){
+        foreach ($dataTransaction as $transaction) {
             $discount += $transaction->total_diskon;
 
             $totalTax = 0;
-            foreach(json_decode($transaction->total_pajak) as $itemPajak){
+            foreach (json_decode($transaction->total_pajak) as $itemPajak) {
                 $totalTax += $itemPajak->total;
             }
             $grossSales += $transaction->total + $transaction->total_diskon - $totalTax;
@@ -177,5 +179,28 @@ class SalesController extends Controller
             'netSales' => $netSales
         ]);
     }
-    
+
+    public function getSalesType(Request $request)
+    {
+        $query = SalesType::with(['itemTransaction' => function($transaction){
+            $transaction->with(['variant']);
+        }])->get();
+        return DataTables::of($query)
+            ->addColumn('sales_type', function ($row) {
+                return $row->name;
+            })
+            ->addColumn('count', function ($row) {
+                // return "<span class='badge badge-primary'>{$row->outlet->name}</span>";
+                return count($row->itemTransaction);
+            })
+            ->addColumn('total_collected', function ($row) {
+                $totalTransaction = 0;
+                foreach($row->itemTransaction as $data){
+                    $totalTransaction += $data->variant->harga;
+                }
+                return formatRupiah(strval($totalTransaction), "Rp. ");
+            })
+            ->setRowId('id')
+            ->make(true);
+    }
 }

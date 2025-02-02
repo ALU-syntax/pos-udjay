@@ -307,6 +307,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/sales-summary', [SalesController::class, 'getSalesSummary'])->name('sales/getSalesSummary'); 
             Route::get('/gross-profit', [SalesController::class, 'getGrossProfit'])->name('sales/getGrossProfit'); 
             Route::get('/payment-method', [SalesController::class, 'getPaymentMethodSales'])->name('sales/getPaymentMethodSales');
+            Route::get('/sales-type', [SalesController::class, 'getSalesType'])->name('sales/getSalesType');
             // Route::get('/getTransactionData', [SalesController::class, 'getTransactionData'])->name('transaction/getTransactionData');
         });
 

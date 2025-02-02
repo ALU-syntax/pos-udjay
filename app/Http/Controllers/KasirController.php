@@ -227,6 +227,8 @@ class KasirController extends Controller
             'tanda_rounding' => $request->tanda_rounding,
             'patty_cash_id' => $request->patty_cash_id,
             'catatan' => $request->catatan_transaksi,
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
         ];
 
         $transaction = Transaction::create($dataTransaction);
@@ -243,6 +245,8 @@ class KasirController extends Controller
                 'transaction_id' => $transaction->id,
                 'catatan' => isset($request->catatan[$x]) ? $request->catatan[$x] : '',
                 'sales_type_id' => ($request->sales_type[$x] == 'null' || $request->sales_type[$x] == 'undefined') ?  null : $request->sales_type[$x],
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ];
 
             TransactionItem::insert($dataProduct);

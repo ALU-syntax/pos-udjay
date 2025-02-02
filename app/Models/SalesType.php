@@ -15,4 +15,8 @@ class SalesType extends Model
     public function outlet(){
         return $this->belongsTo(Outlets::class, 'outlet_id', 'id');
     }
+
+    public function itemTransaction(){
+        return $this->hasMany(TransactionItem::class, 'sales_type_id', 'id');
+    }
 }
