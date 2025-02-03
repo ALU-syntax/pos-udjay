@@ -4,16 +4,44 @@ namespace App\Http\Controllers;
 
 use App\Models\CategoryPayment;
 use App\Models\Outlets;
+use App\Models\Product;
 use App\Models\SalesType;
 use App\Models\Transaction;
+use App\Models\VariantProduct;
 use Carbon\Carbon;
 use Yajra\DataTables\DataTables;
 use Illuminate\Http\Request;
 
 class SalesController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $dates = explode(' - ', $request->input('date'));
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        } else {
+            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
+
+        $outlet = $request->input('outlet');
+
+        $data = VariantProduct::with(['itemTransaction' => function($transaction)use($startDate, $endDate){
+            $transaction->whereBetween('created_at', [$startDate, $endDate]);
+        }, 'product.category'])->whereHas('product', function($query) use ($outlet) {
+            $query->where('outlet_id', 1);
+        })->get();
+
+        // $data = Product::with(['variants' => function($variant) use($startDate, $endDate){
+        //     $variant->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate){
+        //         $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
+        //     }]);
+        // }])->where('outlet_id', 1)->get();
+
+        // dd($data);
+        // dd(json_decode($data[0]->variants[0]->itemTransaction[0]->discount_id));
         return view('layouts.sales.index', [
             "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
         ]);
@@ -27,8 +55,8 @@ class SalesController extends Controller
             $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
         } else {
             // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
-            $startDate = Carbon::yesterday()->startOfDay();
-            $endDate = Carbon::yesterday()->endOfDay();
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
         }
 
         $outlet = $request->input('outlet');
@@ -147,8 +175,8 @@ class SalesController extends Controller
             $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
         } else {
             // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
-            $startDate = Carbon::yesterday()->startOfDay();
-            $endDate = Carbon::yesterday()->endOfDay();
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
         }
 
         $outlet = $request->input('outlet');
@@ -182,9 +210,21 @@ class SalesController extends Controller
 
     public function getSalesType(Request $request)
     {
-        $query = SalesType::with(['itemTransaction' => function($transaction){
-            $transaction->with(['variant']);
-        }])->get();
+        $dates = explode(' - ', $request->input('date'));
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        } else {
+            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
+
+        $outlet = $request->input('outlet');
+
+        $query = SalesType::with(['itemTransaction' => function($transaction) use($startDate, $endDate, $outlet){
+            $transaction->with(['variant'])->whereBetween('created_at', [$startDate, $endDate]);
+        }])->where('outlet_id', $outlet)->get();
         return DataTables::of($query)
             ->addColumn('sales_type', function ($row) {
                 return $row->name;
@@ -202,5 +242,88 @@ class SalesController extends Controller
             })
             ->setRowId('id')
             ->make(true);
+    }
+
+    public function getItemSales(Request $request){
+        $dates = explode(' - ', $request->input('date'));
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        } else {
+            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
+
+        $outlet = $request->input('outlet');
+
+        $data = VariantProduct::with(['itemTransaction' => function($transaction)use($startDate, $endDate){
+            $transaction->whereBetween('created_at', [$startDate, $endDate]);
+        }, 'product.category'])->whereHas('product', function($query) use ($outlet) {
+            $query->where('outlet_id', $outlet);
+        })->get();
+
+        return DataTables::of($data)
+            ->addColumn('name', function($row){
+                // $namaVariant
+                return ($row->name == $row->product->name) ? $row->product->name : $row->product->name . ' - ' . $row->name;
+            })
+            ->addColumn('category', function($row){
+                return $row->product->category->name;
+            })
+            ->addColumn('item_sold', function($row){
+                $itemSold = count($row->itemTransaction);
+                return $itemSold;
+            })
+            ->addColumn('gross_sales', function($row){
+                $itemSold = count($row->itemTransaction);
+                $grossSales = $itemSold * $row->harga;
+                return $grossSales;
+            })
+            ->addColumn('discounts', function($row){
+                $totalDiscount = 0;
+                foreach($row->itemTransaction as $itemTransaction){
+                    $dataDiscount = json_decode($itemTransaction->discount_id);
+                    foreach($dataDiscount as $discount){
+                        $totalDiscount += $discount->result;
+                    }
+                }
+                return $totalDiscount;
+            })
+            ->addColumn('net_sales', function($row){
+                $totalDiscount = 0;
+                $jumlahTransaksi = count($row->itemTransaction);
+                $grossSales = $jumlahTransaksi * $row->harga;
+                foreach($row->itemTransaction as $itemTransaction){
+                    $dataDiscount = json_decode($itemTransaction->discount_id);
+                    
+                    foreach($dataDiscount as $discount){
+                        $totalDiscount += $discount->result;
+                    }
+                }
+
+                return $grossSales -= $totalDiscount;
+            })
+            ->addColumn('gross_profit',function($row){
+                $totalDiscount = 0;
+                $jumlahTransaksi = count($row->itemTransaction);
+                $grossSales = $jumlahTransaksi * $row->harga;
+                foreach($row->itemTransaction as $itemTransaction){
+                    $dataDiscount = json_decode($itemTransaction->discount_id);
+                    
+                    foreach($dataDiscount as $discount){
+                        $totalDiscount += $discount->result;
+                    }
+                }
+
+                return $grossSales -= $totalDiscount;
+            })
+            ->addColumn('gross_margin', function($row){
+                $grossMargin =count($row->itemTransaction) ? "100%" : "0%";
+                return $grossMargin;
+            })
+            ->setRowId('id')
+            ->make(true);
+
     }
 }

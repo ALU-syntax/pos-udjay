@@ -308,6 +308,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/gross-profit', [SalesController::class, 'getGrossProfit'])->name('sales/getGrossProfit'); 
             Route::get('/payment-method', [SalesController::class, 'getPaymentMethodSales'])->name('sales/getPaymentMethodSales');
             Route::get('/sales-type', [SalesController::class, 'getSalesType'])->name('sales/getSalesType');
+            Route::get('/item-sales', [SalesController::class, 'getItemSales'])->name('sales/getItemSales');
             // Route::get('/getTransactionData', [SalesController::class, 'getTransactionData'])->name('transaction/getTransactionData');
         });
 

@@ -20,7 +20,7 @@
             </ul> --}}
         </nav>
         <div class="copyright ms-auto">
-            2024, made with <i class="fa fa-heart heart text-danger"></i> by <a href="https://www.instagram.com/ardian_iqbal_/">Ardian Iqbal</a>
+            <p>Copyright ©2025 Djaya Abadi Sejahtera<sup>®</sup>. All rights reserved. </p>
         </div>				
     </div>
 </footer>

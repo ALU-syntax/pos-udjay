@@ -98,8 +98,6 @@
                             <a class="nav-link" id="category-sales-tab-nobd" data-bs-toggle="pill"
                                 href="#category-sales-nobd" role="tab" aria-controls="category-sales-nobd"
                                 aria-selected="false">Category Sales</a>
-                            <a class="nav-link" id="brand-sales-tab-nobd" data-bs-toggle="pill" href="#brand-sales-nobd"
-                                role="tab" aria-controls="brand-sales-nobd" aria-selected="false">Brand Sales</a>
                             <a class="nav-link" id="modifier-sales-tab-nobd" data-bs-toggle="pill"
                                 href="#modifier-sales-nobd" role="tab" aria-controls="modifier-sales-nobd"
                                 aria-selected="false">Modifier Sales</a>
@@ -279,14 +277,34 @@
                             </div>
                             <div class="tab-pane fade" id="item-sales-nobd" role="tabpanel"
                                 aria-labelledby="item-sales-tab-nobd">
-                                <p>Comming Soon</p>
+                                <table id="item-sales" class="table display row-border order-column" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th><b>Name</b></th>
+                                            <th><b>Category</b></th>
+                                            <th><b>Item Sold</b></th>
+                                            <th><b>Gross Sales</b></th>
+                                            <th><b>Discounts</b></th>
+                                            <th><b>Net Sales</b></th>
+                                            <th><b>Gross Profit</b></th>
+                                            <th><b>Gross Margin</b></th>
+                                        </tr>
+                                    </thead>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="1">Total</th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
                             <div class="tab-pane fade" id="category-sales-nobd" role="tabpanel"
                                 aria-labelledby="category-sales-tab-nobd">
-                                <p>Comming Soon</p>
-                            </div>
-                            <div class="tab-pane fade" id="brand-sales-nobd" role="tabpanel"
-                                aria-labelledby="brand-sales-tab-nobd">
                                 <p>Comming Soon</p>
                             </div>
                             <div class="tab-pane fade" id="modifier-sales-nobd" role="tabpanel"
@@ -322,6 +340,9 @@
 
 
     @push('js')
+        <script src="https://cdn.datatables.net/2.2.1/js/dataTables.js"></script>
+        <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.js"></script>
+        <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/fixedColumns.dataTables.js"></script>
         <script>
             function checkActiveTab() {
                 var activeTab = $('a.nav-link.active').attr('href');
@@ -391,7 +412,6 @@
                     });
 
                 } else if (activeTab === '#payment-method-nobd') {
-
                     $.ajax({
                         url: '{{ route('report/sales/getPaymentMethodSales') }}',
                         method: 'GET',
@@ -515,6 +535,121 @@
                             tableSales.row.add(customRow).draw(true); // Menambahkan baris kustom
                         }
                     });
+                } else if (activeTab === "#item-sales-nobd") {
+                    if ($.fn.dataTable.isDataTable('#item-sales')) {
+                        $('#item-sales').DataTable().destroy();
+                    }
+
+                    var tableSales = $('#item-sales').DataTable({
+                        processing: true,
+                        serverSide: true,
+                        ajax: {
+                            url: '{{ route('report/sales/getItemSales') }}', // Make sure this URL matches your Laravel route
+                            type: 'GET',
+                            data: {
+                                date: date,
+                                outlet: outlet
+                            },
+                        },
+                        columns: [{
+                                data: 'name',
+                                name: 'name'
+                            },
+                            {
+                                data: 'category',
+                                name: 'category'
+                            },
+                            {
+                                data: 'item_sold',
+                                name: 'item_sold',
+                            },
+                            {
+                                data: 'gross_sales',
+                                name: 'gross_sales',
+                            },
+                            {
+                                data: 'discounts',
+                                name: 'discounts',
+                            },
+                            {
+                                data: 'net_sales',
+                                name: 'net_sales',
+                            },
+                            {
+                                data: 'gross_profit',
+                                name: 'gross_profit',
+                            },
+                            {
+                                data: 'gross_margin',
+                                name: 'gross_margin',
+                            }
+
+                        ],
+                        paging: false, // Menghilangkan pagination
+                        searching: false, // Menghilangkan search bar
+                        ordering: false,
+                        scrollX: true,
+                        scrollCollapse: true,
+                        scrollY: 500,
+                        fixedColumns: {
+                            start: 1,
+                        },
+                        columnDefs: [{
+                                targets: 0,
+                                width: '200px'
+                            } // Menetapkan lebar kolom pertama menjadi 200px
+                        ],
+                        initComplete: function(setting, json) {
+                            console.log(json)
+                            $('.dt-scroll-body table thead').remove();
+                            $('.dt-scroll-body table tfoot').remove();
+                        },
+                        footerCallback: function(row, data, start, end, display) {
+                            var api = this.api();
+
+                            // Menghitung total untuk setiap kolom yang diinginkan
+                            var totalItemSold = api.column(2).data().reduce(function(a, b) {
+                                return parseInt(a) + parseInt(b);
+                            }, 0);
+
+                            var totalGrossSales = api.column(3).data().reduce(function(a, b) {
+                                return parseFloat(a) + parseFloat(b);
+                            }, 0);
+
+                            var totalDiscounts = api.column(4).data().reduce(function(a, b) {
+                                return parseFloat(a) + parseFloat(b);
+                            }, 0);
+
+                            var totalNetSales = api.column(5).data().reduce(function(a, b) {
+                                return parseFloat(a) + parseFloat(b);
+                            }, 0);
+
+                            var totalGrossProfit = api.column(6).data().reduce(function(a, b) {
+                                return parseFloat(a) + parseFloat(b);
+                            }, 0);
+
+                            // Menampilkan total di footer
+                            $(api.column(2).footer()).html(totalItemSold);
+                            $(api.column(3).footer()).html(totalGrossSales);
+                            $(api.column(4).footer()).html(totalDiscounts);
+                            $(api.column(5).footer()).html(totalNetSales);
+                            $(api.column(6).footer()).html(totalGrossProfit);
+                        }
+                    });
+
+                    // Pastikan untuk menambahkan elemen <tfoot> di HTML Anda
+                    $('#item-sales tfoot').append(`
+                        <tr>
+                            <th colspan="1">Total</th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    `);
+
                 }
                 // Tambahkan logika untuk tab lainnya  
             }

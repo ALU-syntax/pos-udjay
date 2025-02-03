@@ -11,4 +11,13 @@ class VariantProduct extends Model
     use HasFactory, SoftDeletes;
 
     protected $guarded = ['id'];
+
+    public function itemTransaction(){
+        return $this->hasMany(TransactionItem::class, 'variant_id', 'id');
+    }
+
+    public function product(){
+        return $this->belongsTo(Product::class, 'product_id', 'id');
+    }
+
 }
