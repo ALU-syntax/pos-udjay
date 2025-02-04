@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\CategoryPayment;
 use App\Models\Outlets;
 use App\Models\Product;
@@ -28,11 +29,18 @@ class SalesController extends Controller
 
         $outlet = $request->input('outlet');
 
-        $data = VariantProduct::with(['itemTransaction' => function($transaction)use($startDate, $endDate){
-            $transaction->whereBetween('created_at', [$startDate, $endDate]);
-        }, 'product.category'])->whereHas('product', function($query) use ($outlet) {
+        $data = Category::with(['products' => function ($product) use ($startDate, $endDate) {
+            $product->with(['variants' => function ($variant) use ($startDate, $endDate) {
+                $variant->with(['itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
+                    $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
+                }]);
+            }, 'itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
+                $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
+            }])->where('outlet_id', 1);;
+        }])->whereHas('products', function ($query) use ($outlet) {
             $query->where('outlet_id', 1);
         })->get();
+
 
         // $data = Product::with(['variants' => function($variant) use($startDate, $endDate){
         //     $variant->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate){
@@ -222,7 +230,7 @@ class SalesController extends Controller
 
         $outlet = $request->input('outlet');
 
-        $query = SalesType::with(['itemTransaction' => function($transaction) use($startDate, $endDate, $outlet){
+        $query = SalesType::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate, $outlet) {
             $transaction->with(['variant'])->whereBetween('created_at', [$startDate, $endDate]);
         }])->where('outlet_id', $outlet)->get();
         return DataTables::of($query)
@@ -235,7 +243,7 @@ class SalesController extends Controller
             })
             ->addColumn('total_collected', function ($row) {
                 $totalTransaction = 0;
-                foreach($row->itemTransaction as $data){
+                foreach ($row->itemTransaction as $data) {
                     $totalTransaction += $data->variant->harga;
                 }
                 return formatRupiah(strval($totalTransaction), "Rp. ");
@@ -244,7 +252,8 @@ class SalesController extends Controller
             ->make(true);
     }
 
-    public function getItemSales(Request $request){
+    public function getItemSales(Request $request)
+    {
         $dates = explode(' - ', $request->input('date'));
         if (count($dates) == 2) {
             $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
@@ -257,73 +266,143 @@ class SalesController extends Controller
 
         $outlet = $request->input('outlet');
 
-        $data = VariantProduct::with(['itemTransaction' => function($transaction)use($startDate, $endDate){
+        $data = VariantProduct::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate) {
             $transaction->whereBetween('created_at', [$startDate, $endDate]);
-        }, 'product.category'])->whereHas('product', function($query) use ($outlet) {
+        }, 'product.category'])->whereHas('product', function ($query) use ($outlet) {
             $query->where('outlet_id', $outlet);
         })->get();
 
         return DataTables::of($data)
-            ->addColumn('name', function($row){
+            ->addColumn('name', function ($row) {
                 // $namaVariant
                 return ($row->name == $row->product->name) ? $row->product->name : $row->product->name . ' - ' . $row->name;
             })
-            ->addColumn('category', function($row){
+            ->addColumn('category', function ($row) {
                 return $row->product->category->name;
             })
-            ->addColumn('item_sold', function($row){
+            ->addColumn('item_sold', function ($row) {
                 $itemSold = count($row->itemTransaction);
                 return $itemSold;
             })
-            ->addColumn('gross_sales', function($row){
+            ->addColumn('gross_sales', function ($row) {
                 $itemSold = count($row->itemTransaction);
                 $grossSales = $itemSold * $row->harga;
                 return $grossSales;
             })
-            ->addColumn('discounts', function($row){
+            ->addColumn('discounts', function ($row) {
                 $totalDiscount = 0;
-                foreach($row->itemTransaction as $itemTransaction){
+                foreach ($row->itemTransaction as $itemTransaction) {
                     $dataDiscount = json_decode($itemTransaction->discount_id);
-                    foreach($dataDiscount as $discount){
+                    foreach ($dataDiscount as $discount) {
                         $totalDiscount += $discount->result;
                     }
                 }
                 return $totalDiscount;
             })
-            ->addColumn('net_sales', function($row){
+            ->addColumn('net_sales', function ($row) {
                 $totalDiscount = 0;
                 $jumlahTransaksi = count($row->itemTransaction);
                 $grossSales = $jumlahTransaksi * $row->harga;
-                foreach($row->itemTransaction as $itemTransaction){
+                foreach ($row->itemTransaction as $itemTransaction) {
                     $dataDiscount = json_decode($itemTransaction->discount_id);
-                    
-                    foreach($dataDiscount as $discount){
+
+                    foreach ($dataDiscount as $discount) {
                         $totalDiscount += $discount->result;
                     }
                 }
 
                 return $grossSales -= $totalDiscount;
             })
-            ->addColumn('gross_profit',function($row){
+            ->addColumn('gross_profit', function ($row) {
                 $totalDiscount = 0;
                 $jumlahTransaksi = count($row->itemTransaction);
                 $grossSales = $jumlahTransaksi * $row->harga;
-                foreach($row->itemTransaction as $itemTransaction){
+                foreach ($row->itemTransaction as $itemTransaction) {
                     $dataDiscount = json_decode($itemTransaction->discount_id);
-                    
-                    foreach($dataDiscount as $discount){
+
+                    foreach ($dataDiscount as $discount) {
                         $totalDiscount += $discount->result;
                     }
                 }
 
                 return $grossSales -= $totalDiscount;
             })
-            ->addColumn('gross_margin', function($row){
-                $grossMargin =count($row->itemTransaction) ? "100%" : "0%";
+            ->addColumn('gross_margin', function ($row) {
+                $grossMargin = count($row->itemTransaction) ? "100%" : "0%";
                 return $grossMargin;
             })
             ->setRowId('id')
             ->make(true);
+    }
 
+    public function getCategorySales(Request $request)
+    {
+        $dates = explode(' - ', $request->input('date'));
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        } else {
+            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
+
+        $outlet = $request->input('outlet');
+
+        $data = Category::with(['products' => function ($product) use ($startDate, $endDate, $outlet) {
+            $product->with(['variants' => function ($variant) use ($startDate, $endDate) {
+                $variant->with(['itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
+                    $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
+                }]);
+            }, 'itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
+                $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
+            }])->where('outlet_id', $outlet);
+        }])->whereHas('products', function ($query) use ($outlet) {
+            $query->where('outlet_id', $outlet);
+        })->get();
+
+        return DataTables::of($data)
+            ->addColumn('category', function ($row) {
+                return $row->name;
+            })
+            ->addColumn('item_sold', function ($row) {
+                $itemSold = 0;
+                foreach ($row->products as $product) {
+                    $countBuy = Count($product->itemTransaction);
+                    $itemSold += $countBuy;
+                }
+                return $itemSold;
+            })
+            ->addColumn('gross_sales', function ($row) {
+                $grossSales = 0;
+                foreach ($row->products as $product) {
+                    foreach($product->variants as $variant){
+                        $countTransaction = Count($variant->itemTransaction);
+                        $hargaTotal = $countTransaction * $variant->harga;
+                        $grossSales += $hargaTotal;
+                    }
+                }
+                return $grossSales;
+            })
+            ->addColumn('discounts', function ($row) {
+                $totalDiscount = 0;
+                foreach($row->products as $product){
+                    foreach($product->variants as $variant){
+                        $discountVariant = 0;
+                        foreach($variant->itemTransaction as $itemTransaction){
+                            $dataDiscount = json_decode($itemTransaction->discount_id);
+    
+                            foreach($dataDiscount as $discount){
+                                $discountVariant += $discount->result;
+                            }
+                        }
+                        $totalDiscount += $discountVariant;
+                    }
+                }
+                
+                return $totalDiscount;
+            })
+            ->setRowId('id')
+            ->make(true);
     }
 }

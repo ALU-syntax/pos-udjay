@@ -280,7 +280,7 @@
                                 <table id="item-sales" class="table display row-border order-column" style="width:100%">
                                     <thead>
                                         <tr>
-                                            <th><b>Name</b></th>
+                                            <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
                                             <th><b>Category</b></th>
                                             <th><b>Item Sold</b></th>
                                             <th><b>Gross Sales</b></th>
@@ -305,7 +305,30 @@
                             </div>
                             <div class="tab-pane fade" id="category-sales-nobd" role="tabpanel"
                                 aria-labelledby="category-sales-tab-nobd">
-                                <p>Comming Soon</p>
+                                <div class="alert alert-primary" role="alert">
+                                    <p><b>Gross Profit</b></p>
+                                    To Report Gross
+                                    Profit Accurately, please make sure all items have a COGS
+                                </div>
+
+                                <table id="category-sales" class="table display row-border order-column" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th style="border-right: #000; border-radius: 2px"><b>Category</b></th>
+                                            <th><b>Item Sold</b></th>
+                                            <th><b>Gross Sales</b></th>
+                                            <th><b>Discounts</b></th>
+                                        </tr>
+                                    </thead>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="1">Total</th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
                             <div class="tab-pane fade" id="modifier-sales-nobd" role="tabpanel"
                                 aria-labelledby="modifier-sales-tab-nobd">
@@ -650,6 +673,91 @@
                         </tr>
                     `);
 
+                }else if(activeTab === "#category-sales-nobd"){
+                    if ($.fn.dataTable.isDataTable('#category-sales')) {
+                        $('#category-sales').DataTable().destroy();
+                    }
+
+                    var tableSales = $('#category-sales').DataTable({
+                        processing: true,
+                        serverSide: true,
+                        ajax: {
+                            url: '{{ route('report/sales/getCategorySales') }}', // Make sure this URL matches your Laravel route
+                            type: 'GET',
+                            data: {
+                                date: date,
+                                outlet: outlet
+                            },
+                        },
+                        columns: [{
+                                data: 'category',
+                                name: 'category'
+                            },
+                            {
+                                data: 'item_sold',
+                                name: 'item_sold'
+                            },
+                            {
+                                data: 'gross_sales',
+                                name: 'gross_sales',
+                            },
+                            {
+                                data: 'discounts',
+                                name: 'discounts',
+                            },
+                        ],
+                        paging: false, // Menghilangkan pagination
+                        searching: false, // Menghilangkan search bar
+                        ordering: false,
+                        scrollX: true,
+                        scrollCollapse: true,
+                        scrollY: 500,
+                        fixedColumns: {
+                            start: 1,
+                        },
+                        columnDefs: [{
+                                targets: 0,
+                                width: '200px'
+                            } // Menetapkan lebar kolom pertama menjadi 200px
+                        ],
+                        initComplete: function(setting, json) {
+                            console.log(json)
+                            $('.dt-scroll-body table thead').remove();
+                            $('.dt-scroll-body table tfoot').remove();
+                        },
+                        footerCallback: function(row, data, start, end, display) {
+                            var api = this.api();
+
+                            // Menghitung total untuk setiap kolom yang diinginkan
+                            var totalItemSold = api.column(1).data().reduce(function(a, b) {
+                                return parseInt(a) + parseInt(b);
+                            }, 0);
+
+                            var totalGrossSales = api.column(2).data().reduce(function(a, b) {
+                                return parseFloat(a) + parseFloat(b);
+                            }, 0);
+
+                            var totalDiscounts = api.column(3).data().reduce(function(a, b) {
+                                return parseFloat(a) + parseFloat(b);
+                            }, 0);
+
+
+                            // Menampilkan total di footer
+                            $(api.column(1).footer()).html(totalItemSold);
+                            $(api.column(2).footer()).html(totalGrossSales);
+                            $(api.column(3).footer()).html(totalDiscounts);
+                        }
+                    });
+
+                    // Pastikan untuk menambahkan elemen <tfoot> di HTML Anda
+                    $('#category-sales tfoot').append(`
+                        <tr>
+                            <th colspan="1">Total</th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    `);
                 }
                 // Tambahkan logika untuk tab lainnya  
             }
