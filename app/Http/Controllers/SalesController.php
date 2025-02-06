@@ -319,7 +319,7 @@ class SalesController extends Controller
                 }
 
                 $grossProfit = $grossSales -= $totalDiscount;
-                return $grossProfit == 0 ? "Rp. 0" : formatRupiah(strval($grossProfit), "Rp. 0");
+                return $grossProfit == 0 ? "Rp. 0" : formatRupiah(strval($grossProfit), "Rp. ");
             })
             ->addColumn('gross_margin', function ($row) {
                 $grossMargin = count($row->itemTransaction) ? "100%" : "0%";
