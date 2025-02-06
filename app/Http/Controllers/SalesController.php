@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\CategoryPayment;
+use App\Models\Discount;
 use App\Models\ModifierGroup;
 use App\Models\Outlets;
 use App\Models\Product;
@@ -25,8 +26,8 @@ class SalesController extends Controller
             $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
         } else {
             // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
-            $startDate = Carbon::now()->startOfDay();
-            $endDate = Carbon::now()->endOfDay();
+            $startDate = Carbon::yesterday()->startOfDay();
+            $endDate = Carbon::yesterday()->endOfDay();
         }
 
         $outlet = $request->input('outlet');
@@ -488,7 +489,63 @@ class SalesController extends Controller
         })
         ->setRowId('id')
         ->make(true);
+    }
 
+    public function getDiscountSales(Request $request){
+        $dates = explode(' - ', $request->input('date'));
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        } else {
+            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
+
+        $outlet = $request->input('outlet');
         
+        $dataDiscount = Discount::where('outlet_id', $outlet)->get();
+
+        foreach($dataDiscount as $discount){
+            if($discount->satuan == "percent"){
+                $dataTransactions = TransactionItem::whereBetween('created_at', [$startDate, $endDate])->whereJsonContains('discount_id', ['id' => strval($discount->id)])->get();    
+                $discount['count'] = count($dataTransactions);
+                $totalDiscount = 0;
+                foreach($dataTransactions as $transaction){
+                    $discountData = json_decode($transaction->discount_id);
+                    foreach($discountData as $data){
+                        if($data->id == $discount->id){
+                            $totalDiscount += $data->result;
+                        }
+                    }
+                }
+                $discount['total_discount'] = $totalDiscount;
+            }else{
+                $dataTransactions = Transaction::whereBetween('created_at', [$startDate, $endDate])->whereJsonContains('diskon_all_item', ['id' => $discount->id])->get();
+                $discount['count'] = count($dataTransactions);
+                $discount['total_discount'] = count($dataTransactions) * $discount->amount;
+            }
+        }
+
+        return DataTables::of($dataDiscount)
+        ->addColumn('name', function($row){
+            return $row->name;
+        })
+        ->addColumn('discount_amount', function($row){
+            if($row->satuan == "percent"){
+                return strval($row->amount) . "%";
+            }else{
+                return formatRupiah(strval($row->amount), "Rp. ");
+            }
+        })
+        ->addColumn('count', function($row){
+            return $row->count;
+        })
+        ->addColumn('discount_total', function($row){
+            return formatRupiah(strval($row->total_discount), "Rp. ");
+        })
+        ->setRowId('id')
+        ->make(true);
+
     }
 }

@@ -36,6 +36,86 @@
             /* Warna abu */
         }
 
+        /* Menambahkan border vertikal di kanan kolom item sales */
+        #item-sales td:first-child {
+            border-right: 1px solid #ccc;
+            /* Border kanan */
+        }
+
+        /* Menambahkan border horizontal atas dan bawah di baris Total */
+        #item-sales tr:last-child {
+            border-top: 2px solid #000;
+            /* Border atas */
+            border-bottom: 2px solid #000;
+            /* Border bawah */
+        }
+
+        /* Menambahkan background abu pada header tabel */
+        #item-sales thead th {
+            background-color: #f2f2f2;
+            /* Warna abu */
+        }
+
+        /* Menambahkan border vertikal di kanan kolom category sales */
+        #category-sales td:first-child {
+            border-right: 1px solid #ccc;
+            /* Border kanan */
+        }
+
+        /* Menambahkan border horizontal atas dan bawah di baris Total */
+        #category-sales tr:last-child {
+            border-top: 2px solid #000;
+            /* Border atas */
+            border-bottom: 2px solid #000;
+            /* Border bawah */
+        }
+
+        /* Menambahkan background abu pada header tabel */
+        #category-sales thead th {
+            background-color: #f2f2f2;
+            /* Warna abu */
+        }
+
+        /* Menambahkan border vertikal di kanan kolom modifier sales */
+        #modifier-sales td:first-child {
+            border-right: 1px solid #ccc;
+            /* Border kanan */
+        }
+
+        /* Menambahkan border horizontal atas dan bawah di baris Total */
+        #modifier-sales tr:last-child {
+            border-top: 2px solid #000;
+            /* Border atas */
+            border-bottom: 2px solid #000;
+            /* Border bawah */
+        }
+
+        /* Menambahkan background abu pada header tabel */
+        #modifier-sales thead th {
+            background-color: #f2f2f2;
+            /* Warna abu */
+        }
+
+        /* Menambahkan border vertikal di kanan kolom discount sales */
+        #discount-sales td:first-child {
+            border-right: 1px solid #ccc;
+            /* Border kanan */
+        }
+
+        /* Menambahkan border horizontal atas dan bawah di baris Total */
+        #discount-sales tr:last-child {
+            border-top: 2px solid #000;
+            /* Border atas */
+            border-bottom: 2px solid #000;
+            /* Border bawah */
+        }
+
+        /* Menambahkan background abu pada header tabel */
+        #discount-sales thead th {
+            background-color: #f2f2f2;
+            /* Warna abu */
+        }
+
         .nav-pills.nav-primary .nav-link.active {
             background: #d03c3c;
             border: 1px solid #d03c3c
@@ -355,7 +435,24 @@
                             </div>
                             <div class="tab-pane fade" id="discount-nobd" role="tabpanel"
                                 aria-labelledby="discount-tab-nobd">
-                                <p>Comming Soon</p>
+                                <table id="discount-sales" class="table display row-border order-column" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
+                                            <th><b>Discount Amount</b></th>
+                                            <th><b>Count</b></th>
+                                            <th><b>Discount Total</b></th>
+                                        </tr>
+                                    </thead>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="1">Total</th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
                             <div class="tab-pane fade" id="taxes-nobd" role="tabpanel" aria-labelledby="taxes-tab-nobd">
                                 <p>Comming Soon</p>
@@ -863,6 +960,82 @@
                             <th colspan="1">Total</th>
                             <th></th>
                             <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    `);
+                }else if(activeTab === "#discount-nobd"){
+                    if ($.fn.dataTable.isDataTable('#discount-sales')) {
+                        $('#discount-sales').DataTable().destroy();
+                    }
+
+                    var modifierSales = $('#discount-sales').DataTable({
+                        processing: true,
+                        serverSide: true,
+                        ajax: {
+                            url: '{{ route('report/sales/getDiscountSales') }}', // Make sure this URL matches your Laravel route
+                            type: 'GET',
+                            data: {
+                                date: date,
+                                outlet: outlet
+                            },
+                        },
+                        columns: [{
+                                data: 'name',
+                                name: 'name'
+                            },
+                            {
+                                data: 'discount_amount',
+                                name: 'discount_amount'
+                            },
+                            {
+                                data: 'count',
+                                name: 'count',
+                            },
+                            {
+                                data: 'discount_total',
+                                name: 'discount_total',
+                            },
+                        ],
+                        paging: false, // Menghilangkan pagination
+                        searching: false, // Menghilangkan search bar
+                        ordering: false,
+                        scrollX: true,
+                        scrollCollapse: true,
+                        scrollY: 500,
+                        fixedColumns: {
+                            start: 1,
+                        },
+                        columnDefs: [{
+                                targets: 0,
+                                width: '200px'
+                            } // Menetapkan lebar kolom pertama menjadi 200px
+                        ],
+                        initComplete: function(setting, json) {
+                            $('.dt-scroll-body table thead').remove();
+                            $('.dt-scroll-body table tfoot').remove();
+                        },
+                        footerCallback: function(row, data, start, end, display) {
+                            var api = this.api();
+
+                            var count = 0;
+                            var totalDiscounts = 0;
+                            data.forEach(function(item, index){
+                                count += item.count;
+                                totalDiscounts += item.total_discount;
+                            });
+
+                            // Menampilkan total di footer
+                            $(api.column(2).footer()).html(count);
+                            $(api.column(3).footer()).html(totalDiscounts);
+                        }
+                    });
+
+                    // Pastikan untuk menambahkan elemen <tfoot> di HTML Anda
+                    $('#discount-sales tfoot').append(`
+                        <tr>
+                            <th colspan="2">Total</th>
                             <th></th>
                             <th></th>
                             <th></th>
