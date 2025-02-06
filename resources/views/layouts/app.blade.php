@@ -145,10 +145,10 @@
     <script src="{{ asset('js/plugin/izitoast/iziToast.min.js') }}"></script>
 
     {{-- Moment --}}
-    <script type="text/javascript" src="{{asset('vendor/moment/moment.min.js')}}"></script>
+    <script type="text/javascript" src="{{ asset('vendor/moment/moment.min.js') }}"></script>
 
     {{-- DateRange Picker --}}
-    <script type="text/javascript" src="{{asset('vendor/daterangepicker/daterangepicker.min.js')}}"></script>
+    <script type="text/javascript" src="{{ asset('vendor/daterangepicker/daterangepicker.min.js') }}"></script>
 
     <!-- Kaiadmin JS -->
     <script src="{{ asset('js/kaiadmin.min.js') }}"></script>
@@ -387,6 +387,18 @@
                 message: message,
                 position: 'topRight'
             });
+        }
+
+        function getAmount(money) {
+            let cleanString = money.replace(/([^0-9\.,])/gi, '');
+            let onlyNumbersString = money.replace(/([^0-9])/gi, '');
+
+            let separatorsCountToBeErased = cleanString.length - onlyNumbersString.length - 1;
+
+            let stringWithCommaOrDot = cleanString.replace(/([,\.])/g, '', separatorsCountToBeErased);
+            let removedThousandSeparator = stringWithCommaOrDot.replace(/(\.|,)(?=[0-9]{3,}$)/g, '');
+
+            return parseFloat(removedThousandSeparator.replace(',', '.'));
         }
 
         function formatRupiah(angka, prefix) {

@@ -455,7 +455,24 @@
                                 </table>
                             </div>
                             <div class="tab-pane fade" id="taxes-nobd" role="tabpanel" aria-labelledby="taxes-tab-nobd">
-                                <p>Comming Soon</p>
+                                <table id="tax-sales" class="table display row-border order-column" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
+                                            <th><b>Tax Rate</b></th>
+                                            <th><b>Taxable Amount</b></th>
+                                            <th><b>Tax Collected</b></th>
+                                        </tr>
+                                    </thead>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="1">Total</th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
                             <div class="tab-pane fade" id="gratuity-nobd" role="tabpanel"
                                 aria-labelledby="gratuity-tab-nobd">
@@ -948,9 +965,9 @@
 
                             // Menampilkan total di footer
                             $(api.column(1).footer()).html(totalItemSold);
-                            $(api.column(2).footer()).html(totalGrossSales);
-                            $(api.column(3).footer()).html(totalDiscounts);
-                            $(api.column(4).footer()).html(totalNetSales);
+                            $(api.column(2).footer()).html(formatRupiah(totalGrossSales.toString(), "Rp. "));
+                            $(api.column(3).footer()).html(formatRupiah(totalDiscounts.toString(), "RP. "));
+                            $(api.column(4).footer()).html(formatRupiah(totalNetSales.toString(), "Rp. "));
                         }
                     });
 
@@ -1028,7 +1045,7 @@
 
                             // Menampilkan total di footer
                             $(api.column(2).footer()).html(count);
-                            $(api.column(3).footer()).html(totalDiscounts);
+                            $(api.column(3).footer()).html(formatRupiah(totalDiscounts.toString(), "Rp. "));
                         }
                     });
 
@@ -1041,6 +1058,82 @@
                             <th></th>
                         </tr>
                     `);
+                }else if(activeTab === "#taxes-nobd"){
+                    if ($.fn.dataTable.isDataTable('#tax-sales')) {
+                        $('#tax-sales').DataTable().destroy();
+                    }
+
+                    var modifierSales = $('#tax-sales').DataTable({
+                        processing: true,
+                        serverSide: true,
+                        ajax: {
+                            url: '{{ route('report/sales/getTaxSales') }}', // Make sure this URL matches your Laravel route
+                            type: 'GET',
+                            data: {
+                                date: date,
+                                outlet: outlet
+                            },
+                        },
+                        columns: [{
+                                data: 'name',
+                                name: 'name'
+                            },
+                            {
+                                data: 'tax_rate',
+                                name: 'tax_rate'
+                            },
+                            {
+                                data: 'taxable_amount',
+                                name: 'taxable_amount',
+                            },
+                            {
+                                data: 'tax_collected',
+                                name: 'tax_collected',
+                            },
+                        ],
+                        paging: false, // Menghilangkan pagination
+                        searching: false, // Menghilangkan search bar
+                        ordering: false,
+                        scrollX: true,
+                        scrollCollapse: true,
+                        scrollY: 500,
+                        fixedColumns: {
+                            start: 1,
+                        },
+                        columnDefs: [{
+                                targets: 0,
+                                width: '200px'
+                            } // Menetapkan lebar kolom pertama menjadi 200px
+                        ],
+                        initComplete: function(setting, json) {
+                            $('.dt-scroll-body table thead').remove();
+                            $('.dt-scroll-body table tfoot').remove();
+                        },
+                        footerCallback: function(row, data, start, end, display) {
+                            var api = this.api();
+
+                            var totalTaxableAmount = 0;
+                            var totalTaxCollected = 0;
+                            data.forEach(function(item, index){
+                                totalTaxableAmount += item.taxable_amount;
+                                totalTaxCollected += item.tax_collected;
+                            });
+
+                            // Menampilkan total di footer
+                            $(api.column(2).footer()).html(formatRupiah(totalTaxableAmount.toString(), "Rp. "));
+                            $(api.column(3).footer()).html(formatRupiah(totalTaxCollected.toString(), "Rp. "));
+                        }
+                    });
+
+                    // Pastikan untuk menambahkan elemen <tfoot> di HTML Anda
+                    $('#discount-sales tfoot').append(`
+                        <tr>
+                            <th colspan="2">Total</th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    `);
+
                 }
                 // Tambahkan logika untuk tab lainnya  
             }

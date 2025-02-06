@@ -9,6 +9,7 @@ use App\Models\ModifierGroup;
 use App\Models\Outlets;
 use App\Models\Product;
 use App\Models\SalesType;
+use App\Models\Taxes;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\VariantProduct;
@@ -435,7 +436,7 @@ class SalesController extends Controller
                 foreach($transactions as $transaction){
                     $dataDiskonTransaction = json_decode($transaction->discount_id);
                     foreach($dataDiskonTransaction as $diskon){
-                        $totalDiskon += $diskon->result;
+                        $totalDiskon += $modifier->harga * $diskon->value / 100;
                     }
                 }
                 $netSales = $grossSalesModifier - $totalDiskon;
@@ -546,6 +547,58 @@ class SalesController extends Controller
         })
         ->setRowId('id')
         ->make(true);
+    }
 
+    public function getTaxSales(Request $request){
+        $dates = explode(' - ', $request->input('date'));
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        } else {
+            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
+
+        $outlet = $request->input('outlet');
+        
+        $data = Taxes::where('outlet_id', $outlet)->get();
+        
+
+        foreach($data as $tax){
+            $dataTransactions = Transaction::with(['itemTransaction'])->whereBetween('created_at', [$startDate, $endDate])->whereJsonContains('total_pajak', ['id' => $tax->id])->get();
+            $totalTaxableAmount = 0;
+            $totalTaxCollected = 0;
+
+            foreach($dataTransactions as $transaction){
+                $dataTax = json_decode($transaction->total_pajak);
+
+                foreach($dataTax as $item){
+                    if($item->id == $tax->id){
+                        $totalTaxableAmount += $transaction->total;
+                        $totalTaxCollected += $item->total;
+                    }
+                }
+            }
+
+            $tax['taxable_amount'] = $totalTaxableAmount;
+            $tax['tax_collected'] = $totalTaxCollected;
+        }
+
+        return DataTables::of($data)
+        ->addColumn('name', function($row){
+            return $row->name;
+        })
+        ->addColumn('tax_rate', function($row){
+            return strval($row->amount) . "%";
+        })
+        ->addColumn('taxable_amount', function($row){
+            return $row->taxable_amount - $row->tax_collected;
+        })
+        ->addColumn('tax_collected', function($row){
+            return $row->tax_collected;
+        })
+        ->setRowId('id')
+        ->make(true);
     }
 }
