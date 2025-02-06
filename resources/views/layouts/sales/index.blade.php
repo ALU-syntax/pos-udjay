@@ -185,13 +185,9 @@
                                 role="tab" aria-controls="discount-nobd" aria-selected="false">Discounts</a>
                             <a class="nav-link" id="taxes-tab-nobd" data-bs-toggle="pill" href="#taxes-nobd" role="tab"
                                 aria-controls="taxes-nobd" aria-selected="false">Taxes</a>
-                            <a class="nav-link" id="gratuity-tab-nobd" data-bs-toggle="pill" href="#gratuity-nobd"
-                                role="tab" aria-controls="gratuity-nobd" aria-selected="false">Gratuity</a>
                             <a class="nav-link" id="collected-by-tab-nobd" data-bs-toggle="pill"
                                 href="#collected-by-nobd" role="tab" aria-controls="collected-by-nobd"
                                 aria-selected="false">Collected By</a>
-                            <a class="nav-link" id="served-by-tab-nobd" data-bs-toggle="pill" href="#served-by-nobd"
-                                role="tab" aria-controls="served-by-nobd" aria-selected="false">Served By</a>
                         </div>
                     </div>
                     <div class="col-9">
@@ -474,17 +470,26 @@
                                     </tfoot>
                                 </table>
                             </div>
-                            <div class="tab-pane fade" id="gratuity-nobd" role="tabpanel"
-                                aria-labelledby="gratuity-tab-nobd">
-                                <p>Comming Soon</p>
-                            </div>
                             <div class="tab-pane fade" id="collected-by-nobd" role="tabpanel"
                                 aria-labelledby="collected-by-tab-nobd">
-                                <p>Comming Soon</p>
-                            </div>
-                            <div class="tab-pane fade" id="served-by-nobd" role="tabpanel"
-                                aria-labelledby="served-by-tab-nobd">
-                                <p>Comming Soon</p>
+                                <table id="collected-by-sales" class="table display row-border order-column" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
+                                            <th><b>Title</b></th>
+                                            <th><b>Number Of Tranasctions</b></th>
+                                            <th><b>Total Collected</b></th>
+                                        </tr>
+                                    </thead>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="1">Total</th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
 
                         </div>
@@ -753,7 +758,23 @@
                         columnDefs: [{
                                 targets: 0,
                                 width: '200px'
-                            } // Menetapkan lebar kolom pertama menjadi 200px
+                            }, // Menetapkan lebar kolom pertama menjadi 200px
+                            {
+                                targets: 3,
+                                width: '150px'
+                            },
+                            {
+                                targets: 4,
+                                width: '150px'
+                            },
+                            {
+                                targets: 5,
+                                width: '150px'
+                            },
+                            {
+                                targets: 6,
+                                width: '150px'
+                            }
                         ],
                         initComplete: function(setting, json) {
                             console.log(json)
@@ -766,30 +787,35 @@
                             // Menghitung total untuk setiap kolom yang diinginkan
                             var totalItemSold = api.column(2).data().reduce(function(a, b) {
                                 return parseInt(a) + parseInt(b);
+                                // return getAmount(a.toString() + getAmount(b.toString()))
                             }, 0);
 
                             var totalGrossSales = api.column(3).data().reduce(function(a, b) {
-                                return parseFloat(a) + parseFloat(b);
+                                // return parseFloat(a) + parseFloat(b);
+                                return getAmount(a.toString()) + getAmount(b.toString()); 
                             }, 0);
 
                             var totalDiscounts = api.column(4).data().reduce(function(a, b) {
-                                return parseFloat(a) + parseFloat(b);
+                                // return parseFloat(a) + parseFloat(b);
+                                return getAmount(a.toString()) + getAmount(b.toString());
                             }, 0);
 
                             var totalNetSales = api.column(5).data().reduce(function(a, b) {
-                                return parseFloat(a) + parseFloat(b);
+                                // return parseFloat(a) + parseFloat(b);
+                                return getAmount(a.toString()) + getAmount(b.toString());
                             }, 0);
 
                             var totalGrossProfit = api.column(6).data().reduce(function(a, b) {
-                                return parseFloat(a) + parseFloat(b);
+                                // return parseFloat(a) + parseFloat(b);
+                                return getAmount(a.toString()) + getAmount(b.toString());
                             }, 0);
 
                             // Menampilkan total di footer
                             $(api.column(2).footer()).html(totalItemSold);
-                            $(api.column(3).footer()).html(totalGrossSales);
-                            $(api.column(4).footer()).html(totalDiscounts);
-                            $(api.column(5).footer()).html(totalNetSales);
-                            $(api.column(6).footer()).html(totalGrossProfit);
+                            $(api.column(3).footer()).html(formatRupiah(totalGrossSales.toString(), "Rp. "));
+                            $(api.column(4).footer()).html(formatRupiah(totalDiscounts.toString(), "Rp. "));
+                            $(api.column(5).footer()).html(formatRupiah(totalNetSales.toString(), "Rp. "));
+                            $(api.column(6).footer()).html(formatRupiah(totalGrossProfit.toString(), "Rp. "));
                         }
                     });
 
@@ -867,18 +893,20 @@
                             }, 0);
 
                             var totalGrossSales = api.column(2).data().reduce(function(a, b) {
-                                return parseFloat(a) + parseFloat(b);
+                                // return parseFloat(a) + parseFloat(b);
+                                return getAmount(a.toString()) + getAmount(b.toString());
                             }, 0);
 
                             var totalDiscounts = api.column(3).data().reduce(function(a, b) {
-                                return parseFloat(a) + parseFloat(b);
+                                // return parseFloat(a) + parseFloat(b);
+                                return getAmount(a.toString()) + getAmount(b.toString());
                             }, 0);
 
 
                             // Menampilkan total di footer
                             $(api.column(1).footer()).html(totalItemSold);
-                            $(api.column(2).footer()).html(totalGrossSales);
-                            $(api.column(3).footer()).html(totalDiscounts);
+                            $(api.column(2).footer()).html(formatRupiah(totalGrossSales.toString(), "Rp. "));
+                            $(api.column(3).footer()).html(formatRupiah(totalDiscounts.toString(), "Rp. "));
                         }
                     });
 
@@ -1114,9 +1142,10 @@
 
                             var totalTaxableAmount = 0;
                             var totalTaxCollected = 0;
+                            console.log(data);
                             data.forEach(function(item, index){
-                                totalTaxableAmount += item.taxable_amount;
-                                totalTaxCollected += item.tax_collected;
+                                totalTaxableAmount += getAmount(item.taxable_amount);
+                                totalTaxCollected += getAmount(item.tax_collected);
                             });
 
                             // Menampilkan total di footer
@@ -1126,7 +1155,83 @@
                     });
 
                     // Pastikan untuk menambahkan elemen <tfoot> di HTML Anda
-                    $('#discount-sales tfoot').append(`
+                    $('#tax-sales tfoot').append(`
+                        <tr>
+                            <th colspan="2">Total</th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    `);
+
+                }else if(activeTab === "#collected-by-nobd"){
+                    if ($.fn.dataTable.isDataTable('#collected-by-sales')) {
+                        $('#collected-by-sales').DataTable().destroy();
+                    }
+
+                    var collectedBySales = $('#collected-by-sales').DataTable({
+                        processing: true,
+                        serverSide: true,
+                        ajax: {
+                            url: '{{ route('report/sales/getCollectedBySales') }}', // Make sure this URL matches your Laravel route
+                            type: 'GET',
+                            data: {
+                                date: date,
+                                outlet: outlet
+                            },
+                        },
+                        columns: [{
+                                data: 'name',
+                                name: 'name'
+                            },
+                            {
+                                data: 'title',
+                                name: 'title'
+                            },
+                            {
+                                data: 'number_of_transaction',
+                                name: 'number_of_transaction',
+                            },
+                            {
+                                data: 'total_collected',
+                                name: 'total_collected',
+                            },
+                        ],
+                        paging: false, // Menghilangkan pagination
+                        searching: false, // Menghilangkan search bar
+                        ordering: false,
+                        scrollX: true,
+                        scrollCollapse: true,
+                        scrollY: 500,
+                        fixedColumns: {
+                            start: 1,
+                        },
+                        columnDefs: [{
+                                targets: 0,
+                                width: '200px'
+                            } // Menetapkan lebar kolom pertama menjadi 200px
+                        ],
+                        initComplete: function(setting, json) {
+                            $('.dt-scroll-body table thead').remove();
+                            $('.dt-scroll-body table tfoot').remove();
+                        },
+                        footerCallback: function(row, data, start, end, display) {
+                            var api = this.api();
+
+                            var totalNumberTranasction = 0;
+                            var totalCollected = 0;
+                            data.forEach(function(item, index){
+                                totalNumberTranasction += item.number_of_transaction;
+                                totalCollected += getAmount(item.total_collected);
+                            });
+
+                            // Menampilkan total di footer
+                            $(api.column(2).footer()).html(totalNumberTranasction);
+                            $(api.column(3).footer()).html(formatRupiah(totalCollected.toString(), "Rp. "));
+                        }
+                    });
+
+                    // Pastikan untuk menambahkan elemen <tfoot> di HTML Anda
+                    $('#collected-by-sales tfoot').append(`
                         <tr>
                             <th colspan="2">Total</th>
                             <th></th>

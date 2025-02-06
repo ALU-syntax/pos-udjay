@@ -66,4 +66,8 @@ class User extends Authenticatable
         return $this->belongsToMany('outlet_id', Outlets::class, 'id');
     }
 
+    public function transaction(){
+        return $this->hasMany(Transaction::class, 'user_id', 'id');
+    }
+
 }

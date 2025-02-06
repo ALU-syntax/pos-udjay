@@ -12,10 +12,12 @@ use App\Models\SalesType;
 use App\Models\Taxes;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\User;
 use App\Models\VariantProduct;
 use Carbon\Carbon;
 use Yajra\DataTables\DataTables;
 use Illuminate\Http\Request;
+use Yajra\DataTables\Services\DataTable;
 
 class SalesController extends Controller
 {
@@ -277,7 +279,7 @@ class SalesController extends Controller
             ->addColumn('gross_sales', function ($row) {
                 $itemSold = count($row->itemTransaction);
                 $grossSales = $itemSold * $row->harga;
-                return $grossSales;
+                return $grossSales == 0 ? "Rp. 0" : formatRupiah(strval($grossSales), "Rp. ");
             })
             ->addColumn('discounts', function ($row) {
                 $totalDiscount = 0;
@@ -287,7 +289,7 @@ class SalesController extends Controller
                         $totalDiscount += $discount->result;
                     }
                 }
-                return $totalDiscount;
+                return $totalDiscount == 0 ? "Rp. 0" : formatRupiah(strval($totalDiscount), "Rp. ");
             })
             ->addColumn('net_sales', function ($row) {
                 $totalDiscount = 0;
@@ -301,7 +303,8 @@ class SalesController extends Controller
                     }
                 }
 
-                return $grossSales -= $totalDiscount;
+                $netSales = $grossSales -= $totalDiscount;
+                return $netSales == 0 ? "Rp. 0" : formatRupiah(strval($netSales), "Rp. ");
             })
             ->addColumn('gross_profit', function ($row) {
                 $totalDiscount = 0;
@@ -315,7 +318,8 @@ class SalesController extends Controller
                     }
                 }
 
-                return $grossSales -= $totalDiscount;
+                $grossProfit = $grossSales -= $totalDiscount;
+                return $grossProfit == 0 ? "Rp. 0" : formatRupiah(strval($grossProfit), "Rp. 0");
             })
             ->addColumn('gross_margin', function ($row) {
                 $grossMargin = count($row->itemTransaction) ? "100%" : "0%";
@@ -372,7 +376,7 @@ class SalesController extends Controller
                         $grossSales += $hargaTotal;
                     }
                 }
-                return $grossSales;
+                return $grossSales == 0 ? "Rp. 0" : formatRupiah(strval($grossSales), "Rp. ");
             })
             ->addColumn('discounts', function ($row) {
                 $totalDiscount = 0;
@@ -390,7 +394,7 @@ class SalesController extends Controller
                     }
                 }
                 
-                return $totalDiscount;
+                return $totalDiscount == 0 ? "Rp. 0" : formatRupiah(strval($totalDiscount), "Rp. ");
             })
             ->setRowId('id')
             ->make(true);
@@ -480,13 +484,13 @@ class SalesController extends Controller
             return $row[2];
         })
         ->addColumn('gross_sales', function($row){
-            return $row[3];
+            return $row[3] == 0 ? "Rp. 0" : formatRupiah(strval($row[3]), "Rp. ");
         })
         ->addColumn('discounts', function($row){
-            return $row[4];
+            return $row[4] == 0 ? "Rp. 0" : formatRupiah(strval($row[4]), "Rp. ");
         })
         ->addColumn('net_sales', function($row){
-            return $row[5];
+            return $row[5] == 0 ? "Rp. 0" : formatRupiah(strval($row[5]), "Rp. ");
         })
         ->setRowId('id')
         ->make(true);
@@ -543,7 +547,7 @@ class SalesController extends Controller
             return $row->count;
         })
         ->addColumn('discount_total', function($row){
-            return formatRupiah(strval($row->total_discount), "Rp. ");
+            return $row->total_discount == 0 ? "Rp. 0" : formatRupiah(strval($row->total_discount), "Rp. ");
         })
         ->setRowId('id')
         ->make(true);
@@ -593,10 +597,56 @@ class SalesController extends Controller
             return strval($row->amount) . "%";
         })
         ->addColumn('taxable_amount', function($row){
-            return $row->taxable_amount - $row->tax_collected;
+            $taxableAmount = $row->taxable_amount - $row->tax_collected;
+            return $taxableAmount == 0 ? "Rp. 0" : formatRupiah(strval($taxableAmount), "Rp. ");
         })
         ->addColumn('tax_collected', function($row){
-            return $row->tax_collected;
+            return $row->tax_collected == 0 ? "Rp. 0" : formatRupiah(strval($row->tax_collected), "Rp. ");
+        })
+        ->setRowId('id')
+        ->make(true);
+    }
+
+    public function getCollectedBySales(Request $request){
+        $dates = explode(' - ', $request->input('date'));
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        } else {
+            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
+
+        $outlet = $request->input('outlet');
+        
+        $data = User::with(['transaction' => function($transaction) use($startDate, $endDate){
+            $transaction->whereBetween('created_at', [$startDate, $endDate]);
+        }])->get();
+
+        $filteredData = $data->filter(function($user) use($outlet) {
+            $outletIds = json_decode($user->outlet_id);
+            return in_array($outlet, $outletIds);
+        });
+        
+
+        return DataTables::of($filteredData)
+        ->addColumn('name', function($row){
+            return $row->name;
+        })
+        ->addColumn('title', function($row){
+            return $row->getRoleNames()[0];
+        })
+        ->addColumn('number_of_transaction', function($row){
+            return count($row->transaction);
+        })
+        ->addColumn('total_collected', function($row){
+            $totalCollected = 0;
+            foreach($row->transaction as $transaction){
+                $totalCollected += $transaction->total;
+            }
+
+            return $totalCollected == 0 ? "Rp. 0" : formatRupiah(strval($totalCollected), "Rp. ");
         })
         ->setRowId('id')
         ->make(true);
