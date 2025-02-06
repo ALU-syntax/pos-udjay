@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\CategoryPayment;
+use App\Models\ModifierGroup;
 use App\Models\Outlets;
 use App\Models\Product;
 use App\Models\SalesType;
 use App\Models\Transaction;
+use App\Models\TransactionItem;
 use App\Models\VariantProduct;
 use Carbon\Carbon;
 use Yajra\DataTables\DataTables;
@@ -29,26 +31,12 @@ class SalesController extends Controller
 
         $outlet = $request->input('outlet');
 
-        $data = Category::with(['products' => function ($product) use ($startDate, $endDate) {
-            $product->with(['variants' => function ($variant) use ($startDate, $endDate) {
-                $variant->with(['itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
-                    $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
-                }]);
-            }, 'itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
-                $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
-            }])->where('outlet_id', 1);;
-        }])->whereHas('products', function ($query) use ($outlet) {
-            $query->where('outlet_id', 1);
-        })->get();
+        // $data = ModifierGroup::with(['modifier.itemTransaction'])->where('outlet_id', 1)->get();
+
+        // $data = TransactionItem::whereJsonContains('modifier_id', ['id' => "1"])->get();
 
 
-        // $data = Product::with(['variants' => function($variant) use($startDate, $endDate){
-        //     $variant->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate){
-        //         $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
-        //     }]);
-        // }])->where('outlet_id', 1)->get();
-
-        // dd($data);
+        
         // dd(json_decode($data[0]->variants[0]->itemTransaction[0]->discount_id));
         return view('layouts.sales.index', [
             "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
@@ -404,5 +392,103 @@ class SalesController extends Controller
             })
             ->setRowId('id')
             ->make(true);
+    }
+
+    public function getModifierSales(Request $request){
+        
+        $dates = explode(' - ', $request->input('date'));
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        } else {
+            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
+
+        $outlet = $request->input('outlet');
+        $customData = [];
+
+        $dataModifier = ModifierGroup::with(['modifier'])->where('outlet_id', $outlet)->get();
+
+        $id = 0;
+        foreach($dataModifier as $modifierParent){
+            $tmpDataParent = [];
+            $quantitySoldParent = 0;
+            $grossSoldParent = 0;
+            $discountParent = 0;
+            $netSalesParent = 0;
+
+            $id++;
+            array_push($tmpDataParent, $id);
+            array_push($tmpDataParent, $modifierParent->name);
+            
+            $tmpDataChild = [];
+            foreach($modifierParent->modifier as $modifier){
+                $tmpDataModifier = [];
+                $transactions = TransactionItem::whereJsonContains('modifier_id', ['id' => strval($modifier->id)])->whereBetween('created_at', [$startDate, $endDate])->get();
+                $quantitySoldModifier = count($transactions);
+                $grossSalesModifier = $modifier->harga * $quantitySoldModifier;
+                $totalDiskon = 0;
+
+                foreach($transactions as $transaction){
+                    $dataDiskonTransaction = json_decode($transaction->discount_id);
+                    foreach($dataDiskonTransaction as $diskon){
+                        $totalDiskon += $diskon->result;
+                    }
+                }
+                $netSales = $grossSalesModifier - $totalDiskon;
+
+                $id++;
+                array_push($tmpDataModifier, $id);
+                array_push($tmpDataModifier, $modifier->name);
+                array_push($tmpDataModifier, $quantitySoldModifier);
+                array_push($tmpDataModifier, $grossSalesModifier);
+                array_push($tmpDataModifier, $totalDiskon);
+                array_push($tmpDataModifier, $netSales);
+                array_push($tmpDataModifier, false);
+
+                $quantitySoldParent += $quantitySoldModifier;
+                $grossSoldParent += $grossSalesModifier;
+                $discountParent += $totalDiskon;
+                $netSalesParent += $netSales;
+
+                array_push($tmpDataChild, $tmpDataModifier);
+            }
+
+            array_push($tmpDataParent, $quantitySoldParent);
+            array_push($tmpDataParent, $grossSoldParent);
+            array_push($tmpDataParent, $discountParent);
+            array_push($tmpDataParent, $netSalesParent);
+            array_push($tmpDataParent, true);
+
+            array_push($customData, $tmpDataParent);
+            array_push($customData, ...$tmpDataChild);
+        }
+
+        return DataTables::of($customData)
+        ->addColumn('name',function($row){
+            if($row[6]){
+                return $row[1];
+            }else{
+                return "- " . $row[1];
+            }
+        })
+        ->addColumn('quantity_sold', function($row){
+            return $row[2];
+        })
+        ->addColumn('gross_sales', function($row){
+            return $row[3];
+        })
+        ->addColumn('discounts', function($row){
+            return $row[4];
+        })
+        ->addColumn('net_sales', function($row){
+            return $row[5];
+        })
+        ->setRowId('id')
+        ->make(true);
+
+        
     }
 }

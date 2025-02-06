@@ -310,6 +310,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/sales-type', [SalesController::class, 'getSalesType'])->name('sales/getSalesType');
             Route::get('/item-sales', [SalesController::class, 'getItemSales'])->name('sales/getItemSales');
             Route::get('/category-sales', [SalesController::class, 'getCategorySales'])->name('sales/getCategorySales');
+            Route::get('/modifier-sales', [SalesController::class, 'getModifierSales'])->name('sales/getModifierSales');
         });
 
         Route::prefix('transactions')->group(function () {

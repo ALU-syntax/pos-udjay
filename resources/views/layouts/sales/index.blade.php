@@ -332,7 +332,26 @@
                             </div>
                             <div class="tab-pane fade" id="modifier-sales-nobd" role="tabpanel"
                                 aria-labelledby="modifier-sales-tab-nobd">
-                                <p>Comming Soon</p>
+                                <table id="modifier-sales" class="table display row-border order-column" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
+                                            <th><b>Quantity Sold</b></th>
+                                            <th><b>Gross Sales</b></th>
+                                            <th><b>Discounts</b></th>
+                                            <th><b>Net Sales</b></th>
+                                        </tr>
+                                    </thead>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="1">Total</th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                            <th></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
                             <div class="tab-pane fade" id="discount-nobd" role="tabpanel"
                                 aria-labelledby="discount-tab-nobd">
@@ -678,7 +697,7 @@
                         $('#category-sales').DataTable().destroy();
                     }
 
-                    var tableSales = $('#category-sales').DataTable({
+                    var categorySales = $('#category-sales').DataTable({
                         processing: true,
                         serverSide: true,
                         ajax: {
@@ -753,6 +772,97 @@
                     $('#category-sales tfoot').append(`
                         <tr>
                             <th colspan="1">Total</th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    `);
+                } else if( activeTab === "#modifier-sales-nobd"){
+                    if ($.fn.dataTable.isDataTable('#modifier-sales')) {
+                        $('#modifier-sales').DataTable().destroy();
+                    }
+
+                    var modifierSales = $('#modifier-sales').DataTable({
+                        processing: true,
+                        serverSide: true,
+                        ajax: {
+                            url: '{{ route('report/sales/getModifierSales') }}', // Make sure this URL matches your Laravel route
+                            type: 'GET',
+                            data: {
+                                date: date,
+                                outlet: outlet
+                            },
+                        },
+                        columns: [{
+                                data: 'name',
+                                name: 'name'
+                            },
+                            {
+                                data: 'quantity_sold',
+                                name: 'quantity_sold'
+                            },
+                            {
+                                data: 'gross_sales',
+                                name: 'gross_sales',
+                            },
+                            {
+                                data: 'discounts',
+                                name: 'discounts',
+                            },
+                            {
+                                data: 'net_sales',
+                                name: 'net_sales',
+                            },
+                        ],
+                        paging: false, // Menghilangkan pagination
+                        searching: false, // Menghilangkan search bar
+                        ordering: false,
+                        scrollX: true,
+                        scrollCollapse: true,
+                        scrollY: 500,
+                        fixedColumns: {
+                            start: 1,
+                        },
+                        columnDefs: [{
+                                targets: 0,
+                                width: '200px'
+                            } // Menetapkan lebar kolom pertama menjadi 200px
+                        ],
+                        initComplete: function(setting, json) {
+                            $('.dt-scroll-body table thead').remove();
+                            $('.dt-scroll-body table tfoot').remove();
+                        },
+                        footerCallback: function(row, data, start, end, display) {
+                            var api = this.api();
+
+                            var totalItemSold = 0;
+                            var totalGrossSales = 0;
+                            var totalDiscounts = 0;
+                            var totalNetSales = 0;
+                            data.forEach(function(item, index){
+                                console.log(item)
+                                if(data[index][6]){
+                                    totalItemSold += item[2];
+                                    totalGrossSales += item[3];
+                                    totalDiscounts += item[4];
+                                    totalNetSales += item[5];
+                                }
+                            })
+
+                            // Menampilkan total di footer
+                            $(api.column(1).footer()).html(totalItemSold);
+                            $(api.column(2).footer()).html(totalGrossSales);
+                            $(api.column(3).footer()).html(totalDiscounts);
+                            $(api.column(4).footer()).html(totalNetSales);
+                        }
+                    });
+
+                    // Pastikan untuk menambahkan elemen <tfoot> di HTML Anda
+                    $('#modifier-sales tfoot').append(`
+                        <tr>
+                            <th colspan="1">Total</th>
+                            <th></th>
+                            <th></th>
                             <th></th>
                             <th></th>
                             <th></th>
