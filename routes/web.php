@@ -9,6 +9,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\HakAksesController;
 use App\Http\Controllers\KasirController;
+use App\Http\Controllers\LevelMembershipController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ModifiersController;
@@ -248,6 +249,15 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/{community}', [CommunityController::class, 'edit'])->name('community/edit');
             Route::put('/update/{community}', [CommunityController::class, 'update'])->name('community/update');
             Route::delete('/destroy/{community}', [CommunityController::class, 'destroy'])->name('community/destroy');
+        });
+
+        Route::prefix('level-membership')->group(function(){
+            Route::get('/', [LevelMembershipController::class, 'index'])->name('level-membership');
+            Route::get('/create', [LevelMembershipController::class, 'create'])->name('level-membership/create');
+            Route::post('/store', [LevelMembershipController::class, 'store'])->name('level-membership/store');
+            Route::get('/edit/{level}', [LevelMembershipController::class, 'edit'])->name('level-membership/edit');
+            Route::put('/update/{level}', [LevelMembershipController::class, 'update'])->name('level-membership/update');
+            Route::delete('/destroy/{level}', [LevelMembershipController::class, 'destroy'])->name('level-membership/destroy');
         });
     });
 
