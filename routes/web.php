@@ -245,7 +245,12 @@ Route::middleware('auth')->group(function () {
         Route::prefix('community')->group(function(){
             Route::get('/', [CommunityController::class, 'index'])->name('community');
             Route::get('/create', [CommunityController::class, 'create'])->name('community/create');
+            Route::get('/createExchangeExp/{id}', [CommunityController::class, 'createExchangeExp'])->name('community/createExchangeExp');
+            Route::get('/historyUseExp/{id}', [CommunityController::class, 'historyUseExp'])->name('community/historyUseExp');
+            Route::get('/detail/{id}', [CommunityController::class, 'detail'])->name('community/detail');
+            Route::get('/detail/{id}', [CommunityController::class, 'detail'])->name('community/detail');
             Route::post('/store', [CommunityController::class, 'store'])->name('community/store');
+            Route::post('/storeExchangeExp', [CommunityController::class, 'storeExchangeExp'])->name('community/storeExchangeExp');
             Route::get('/edit/{community}', [CommunityController::class, 'edit'])->name('community/edit');
             Route::put('/update/{community}', [CommunityController::class, 'update'])->name('community/update');
             Route::delete('/destroy/{community}', [CommunityController::class, 'destroy'])->name('community/destroy');

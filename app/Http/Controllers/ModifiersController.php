@@ -235,7 +235,7 @@ class ModifiersController extends Controller
     {
         $modifier->modifier()->delete();
         $modifier->delete();
-        // dd($modifier);
+        
         return responseSuccessDelete();
     }
 }

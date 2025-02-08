@@ -33,7 +33,7 @@
                         <div class="col-10">
                             <input type="text" hidden value="{{ $reward->id }}" name="id_reward_memberships[]">
                             <input id="reward_memberships" name="reward_memberships[]"
-                                value="{{ $reward->reward_memberships }}" type="text" class="form-control"
+                                value="{{ $reward->name }}" type="text" class="form-control"
                                 placeholder="Reward Memberships" required>
                         </div>
 

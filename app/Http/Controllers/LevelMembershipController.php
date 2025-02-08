@@ -70,6 +70,9 @@ class LevelMembershipController extends Controller
             'benchmark' =>  $data['benchmark'],
             'color' => $data['color']
         ];
+        
+        $listIdReward = $data['id_reward_memberships'];
+        $listNameReward = $data['reward_memberships'];
 
         $level->update($dataLevelMembership);
 
@@ -80,11 +83,34 @@ class LevelMembershipController extends Controller
         foreach ($rewardToDelete as $deleteItem) {
             RewardMembership::find($deleteItem)->delete();
         }
+
+        foreach($listNameReward as $key => $value){
+            if(isset($listIdReward[$key])){
+                $rewardItem = RewardMembership::find($listIdReward[$key]);
+                $dataReward = [
+                    'name' => $value
+                ];
+
+                $rewardItem->update($dataReward);
+            }else{
+                $dataReward = [
+                    'name' => $value,
+                    'level_membership_id' => $level->id
+                ];
+
+                RewardMembership::create($dataReward);
+            }
+        }
+
+        return responseSuccess(true);
+        
     }
 
     public function destroy(LevelMembership $level)
     {
+        $level->rewards()->delete();
         $level->delete();
+
 
         return responseSuccessDelete();
     }

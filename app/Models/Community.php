@@ -11,4 +11,9 @@ class Community extends Model
     use HasFactory, SoftDeletes;
 
     protected $guarded = ['id'];
+
+    public function customers()
+    {
+        return $this->hasMany(Customer::class, 'community_id', 'id');
+    }
 }
