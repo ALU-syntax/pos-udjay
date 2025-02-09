@@ -12,7 +12,7 @@
     <div class="col-sm-12">
         <div class="form-group">
             <label>Benchmark <span class="text-danger">*</span></label>
-            <input id="benchmark" name="benchmark" value="{{ $data->benchmark }}" type="number" min="1"
+            <input id="benchmark" name="benchmark" value="{{ $data->benchmark }}" type="number" min="0"
                 class="form-control" placeholder="benchmark" required>
         </div>
     </div>

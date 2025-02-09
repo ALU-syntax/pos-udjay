@@ -237,6 +237,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [CustomerController::class, 'index'])->name('customer');
             Route::get('/create', [CustomerController::class, 'create'])->name('customer/create');
             Route::post('/store', [CustomerController::class, 'store'])->name('customer/store');
+            Route::get('/detail-customer/{customer}', [CustomerController::class, 'detail'])->name('customer/detail');
+            Route::get('/list-referee/{customer}', [CustomerController::class, 'listReferee'])->name('customer/listReferee');
             Route::get('/edit/{customer}', [CustomerController::class, 'edit'])->name('customer/edit');
             Route::put('/update/{customer}', [CustomerController::class, 'update'])->name('customer/update');
             Route::delete('/destroy/{customer}', [CustomerController::class, 'destroy'])->name('customer/destroy');
@@ -247,7 +249,6 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [CommunityController::class, 'create'])->name('community/create');
             Route::get('/createExchangeExp/{id}', [CommunityController::class, 'createExchangeExp'])->name('community/createExchangeExp');
             Route::get('/historyUseExp/{id}', [CommunityController::class, 'historyUseExp'])->name('community/historyUseExp');
-            Route::get('/detail/{id}', [CommunityController::class, 'detail'])->name('community/detail');
             Route::get('/detail/{id}', [CommunityController::class, 'detail'])->name('community/detail');
             Route::post('/store', [CommunityController::class, 'store'])->name('community/store');
             Route::post('/storeExchangeExp', [CommunityController::class, 'storeExchangeExp'])->name('community/storeExchangeExp');

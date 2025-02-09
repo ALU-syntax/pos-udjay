@@ -23,7 +23,7 @@ class LevelMembershipRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'benchmark' => 'required|integer|min:1',
+            'benchmark' => 'required|integer|min:0',
             'color' => 'required|string',
             'reward_memberships' => 'required|array',
             'id_reward_memberships' => 'nullable|array'

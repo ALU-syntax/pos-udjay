@@ -25,11 +25,15 @@ class CustomerDataTable extends DataTable
     {
         return (new EloquentDataTable($query))
             ->addColumn('action', function ($row) {
-                $actions = $this->basicActions($row);
-                return view('action', ['actions' => $actions]);
-            })
+            return view('layouts.customer.action', [
+                'detail' => route('membership/customer/detail', $row->id),
+                'edit' =>route('membership/customer/edit', $row->id),
+                'routeDelete' =>route('membership/customer/destroy', $row->id),
+            'listReferee' =>route('membership/customer/listReferee', $row->id)
+            ]);
+        })
             ->addColumn('community_id', function($row){
-                return $row->community_id ? $row->community_id : '-';
+                return $row->community_id ? $row->community->name : '-';
             })
             ->setRowId('id');
     }
@@ -39,7 +43,7 @@ class CustomerDataTable extends DataTable
      */
     public function query(Customer $model): QueryBuilder
     {
-        return $model->newQuery();
+        return $model->with(['community'])->newQuery();
     }
 
     /**
@@ -77,7 +81,7 @@ class CustomerDataTable extends DataTable
             Column::make('tanggal_lahir'),
             Column::make('domisili'),
             Column::make('gender'),
-            Column::make('community_id'),
+            Column::make('community_id')->title("Community"),
             Column::computed('action')
                 ->exportable(false)
                 ->printable(false)

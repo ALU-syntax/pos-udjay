@@ -15,4 +15,17 @@ class Customer extends Model
     public function transactions(){
         return $this->hasMany(Transaction::class, 'customer_id', 'id');
     }
+
+    public function community(){
+        return $this->belongsTo(Community::class, 'community_id', 'id');
+    }
+
+    public function referral(){
+        return $this->belongsTo(Customer::class, 'referral_id', 'id');
+    }
+
+    public function referee(){
+        return $this->hasMany(Customer::class, 'referral_id', 'id');
+    }
+
 }

@@ -24,12 +24,13 @@ class CustomerRequest extends FormRequest
         return [
             'name' => 'required',
             'umur' => 'required',
-            'telfon' => 'required|string|max:20|regex:/^\+?[0-9\-]+$/',
+            'telfon' => 'required|string|max:20|regex:/^\+?[0-9\-]+$/|unique:customers,telfon',
             'email' => 'required',
             'tanggal_lahir' => 'required',
             'domisili' => 'required',
             'gender' => 'required',
-            'community_id' => 'nullable'
+            'community_id' => 'nullable',
+            'referral_id' => 'nullable',
         ];
     }
 }

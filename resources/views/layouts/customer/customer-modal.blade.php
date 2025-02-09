@@ -12,7 +12,7 @@
     <div class="col-sm-12">
         <div class="form-group">
             <label>Umur<span class="text-danger">*</span></label>
-            <input type="text" id="umur" name="umur" value="{{ $data->umur }}" type="number"
+            <input type="number" id="umur" name="umur" value="{{ $data->umur }}" type="number"
                 class="form-control" placeholder="Umur" required>
         </div>
     </div>
@@ -50,8 +50,8 @@
             <select id="gender" name="gender" class="form-select w-100" style="color:black;"
                 data-style="btn-default" required>
                 <option selected disabled class="text-gray">Pilih Gender</option>
-                <option value="laki-laki" @if($data->gender == "laki-laki") selected @endif>Laki-Laki</option>
-                <option value="perempuan" @if($data->gender == "perempuan") selected @endif>Perempuan</option>
+                <option value="laki-laki" @if ($data->gender == 'laki-laki') selected @endif>Laki-Laki</option>
+                <option value="perempuan" @if ($data->gender == 'perempuan') selected @endif>Perempuan</option>
             </select>
             {{-- <input id="gender" name="gender" value="{{ $data->gender }}" type="text"
                 class="form-control" placeholder="Gender" required> --}}
@@ -59,12 +59,24 @@
     </div>
     <div class="col-md-12">
         <div class="form-group">
-            <label for="community_id">Community <span class="text-danger ">*</span></label>
+            <label for="community_id">Community</label>
             <select name="community_id" class="select2InsideModal form-select w-100" style="width: 100% !important;">
                 <option disabled selected>Jika Umum tidak usah dipilih</option>
                 @foreach ($communities as $community)
                     <option value="{{ $community->id }}" @if ($data->community_id == $community->id) selected @endif>
                         {{ $community->name }}</option>
+                @endforeach
+            </select>
+        </div>
+    </div>
+    <div class="col-sm-12">
+        <div class="form-group">
+            <label>Referral</label>
+            <select id="referral_id" name="referral_id" class="form-select w-100 select2InsideModal" style="width: 100% !important;"
+                data-style="btn-default" required>
+                <option selected disabled class="text-gray">Pilih Refferal</option>
+                @foreach ($customer as $dataCustomer)
+                    <option value="{{$dataCustomer->id}}" @if ($data->referral_id == $dataCustomer->id) selected @endif>{{$dataCustomer->name}} - {{$dataCustomer->telfon}}</option>
                 @endforeach
             </select>
         </div>
