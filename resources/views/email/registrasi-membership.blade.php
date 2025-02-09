@@ -167,13 +167,13 @@
                                           <tr>
                                             <td align="center" class="esd-block-text es-p25t es-m-p20r es-m-p20l">
                                               <h3 class="es-m-txt-c">
-                                                <b>Hai Kak {{$data['name']}},</b>
+                                                <b>Hai Kak {{$data['name']}}, Terima kasih telah mendaftar sebagai Warga UD. Djaya!&nbsp;</b>
                                               </h3>
                                               <h3 class="es-m-txt-c">
                                                 <br>
                                               </h3>
                                               <p class="es-m-txt-c">
-                                                Terima kasih telah mendaftar sebagai Warga UD. Djaya!&nbsp;
+                                                
                                               </p>
                                             </td>
                                           </tr>

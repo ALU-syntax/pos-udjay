@@ -54,6 +54,16 @@ if (!function_exists('menus')) {
         }
     }
 
+    if (!function_exists('responseWarning')) {
+        function responseWarning($message)
+        {
+            return response()->json([
+                'status' => 'warning',
+                'message' => $message
+            ]);
+        }
+    }
+
     if (!function_exists('urlMenu')) {
         function urlMenu()
         {

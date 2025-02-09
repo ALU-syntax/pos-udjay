@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\CustomerDataTable;
+use App\DataTables\DetailItemTransactionDataTable;
+use App\DataTables\ListCustomerTransactionDataTable;
 use App\DataTables\ListRefereeDataTable;
 use App\Http\Requests\CustomerRequest;
 use App\Mail\CustomerRegistered;
@@ -11,6 +13,8 @@ use App\Models\Customer;
 use App\Models\CustomerPoinExp;
 use App\Models\CustomerReferral;
 use App\Models\LevelMembership;
+use App\Models\RewardConfirmation;
+use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
@@ -33,7 +37,7 @@ class CustomerController extends Controller
     }
 
     public function store(CustomerRequest $request)
-    {
+    {   
         $customer = new Customer($request->validated());
 
         $lowestBenchmarkValue = LevelMembership::min('benchmark');
@@ -52,6 +56,11 @@ class CustomerController extends Controller
 
             $customerReferral = new CustomerReferral($dataReferral);
             $customerReferral->save();
+
+            $referallCustomer = Customer::find($request['referral_id']);
+            $referallCustomer->point += 75;
+
+            $referallCustomer->save();
 
             $dataPointReferral = [
                 'customer_id' => $request['referral_id'],
@@ -99,7 +108,7 @@ class CustomerController extends Controller
 
     }
 
-    public function detail(Customer $customer){
+    public function detailCustomer(Customer $customer){
         $customer->load(['community', 'referral']);
         return view('layouts.customer.detail-modal', [
             'data' => $customer,
@@ -109,4 +118,54 @@ class CustomerController extends Controller
     public function listReferee(Customer $customer, ListRefereeDataTable $datatable){
         return $datatable->with('customerId', $customer->id)->render('layouts.customer.list-referee-modal');
     }
+
+    public function detail(Customer $customer, ListCustomerTransactionDataTable $datatable){
+        $customer->load(['transactions']);
+
+        $transactionNominal = 0;
+        foreach($customer->transactions as $transaction){
+            $transactionNominal += $transaction->total;
+        }
+
+        return $datatable->with('customerId', $customer->id)->render('layouts.customer.detail',[
+            'data' => $customer,
+            'transactionNominal' => $transactionNominal
+        ]);
+    }
+
+    public function detailTransaction(Transaction $transaction, DetailItemTransactionDataTable $datatable){
+            
+        return $datatable->with('transactionId', $transaction->id)->render('layouts.customer.list-item-transaction');
+    }
+
+    public function rewardConfirmation(Customer $customer){
+        $customer->load(['levelMembership']);
+        $listReward = $customer->levelMembership()->first()->with(['rewards'])->first();
+        $listRewardAccept = RewardConfirmation::where('customer_id', $customer->id)->where('level_membership_id', $customer->levelMembership->id)->get();
+
+        // dd($listReward);
+        $dataReward = [];
+        foreach($listReward->rewards as $reward){
+            $tmpDataReward = [
+                'id' => $reward->id,
+                'name' => $reward->name,
+                'accept' => false,
+            ];
+            
+            foreach($listRewardAccept as $rewardAccept){
+                if($rewardAccept->reward_memberships_id == $reward->id){
+                    $tmpDataReward['accept'] = true;
+                    array_push($dataReward, $tmpDataReward);  
+                    continue;
+                }
+            }
+
+            array_push($dataReward, $tmpDataReward);
+        }
+
+        return view('layouts.customer.reward-confirmation-modal',[
+            'data' => $dataReward
+        ]);
+    }
+    
 }

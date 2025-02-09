@@ -53,8 +53,6 @@
                 <option value="laki-laki" @if ($data->gender == 'laki-laki') selected @endif>Laki-Laki</option>
                 <option value="perempuan" @if ($data->gender == 'perempuan') selected @endif>Perempuan</option>
             </select>
-            {{-- <input id="gender" name="gender" value="{{ $data->gender }}" type="text"
-                class="form-control" placeholder="Gender" required> --}}
         </div>
     </div>
     <div class="col-md-12">

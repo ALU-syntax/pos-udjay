@@ -13,6 +13,7 @@
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
         "mavinoo/laravel-batch": "^2.4",
+        "ramsey/uuid": "^4.7",
         "spatie/laravel-permission": "^6.10",
         "yajra/laravel-datatables": "^10.0",
         "yajra/laravel-datatables-buttons": "^10.0",

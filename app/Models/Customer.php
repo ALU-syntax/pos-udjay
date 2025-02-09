@@ -28,4 +28,8 @@ class Customer extends Model
         return $this->hasMany(Customer::class, 'referral_id', 'id');
     }
 
+    public function levelMembership(){
+        return $this->belongsTo(LevelMembership::class, 'level_memberships_id', 'id');
+    }
+
 }

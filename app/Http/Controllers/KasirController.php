@@ -6,6 +6,7 @@ use App\DataTables\PilihPelangganDataTable;
 use App\Models\Category;
 use App\Models\CategoryPayment;
 use App\Models\Checkout;
+use App\Models\Community;
 use App\Models\Customer;
 use App\Models\Discount;
 use App\Models\ItemOpenBill;
@@ -582,6 +583,13 @@ class KasirController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $openBill
+        ]);
+    }
+
+    public function tambahCustomer(){
+        return view('layouts.kasir.modal-tambah-customer',[
+            'communities' => Community::orderBy('name', 'asc')->get(),
+            'customer' => Customer::orderBy('name', 'asc')->get()
         ]);
     }
 }

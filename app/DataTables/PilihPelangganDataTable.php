@@ -37,7 +37,7 @@ class PilihPelangganDataTable extends DataTable
      */
     public function query(Customer $model): QueryBuilder
     {
-        return $model->newQuery();
+        return $model->orderBy('name', 'asc')->newQuery();
     }
 
     /**

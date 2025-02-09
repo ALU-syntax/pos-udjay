@@ -4,6 +4,7 @@ namespace App\DataTables;
 
 use App\Models\Customer;
 use App\Traits\DataTableHelper;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
@@ -25,16 +26,26 @@ class CustomerDataTable extends DataTable
     {
         return (new EloquentDataTable($query))
             ->addColumn('action', function ($row) {
-            return view('layouts.customer.action', [
-                'detail' => route('membership/customer/detail', $row->id),
-                'edit' =>route('membership/customer/edit', $row->id),
-                'routeDelete' =>route('membership/customer/destroy', $row->id),
-            'listReferee' =>route('membership/customer/listReferee', $row->id)
-            ]);
-        })
+                return view('layouts.customer.action', [
+                    'detail' => route('membership/customer/detailCustomer', $row->id),
+                    'edit' =>route('membership/customer/edit', $row->id),
+                    'routeDelete' =>route('membership/customer/destroy', $row->id),
+                    'listReferee' =>route('membership/customer/listReferee', $row->id),
+                ]);
+            })
             ->addColumn('community_id', function($row){
                 return $row->community_id ? $row->community->name : '-';
             })
+            ->addColumn('level_membership_id', function($row){
+                return "<a class='action' href=" . route('membership/customer/rewardConfirmation', $row->levelMembership->id) . " type='button'>". $row->levelMembership->name ."</a>";
+            })
+            ->addColumn('created_at', function($row){
+                return Carbon::parse($row->created_at)->diffForHumans();
+            })
+            ->addColumn('name', function ($row) {
+                return "<a href=" . route('membership/customer/detail', $row->id) . " type='button'>". $row->name ."</a>";
+            })
+            ->rawColumns(['created_at', 'name', 'level_membership_id'])
             ->setRowId('id');
     }
 
@@ -43,7 +54,7 @@ class CustomerDataTable extends DataTable
      */
     public function query(Customer $model): QueryBuilder
     {
-        return $model->with(['community'])->newQuery();
+        return $model->with(['community', 'levelMembership'])->newQuery();
     }
 
     /**
@@ -75,12 +86,11 @@ class CustomerDataTable extends DataTable
     {
         return [
             Column::make('name'),
-            Column::make('umur'),
             Column::make('telfon'),
-            Column::make('email'),
-            Column::make('tanggal_lahir'),
-            Column::make('domisili'),
-            Column::make('gender'),
+            Column::make('point'),
+            Column::make('exp'),
+            Column::make('level_membership_id')->title('Level Membership'),
+            Column::make('created_at')->title("Created Date"),
             Column::make('community_id')->title("Community"),
             Column::computed('action')
                 ->exportable(false)

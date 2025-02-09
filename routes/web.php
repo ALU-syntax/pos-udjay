@@ -237,11 +237,14 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [CustomerController::class, 'index'])->name('customer');
             Route::get('/create', [CustomerController::class, 'create'])->name('customer/create');
             Route::post('/store', [CustomerController::class, 'store'])->name('customer/store');
-            Route::get('/detail-customer/{customer}', [CustomerController::class, 'detail'])->name('customer/detail');
-            Route::get('/list-referee/{customer}', [CustomerController::class, 'listReferee'])->name('customer/listReferee');
-            Route::get('/edit/{customer}', [CustomerController::class, 'edit'])->name('customer/edit');
-            Route::put('/update/{customer}', [CustomerController::class, 'update'])->name('customer/update');
+            Route::get('/detail/{customer}', [CustomerController::class, 'detail'])->name('customer/detail');
+            Route::get('/detail-customer/{customer}', [CustomerController::class, 'detailCustomer'])->name('customer/detailCustomer');
+            Route::get('/detail-transaction/{transaction}', [CustomerController::class, 'detailTransaction'])->name('customer/detailTransaction');
+            Route::get('/check-reward-confirmation/{customer}/', [CustomerController::class, 'rewardConfirmation'])->name('customer/rewardConfirmation');
             Route::delete('/destroy/{customer}', [CustomerController::class, 'destroy'])->name('customer/destroy');
+            Route::get('/edit/{customer}', [CustomerController::class, 'edit'])->name('customer/edit');
+            Route::get('/list-referee/{customer}', [CustomerController::class, 'listReferee'])->name('customer/listReferee');
+            Route::put('/update/{customer}', [CustomerController::class, 'update'])->name('customer/update');
         });
 
         Route::prefix('community')->group(function(){
@@ -276,6 +279,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/choose-promo', [KasirController::class, 'choosePromo'])->name('kasir/choosePromo');
         Route::get('/choose-reward-item/{queue}/{idpromo}', [KasirController::class, 'chooseRewardItem'])->name('kasir/chooseRewardItem');
         Route::get('/pilih-customer', [KasirController::class, 'pilihCustomer'])->name('kasir/pilihCustomer');
+        Route::get('/tambah-customer', [KasirController::class, 'tambahCustomer'])->name('kasir/tambahCustomer');
         Route::get('/custom-diskon/{diskon}', [KasirController::class, 'customDiskon'])->name('kasir/customDiskon');
         Route::get('/view-open-bill', [KasirController::class, 'viewOpenBill'])->name('kasir/viewOpenBill');
         Route::get('/choose-bill/{bill}', [KasirController::class, 'chooseBill'])->name('kasir/chooseBill');

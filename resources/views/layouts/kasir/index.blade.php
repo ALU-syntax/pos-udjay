@@ -704,13 +704,15 @@
                     <div class="order-section">
                         <div class="row mb-1">
                             <div class="col-12 d-flex">
-                                <button class="btn btn-primary-outline w-25 btn-lg m-0 px-0 pb-0 rounded"
+                                <button class="btn btn-primary-outline w-25 btn-lg my-0 ms-0 me-1 px-0 pb-0 rounded"
                                     style="border-style:solid; border-radius: 2px; border-color: #3b5998;"
                                     id="bill-list">
                                     <img src="{{ asset('img/billing.png') }}" alt="" width="40">
                                     <p class="m-0" style="font-size: 12px;">Billing list</p>
                                 </button>
-                                <button class="btn btn-primary w-100 btn-lg  rounded" id="tambah-pelanggan">Tambah
+                                <button class="btn btn-primary me-1 w-50 btn-lg rounded" id="pilih-pelanggan">Pilih
+                                    Pelanggan</button>
+                                <button class="btn btn-primary ms-1 w-50 btn-lg rounded" id="tambah-pelanggan">Tambah
                                     Pelanggan</button>
                             </div>
                         </div>
@@ -2100,7 +2102,6 @@
                                 // hideLoading(false)  
                             },
                             success: (res) => {
-                                console.log(res)
                                 if (primaryModal) {
                                     const modal = $('#itemModal');
                                     modal.html(res);
@@ -2443,11 +2444,14 @@
 
                 updateScreen(screenValue);
             });
-
-            $('#tambah-pelanggan').on('click', function() {
+            
+            $('#pilih-pelanggan').on('click', function() {
                 handleAjax("{{ route('kasir/pilihCustomer') }}").excute();
             });
 
+            $('#tambah-pelanggan').on('click', function() {
+                handleAjax("{{ route('kasir/tambahCustomer') }}").excute();
+            });
 
             var backBtnSetting = document.getElementById('back-btn-setting');
             if (backBtnSetting) {
