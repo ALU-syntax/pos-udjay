@@ -90,7 +90,8 @@ class CustomerController extends Controller
         return view('layouts.customer.customer-modal',[
             'data' => $customer,
             'action' => route('membership/customer/update', $customer->id),
-            'communities' => Community::all()
+            'communities' => Community::all(),
+            'customer' => Customer::all()
         ]);
     }
 
@@ -138,12 +139,11 @@ class CustomerController extends Controller
         return $datatable->with('transactionId', $transaction->id)->render('layouts.customer.list-item-transaction');
     }
 
-    public function rewardConfirmation(Customer $customer){
+    public function checkRewardConfirmation(Customer $customer){
         $customer->load(['levelMembership']);
         $listReward = $customer->levelMembership()->first()->with(['rewards'])->first();
         $listRewardAccept = RewardConfirmation::where('customer_id', $customer->id)->where('level_membership_id', $customer->levelMembership->id)->get();
 
-        // dd($listReward);
         $dataReward = [];
         foreach($listReward->rewards as $reward){
             $tmpDataReward = [
@@ -163,9 +163,15 @@ class CustomerController extends Controller
             array_push($dataReward, $tmpDataReward);
         }
 
+        // dd($dataReward);
         return view('layouts.customer.reward-confirmation-modal',[
-            'data' => $dataReward
+            'data' => $dataReward,
+            'action' => route('membership/customer/rewardConfirmation')
         ]);
+    }
+
+    public function rewardConfirmation(Request $request){
+        dd($request);
     }
     
 }

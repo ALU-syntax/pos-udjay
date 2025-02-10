@@ -37,7 +37,7 @@ class CustomerDataTable extends DataTable
                 return $row->community_id ? $row->community->name : '-';
             })
             ->addColumn('level_membership_id', function($row){
-                return "<a class='action' href=" . route('membership/customer/rewardConfirmation', $row->levelMembership->id) . " type='button'>". $row->levelMembership->name ."</a>";
+                return "<a class='action' href=" . route('membership/customer/checkRewardConfirmation', $row->levelMembership->id) . " type='button'>". $row->levelMembership->name ."</a>";
             })
             ->addColumn('created_at', function($row){
                 return Carbon::parse($row->created_at)->diffForHumans();

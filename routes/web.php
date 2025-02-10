@@ -240,7 +240,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/detail/{customer}', [CustomerController::class, 'detail'])->name('customer/detail');
             Route::get('/detail-customer/{customer}', [CustomerController::class, 'detailCustomer'])->name('customer/detailCustomer');
             Route::get('/detail-transaction/{transaction}', [CustomerController::class, 'detailTransaction'])->name('customer/detailTransaction');
-            Route::get('/check-reward-confirmation/{customer}/', [CustomerController::class, 'rewardConfirmation'])->name('customer/rewardConfirmation');
+            Route::post('/reward-confirmation', [CustomerController::class, 'rewardConfirmation'])->name('customer/rewardConfirmation');
+            Route::get('/check-reward-confirmation/{customer}', [CustomerController::class, 'checkRewardConfirmation'])->name('customer/checkRewardConfirmation');
             Route::delete('/destroy/{customer}', [CustomerController::class, 'destroy'])->name('customer/destroy');
             Route::get('/edit/{customer}', [CustomerController::class, 'edit'])->name('customer/edit');
             Route::get('/list-referee/{customer}', [CustomerController::class, 'listReferee'])->name('customer/listReferee');
