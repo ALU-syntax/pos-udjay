@@ -172,6 +172,7 @@ return [
         Yajra\DataTables\DataTablesServiceProvider::class,
         Mavinoo\Batch\BatchServiceProvider::class,
         Yajra\DataTables\ButtonsServiceProvider::class,
+        Intervention\Image\ImageServiceProvider::class,
 
     ])->toArray(),
 
@@ -189,6 +190,7 @@ return [
     'aliases' => Facade::defaultAliases()->merge([
         // 'Example' => App\Facades\Example::class,
         'Batch' => Mavinoo\Batch\BatchFacade::class,
+        'Image' => Intervention\Image\Facades\Image::class,
     ])->toArray(),
 
 ];

@@ -1,5 +1,20 @@
 @extends('layouts.app')
 @section('content')
+    <style>
+        .fancybox {
+            z-index: 1100;
+            /* Pastikan z-index Fancybox lebih tinggi dari modal */
+        }
+
+        .modal {
+            z-index: 1050;
+            /* Set z-index untuk modal */
+        }
+
+        .modal-backdrop {
+            z-index: 1049;
+        }
+    </style>
     <div class="main-content">
         <div class="card text-center">
             <h5 class="card-header">Customer</h5>
@@ -40,7 +55,7 @@
             $(".select2InsideModal").select2({
                 dropdownParent: $("#modal_action")
             });
-            
+
             handleAction(datatable);
             handleDelete(datatable);
 

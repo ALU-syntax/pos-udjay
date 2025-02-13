@@ -117,7 +117,7 @@ class ProductController extends Controller
         // $product->harga_jual = getAmount($request->harga_jual);
         $product->harga_modal = getAmount($request->harga_modal);
         if (!empty($request->file('photo'))) {
-            $filePath = public_path('uploads/product/' . $product->photo);
+            $filePath = public_path('product/' . $product->photo);
             if (File::exists($filePath)) {
                 File::delete($filePath);
             }

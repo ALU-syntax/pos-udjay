@@ -1,5 +1,7 @@
 <x-modal title="Reward Confirmation" addStyle="modal-lg" action="{{ $action }}" method="POST" update="true">
     <div class="table-responsive">
+        <input type="text" name="customer_id" value="{{ $customerId }}" hidden>
+        <input type="text" name="level_membership_id" value="{{ $levelMembershipId }}" hidden>
         <table class="table table-bordered">
             <thead class="thead-dark">
                 <tr>
@@ -10,11 +12,12 @@
             <tbody>
                 @foreach ($data as $reward)
                     <tr>
-                        <td>{{$reward['name']}}
-                            <input type="text" name="reward_id[]" value="{{$reward['id']}}" hidden>
+                        <td>{{ $reward['name'] }}
+                            <input type="text" name="reward_id[]" value="{{ $reward['id'] }}" hidden>
                         </td>
                         <td>
-                            <input type="checkbox" class="form-check-input" id="accept" name="accept[]" @if($reward['accept']) checked @endif>
+                            <input type="checkbox" class="form-check-input" id="accept" name="accept[]"
+                                @if ($reward['accept']) checked disabled @endif>
                         </td>
                     </tr>
                 @endforeach
@@ -25,7 +28,14 @@
 
     <div class="row">
         <div class="col-9">
-            <input type="file" name="photo">
+            <div class="form-group">
+                <label>Photo Bukti</label>
+                <input name="gambar" type="file" class="form-control">
+            </div>
+            @foreach ($listPhotos as $listPhoto)
+                <img data-fancybox src="{{ asset('storage/reward_confirmation/' . basename($listPhoto)) }}"
+                    width="100" style="border-radius: 20%;">
+            @endforeach
         </div>
     </div>
 
@@ -73,6 +83,11 @@
 
             console.log(dropdown);
 
+        });
+
+        // Mencegah klik gambar menutup modal
+        document.querySelector('.modal-content img').addEventListener('click', function(event) {
+            event.stopPropagation();
         });
     </script>
 </x-modal>

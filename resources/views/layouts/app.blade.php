@@ -79,6 +79,7 @@
         integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w=="
         crossorigin="anonymous" />
 
+    <link rel="stylesheet" href="{{ asset('vendor/fancybox/fancybox.css') }}" />
 
     @stack('css')
 </head>
@@ -149,6 +150,9 @@
 
     {{-- DateRange Picker --}}
     <script type="text/javascript" src="{{ asset('vendor/daterangepicker/daterangepicker.min.js') }}"></script>
+
+    {{-- FancyBox --}}
+    <script src="{{ asset('vendor/fancybox/fancybox.js') }}"></script>
 
     <!-- Kaiadmin JS -->
     <script src="{{ asset('js/kaiadmin.min.js') }}"></script>
@@ -318,8 +322,11 @@
                             submitLoader().hide()
                         },
                         error: function(err) {
-                            const errors = err.responseJSON?.errors
+                            const errors = err.responseJSON?.errors;
 
+                            console.log(err);
+                            console.log(err.responseJSON);
+                            console.log(err.responseJSON?.errors);
                             if (errors) {
                                 for (let [key, message] of Object.entries(errors)) {
                                     console.log(message);

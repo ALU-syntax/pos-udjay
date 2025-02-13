@@ -37,14 +37,14 @@ class CustomerController extends Controller
     }
 
     public function store(CustomerRequest $request)
-    {   
+    {
         $customer = new Customer($request->validated());
 
         $lowestBenchmarkValue = LevelMembership::min('benchmark');
         $lowestBenchmarkRecords = LevelMembership::where('benchmark', $lowestBenchmarkValue)->first();
 
         $customer->level_memberships_id = $lowestBenchmarkRecords->id;
-    
+
         $customer->save();
 
         if(isset($request['referral_id'])){
@@ -81,7 +81,7 @@ class CustomerController extends Controller
         ];
 
         Mail::to($request['email'])->send(new CustomerRegistered($data));
-        
+
 
         return responseSuccess(false);
     }
@@ -135,7 +135,7 @@ class CustomerController extends Controller
     }
 
     public function detailTransaction(Transaction $transaction, DetailItemTransactionDataTable $datatable){
-            
+
         return $datatable->with('transactionId', $transaction->id)->render('layouts.customer.list-item-transaction');
     }
 
@@ -144,6 +144,7 @@ class CustomerController extends Controller
         $listReward = $customer->levelMembership()->first()->with(['rewards'])->first();
         $listRewardAccept = RewardConfirmation::where('customer_id', $customer->id)->where('level_membership_id', $customer->levelMembership->id)->get();
 
+        $listPhoto = [];
         $dataReward = [];
         foreach($listReward->rewards as $reward){
             $tmpDataReward = [
@@ -151,11 +152,11 @@ class CustomerController extends Controller
                 'name' => $reward->name,
                 'accept' => false,
             ];
-            
+
             foreach($listRewardAccept as $rewardAccept){
+                $listPhoto[] = $rewardAccept->photo;
                 if($rewardAccept->reward_memberships_id == $reward->id){
                     $tmpDataReward['accept'] = true;
-                    array_push($dataReward, $tmpDataReward);  
                     continue;
                 }
             }
@@ -166,12 +167,52 @@ class CustomerController extends Controller
         // dd($dataReward);
         return view('layouts.customer.reward-confirmation-modal',[
             'data' => $dataReward,
-            'action' => route('membership/customer/rewardConfirmation')
+            'action' => route('membership/customer/rewardConfirmation'),
+            'customerId' => $customer->id,
+            'levelMembershipId' => $customer->levelMembership()->first()->id,
+            'listPhotos' => $listPhoto
         ]);
     }
 
     public function rewardConfirmation(Request $request){
-        dd($request);
+        $dataValidated = $request->validate([
+            'gambar' => 'required|image|mimes:jpeg,png,jpg|max:4096',
+            'customer_id' => 'required',
+        ],[
+            'gambar.required' => "Foto Bukti wajib dimasukan"
+        ]);
+
+
+        if($request->has('accept')){
+            $photo = null;
+
+            if ($request->hasFile('gambar')) {
+                $photo = $request->file('gambar')->store('public/reward_confirmation');
+            }
+
+            $data = [];
+
+            foreach($request['reward_id'] as $item){
+                $tmpData = [
+                    'level_membership_id' => $request['level_membership_id'],
+                    'reward_memberships_id' => $item,
+                    'customer_id' => $dataValidated['customer_id'],
+                    'user_id' => auth()->user()->id,
+                ];
+
+                if(isset($photo)){
+                    $tmpData['photo'] = $photo;
+                }
+
+                array_push($data, $tmpData);
+            }
+
+            RewardConfirmation::insert($data);
+
+            return responseSuccess(false, "Reward Berhasil diupdate");
+        }
+
+        return true;
     }
-    
+
 }
