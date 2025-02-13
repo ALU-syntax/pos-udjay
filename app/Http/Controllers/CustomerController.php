@@ -146,6 +146,11 @@ class CustomerController extends Controller
 
         $listPhoto = [];
         $dataReward = [];
+
+        foreach($listRewardAccept as $rewardAccept){
+            $listPhoto[] = $rewardAccept->photo;
+        }
+
         foreach($listReward->rewards as $reward){
             $tmpDataReward = [
                 'id' => $reward->id,
@@ -154,7 +159,7 @@ class CustomerController extends Controller
             ];
 
             foreach($listRewardAccept as $rewardAccept){
-                $listPhoto[] = $rewardAccept->photo;
+
                 if($rewardAccept->reward_memberships_id == $reward->id){
                     $tmpDataReward['accept'] = true;
                     continue;
@@ -213,6 +218,22 @@ class CustomerController extends Controller
         }
 
         return true;
+    }
+
+    public function historyPointUse(Customer $customer){
+        $customer->load(['transactions']);
+
+        $dataTransaction = [];
+        foreach($customer->transactions()->get() as $transaction){
+            $tmpDataTransaction = $transaction;
+            $tmpDataTransaction['date_formated'] = Carbon::parse($transaction->created_at)->diffForHumans();
+            $tmpDataTransaction['point'] = intval($transaction->total) / 100;
+
+            $dataTransaction[] = $tmpDataTransaction;
+        }
+        return view('layouts.customer.history-point-use-modal', [
+            'transactions' => $dataTransaction
+        ]);
     }
 
 }

@@ -45,7 +45,10 @@ class CustomerDataTable extends DataTable
             ->addColumn('name', function ($row) {
                 return "<a href=" . route('membership/customer/detail', $row->id) . " type='button'>". $row->name ."</a>";
             })
-            ->rawColumns(['created_at', 'name', 'level_membership_id'])
+            ->addColumn('point', function ($row) {
+                return "<a class='action' href=" . route('membership/customer/historyPointUse', $row->id) . " type='button'>". $row->point ."</a>";
+            })
+            ->rawColumns(['created_at', 'name', 'level_membership_id', 'point'])
             ->setRowId('id');
     }
 

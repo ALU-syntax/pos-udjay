@@ -32,9 +32,19 @@
                 <label>Photo Bukti</label>
                 <input name="gambar" type="file" class="form-control">
             </div>
-            @foreach ($listPhotos as $listPhoto)
-                <img data-fancybox src="{{ asset('storage/reward_confirmation/' . basename($listPhoto)) }}"
-                    width="100" style="border-radius: 20%;">
+            @foreach ($listPhotos as $index => $listPhoto)
+                @if ($index > 0)
+                    {{-- {{dd($listPhotos[$index - 1], $listPhotos[$index])}} --}}
+
+                    {{-- {{dd($listPhotos[$index - 1] == $listPhoto[$index])}} --}}
+                    @if (strcmp($listPhotos[$index - 1], $listPhotos[$index]) != 0)
+                        <img data-fancybox src="{{ asset('storage/reward_confirmation/' . basename($listPhoto)) }}"
+                            width="100" style="border-radius: 20%;">
+                    @endif
+                @else
+                    <img data-fancybox src="{{ asset('storage/reward_confirmation/' . basename($listPhoto)) }}"
+                        width="100" style="border-radius: 20%;">
+                @endif
             @endforeach
         </div>
     </div>

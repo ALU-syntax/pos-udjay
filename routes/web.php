@@ -117,7 +117,7 @@ Route::middleware('auth')->group(function () {
 
     });
 
-    
+
     Route::group(['prefix' => 'employee', 'as' => 'employee/'], function(){
         Route::prefix('users')->group(function () {
             Route::get('/', [UserController::class, 'index'])->name('user');
@@ -216,7 +216,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/store', [SalesTypeController::class, 'store'])->name('salestype/store');
             Route::get('/edit/{salesType}', [SalesTypeController::class, 'edit'])->name('salestype/edit');
             Route::put('/update/{salesType}', [SalesTypeController::class, 'update'])->name('salestype/update');
-            Route::put('/updateStatus/{id}', [SalesTypeController::class, 'updateStatus'])->name('salestype/update-status'); 
+            Route::put('/updateStatus/{id}', [SalesTypeController::class, 'updateStatus'])->name('salestype/update-status');
             Route::delete('/destroy/{salesType}', [SalesTypeController::class,'destroy'])->name('salestype/destroy');
         });
 
@@ -240,6 +240,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/detail/{customer}', [CustomerController::class, 'detail'])->name('customer/detail');
             Route::get('/detail-customer/{customer}', [CustomerController::class, 'detailCustomer'])->name('customer/detailCustomer');
             Route::get('/detail-transaction/{transaction}', [CustomerController::class, 'detailTransaction'])->name('customer/detailTransaction');
+            Route::get('/history-point-use/{customer}', [CustomerController::class, 'historyPointUse'])->name('customer/historyPointUse');
             Route::post('/reward-confirmation', [CustomerController::class, 'rewardConfirmation'])->name('customer/rewardConfirmation');
             Route::get('/check-reward-confirmation/{customer}', [CustomerController::class, 'checkRewardConfirmation'])->name('customer/checkRewardConfirmation');
             Route::delete('/destroy/{customer}', [CustomerController::class, 'destroy'])->name('customer/destroy');
@@ -272,7 +273,7 @@ Route::middleware('auth')->group(function () {
     });
 
 
-        
+
     Route::prefix('kasir')->group(function(){
         Route::get('/', [KasirController::class, 'index'])->name('kasir');
         Route::get('/viewPattyCash', [KasirController::class, 'viewPattyCash'])->name('kasir/viewPattyCash');
@@ -325,8 +326,8 @@ Route::middleware('auth')->group(function () {
     Route::group(['prefix' => 'report', 'as' => 'report/'], function(){
         Route::prefix('sales')->group(function () {
             Route::get('/', [SalesController::class, 'index'])->name('sales');
-            Route::get('/sales-summary', [SalesController::class, 'getSalesSummary'])->name('sales/getSalesSummary'); 
-            Route::get('/gross-profit', [SalesController::class, 'getGrossProfit'])->name('sales/getGrossProfit'); 
+            Route::get('/sales-summary', [SalesController::class, 'getSalesSummary'])->name('sales/getSalesSummary');
+            Route::get('/gross-profit', [SalesController::class, 'getGrossProfit'])->name('sales/getGrossProfit');
             Route::get('/payment-method', [SalesController::class, 'getPaymentMethodSales'])->name('sales/getPaymentMethodSales');
             Route::get('/sales-type', [SalesController::class, 'getSalesType'])->name('sales/getSalesType');
             Route::get('/item-sales', [SalesController::class, 'getItemSales'])->name('sales/getItemSales');
@@ -347,12 +348,12 @@ Route::middleware('auth')->group(function () {
             // Route::delete('/destroy/{pengeluaran}', [PengeluaranController::class, 'destroy'])->name('pengeluaran/destroy');
         });
     });
-    
+
 });
 
 Route::get('/api-struk/{id}', [KasirController::class, 'apiStruk'])->name('kasir/apiStruk');
-Route::get('/api-open-bill/{bill_id}', [KasirController::class, 'printOpenBillOrder']); 
-Route::get('/get-akun/{outlet_id}', [OutletController::class, 'getAkun']); 
+Route::get('/api-open-bill/{bill_id}', [KasirController::class, 'printOpenBillOrder']);
+Route::get('/get-akun/{outlet_id}', [OutletController::class, 'getAkun']);
 Route::post('/log-error-android', [LogController::class, 'logErrorAndroid'])->name('log/logErrorAndroid');
 
 require __DIR__.'/auth.php';
