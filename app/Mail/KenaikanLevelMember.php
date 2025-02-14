@@ -16,9 +16,9 @@ class KenaikanLevelMember extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public function __construct(array $data)
     {
-        //
+        $this->data = $data;
     }
 
     /**
@@ -37,7 +37,7 @@ class KenaikanLevelMember extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'view.name',
+            view: 'email.kenaikan-level-membership',
         );
     }
 
@@ -49,5 +49,14 @@ class KenaikanLevelMember extends Mailable
     public function attachments(): array
     {
         return [];
+    }
+
+    public function build()
+    {
+        return $this->view('email.kenaikan-level-membership')
+            ->from('admin@udjaya.com')
+            ->subject('KENAIKAN LEVEL MEMBERSHIP')
+            ->with('data', $this->data);
+
     }
 }

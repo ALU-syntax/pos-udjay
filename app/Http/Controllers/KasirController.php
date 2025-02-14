@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\PilihPelangganDataTable;
+use App\Mail\KenaikanLevelMember;
 use App\Mail\PenambahanPointExpMembership;
 use App\Models\Category;
 use App\Models\CategoryPayment;
@@ -11,6 +12,7 @@ use App\Models\Community;
 use App\Models\Customer;
 use App\Models\Discount;
 use App\Models\ItemOpenBill;
+use App\Models\LevelMembership;
 use App\Models\OpenBill;
 use App\Models\Outlets;
 use App\Models\PettyCash;
@@ -211,8 +213,6 @@ class KasirController extends Controller
             $customer->point += intval($request->total) / 100;
             $customer->exp += intval($request->total) / 100;
 
-            $customer->save();
-
             $dataEmail = [
                 'name' => $customer->name,
                 'exp' => $customer->exp,
@@ -223,7 +223,33 @@ class KasirController extends Controller
 
             Mail::to($customer->email)->send(new PenambahanPointExpMembership($dataEmail));
 
+            $listLevelMembership = LevelMembership::all();
 
+            foreach($listLevelMembership as $index => $level){
+                if(intval($customer->exp) > $level->benchmark){
+                    if($customer->level_memberships_id != $level->id){
+                        $dataEmailLevelUp = [
+                            'name' => $customer->name,
+                            'exp' => $customer->exp,
+                            'reward' => $level->rewards()->get(),
+                            'levelMembership' => $customer->levelMembership->name,
+                            'levelMembershipNow' => $level->name,
+                            'expired' => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y'),
+                        ];
+
+                        if(($index+1) >= count($listLevelMembership)){
+                            $dataEmailLevelUp['nextMember'] = "TAMAT";
+                        }else{
+                            $dataEmailLevelUp['nextMember'] = $listLevelMembership[$index+1]->name;
+                        }
+                        Mail::to($customer->email)->send(new KenaikanLevelMember($dataEmailLevelUp));
+
+                        $customer->level_memberships_id = $level->id;
+                    }
+                }
+            }
+
+            $customer->save();
         } else {
             $customer = '';
         }
