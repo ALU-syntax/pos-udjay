@@ -4,6 +4,7 @@ namespace App\DataTables;
 
 use App\Models\Customer;
 use App\Models\PilihPelanggan;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
@@ -29,6 +30,10 @@ class PilihPelangganDataTable extends DataTable
                     'data' => $row
                 ]);
             })
+            ->addColumn('created_at', function($row){
+                return Carbon::parse($row->created_at)->diffForHumans();
+            })
+            ->rawColumns(['created_at'])
             ->setRowId('id');
     }
 
@@ -70,7 +75,9 @@ class PilihPelangganDataTable extends DataTable
         return [
             Column::make('name'),
             Column::make('telfon'),
-            Column::make('umur'),
+            Column::make('point'),
+            Column::make('exp'),
+            Column::make('created_at'),
             Column::computed('action')
                 ->exportable(false)
                 ->printable(false)

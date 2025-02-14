@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\PilihPelangganDataTable;
+use App\Mail\PenambahanPointExpMembership;
 use App\Models\Category;
 use App\Models\CategoryPayment;
 use App\Models\Checkout;
@@ -26,6 +27,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Jenssegers\Agent\Agent;
 use function PHPUnit\Framework\isNull;
+use Illuminate\Support\Facades\Mail;
 
 class KasirController extends Controller
 {
@@ -206,6 +208,22 @@ class KasirController extends Controller
 
         if ($customerId) {
             $customer = Customer::find($customerId);
+            $customer->point += intval($request->total) / 100;
+            $customer->exp += intval($request->total) / 100;
+
+            $customer->save();
+
+            $dataEmail = [
+                'name' => $customer->name,
+                'exp' => $customer->exp,
+                'point' => $customer->point,
+                'levelMembership' => $customer->levelMembership->name,
+                'expired' => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y')
+            ];
+
+            Mail::to($customer->email)->send(new PenambahanPointExpMembership($dataEmail));
+
+
         } else {
             $customer = '';
         }
@@ -344,7 +362,7 @@ class KasirController extends Controller
     public function apiStruk($id)
     {
         $transaction = Transaction::with(['outlet', 'user'])->find($id);
-        
+
         $transactionPajak = $transaction->pajak();
 
         $transaction['tax'] = $transactionPajak;
@@ -359,7 +377,7 @@ class KasirController extends Controller
             $transactionItem['modifier'] = $tmpModifier;
         }
 
-        
+
         $user = User::find($transaction->user_id);
 
         $agent = new Agent();
@@ -491,7 +509,7 @@ class KasirController extends Controller
 
 
         // return responseSuccess(false);
-        
+
     }
 
     public function billList()
@@ -553,7 +571,7 @@ class KasirController extends Controller
 
             ItemOpenBill::insert($dataItemOpenBill);
         });
-        
+
         // return responseSuccess(true);
         return response()->json([
             'data' => $openBill
@@ -564,15 +582,15 @@ class KasirController extends Controller
     {
         $openBill = OpenBill::where('id', $bill_id)->first();
 
-        // Jika OpenBill ditemukan, ambil item berdasarkan queue_order  
+        // Jika OpenBill ditemukan, ambil item berdasarkan queue_order
         if ($openBill) {
             $openBill->load(['item' => function ($query) use ($openBill) {
-                // Ambil queue_order dari objek $openBill  
+                // Ambil queue_order dari objek $openBill
                 $query->where('queue_order', $openBill->queue_order);
             },
              'user']);
 
-            // Decode the modifier field from JSON string to array of objects for each item  
+            // Decode the modifier field from JSON string to array of objects for each item
             foreach ($openBill->item as $item) {
                 $item->modifier = json_decode($item->modifier, true);
                 $item->pilihan = json_decode($item->pilihan, true);
