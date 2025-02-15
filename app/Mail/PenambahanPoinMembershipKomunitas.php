@@ -9,7 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class RegistrasiMembershipKomunitas extends Mailable
+class PenambahanPoinMembershipKomunitas extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -27,7 +27,7 @@ class RegistrasiMembershipKomunitas extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Registrasi Membership Komunitas',
+            subject: 'Penambahan Poin Membership Komunitas',
         );
     }
 
@@ -37,7 +37,7 @@ class RegistrasiMembershipKomunitas extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'email.registrasi-membership-komunitas',
+            view: 'email.penambahan-point-membership-komunitas',
         );
     }
 
@@ -53,9 +53,9 @@ class RegistrasiMembershipKomunitas extends Mailable
 
     public function build()
     {
-        return $this->view('email.registrasi-membership-komunitas')
+        return $this->view('email.penambahan-point-membership-komunitas')
             ->from('admin@udjaya.com')
-            ->subject('REGISTRASI MEMBERSHIP KOMUNITAS')
+            ->subject('PENAMBAHAN POIN MEMBERSHIP KOMUNITAS')
             ->with('data', $this->data);
 
     }

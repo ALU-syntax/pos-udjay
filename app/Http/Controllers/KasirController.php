@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\DataTables\PilihPelangganDataTable;
 use App\Mail\KenaikanLevelMember;
+use App\Mail\PenambahanPoinMembershipKomunitas;
 use App\Mail\PenambahanPointExpMembership;
 use App\Mail\PenukaranPoin;
 use App\Models\Category;
@@ -240,6 +241,23 @@ class KasirController extends Controller
             ];
 
             Mail::to($customer->email)->send(new PenambahanPointExpMembership($dataEmail));
+
+            if(isset($customer->community_id)){
+                $community = Community::find($customer->community_id);
+                $community->exp += intval($request->total) / 100;
+
+                $community->save();
+                $dataPointCommunity = [
+                    'name' => $customer->name,
+                    'namaKomunitas' => $community->name,
+                    'poin' => $customer->point,
+                    'exp' => $customer->exp,
+                    'expCommunity' => $community->exp,
+                    'expired' => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y')
+                ];
+
+                Mail::to($customer->email)->send(new PenambahanPoinMembershipKomunitas($dataPointCommunity));
+            }
 
             $listLevelMembership = LevelMembership::all();
 
