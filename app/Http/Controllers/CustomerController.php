@@ -8,6 +8,7 @@ use App\DataTables\ListCustomerTransactionDataTable;
 use App\DataTables\ListRefereeDataTable;
 use App\Http\Requests\CustomerRequest;
 use App\Mail\CustomerRegistered;
+use App\Mail\RegistrasiMembershipKomunitas;
 use App\Models\Community;
 use App\Models\Customer;
 use App\Models\CustomerPoinExp;
@@ -47,6 +48,20 @@ class CustomerController extends Controller
         $customer->level_memberships_id = $lowestBenchmarkRecords->id;
 
         $customer->save();
+
+        if(isset($request['community_id'])){
+            $community = Community::find($request['community_id']);
+            $dataRegistCommunity = [
+                'name' => $request['name'],
+                'namaKomunitas' => $community->name,
+                'poin' => 0,
+                'exp' => 0,
+                'expCommunity' => $community->exp,
+                'expired' => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y')
+            ];
+
+            Mail::to($request['email'])->send(new RegistrasiMembershipKomunitas($dataRegistCommunity));
+        }
 
         if(isset($request['referral_id'])){
             $dataReferral = [
