@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::table('transactions', function (Blueprint $table) {
             $table->foreign('customer_id')->references('id')->on('customers')->onDelete('CASCADE');
+            $table->unsignedBigInteger('potongan_point')->nullable();
         });
     }
 

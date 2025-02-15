@@ -24,7 +24,7 @@
                         <div class="col-3">
                             <h6 class="d-flex text-center">{{ $categoryPayment->name }}</h6>
                         </div>
-                        <div class="col-9">
+                        <div class="col-9" @if ($categoryPayment->name == 'Cash') id="cash-row" @endif>
                             <div class="row">
                                 @if ($categoryPayment->name == 'Cash')
                                     <div class="col-4 mt-2">
@@ -63,6 +63,8 @@
                                 <input style="height: 70px; font-size:20px;" type="numeric" id="inputMoney"
                                     class="form-control input-xl mt-2" placeholder="Cash Amount">
                             @endif
+
+
                         </div>
                     </div>
 
@@ -122,6 +124,8 @@
     var dataListPayment = @json($listPayment);
     var dataCash = dataListPayment.find(item => item.name == "Cash");
     var idCash = dataCash.id;
+    var potonganPoint = 0;
+    var pointCustomer = 0;
 
     var moneyInput = document.getElementById("inputMoney");
     moneyInput.addEventListener("keyup", function(e) {
@@ -148,6 +152,7 @@
 
     function updateHargaText() {
         let total = ambilHargaTotal();
+        console.log(total);
         $('#totalHarga').text(formatRupiah(total.toString(), "Rp. "));
     }
 
@@ -165,9 +170,21 @@
 
             let hargaFinal = symbol == "-" ? angkaTotal - angkaRounding : angkaTotal + angkaRounding;
 
-            return hargaFinal;
+            if (hargaFinal <= pointCustomer) {
+                potonganPoint = hargaFinal;
+                return 0;
+            } else {
+                potonganPoint = pointCustomer;
+                return hargaFinal - pointCustomer;
+            }
         } else {
-            return angkaTotal
+            if (angkaTotal <= pointCustomer) {
+                potonganPoint = hargaFinal;
+                return 0;
+            } else {
+                potonganPoint = pointCustomer;
+                return angkaTotal - pointCustomer;
+            }
         }
     }
 
@@ -203,6 +220,30 @@
             modal.modal('hide');
         });
 
+        $('.form-point').change(function() {
+            console.log($(this).val());
+            pointCustomer = parseInt(this.val());
+        })
+
+        if (idPelanggan != '') {
+            $('#cash-row').append(`
+                <div class="form-check form-switch">
+                    <label class="mt-1 ms-2">${formatRupiah(pointPelanggan.toString(), "Rp. ")}</label>
+                    <input class="form-check-input form-point form-switch" style="height: 25px;"
+                        value="${pointPelanggan}" type="checkbox">
+                </div>`);
+
+            $('.form-point').change(function() {
+                if ($(this).is(':checked')) {
+                    pointCustomer = parseInt($(this).val());
+                } else {
+                    pointCustomer = 0;
+                }
+
+                updateHargaText();
+            })
+
+        }
 
         $('#pay').on('click', function() {
             let selectButton = $('button.active').text();
@@ -561,7 +602,6 @@
             });
 
             let idCustomer = (idPelanggan == '') ? null : idPelanggan;
-            console.log(idPelanggan);
 
             dataForm.append('nominal_bayar', nominalBayar);
             dataForm.append('change', Math.abs(change));
@@ -577,6 +617,7 @@
             dataForm.append('catatan_transaksi', valueCatatan);
             dataForm.append('patty_cash_id', dataPattyCash[0].id);
             dataForm.append('bill_id', billId);
+            dataForm.append('potongan_point', potonganPoint);
 
             $.ajax({
                 url: "{{ route('kasir/bayar') }}",
@@ -606,9 +647,9 @@
                             'intent://list-bluetooth-device');
                         console.log("intent://cetak-struk?id=" + res.id)
 
-                        if(window.Android){
-                            // Panggil metode JavaScript Interface dengan ID transaksi  
-                           window.Android.handlePaymentSuccess(res.id);  
+                        if (window.Android) {
+                            // Panggil metode JavaScript Interface dengan ID transaksi
+                            window.Android.handlePaymentSuccess(res.id);
                         }
 
                         // if (res.pelanggan) {

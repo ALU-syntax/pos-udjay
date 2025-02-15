@@ -893,6 +893,7 @@
         var listDiskon = [];
         var totalDiskon = [];
         var idPelanggan = '';
+        var pointPelanggan = 0;
         var listDiskonAllItem = [];
         var tmpTampungCustomAmount = 0;
         var totalKeseluruhanPajak = 0;
@@ -1082,11 +1083,11 @@
         }
 
         function syncPromo() {
-            // Filter listPromo untuk mendapatkan promo yang tidak ada di promoTerpasang  
+            // Filter listPromo untuk mendapatkan promo yang tidak ada di promoTerpasang
             var filteredPromo = listPromo.filter(function(promo) {
                 return !promoTerpasang.some(function(selectedPromo) {
                     return (selectedPromo.id === promo.id || promo.multiple !=
-                        0); // Bandingkan berdasarkan ID  
+                        0); // Bandingkan berdasarkan ID
                 });
             });
 
@@ -1959,7 +1960,7 @@
             listItem.forEach(function(item, index) {
                 item.diskon.forEach(function(itemDiskon, indexDiskon) {
                     // console.log(itemDiskon);
-                    // let diskonMultipleQuantity = 
+                    // let diskonMultipleQuantity =
                     tmpTotalDiskon.push(itemDiskon.result);
                 });
             });
@@ -1967,7 +1968,7 @@
             listItemPromo.forEach(function(item, index) {
                 item.diskon.forEach(function(itemDiskon, indexDiskon) {
                     // console.log(itemDiskon);
-                    // let diskonMultipleQuantity = 
+                    // let diskonMultipleQuantity =
                     tmpTotalDiskon.push(itemDiskon.result);
                 });
             });
@@ -2095,11 +2096,11 @@
                             method,
                             beforeSend: function() {
                                 showLoader();
-                                // showLoading()  
+                                // showLoading()
                             },
                             complete: function() {
                                 showLoader(false);
-                                // hideLoading(false)  
+                                // hideLoading(false)
                             },
                             success: (res) => {
                                 if (primaryModal) {
@@ -2120,11 +2121,11 @@
                                     modal.modal('show');
                                 }
 
-                                resolve(res); // Resolving the promise  
+                                resolve(res); // Resolving the promise
                             },
                             error: function(err) {
                                 console.log(err);
-                                reject(err); // Rejecting the promise on error  
+                                reject(err); // Rejecting the promise on error
                             }
                         });
                     });
@@ -2185,7 +2186,7 @@
                                         <div class="col-6" >
                                             ${formatRupiah(dataPattyCash[0].amount_awal.toString(), "Rp. ")}
                                         </div>
-                                    </div> 
+                                    </div>
                                     <hr>
 
                                     <div class="row">
@@ -2195,9 +2196,9 @@
                                         <div class="col-6" >
                                             ${formatRupiah(sales.toString(), "Rp. ")}
                                         </div>
-                                    </div> 
+                                    </div>
                                     <hr>
-        
+
                                     <div class="row">
                                         <div class="col-6">
                                             Expected Ending Cash
@@ -2205,13 +2206,13 @@
                                         <div class="col-6" >
                                             ${formatRupiah(expectedEndingCash.toString(), "Rp. ")}
                                         </div>
-                                    </div> 
+                                    </div>
                                     <hr>
-                                    
+
                                 </div>
-    
+
                             </div>
-                            
+
                         `
                         $('#container-shift').append(html);
                     } else {
@@ -2221,8 +2222,8 @@
                                 <div class="col-12">
                                     <h5>${item.name}</h5>
                                     <hr>
-                                    
-                                ${item.payment.map(function(itemPayment) {                                   
+
+                                ${item.payment.map(function(itemPayment) {
                                     let total = 0;
                                     soldItem += itemPayment.transactions.length;
                                     itemPayment.transactions.forEach(function(transactionPaymentItem){
@@ -2231,14 +2232,14 @@
                                     })
                                     return `<div class = "row" >
                                                 <div class = "col-6" >
-                                                    ${itemPayment.name} 
-                                                </div> 
+                                                    ${itemPayment.name}
+                                                </div>
                                                 <div class = "col-6" >
-                                                    ${formatRupiah(total.toString(), "Rp. ")} 
-                                                </div> 
-                                            </div> 
+                                                    ${formatRupiah(total.toString(), "Rp. ")}
+                                                </div>
+                                            </div>
                                             <hr> `;}).join('')}
-    
+
                                     <div class="row">
                                         <div class="col-6">
                                             Expected ${item.name} Payment
@@ -2246,13 +2247,13 @@
                                         <div class="col-6" >
                                             ${formatRupiah(totalPerCategory.toString(), "Rp. ")}
                                         </div>
-                                    </div> 
+                                    </div>
                                     <hr>
-                                    
+
                                 </div>
-    
+
                             </div>
-                            
+
                         `;
 
 
@@ -2444,7 +2445,7 @@
 
                 updateScreen(screenValue);
             });
-            
+
             $('#pilih-pelanggan').on('click', function() {
                 handleAjax("{{ route('kasir/pilihCustomer') }}").excute();
             });
@@ -2516,7 +2517,7 @@
 
             $('#end-current-shift').on('click', function() {
                 $('#end-current-shift-section').removeClass('d-none');
-                $('#setting-section > .child-section').addClass('d-none'); // Hide all views                
+                $('#setting-section > .child-section').addClass('d-none'); // Hide all views
                 $('#back-btn-setting').attr('data-section', 'end-current-shift');
             });
 
@@ -2548,7 +2549,7 @@
                 if (endingCash != '') {
                     let dataForm = new FormData();
                     dataForm.append('endingCash', endingCash);
-                    // Log dataForm untuk memastikan data yang dikirim  
+                    // Log dataForm untuk memastikan data yang dikirim
                     for (var pair of dataForm.entries()) {
                         console.log(pair[0] + ', ' + pair[1]);
                     }
@@ -2638,7 +2639,7 @@
 
                                     syncItemCart();
                                     if (window.Android) {
-                                        // Panggil metode JavaScript Interface dengan ID transaksi  
+                                        // Panggil metode JavaScript Interface dengan ID transaksi
                                         window.Android.handlePrintOpenBill(res.data.id);
                                     }
                                     iziToast['success']({

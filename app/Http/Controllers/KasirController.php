@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\DataTables\PilihPelangganDataTable;
 use App\Mail\KenaikanLevelMember;
 use App\Mail\PenambahanPointExpMembership;
+use App\Mail\PenukaranPoin;
 use App\Models\Category;
 use App\Models\CategoryPayment;
 use App\Models\Checkout;
@@ -210,13 +211,29 @@ class KasirController extends Controller
 
         if ($customerId) {
             $customer = Customer::find($customerId);
+
+            if(intval($request->potongan_point) > 0){
+                $customer->point -= $request->potongan_point;
+
+                $dataEmailPointUse = [
+                    'name' => $customer->name,
+                    'pointDigunakan'=> $request->potongan_point,
+                    'point' => floor($customer->point),
+                    'exp' => floor($customer->exp),
+                    'potongan' => formatRupiah(strval($request->potongan_point), "Rp. "),
+                    'expired' => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y'),
+                    'levelMembership' => $customer->levelMembership->name,
+                ];
+                Mail::to($customer->email)->send(new PenukaranPoin($dataEmailPointUse));
+            }
+
             $customer->point += intval($request->total) / 100;
             $customer->exp += intval($request->total) / 100;
 
             $dataEmail = [
                 'name' => $customer->name,
-                'exp' => $customer->exp,
-                'point' => $customer->point,
+                'exp' => floor($customer->exp),
+                'point' => floor($customer->point),
                 'levelMembership' => $customer->levelMembership->name,
                 'expired' => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y')
             ];
@@ -230,7 +247,7 @@ class KasirController extends Controller
                     if($customer->level_memberships_id != $level->id){
                         $dataEmailLevelUp = [
                             'name' => $customer->name,
-                            'exp' => $customer->exp,
+                            'exp' => floor($customer->exp),
                             'reward' => $level->rewards()->get(),
                             'levelMembership' => $customer->levelMembership->name,
                             'levelMembershipNow' => $level->name,
@@ -238,16 +255,19 @@ class KasirController extends Controller
                         ];
 
                         if(($index+1) >= count($listLevelMembership)){
-                            $dataEmailLevelUp['nextMember'] = "TAMAT";
+                            $dataEmailLevelUp['nextMember'] = "-";
                         }else{
                             $dataEmailLevelUp['nextMember'] = $listLevelMembership[$index+1]->name;
                         }
                         Mail::to($customer->email)->send(new KenaikanLevelMember($dataEmailLevelUp));
 
                         $customer->level_memberships_id = $level->id;
+                        break;
                     }
                 }
             }
+
+
 
             $customer->save();
         } else {
@@ -272,6 +292,7 @@ class KasirController extends Controller
             'tanda_rounding' => $request->tanda_rounding,
             'patty_cash_id' => $request->patty_cash_id,
             'catatan' => $request->catatan_transaksi,
+            'potongan_point' => intval($request->potongan_point),
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ];
