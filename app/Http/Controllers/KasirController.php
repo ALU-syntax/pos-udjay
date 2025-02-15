@@ -12,6 +12,7 @@ use App\Models\Checkout;
 use App\Models\Community;
 use App\Models\Customer;
 use App\Models\Discount;
+use App\Models\HistoryExpMembershipLevel;
 use App\Models\ItemOpenBill;
 use App\Models\LevelMembership;
 use App\Models\OpenBill;
@@ -243,26 +244,44 @@ class KasirController extends Controller
             $listLevelMembership = LevelMembership::all();
 
             foreach($listLevelMembership as $index => $level){
-                if(intval($customer->exp) > $level->benchmark){
-                    if($customer->level_memberships_id != $level->id){
-                        $dataEmailLevelUp = [
-                            'name' => $customer->name,
-                            'exp' => floor($customer->exp),
-                            'reward' => $level->rewards()->get(),
-                            'levelMembership' => $customer->levelMembership->name,
-                            'levelMembershipNow' => $level->name,
-                            'expired' => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y'),
-                        ];
+                // Cek apakah level_memberships_id ada di history_exp_membership_levels
+                $exists = HistoryExpMembershipLevel::where('customer_id', $customer->id)
+                ->where('level_memberships_id', $level->id)
+                ->exists();
 
-                        if(($index+1) >= count($listLevelMembership)){
-                            $dataEmailLevelUp['nextMember'] = "-";
-                        }else{
-                            $dataEmailLevelUp['nextMember'] = $listLevelMembership[$index+1]->name;
+                // dd($exists, !$exists);
+                if(!$exists){
+                    if(intval($customer->exp) > $level->benchmark){
+                        if($customer->level_memberships_id != $level->id){
+                            $dataEmailLevelUp = [
+                                'name' => $customer->name,
+                                'exp' => floor($customer->exp),
+                                'reward' => $level->rewards()->get(),
+                                'levelMembership' => $customer->levelMembership->name,
+                                'levelMembershipNow' => $level->name,
+                                'expired' => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y'),
+                            ];
+
+                            if(($index+1) >= count($listLevelMembership)){
+                                $dataEmailLevelUp['nextMember'] = "-";
+                            }else{
+                                $dataEmailLevelUp['nextMember'] = $listLevelMembership[$index+1]->name;
+                            }
+                            Mail::to($customer->email)->send(new KenaikanLevelMember($dataEmailLevelUp));
+
+                            $customer->level_memberships_id = $level->id;
+
+
+                            $historyMembership = new HistoryExpMembershipLevel([
+                                'customer_id' => $customer->id,
+                                'level_memberships_id' => $level->id,
+                                'exp' => floor($customer->exp),
+                            ]);
+
+                            $historyMembership->save();
+
+                            break;
                         }
-                        Mail::to($customer->email)->send(new KenaikanLevelMember($dataEmailLevelUp));
-
-                        $customer->level_memberships_id = $level->id;
-                        break;
                     }
                 }
             }

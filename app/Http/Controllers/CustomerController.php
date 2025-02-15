@@ -12,6 +12,7 @@ use App\Models\Community;
 use App\Models\Customer;
 use App\Models\CustomerPoinExp;
 use App\Models\CustomerReferral;
+use App\Models\HistoryExpMembershipLevel;
 use App\Models\LevelMembership;
 use App\Models\RewardConfirmation;
 use App\Models\Transaction;
@@ -81,6 +82,14 @@ class CustomerController extends Controller
         ];
 
         Mail::to($request['email'])->send(new CustomerRegistered($data));
+
+        $historyMembership = new HistoryExpMembershipLevel([
+            'customer_id' => $customer->id,
+            'level_memberships_id' => $lowestBenchmarkRecords->id,
+            'exp' => $lowestBenchmarkRecords->benchmark,
+        ]);
+
+        $historyMembership->save();
 
 
         return responseSuccess(false);
