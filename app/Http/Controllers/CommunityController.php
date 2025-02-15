@@ -8,6 +8,7 @@ use App\DataTables\DetailCommunityDataTable;
 use App\Http\Requests\CommunityStore;
 use App\Models\Community;
 use App\Models\CommunityExpExchange;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 
 class CommunityController extends Controller
@@ -19,21 +20,28 @@ class CommunityController extends Controller
     public function create(){
         return view('layouts.community.community-modal', [
             'data' => new Community(),
-            'action' => route('membership/community/store')
+            'action' => route('membership/community/store'),
+            'customers' => Customer::all(),
         ]);
     }
 
     public function store(CommunityStore $request){
-        $category = new Community($request->validated());
-        $category->save();
+        $community = new Community($request->validated());
+        $community->save();
 
-        return responseSuccess(false);   
+        $teamLeader = Customer::find($request->customer_id);
+        $teamLeader->community_id = $community->id;
+
+        $teamLeader->save();
+
+        return responseSuccess(false);
     }
 
     public function edit(Community $community){
         return view('layouts.community.community-modal', [
             'data' => $community,
-            'action' => route('membership/community/update', $community->id)
+            'action' => route('membership/community/update', $community->id),
+            'customers' => Customer::all(),
         ]);
     }
 
@@ -46,6 +54,13 @@ class CommunityController extends Controller
     public function update(Community $community, CommunityStore $request){
         $community->fill($request->validated());
         $community->save();
+
+        if($community->customer_id != $request->customer_id){
+            $newTeamLeader = Customer::find($request->customer_id);
+            $newTeamLeader->community_id = $community->id;
+
+            $newTeamLeader->save();
+        }
 
         return responseSuccess(true);
     }
@@ -65,7 +80,7 @@ class CommunityController extends Controller
         }
 
         $resultTransactionNominal = $transactionNominal == 0 ? "Rp. 0" : formatRupiah(strval($transactionNominal), "Rp. ");
-        
+
         // Mengembalikan view dengan data komunitas dan DataTable
         return $datatable->with('communityId', $id)->render('layouts.community.detail', [
             'data' => $community,
@@ -93,13 +108,13 @@ class CommunityController extends Controller
 
         $dataExchange = [
             'community_id' => $dataValidated['idCommunity'],
-            'user_id' => auth()->user()->id, 
-            'exp_use'=> $dataValidated['exp_used'], 
+            'user_id' => auth()->user()->id,
+            'exp_use'=> $dataValidated['exp_used'],
             'catatan' => $dataValidated['catatan'],
         ];
 
         $community = Community::find($dataValidated['idCommunity']);
-        
+
         $result = $community->exp - $dataValidated['exp_used'];
         $community->exp = $result;
 
@@ -110,6 +125,6 @@ class CommunityController extends Controller
 
     public function historyUseExp($id, CommunityExpExchangeDataTable $datatable){
         return $datatable->with('idCommunity', $id)->render('layouts.community.history-use-exp-modal');
-    }    
+    }
 
 }

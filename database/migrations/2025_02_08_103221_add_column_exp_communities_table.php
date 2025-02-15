@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::table('communities', function (Blueprint $table) {
             $table->unsignedBigInteger('exp')->default(0);
+            $table->string('email');
+            $table->string('domisili');
+            $table->unsignedBigInteger('customer_id');
+
+            $table->foreign('customer_id')->references('id')->on('customers')->onDelete('CASCADE');
         });
     }
 
