@@ -38,6 +38,9 @@ class CommunityDataTable extends DataTable
             ->addColumn('created_at', function ($row) {
                 return Carbon::parse($row->created_at)->diffForHumans();
             })
+            ->addColumn('total_anggota', function ($row) {
+                return count($row->customers);
+            })
             ->rawColumns(['name']);
             // ->addIndexColumn();
     }
@@ -47,7 +50,7 @@ class CommunityDataTable extends DataTable
      */
     public function query(Community $model): QueryBuilder
     {
-        return $model->newQuery();
+        return $model->with(['customers'])->newQuery();
     }
 
     /**
@@ -82,6 +85,7 @@ class CommunityDataTable extends DataTable
             Column::make('name'),
             Column::make('status'),
             Column::make('exp'),
+            Column::make('total_anggota'),
             Column::make('created_at'),
             Column::computed('action')
                 ->exportable(false)

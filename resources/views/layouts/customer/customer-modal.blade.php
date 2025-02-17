@@ -13,7 +13,7 @@
         <div class="form-group">
             <label>Umur<span class="text-danger">*</span></label>
             <input type="number" id="umur" name="umur" value="{{ $data->umur }}" type="number"
-                class="form-control" placeholder="Umur" required>
+                class="form-control" placeholder="Umur" required readonly>
         </div>
     </div>
     <div class="col-sm-12">
@@ -88,6 +88,23 @@
             if (!/^\d*$/.test(input.value)) {
                 input.value = input.value.replace(/[^0-9]/g, ''); // Hapus karakter non-angka
             }
+        });
+
+        function calculateAge() {
+            const birthDate = new Date($('#tanggal_lahir').val());
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDifference = today.getMonth() - birthDate.getMonth();
+
+            if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+
+            $('#umur').val(age);
+        }
+
+        $('#tanggal_lahir').on('change', function() {
+            calculateAge();
         });
 
         $(".select2InsideModal").select2({
