@@ -75,7 +75,7 @@
                         <div class="form-group">
                             <label for="community_id">Community</label>
                             <select name="community_id" id="community_id" class="select2InsideModal form-select w-100"
-                                style="width: 100% !important;">
+                                style="width: 100% !important; display:block !important;">
                                 <option disabled selected>Jika Umum tidak usah dipilih</option>
                                 @foreach ($communities as $community)
                                     <option value="{{ $community->id }}">
@@ -143,6 +143,7 @@
         dropdownParent: $("#itemModal"), // Pastikan parent diatur untuk modal
         // Callback setelah dropdown dibuka
         closeOnSelect: true,
+
     }).on("select2:open", function() {
         const selectElement = $(this);
         const dropdown = $(".select2-container--open");
