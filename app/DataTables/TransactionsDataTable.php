@@ -55,7 +55,12 @@ class TransactionsDataTable extends DataTable
                 return formatRupiah(intval($row->total), "Rp. ");
             })
             ->rawColumns(['items'])
-            ->setRowId('id');
+            ->setRowId('id')
+            ->setRowAttr([
+                'onclick' => function($row){
+                    return "handleClickRowTransaction()";
+                }
+            ]);
     }
 
     /**

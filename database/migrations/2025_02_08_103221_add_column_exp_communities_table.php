@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::table('communities', function (Blueprint $table) {
             $table->unsignedBigInteger('exp')->default(0);
-            $table->string('email');
             $table->string('domisili');
-            $table->unsignedBigInteger('customer_id');
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('outlet_id');
 
-            $table->foreign('customer_id')->references('id')->on('customers')->onDelete('CASCADE');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('CASCADE');
+            $table->foreign('outlet_id')->references('id')->on('outlets')->onDelete('CASCADE');
         });
     }
 

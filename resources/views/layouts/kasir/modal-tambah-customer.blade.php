@@ -5,6 +5,10 @@
         white-space: nowrap;
         /* Prevent content from wrapping to the next line */
     }
+
+    .select2-container {
+        display: block !important;
+    }
 </style>
 <div class="modal-dialog  modal-xl" id="pilihCustomer">
     <div class="modal-content">
@@ -139,29 +143,35 @@
         }
     });
 
+    const container = $(".select2-container");
+    container.css({
+        display: "block"
+    })
+
     $(".select2InsideModal").select2({
         dropdownParent: $("#itemModal"), // Pastikan parent diatur untuk modal
         // Callback setelah dropdown dibuka
         closeOnSelect: true,
+        display: "block"
 
     }).on("select2:open", function() {
         const selectElement = $(this);
         const dropdown = $(".select2-container--open");
-        const container = $(".select2-container--below");
+
 
         // Hitung posisi elemen input
         const offset = selectElement.offset();
         const height = selectElement.outerHeight();
 
-        container.css({
-            display: "block"
-        })
+
+        console.log(offset)
+        console.log(height)
         // Atur posisi dropdown ke posisi fixed
         dropdown.css({
             position: "fixed",
             top: offset.top + height - $(window).scrollTop(), // Hitung posisi relatif terhadap layar
             left: offset.left,
-            width: selectElement.outerWidth() - 50,
+            width: selectElement.outerWidth() - 785,
             zIndex: 9999, // Pastikan lebih tinggi dari modal
         });
     }).on("select2:close", function() {
@@ -176,7 +186,6 @@
             left: "",
         });
 
-        console.log(dropdown);
 
     });
 

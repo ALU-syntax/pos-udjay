@@ -9,6 +9,7 @@ use App\Http\Requests\CommunityStore;
 use App\Models\Community;
 use App\Models\CommunityExpExchange;
 use App\Models\Customer;
+use App\Models\Outlets;
 use Illuminate\Http\Request;
 
 class CommunityController extends Controller
@@ -22,17 +23,14 @@ class CommunityController extends Controller
             'data' => new Community(),
             'action' => route('membership/community/store'),
             'customers' => Customer::all(),
+            "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
         ]);
     }
 
     public function store(CommunityStore $request){
         $community = new Community($request->validated());
+        $community->user_id = auth()->user()->id; 
         $community->save();
-
-        $teamLeader = Customer::find($request->customer_id);
-        $teamLeader->community_id = $community->id;
-
-        $teamLeader->save();
 
         return responseSuccess(false);
     }

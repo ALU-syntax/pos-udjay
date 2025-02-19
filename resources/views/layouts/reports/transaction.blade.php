@@ -1,5 +1,16 @@
 @extends('layouts.app')
 @section('content')
+    <style>
+        .animated {
+            transition: width 0.5s ease, flex 0.5s ease;
+        }
+
+        #container-order-details {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+    </style>
     <div class="main-content">
         <div class="card text-center">
             <h5 class="card-header">Transaction</h5>
@@ -130,8 +141,106 @@
                 </div>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    {!! $dataTable->table() !!}
+
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12 animated" id="tableContainer">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="table-responsive">
+                                {!! $dataTable->table() !!}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6" id="container-order-details">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="container">
+                            <h5>Order Details</h5>
+                            <hr>
+                            <div class="row mb-2 d-flex">
+                                <div class="col-6">Status</div>
+                                <div class="col-6 text-right d-flex"><span class="badge badge-success">Complete</span></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Order Id</div>
+                                <div class="col-6 text-right d-flex"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Receipt Number</div>
+                                <div class="col-6 text-right d-flex"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Complete Time</div>
+                                <div class="col-6 text-right d-flex"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Table</div>
+                                <div class="col-6 text-right d-flex"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Served by</div>
+                                <div class="col-6 text-right d-flex"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Pax</div>
+                                <div class="col-6 text-right d-flex"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Duration</div>
+                                <div class="col-6 text-right d-flex"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Collected By</div>
+                                <div class="col-6 text-right d-flex"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Total Amount</div>
+                                <div class="col-6 text-right d-flex"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Payment Method</div>
+                                <div class="col-6 text-right d-flex"></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <h4>ORDERED ITEMS</h4>
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-12">
+                                    <table class="table">
+                                        <thead class="thead-dark">
+                                            <tr>
+                                                <th>Item</th>
+                                                <th>Quantity</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td></td>
+                                                <td></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row d-flex">
+                            <div class="col-2">
+                                <button class="btn btn-primary">Close</button>
+                            </div>
+                            <div class="col-4 d-flex text-right alignt-content-end justify-content-end ">
+                                <button class="btn btn-primary text-right">Show Receipt</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -175,6 +284,73 @@
                     }
                 });
             }
+
+            $('#transactions-table tbody tr').on('click', function() {
+                var tableContainer = $('#tableContainer');
+                console.log(tableContainer.hasClass('col-12'))
+                if (tableContainer.hasClass('col-12')) {
+                    tableContainer.removeClass('col-12').addClass('col-6');
+                } else {
+                    tableContainer.removeClass('col-6').addClass('col-12');
+                }
+            });
+
+            // function handleClickRowTransaction() {
+            //     const tableContainer = $('#tableContainer');
+            //     const detailCard = $('#container-order-details');
+
+            //     console.log(tableContainer.hasClass('col-12'))
+            //     if (tableContainer.hasClass('col-12')) {
+            //         tableContainer.removeClass('col-12').addClass('col-6');
+            //         tableContainer.animate({
+            //             width: '50%'
+            //         }, 500, function() {
+            //             detailCard.css('display', 'block').animate({
+            //                 opacity: 1
+            //             }, 1000);
+            //         });
+            //     } else {
+            //         tableContainer.removeClass('col-6').addClass('col-12');
+            //         tableContainer.animate({
+            //             width: '100%'
+            //         }, 500, function() {
+            //             detailCard.css('display', 'none').animate({
+            //                 opacity: 0
+            //             }, 10);
+            //         });
+            //     }
+            // }
+
+            function handleClickRowTransaction() {
+                const tableContainer = $('#tableContainer');
+                const detailCard = $('#container-order-details');
+
+                if (tableContainer.hasClass('col-12')) {
+                    tableContainer.removeClass('col-12').addClass('col-6');
+                    tableContainer.animate({
+                        width: '50%'
+                    }, 500, function() {
+                        // Setelah animasi selesai, tampilkan detail card
+                        detailCard.css('display', 'block').animate({
+                            opacity: 1
+                        }, 500);
+                    });
+                    
+                } else {
+                    // Jika ingin mengembalikan ke ukuran asal
+                    detailCard.hide(1000, function(a){
+                        const cardDetail = $(this);
+                        cardDetail.css('display', 'none').animate({opacity: 0});
+
+                        tableContainer.removeClass('col-6').addClass('col-12');
+                        tableContainer.animate({
+                            width: '100%'
+                        }, 500);
+                    });
+                }
+            }
+
+
             $(document).ready(function() {
                 $("#total-collected").text(formatRupiah(totalTransaksi.toString(), "Rp. "));
                 $("#net-sales").text(formatRupiah(totalTransaksi.toString(), "Rp. "));

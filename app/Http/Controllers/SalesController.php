@@ -622,7 +622,7 @@ class SalesController extends Controller
         
         $data = User::with(['transaction' => function($transaction) use($startDate, $endDate){
             $transaction->whereBetween('created_at', [$startDate, $endDate]);
-        }])->get();
+        }])->where('name' , '!=', 'ardian')->get();
 
         $filteredData = $data->filter(function($user) use($outlet) {
             $outletIds = json_decode($user->outlet_id);

@@ -25,9 +25,8 @@ class CommunityStore extends FormRequest
         return [
             'name' => ['required', Rule::unique('communities')->ignore($this->community)],
             'status' => 'required',
-            'email' => 'required',
             'domisili' => 'required',
-            'customer_id' => 'required',
+            'outlet_id' => 'required',
         ];
     }
 }
