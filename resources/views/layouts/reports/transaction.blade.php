@@ -10,6 +10,14 @@
             opacity: 0;
             transition: opacity 0.5s ease;
         }
+
+        /* CSS untuk mengubah cursor menjadi select saat hover pada baris tabel */
+        #transactions-table tbody tr:hover {
+            cursor: pointer;
+            /* Mengubah cursor menjadi pointer */
+            background-color: #f0f0f0;
+            /* Opsional: menambahkan efek hover */
+        }
     </style>
     <div class="main-content">
         <div class="card text-center">
@@ -172,50 +180,50 @@
                                 <div class="col-6">Order Id</div>
                                 <div class="col-6 text-right d-flex"></div>
                             </div>
-                            <div class="row mb-2">
+                            {{-- <div class="row mb-2">
                                 <div class="col-6">Receipt Number</div>
                                 <div class="col-6 text-right d-flex"></div>
-                            </div>
-                            <div class="row mb-2">
+                            </div> --}}
+                            <div class="row mb-2 d-flex">
                                 <div class="col-6">Complete Time</div>
-                                <div class="col-6 text-right d-flex"></div>
+                                <div class="col-6 text-right d-flex" ><span id="complete-time"></span></div>
                             </div>
-                            <div class="row mb-2">
+                            <div class="row mb-2 d-flex">
                                 <div class="col-6">Table</div>
                                 <div class="col-6 text-right d-flex"></div>
                             </div>
-                            <div class="row mb-2">
+                            <div class="row mb-2 d-flex">
                                 <div class="col-6">Served by</div>
-                                <div class="col-6 text-right d-flex"></div>
+                                <div class="col-6 text-right d-flex" id="served-by"></div>
                             </div>
-                            <div class="row mb-2">
+                            <div class="row mb-2 d-flex">
                                 <div class="col-6">Pax</div>
                                 <div class="col-6 text-right d-flex"></div>
                             </div>
-                            <div class="row mb-2">
+                            <div class="row mb-2 d-flex">
                                 <div class="col-6">Duration</div>
                                 <div class="col-6 text-right d-flex"></div>
                             </div>
-                            <div class="row mb-2">
+                            <div class="row mb-2 d-flex">
                                 <div class="col-6">Collected By</div>
-                                <div class="col-6 text-right d-flex"></div>
+                                <div class="col-6 text-right d-flex" id="collected-by"></div>
                             </div>
-                            <div class="row mb-2">
+                            <div class="row mb-2 d-flex">
                                 <div class="col-6">Total Amount</div>
-                                <div class="col-6 text-right d-flex"></div>
+                                <div class="col-6 text-right d-flex" id="total-amount"></div>
                             </div>
-                            <div class="row mb-2">
+                            <div class="row mb-2 d-flex">
                                 <div class="col-6">Payment Method</div>
-                                <div class="col-6 text-right d-flex"></div>
+                                <div class="col-6 text-right d-flex" id="payment-method"></div>
                             </div>
-                            <div class="row mb-2">
+                            <div class="row mb-2 d-flex">
                                 <div class="col-6">
                                     <h4>ORDERED ITEMS</h4>
                                 </div>
                             </div>
                             <div class="row mb-2">
                                 <div class="col-12">
-                                    <table class="table">
+                                    <table class="table" id="table-list-item">
                                         <thead class="thead-dark">
                                             <tr>
                                                 <th>Item</th>
@@ -295,52 +303,79 @@
                 }
             });
 
-            // function handleClickRowTransaction() {
-            //     const tableContainer = $('#tableContainer');
-            //     const detailCard = $('#container-order-details');
 
-            //     console.log(tableContainer.hasClass('col-12'))
-            //     if (tableContainer.hasClass('col-12')) {
-            //         tableContainer.removeClass('col-12').addClass('col-6');
-            //         tableContainer.animate({
-            //             width: '50%'
-            //         }, 500, function() {
-            //             detailCard.css('display', 'block').animate({
-            //                 opacity: 1
-            //             }, 1000);
-            //         });
-            //     } else {
-            //         tableContainer.removeClass('col-6').addClass('col-12');
-            //         tableContainer.animate({
-            //             width: '100%'
-            //         }, 500, function() {
-            //             detailCard.css('display', 'none').animate({
-            //                 opacity: 0
-            //             }, 10);
-            //         });
-            //     }
-            // }
-
-            function handleClickRowTransaction() {
+            function handleClickRowTransaction(idTransaction) {
                 const tableContainer = $('#tableContainer');
                 const detailCard = $('#container-order-details');
 
                 if (tableContainer.hasClass('col-12')) {
-                    tableContainer.removeClass('col-12').addClass('col-6');
-                    tableContainer.animate({
-                        width: '50%'
-                    }, 500, function() {
-                        // Setelah animasi selesai, tampilkan detail card
-                        detailCard.css('display', 'block').animate({
-                            opacity: 1
-                        }, 500);
+                    $.ajax({
+                        url: `{{ route('report/transaction/getTransactionDataDetail') }}`,
+                        method: 'GET',
+                        data: {
+                            idTransaction: idTransaction,
+                        },
+                        beforeSend: function() {
+                            showLoader();
+                        },
+                        complete: function() {
+                            showLoader(false);
+                        },
+                        success: function(res) {
+                            console.log(res);
+
+                            tableContainer.removeClass('col-12').addClass('col-6');
+                            tableContainer.animate({
+                                width: '50%'
+                            }, 500, function() {
+                                $('#complete-time').text(res.data.create_formated);
+                                $('#collected-by').text(res.data.user.name);
+                                $('#total-amount').text(formatRupiah(res.data.total.toString(), "Rp. "));
+                                $('#payment-method').text(res.data.nama_tipe_pembayaran)
+
+                                // Mengosongkan tabel sebelum mengisi data baru
+                                const tbody = $('table tbody');
+                                tbody.empty(); // Menghapus semua baris yang ada
+
+                                // Mengisi tabel dengan data item_transaction
+                                var tmpDiskonBefore,
+                                tmpModifierBefore,
+                                tmpCatatanBefore,
+                                tmpProductIdBefore,
+                                tmpVariantIdBefore,
+                                tmpPromoId,
+                                qtyProduct;
+
+                                res.data.item_transaction.forEach(item => {
+                                    let namaProduct = item.variant.name == item.product.name ? item.product.name : `${item.product.name} - ${item.variant.name}`
+
+                                    tbody.append(`
+                                            <tr>
+                                                <td>${namaProduct}</td>
+                                                <td>${item.total_count}</td>
+                                            </tr>
+                                        `);
+                                    });
+
+                                // Setelah animasi selesai, tampilkan detail card
+                                detailCard.css('display', 'block').animate({
+                                    opacity: 1
+                                }, 500);
+                            });
+
+                        },
+                        error: function(xhr) {
+                            console.error(xhr);
+                        }
                     });
-                    
+
                 } else {
                     // Jika ingin mengembalikan ke ukuran asal
-                    detailCard.hide(1000, function(a){
+                    detailCard.hide(1000, function(a) {
                         const cardDetail = $(this);
-                        cardDetail.css('display', 'none').animate({opacity: 0});
+                        cardDetail.css('display', 'none').animate({
+                            opacity: 0
+                        });
 
                         tableContainer.removeClass('col-6').addClass('col-12');
                         tableContainer.animate({

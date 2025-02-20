@@ -58,7 +58,7 @@ class TransactionsDataTable extends DataTable
             ->setRowId('id')
             ->setRowAttr([
                 'onclick' => function($row){
-                    return "handleClickRowTransaction()";
+                    return "handleClickRowTransaction({$row->id})";
                 }
             ]);
     }

@@ -7,6 +7,7 @@ use App\Models\Outlets;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TransactionsController extends Controller
 {
@@ -33,6 +34,35 @@ class TransactionsController extends Controller
         $transaction = Transaction::with(['outlet'])->where('outlet_id', $idOutlet)->whereBetween('created_at', [$startDate, $endDate])->get();
 
 
+        return response()->json([
+            'data' => $transaction
+        ]);
+    }
+
+    public function getTransactionDataDetail(Request $request){
+        $idTransaction = $request->input('idTransaction');
+        $transaction = Transaction::find($idTransaction);
+        $transaction->load(['user', 'itemTransaction' => function($itemTransaction){
+            $itemTransaction->select(
+                'variant_id',
+                DB::raw('COUNT(*) as total_count'),
+                'product_id',
+                'discount_id',
+                'modifier_id',
+                'promo_id',
+                'sales_type_id',
+                'transaction_id',
+                'catatan',
+                'deleted_at',
+                'created_at',
+                'updated_at',
+                'reward_item'
+            )
+            ->with(['variant', 'product'])
+            ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'deleted_at', 'created_at', 'updated_at', 'reward_item');
+        }]);
+
+        $transaction->create_formated = Carbon::parse($transaction->created_at)->format('d-M-Y H:i');
         return response()->json([
             'data' => $transaction
         ]);

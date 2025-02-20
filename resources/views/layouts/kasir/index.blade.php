@@ -843,7 +843,7 @@
                 <div class="modal-body">
                     <center>
                         <img src="https://i.gifer.com/7efs.gif" alt="Transaction Successfully" class="img-fluid">
-                        <h1>Transaksi Sukses!</h1>
+                        <h3>Transaksi Sukses!</h3>
                         <p>Kembalian :
                         <h2><strong id="change"></strong></h2>
                         </p>
