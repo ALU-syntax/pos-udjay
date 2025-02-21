@@ -66,6 +66,25 @@ class TransactionsController extends Controller
     }
 
     public function showReceipt(Request $request, Transaction $idTransaction){
+        $idTransaction->load(['outlet', 'user', 'itemTransaction' => function($itemTransaction){
+            $itemTransaction->select(
+                'variant_id',
+                DB::raw('COUNT(*) as total_count'),
+                'product_id',
+                'discount_id',
+                'modifier_id',
+                'promo_id',
+                'sales_type_id',
+                'transaction_id',
+                'catatan',
+                'reward_item'
+            )
+            ->with(['variant', 'product'])
+            ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'reward_item');
+        }]);
+        $idTransaction->tanggal_beli = Carbon::parse($idTransaction->created_at)->format('d M Y');
+        $idTransaction->waktu_beli = Carbon::parse($idTransaction->created_at)->format('H:i');
+
         return view('layouts.reports.struk',[
             'data' => $idTransaction
         ]);

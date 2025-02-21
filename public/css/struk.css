@@ -110,8 +110,8 @@ tfoot::before {
 
 tfoot tr:first-child td:first-child,
 tfoot tr:first-child td:last-child {
-    font-weight: bold;
-    font-size: 20px;
+    /* font-weight: bold; */
+    /* font-size: 20px; */
 }
 
 .date_time_con {
