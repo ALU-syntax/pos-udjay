@@ -342,8 +342,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [TransactionsController::class, 'index'])->name('transaction');
             Route::get('/getTransactionData', [TransactionsController::class, 'getTransactionData'])->name('transaction/getTransactionData');
             Route::get('/getTransactionDataDetail', [TransactionsController::class, 'getTransactionDataDetail'])->name('transaction/getTransactionDataDetail');
-            // Route::get('/create', [PengeluaranController::class, 'create'])->name('pengeluaran/create');
-            // Route::get('/edit/{pengeluaran}', [PengeluaranController::class, 'edit'])->name('pengeluaran/edit');
+            Route::get('/showReceipt/{idTransaction}', [TransactionsController::class, 'showReceipt'])->name('transaction/showReceipt');
             // Route::post('/store', [PengeluaranController::class, 'store'])->name('pengeluaran/store');
             // Route::put('/update/{pengeluaran}', [PengeluaranController::class, 'update'])->name('pengeluaran/update');
             // Route::delete('/destroy/{pengeluaran}', [PengeluaranController::class, 'destroy'])->name('pengeluaran/destroy');

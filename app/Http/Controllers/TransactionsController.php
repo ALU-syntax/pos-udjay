@@ -64,4 +64,10 @@ class TransactionsController extends Controller
             'data' => $transaction
         ]);
     }
+
+    public function showReceipt(Request $request, Transaction $idTransaction){
+        return view('layouts.reports.struk',[
+            'data' => $idTransaction
+        ]);
+    }
 }

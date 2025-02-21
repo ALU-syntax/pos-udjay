@@ -245,7 +245,7 @@
                                 <button class="btn btn-primary" id="btn-close-detail">Close</button>
                             </div>
                             <div class="col-4 ms-auto">
-                                <button class="btn btn-outline-primary ">Show Receipt</button>
+                                <a href="{{ route('report/transaction/showReceipt', 1) }}" class="btn btn-outline-primary" id="btn-show-receipt">Show Receipt</a>
                             </div>
                         </div>
                     </div>

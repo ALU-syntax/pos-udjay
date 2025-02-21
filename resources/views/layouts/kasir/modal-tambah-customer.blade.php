@@ -115,7 +115,7 @@
 
 
 <script>
-    $('#btn-batal-tambah-customer').on('click', function() {
+    $('#btn-batal-tambah-customer').off().on('click', function() {
         const modal = $('#itemModal');
         modal.modal('hide');
     });
@@ -143,8 +143,8 @@
         }
     });
 
-    const container = $(".select2-container");
-    container.css({
+    var containerSelectCustomer = $(".select2-container");
+    containerSelectCustomer.css({
         display: "block"
     })
 

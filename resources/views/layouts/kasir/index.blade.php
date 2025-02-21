@@ -2107,6 +2107,7 @@
                                 // hideLoading(false)
                             },
                             success: (res) => {
+                                console.log(res)
                                 if (primaryModal) {
                                     const modal = $('#itemModal');
                                     modal.html(res);
