@@ -13,7 +13,7 @@ class TransactionsController extends Controller
 {
     public function index(TransactionsDataTable $datatable){
         $userOutlet = json_decode(auth()->user()->outlet_id);
-        $transaction = Transaction::with(['outlet'])->where('outlet_id', $userOutlet[0])->whereDate('created_at', Carbon::today()) // Menggunakan Carbon untuk mendapatkan tanggal hari ini  
+        $transaction = Transaction::with(['outlet'])->where('outlet_id', $userOutlet[0])->whereDate('created_at', Carbon::today()) // Menggunakan Carbon untuk mendapatkan tanggal hari ini
         ->get();
 
         return $datatable->render('layouts.reports.transaction', [
@@ -53,9 +53,6 @@ class TransactionsController extends Controller
                 'sales_type_id',
                 'transaction_id',
                 'catatan',
-                'deleted_at',
-                'created_at',
-                'updated_at',
                 'reward_item'
             )
             ->with(['variant', 'product'])

@@ -186,7 +186,7 @@
                             </div> --}}
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">Complete Time</div>
-                                <div class="col-6 text-right d-flex" ><span id="complete-time"></span></div>
+                                <div class="col-6 d-flex justify-content-end"><span id="complete-time"></span></div>
                             </div>
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">Table</div>
@@ -206,15 +206,15 @@
                             </div>
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">Collected By</div>
-                                <div class="col-6 text-right d-flex" id="collected-by"></div>
+                                <div class="col-6 d-flex justify-content-end" id="collected-by"></div>
                             </div>
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">Total Amount</div>
-                                <div class="col-6 text-right d-flex" id="total-amount"></div>
+                                <div class="col-6 d-flex justify-content-end" id="total-amount"></div>
                             </div>
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">Payment Method</div>
-                                <div class="col-6 text-right d-flex" id="payment-method"></div>
+                                <div class="col-6 d-flex justify-content-end" id="payment-method"></div>
                             </div>
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">
@@ -242,10 +242,10 @@
                         </div>
                         <div class="row d-flex">
                             <div class="col-2">
-                                <button class="btn btn-primary">Close</button>
+                                <button class="btn btn-primary" id="btn-close-detail">Close</button>
                             </div>
-                            <div class="col-4 d-flex text-right alignt-content-end justify-content-end ">
-                                <button class="btn btn-primary text-right">Show Receipt</button>
+                            <div class="col-4 ms-auto">
+                                <button class="btn btn-outline-primary ">Show Receipt</button>
                             </div>
                         </div>
                     </div>
@@ -263,7 +263,10 @@
             dataTransaksi.forEach(function(item) {
                 totalTransaksi += item.total;
             });
-
+            var stateLastId = 0;
+            const tableContainer = $('#tableContainer');
+            const detailCard = $('#container-order-details');
+            const transactionTable = $('#transactions-table');
 
             function getNewData() {
                 let outletTerpilih = $('#filter-outlet').val();
@@ -303,90 +306,105 @@
                 }
             });
 
+            function fetchDetailTransaction(idTransaction) {
+                $.ajax({
+                    url: `{{ route('report/transaction/getTransactionDataDetail') }}`,
+                    method: 'GET',
+                    data: {
+                        idTransaction: idTransaction,
+                    },
+                    beforeSend: function() {
+                        showLoader();
+                    },
+                    complete: function() {
+                        showLoader(false);
+                    },
+                    success: function(res) {
+                        console.log(res);
 
-            function handleClickRowTransaction(idTransaction) {
-                const tableContainer = $('#tableContainer');
-                const detailCard = $('#container-order-details');
+                        $('#complete-time').text(res.data.create_formated);
+                        $('#collected-by').text(res.data.user.name);
+                        $('#total-amount').text(formatRupiah(res.data.total.toString(), "Rp. "));
+                        $('#payment-method').text(res.data.nama_tipe_pembayaran)
 
-                if (tableContainer.hasClass('col-12')) {
-                    $.ajax({
-                        url: `{{ route('report/transaction/getTransactionDataDetail') }}`,
-                        method: 'GET',
-                        data: {
-                            idTransaction: idTransaction,
-                        },
-                        beforeSend: function() {
-                            showLoader();
-                        },
-                        complete: function() {
-                            showLoader(false);
-                        },
-                        success: function(res) {
-                            console.log(res);
+                        // Mengosongkan tabel sebelum mengisi data baru
+                        const tbody = $('#table-list-item tbody');
+                        tbody.empty(); // Menghapus semua baris yang ada
 
-                            tableContainer.removeClass('col-12').addClass('col-6');
-                            tableContainer.animate({
-                                width: '50%'
-                            }, 500, function() {
-                                $('#complete-time').text(res.data.create_formated);
-                                $('#collected-by').text(res.data.user.name);
-                                $('#total-amount').text(formatRupiah(res.data.total.toString(), "Rp. "));
-                                $('#payment-method').text(res.data.nama_tipe_pembayaran)
+                        // Mengisi tabel dengan data item_transaction
+                        res.data.item_transaction.forEach(item => {
+                            let namaProduct = item.variant.name == item.product.name ? item
+                                .product.name :
+                                `${item.product.name} - ${item.variant.name}`
 
-                                // Mengosongkan tabel sebelum mengisi data baru
-                                const tbody = $('table tbody');
-                                tbody.empty(); // Menghapus semua baris yang ada
-
-                                // Mengisi tabel dengan data item_transaction
-                                var tmpDiskonBefore,
-                                tmpModifierBefore,
-                                tmpCatatanBefore,
-                                tmpProductIdBefore,
-                                tmpVariantIdBefore,
-                                tmpPromoId,
-                                qtyProduct;
-
-                                res.data.item_transaction.forEach(item => {
-                                    let namaProduct = item.variant.name == item.product.name ? item.product.name : `${item.product.name} - ${item.variant.name}`
-
-                                    tbody.append(`
+                            tbody.append(`
                                             <tr>
                                                 <td>${namaProduct}</td>
                                                 <td>${item.total_count}</td>
                                             </tr>
                                         `);
-                                    });
-
-                                // Setelah animasi selesai, tampilkan detail card
-                                detailCard.css('display', 'block').animate({
-                                    opacity: 1
-                                }, 500);
-                            });
-
-                        },
-                        error: function(xhr) {
-                            console.error(xhr);
-                        }
-                    });
-
-                } else {
-                    // Jika ingin mengembalikan ke ukuran asal
-                    detailCard.hide(1000, function(a) {
-                        const cardDetail = $(this);
-                        cardDetail.css('display', 'none').animate({
-                            opacity: 0
                         });
 
-                        tableContainer.removeClass('col-6').addClass('col-12');
-                        tableContainer.animate({
-                            width: '100%'
+                    },
+                    error: function(xhr) {
+                        console.error(xhr);
+                    }
+                });
+            }
+
+            function removeDetailCard(detailCard, tableContainer, transactionTable) {
+                detailCard.hide(1000, function(a) {
+                    const cardDetail = $(this);
+                    cardDetail.css('display', 'none').animate({
+                        opacity: 0
+                    });
+                    transactionTable.animate({
+                        width: '100%'
+                    });
+
+                    tableContainer.removeClass('col-6').addClass('col-12');
+                    tableContainer.animate({
+                        width: '100%'
+                    }, 500);
+                });
+            }
+
+            function handleClickRowTransaction(idTransaction) {
+                if (tableContainer.hasClass('col-12')) {
+                    tableContainer.removeClass('col-12').addClass('col-6');
+                    tableContainer.animate({
+                        width: '50%'
+                    }, 500, function() {
+                        transactionTable.animate({
+                            width: '50%'
+                        });
+
+                        // Setelah animasi selesai, tampilkan detail card
+                        detailCard.css('display', 'block').animate({
+                            opacity: 1
                         }, 500);
                     });
+
+                    fetchDetailTransaction(idTransaction);
+                } else {
+                    if (stateLastId != idTransaction) {
+                        fetchDetailTransaction(idTransaction)
+                    } else {
+                        // Jika ingin mengembalikan ke ukuran asal
+                        removeDetailCard(detailCard, tableContainer, transactionTable);
+                        stateLastId = 0;
+                        return
+                    }
                 }
+
+                stateLastId = idTransaction;
             }
 
 
             $(document).ready(function() {
+                $('#btn-close-detail').off().on('click', function() {
+                    removeDetailCard(detailCard, tableContainer, transactionTable);
+                });
                 $("#total-collected").text(formatRupiah(totalTransaksi.toString(), "Rp. "));
                 $("#net-sales").text(formatRupiah(totalTransaksi.toString(), "Rp. "));
 
@@ -430,7 +448,7 @@
                     startDate = start;
                     endDate = end;
 
-                    // Trigger refresh DataTable setelah memilih rentang tanggal  
+                    // Trigger refresh DataTable setelah memilih rentang tanggal
                     var table = $('#' + datatable).DataTable();
                     table.ajax.url("{{ route('report/transaction') }}?outlet=" + $('#filter-outlet').val() +
                             "&date=" + $('#date_range_transaction').val())
@@ -439,7 +457,7 @@
                     getNewData();
                 });
 
-                // Set initial value for the input field  
+                // Set initial value for the input field
                 $('#date_range_transaction').val(startDate.format('YYYY/MM/DD') + ' - ' + endDate.format('YYYY/MM/DD'));
 
                 // Fungsi untuk mengubah tanggal
@@ -492,9 +510,9 @@
                     picker.setEndDate(moment().startOf('day')); // Set end date ke hari ini atau tanggal lain
                 });
 
-                // Event untuk menangani pemilihan rentang yang telah ditentukan  
+                // Event untuk menangani pemilihan rentang yang telah ditentukan
                 $('#date_range_transaction').on('apply.daterangepicker', function(ev, picker) {
-                    // Memperbarui DataTable ketika rentang yang telah ditentukan dipilih  
+                    // Memperbarui DataTable ketika rentang yang telah ditentukan dipilih
                     var table = $('#' + datatable).DataTable();
 
                     console.log(picker.startDate.format('YYYY-MM-DD'));
