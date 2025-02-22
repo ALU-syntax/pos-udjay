@@ -1779,7 +1779,7 @@
                 tmpSubTotal.push(item.resultTotal);
 
                 item.modifier.forEach(function(itemModifier, indexModifier) {
-                    tmpSubTotal.push(itemModifier.harga);
+                    tmpSubTotal.push(itemModifier.harga * item.quantity);
                 });
 
                 item.diskon.forEach(function(itemDiskon) {

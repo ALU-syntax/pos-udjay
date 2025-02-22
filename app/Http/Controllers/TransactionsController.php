@@ -66,7 +66,9 @@ class TransactionsController extends Controller
     }
 
     public function showReceipt(Request $request, Transaction $idTransaction){
-        $idTransaction->load(['outlet', 'user', 'itemTransaction' => function($itemTransaction){
+        $idTransaction->total_pajak = json_decode($idTransaction->total_pajak);
+        $idTransaction->diskon_all_item = json_decode($idTransaction->diskon_all_item);
+        $idTransaction->load(['outlet', 'user', 'customer','itemTransaction' => function($itemTransaction){
             $itemTransaction->select(
                 'variant_id',
                 DB::raw('COUNT(*) as total_count'),
@@ -85,6 +87,44 @@ class TransactionsController extends Controller
         $idTransaction->tanggal_beli = Carbon::parse($idTransaction->created_at)->format('d M Y');
         $idTransaction->waktu_beli = Carbon::parse($idTransaction->created_at)->format('H:i');
 
+        $dataTransaction = $idTransaction;
+
+        $totalNominalPajak = 0;
+        $totalNominalDiskon = 0;
+        $totalNominalModifier = 0;
+        $subTotal = 0;
+
+        foreach($idTransaction->total_pajak as $pajak){
+            $totalNominalPajak += $pajak->total;
+        }
+
+        $idTransaction->total_nominal_pajak = $totalNominalPajak;
+
+        foreach($idTransaction->diskon_all_item as $diskonAllItem){
+            $totalNominalDiskon += $diskonAllItem->value;
+        }
+
+        // dd($idTransaction->itemTransaction()->with(['variant'])->get());
+
+        foreach($idTransaction->itemTransaction()->with(['variant'])->get() as $item){
+            $tmpDataDiskonItem = json_decode($item->discount_id);
+            $tmpDataModifierItem = json_decode($item->modifier_id);
+            $subTotal += $item->variant->harga;
+
+            foreach($tmpDataModifierItem as $modifier){
+                $totalNominalModifier += $modifier->harga;
+                $subTotal += $modifier->harga;
+            }
+
+            foreach($tmpDataDiskonItem as $diskonItem){
+                $totalNominalDiskon += $diskonItem->result;
+            }
+        }
+
+        $idTransaction->total_nominal_diskon = $totalNominalDiskon;
+        $idTransaction->sub_total = $subTotal;
+        $idTransaction->total_nominal_modifier = $totalNominalModifier;
+        // dd($idTransaction);
         return view('layouts.reports.struk',[
             'data' => $idTransaction
         ]);

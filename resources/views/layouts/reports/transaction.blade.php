@@ -245,7 +245,8 @@
                                 <button class="btn btn-primary" id="btn-close-detail">Close</button>
                             </div>
                             <div class="col-4 ms-auto">
-                                <a href="{{ route('report/transaction/showReceipt', 1) }}" class="btn btn-outline-primary" id="btn-show-receipt">Show Receipt</a>
+                                <a href="{{ route('report/transaction/showReceipt', 1) }}" class="btn btn-outline-primary"
+                                    id="btn-show-receipt">Show Receipt</a>
                             </div>
                         </div>
                     </div>
@@ -305,6 +306,32 @@
                     tableContainer.removeClass('col-6').addClass('col-12');
                 }
             });
+
+            function manipulateIdShowReceipt(id) {
+                var $link = $('#btn-show-receipt');
+
+                // Ambil nilai atribut href
+                var currentHref = $link.attr('href');
+
+                // Pecah URL menjadi bagian-bagian
+                // Misalnya, URL adalah /report/transaction/showReceipt/1
+                // Kita akan mengambil bagian terakhir yang merupakan angka 1
+                var urlParts = currentHref.split('/');
+                var lastIndex = urlParts.length - 1;
+                var currentNumber = parseInt(urlParts[lastIndex], 10);
+
+                // Ubah angka tersebut (misalnya tambahkan 1)
+                var newNumber = id;
+
+                // Ganti bagian terakhir dari URL dengan angka baru
+                urlParts[lastIndex] = newNumber.toString();
+
+                // Gabungkan kembali bagian-bagian URL menjadi URL baru
+                var newHref = urlParts.join('/');
+
+                // Ganti atribut href dengan URL baru
+                $link.attr('href', newHref);
+            }
 
             function fetchDetailTransaction(idTransaction) {
                 $.ajax({
@@ -370,6 +397,7 @@
             }
 
             function handleClickRowTransaction(idTransaction) {
+                manipulateIdShowReceipt(idTransaction);
                 if (tableContainer.hasClass('col-12')) {
                     tableContainer.removeClass('col-12').addClass('col-6');
                     tableContainer.animate({

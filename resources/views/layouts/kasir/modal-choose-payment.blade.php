@@ -308,7 +308,7 @@
                             let discount = {
                                 id: discountItem.id,
                                 nama: discountItem.nama,
-                                result: discountItem.result,
+                                result: parseInt(discountItem.result) / item.quantity,
                                 satuan: discountItem.satuan,
                                 value: discountItem.value
                             }
@@ -410,7 +410,7 @@
                             let discount = {
                                 id: discountItem.id,
                                 nama: discountItem.nama,
-                                result: discountItem.result,
+                                result: parseInt(discountItem.result) / item.quantity,
                                 satuan: discountItem.satuan,
                                 value: discountItem.value
                             }
@@ -510,7 +510,7 @@
                             let discount = {
                                 id: discountItem.id,
                                 nama: discountItem.nama,
-                                result: discountItem.result,
+                                result: parseInt(discountItem.result) / item.quantity,
                                 satuan: discountItem.satuan,
                                 value: discountItem.value
                             }

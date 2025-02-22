@@ -49,6 +49,11 @@
                                 <td></td>
                             </tr>
                             <tr>
+                                <td>Customer</td>
+                                <td></td>
+                                <td align="right">{{ isset($data->customer) ? $data->customer->name : ''}}</td>
+                            </tr>
+                            <tr>
                                 <td>Collected By</td>
                                 <td></td>
                                 <td align="right">{{ $data->user->name }}</td>
@@ -70,36 +75,64 @@
                         <tbody>
                             @foreach ($data->itemTransaction as $transaction)
                                 <tr>
-                                    <td style="font-weight: normal;">{{ $transaction->product->name == $transaction->variant->name? $transaction->product->name : $transaction->product->name . ' - ' . $transaction->variant->name }}</td>
-                                    <td>{{ $transaction->total_count }}</td>
-                                    <td>{{ formatRupiah(strval(($transaction->variant->harga * $transaction->total_count)), "Rp. ") }}</td>
+                                    <td style="font-weight: normal;">
+                                        {{ $transaction->product->name == $transaction->variant->name ? $transaction->product->name : $transaction->product->name . ' - ' . $transaction->variant->name }}
+                                    </td>
+                                    <td>x{{ $transaction->total_count }}</td>
+                                    <td>{{ formatRupiah(strval($transaction->variant->harga * $transaction->total_count), 'Rp. ') }}
+                                    </td>
                                 </tr>
+
+                                @if (count(json_decode($transaction->modifier_id)))
+                                    @foreach (json_decode($transaction->modifier_id) as $modifier)
+                                        <tr>
+                                            <td style="font-weight: small; color:rgb(179, 180, 181)">
+                                                {{ $modifier->nama }}
+                                            </td>
+                                            <td></td>
+                                            <td>{{ formatRupiah(strval($modifier->harga * $transaction->total_count), 'Rp. ') }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @endif
                             @endforeach
                         </tbody>
                         <tfoot>
                             <tr>
                                 <td>Subtotal</td>
                                 <td></td>
-                                <td>Rp.123123</td>
+                                <td>{{ formatRupiah(strval($data->sub_total), 'Rp. ') }}</td>
                             </tr>
 
+                            @if ($data->total_nominal_diskon > 0)
+                                <tr>
+                                    <td>Discount</td>
+                                    <td></td>
+                                    <td>- {{ formatRupiah(strval($data->total_nominal_diskon), 'Rp. ') }}</td>
+                                </tr>
+                            @endif
+
                             {{-- List Pajak --}}
-                            <tr>
-                                <td>Pembayaran</td>
-                                <td></td>
-                                <td>tipe pembayaran</td>
-                            </tr>
+                            @if ($data->total_nominal_pajak > 0)
+                                @foreach ($data->total_pajak as $pajak)
+                                    <tr>
+                                        <td>{{ $pajak->name }} ({{ $pajak->amount }}%)</td>
+                                        <td></td>
+                                        <td>{{ formatRupiah(strval($pajak->total), 'Rp. ') }}</td>
+                                    </tr>
+                                @endforeach
+                            @endif
 
                             <tr>
                                 <td style="padding-top: 10px; font-weight: bold;">Total</td>
                                 <td></td>
-                                <td>Rp.120893123</td>
+                                <td>{{ formatRupiah(strval($data->total), 'Rp. ') }}</td>
                             </tr>
 
                             <tr>
                                 <td style="padding-top: 10px;">Payment Type</td>
                                 <td></td>
-                                <td>Rp.120893123</td>
+                                <td>{{$data->nama_tipe_pembayaran}}</td>
                             </tr>
                         </tfoot>
                     </table>

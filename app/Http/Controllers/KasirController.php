@@ -304,8 +304,6 @@ class KasirController extends Controller
                 }
             }
 
-
-
             $customer->save();
         } else {
             $customer = '';

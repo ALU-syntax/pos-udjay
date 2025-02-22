@@ -42,4 +42,8 @@ class Transaction extends Model
         return collect([]);
     }
 
+    public function customer(){
+        return $this->belongsTo(Customer::class, 'customer_id', 'id');
+    }
+
 }
