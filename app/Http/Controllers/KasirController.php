@@ -692,4 +692,20 @@ class KasirController extends Controller
             'customer' => Customer::orderBy('name', 'asc')->get()
         ]);
     }
+
+    public function getListTransactionToday($id){
+        $today = Carbon::today(); // Mendapatkan tanggal hari ini
+        $transaction = Transaction::with(['itemTransaction' => function($itemTransaction){
+            $itemTransaction->with(['product', 'variant']);
+        }])->whereDate('created_at', $today)->where('outlet_id', $id)->orderBy('created_at', 'desc')->get();
+        $transaction->map(function($item){
+            $item->created_time = Carbon::parse($item->created_at)->format('H:m');
+            $item->created_tanggal = Carbon::parse($item->created_at)->format('d-m-Y');
+            return $item;
+        });
+
+        return response()->json([
+            'data' => $transaction
+        ]);
+    }
 }

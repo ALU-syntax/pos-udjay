@@ -285,6 +285,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/custom-diskon/{diskon}', [KasirController::class, 'customDiskon'])->name('kasir/customDiskon');
         Route::get('/view-open-bill', [KasirController::class, 'viewOpenBill'])->name('kasir/viewOpenBill');
         Route::get('/choose-bill/{bill}', [KasirController::class, 'chooseBill'])->name('kasir/chooseBill');
+        Route::get('/getListTransactionToday/{id}', [KasirController::class, 'getListTransactionToday'])->name('kasir/getListTransactionToday');
         Route::get('/bill-list', [KasirController::class, 'billList'])->name('kasir/billList');
         Route::get('/{product}', [KasirController::class, 'findProduct'])->name('kasir/findProduct');
         Route::post('/store-patty-cash', [KasirController::class, 'pattyCash'])->name('kasir/pattyCash');

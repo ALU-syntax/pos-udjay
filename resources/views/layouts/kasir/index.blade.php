@@ -210,6 +210,70 @@
                 /* Melompat ke atas */
             }
         }
+
+        .card-custom {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+
+        .card-custom:hover {
+            transform: translateY(-10px);
+        }
+
+        .card-custom-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .card-custom-content {
+            padding: 16px;
+        }
+
+        .card-custom-title {
+            font-size: 1.5em;
+            margin: 0 0 10px;
+        }
+
+        .card-custom-description {
+            font-size: 1em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .card-custom-button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+
+        .card-custom-button:hover {
+            background-color: #0056b3;
+        }
+
+        .card-active {
+            background-color: #e7f1ff; /* Contoh warna latar belakang aktif */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Efek bayangan lebih kuat */
+        }
+
+        .list-product-transaction{
+            width: 250px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     </style>
 </head>
 
@@ -246,6 +310,14 @@
                                                     <h5 class="text-white">Shift</h5>
                                                 </div>
                                             </div>
+
+                                            <div class="card list-setting bg-primary mt-2" id="activity"
+                                                data-target="activity-menu" data-name-section="activity">
+                                                <div class="card-body">
+                                                    <h5 class="text-white">Activity</h5>
+                                                </div>
+                                            </div>
+
                                             <div class="bg-danger card list-setting mt-2" data-target="logout">
                                                 <div class="card-body ">
                                                     <h5 class="text-white">Keluar</h5>
@@ -791,8 +863,119 @@
             </div>
         </div>
 
+        <div class="d-none" id="activity-menu">
+            <div class="row">
+                <div class="card d-flex">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <button class="btn btn-primary" id="btn-back-activity">&#8592;</button>
+                        <div class="flex-grow-1 d-flex justify-content-center">
+                            <h4 class="text-center">Aktivitas</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-4 m-0" style="border-right: 2px solid gray; height: 93vh; max-height: 93vh;">
+                    <div class="input-group my-1" id="input-search-aktivitas">
+                        <input type="time" id="search-aktivitas" class="form-control" placeholder="Cari"
+                            aria-label="Search">
+                        <button class="btn btn-outline-secondary" id="clear-search-activity"
+                            type="button">Clear</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            Hari Ini
+                        </div>
+
+                        <div class="card-body" id="list-transaction-container" style="max-height: 80vh; overflow-y: auto;">
+
+                        </div>
+                    </div>
+                </div>
+                <div class="col-8" style="max-height: 90vh; overflow-y: auto;">
+                    <div class="container px-5">
+                        <div class="row mt-3">
+                            <a href="javascript:void(0);" class="btn btn-primary btn-lg" target="_blank"
+                                id="btn-print-history-transaction"><i class="fas fa-receipt me-1"></i>Print Struk</a>
+                        </div>
+                        <div class="row mt-2">
+                            <h3>Detail</h3>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-6 mb-1">
+                                <i class="fa-solid fa-cash-register" style="font-size: 20px;"></i>
+                                <strong style="font-size: 20px">Metode Pembayaran</strong>
+                            </div>
+                            <div class="col-6 ms-auto d-flex justify-content-end" id="metode-pembayaran"></div>
+
+                            <div class="col-6 mb-1">
+                                <i class="fa-solid fa-file-invoice" style="font-size: 20px;"></i>
+                                <strong style="font-size: 20px">Nomor Struk</strong>
+                            </div>
+                            <div class="col-6"></div>
+
+                            <div class="col-6 mb-1">
+                                <i class="fa-regular fa-clock" style="font-size:20px;"></i>
+                                <strong style="font-size: 20px;">Waktu Pembelian</strong>
+                            </div>
+                            <div class="col-6 ms-auto d-flex justify-content-end" id="waktu-pembelian"></div>
+                        </div>
+
+                        <hr>
+
+                        <div class="row mt-2">
+                            <h4>Produk</h4>
+                            <br>
+                            <p class="d-flex justify-content-center">dine in</p>
+                        </div>
+                        <div class="container mb-2" id="container-product">
+                            <div class="row" id="row-product">
+
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="row mb-2" id="row-subtotal">
+                            <div class="col-6">SubTotal: </div>
+                            <div class="col-6 d-flex align-items-center justify-content-end" id="subtotal"></div>
+                        </div>
+
+                        <hr>
+
+                        <div class="row mb-2" id="row-diskon">
+                            <div class="col-6">Diskon: </div>
+                            <div class="col-6 d-flex align-items-center justify-content-end" id="diskon-transaction"></div>
+                        </div>
+
+                        <hr>
+
+                        <div class="row mb-2" id="row-pajak">
+
+                        </div>
+
+                        <hr>
+
+                        <div class="row mb-2" id="row-total">
+                            <div class="col-6">Total</div>
+                            <div class="col-6 d-flex align-items-center justify-content-end" id="total-transaction"></div>
+
+                            <div class="col-6">Pembayaran</div>
+                            <div class="col-6 d-flex align-items-center justify-content-end" id="pembayaran-transaction"></div>
+
+                            <div class="col-6">Kembalian</div>
+                            <div class="col-6 d-flex align-items-center justify-content-end" id="kembalian-transaction"></div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
         <!-- Bottom Navigation -->
-        <ul class="nav nav-pills nav-fill fixed-bottom bg-light">
+        <ul class="nav nav-pills nav-fill fixed-bottom bg-light" id="bottom-navbar">
             <li class="nav-item-small ">
                 <a class="nav-link bottom-nav-li pb-1" data-target="#setting" href="#">
                     <div class="contianer mt-2">
@@ -906,6 +1089,7 @@
         var amountRounding = 0;
         var listCategory = @json($categorys);
         var listProduct = [];
+        var listActivityTransaction = [];
         listCategory.forEach(function(category) {
             category.products.forEach(function(product) {
                 listProduct.push(product);
@@ -2138,11 +2322,166 @@
             };
         }
 
+        // Fungsi untuk mendapatkan teks item yang dipotong
+        function getTruncatedItemText(itemTransactions) {
+            return itemTransactions.map(itemTransaction => {
+                return itemTransaction.product.name === itemTransaction.variant.name
+                    ? itemTransaction.product.name
+                    : `${itemTransaction.product.name} - ${itemTransaction.variant.name}`;
+            }).join(', ');
+        }
 
+        // Fungsi untuk mendapatkan ikon berdasarkan tipe pembayaran
+        function getPaymentIcon(paymentType) {
+            return paymentType === "Cash"
+                ? '<i class="fa-solid fa-money-bill" style="font-size: 35px;"></i>'
+                : '<i class="fa-solid fa-money-check" style="font-size: 35px;"></i>';
+        }
+
+        // Fungsi untuk membuat HTML transaksi
+        function createTransactionHTML(transaction, truncateItemText, paymentIcon, index) {
+            if(index == 0){
+                return `
+                    <div class="card-custom list-transaction mt-2 card-active" data-id="${transaction.id}">
+                        <div class="card-custom-body">
+                            <div class="container">
+                                <div class="row d-flex">
+                                    <div class="col-2 d-flex justify-content-between align-items-center">
+                                        ${paymentIcon}
+                                    </div>
+                                    <div class="col-8">
+                                        <p>${formatRupiah(transaction.total.toString(), "Rp. ")}</p>
+                                        <p class="list-product-transaction">${truncateItemText}</p>
+                                    </div>
+                                    <div class="col-2" id="time-transaction">
+                                        ${transaction.created_time}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            }else{
+                return `
+                    <div class="card-custom list-transaction mt-2" data-id="${transaction.id}">
+                        <div class="card-custom-body">
+                            <div class="container">
+                                <div class="row d-flex">
+                                    <div class="col-2 d-flex justify-content-between align-items-center">
+                                        ${paymentIcon}
+                                    </div>
+                                    <div class="col-8">
+                                        <p>${formatRupiah(transaction.total.toString(), "Rp. ")}</p>
+                                        <p class="list-product-transaction">${truncateItemText}</p>
+                                    </div>
+                                    <div class="col-2" id="time-transaction">
+                                        ${transaction.created_time}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        // Fungsi untuk melampirkan event click pada transaksi
+        function attachTransactionClickEvent() {
+            $('.list-transaction').off().on('click', function() {
+                $('.list-transaction').removeClass('card-active');
+                $(this).addClass('card-active');
+                let idTransactionChoose = $(this).data('id');
+
+                let dataTransaction = listActivityTransaction.find(item => item.id === idTransactionChoose);
+                if(dataTransaction) detailTransactionHandle(dataTransaction);
+            });
+        }
+
+        function detailTransactionHandle(data){
+            $('#metode-pembayaran').text(data.nama_tipe_pembayaran)
+            $('#waktu-pembelian').text(data.created_tanggal +' pada ' + data.created_time);
+
+            $('#btn-print-history-transaction').attr('href', 'intent://cetak-struk-history?id=' + data.id);
+            var subTotalTransaction = 0;
+
+            $('#row-product').empty();
+            data.item_transaction.forEach(function(item, index){
+                var nameProductTransaction = item.product.name == item.variant.name ? item.product.name : item.product.name + ' - ' + item.variant.name;
+                var modifierTransactionJson = JSON.parse(item.modifier_id);
+
+                var htmlListProductTransaction = `
+                            <div class="col-2 icon-box" data-text="${item.product.name}"></div>
+                            <div class="col-5 pt-2">
+                                <span>${nameProductTransaction}</span>
+                                <br>
+                                ${modifierTransactionJson.map(function(modifier) {
+                                    return `<span style="color:gray;">${modifier.nama}</span><br> `;}).join('')}
+                            </div>
+                            <div class="col-5 text-end">
+                                <span>${formatRupiah(item.variant.harga.toString(), "Rp. ")}</span>
+                                <br>
+                                ${modifierTransactionJson.map(function(modifier) {
+                                    return `<span style="color:gray;">${formatRupiah(modifier.harga.toString(), "Rp. ")}</span><br> `;}).join('')}
+                            </div>
+                `;
+                $('#row-product').append(htmlListProductTransaction);
+
+                subTotalTransaction += item.variant.harga;
+
+                syncIconBoxes();
+            });
+
+            var resultJsonPajak = JSON.parse(data.total_pajak);
+            $('#row-pajak').empty();
+            resultJsonPajak.forEach(function(itemPajak){
+                var htmlPajakTranasaction = `
+                    <div class="col-6">${itemPajak.name} (${itemPajak.amount}%)</div>
+                    <div class="col-6 d-flex align-items-center justify-content-end">${formatRupiah(itemPajak.total.toString(), "Rp. ")}</div>
+                `
+
+                $('#row-pajak').append(htmlPajakTranasaction);
+            });
+
+            subTotalTransaction += data.total_modifier;
+
+            $('#subtotal').text(formatRupiah(subTotalTransaction.toString(), "Rp. "))
+            $('#diskon-transaction').text("-"+formatRupiah(data.total_diskon.toString(), "Rp. "));
+            $('#total-transaction').text(formatRupiah(data.total.toString(), "Rp. "))
+            $('#pembayaran-transaction').text(formatRupiah(data.nominal_bayar.toString(), "Rp. "))
+            $('#kembalian-transaction').text(formatRupiah(data.change.toString(), "Rp. "))
+        }
+
+        // Fungsi untuk memfilter transaksi berdasarkan waktu
+        function filterTransactions(filterTime) {
+            $('.list-transaction').each(function() {
+                var transactionTime = $(this).find('#time-transaction').text().trim(); // Mendapatkan nilai waktu dari elemen waktu
+
+                // Memeriksa apakah waktu transaksi cocok dengan waktu filter atau apakah filter kosong
+                if (transactionTime === filterTime || filterTime === '') {
+                    $(this).show(); // Menampilkan transaksi
+                } else {
+                    $(this).hide(); // Menyembunyikan transaksi
+                }
+            });
+        }
+
+        function syncIconBoxes(){
+            var iconBoxes = document.querySelectorAll('.icon-box');
+
+            iconBoxes.forEach((box) => {
+                const text = box.getAttribute('data-text');
+
+                if (text) {
+                    // Pisahkan kata dan ambil maksimal 2 kata pertama
+                    const words = text.split(' ');
+                    const initials = words.slice(0, 2).map(word => word[0]).join('');
+                    box.textContent = initials; // Isi kotak dengan inisial
+                }
+            });
+        }
 
         $(document).ready(function() {
-            showLoader(false)
-            generateListDiskon()
+            showLoader(false);
+            generateListDiskon();
+            attachTransactionClickEvent();
 
             if (dataPattyCash.length > 0) {
                 let soldItem = 0;
@@ -2235,11 +2574,11 @@
                                         total += transactionPaymentItem.total;
                                         totalPerCategory += transactionPaymentItem.total;
                                     })
-                                    return `<div class = "row" >
-                                                <div class = "col-6" >
+                                    return `<div class="row" >
+                                                <div class="col-6" >
                                                     ${itemPayment.name}
                                                 </div>
-                                                <div class = "col-6" >
+                                                <div class="col-6" >
                                                     ${formatRupiah(total.toString(), "Rp. ")}
                                                 </div>
                                             </div>
@@ -2388,18 +2727,7 @@
                 $('#text-judul').text("Library")
             });
 
-            const iconBoxes = document.querySelectorAll('.icon-box');
-
-            iconBoxes.forEach((box) => {
-                const text = box.getAttribute('data-text');
-
-                if (text) {
-                    // Pisahkan kata dan ambil maksimal 2 kata pertama
-                    const words = text.split(' ');
-                    const initials = words.slice(0, 2).map(word => word[0]).join('');
-                    box.textContent = initials; // Isi kotak dengan inisial
-                }
-            });
+            syncIconBoxes();
 
             // Handle delete button
             $('.btn-danger').on('click', function() {
@@ -2497,7 +2825,50 @@
                             }
                         })
                         .catch(error => console.error('Error:', error));
-                } else {
+                } else if(targetView == "activity-menu"){
+                    $('#activity-menu').removeClass('d-none');
+                    $('#content-area').addClass('d-none');
+                    $('#bottom-navbar').addClass('d-none');
+
+                    const baseUrlListTransaction = `{{ route('kasir/getListTransactionToday', ':id') }}`; // Placeholder ':id'
+                    const urlListTransaction = baseUrlListTransaction.replace(':id', dataPattyCash[0].outlet_data.id); // Ganti ':id' dengan nilai dataId
+
+                    console.log(dataPattyCash[0].outlet_data.id)
+                    $.ajax({
+                        url: urlListTransaction,
+                        method: "GET",
+                        beforeSend: function() {
+                            showLoader();
+                            // showLoading()
+                        },
+                        complete: function() {
+                            showLoader(false);
+                            // hideLoading(false)
+                        },
+                        success: (res) => {
+                            $('#list-transaction-container').empty();
+                            listActivityTransaction = res.data;
+                            console.log(res.data);
+                            if(res.data){
+                                detailTransactionHandle(res.data[0]);
+                            }
+
+                            res.data.forEach(function(transaction, index){
+                                const truncateItemText = getTruncatedItemText(transaction.item_transaction);
+                                const paymentIcon = getPaymentIcon(transaction.nama_tipe_pembayaran);
+                                const htmlTransaction = createTransactionHTML(transaction, truncateItemText, paymentIcon, index);
+
+                                $('#list-transaction-container').append(htmlTransaction);
+                                attachTransactionClickEvent();
+                            });
+                        },
+                        error: function(err) {
+                            console.log(err);
+                            reject(err); // Rejecting the promise on error
+                        }
+                    });
+
+                } else if(targetView == "shift-menu") {
                     if (dataPattyCash.length < 1) {
                         handleAjax("{{ route('kasir/viewPattyCash') }}").excute();
                     } else {
@@ -2726,6 +3097,25 @@
                     $(this).addClass('d-none');
                 });
             });
+
+            $('#btn-back-activity').click(function(){
+                $('#activity-menu').addClass('d-none');
+                $('#content-area').removeClass('d-none');
+                $('#bottom-navbar').removeClass('d-none');
+            });
+
+            // Event listener untuk input waktu
+            $('#search-aktivitas').off().on('input', function() {
+                var filterTime = $(this).val(); // Mendapatkan nilai waktu dari input
+                filterTransactions(filterTime); // Memanggil fungsi filter dengan nilai waktu
+            });
+
+            // Event listener untuk tombol clear
+            $('#clear-search-activity').off().on('click', function() {
+                $('#search-aktivitas').val(''); // Mengosongkan nilai input
+                filterTransactions(''); // Memanggil fungsi filter dengan nilai kosong
+            });
+
         });
     </script>
 </body>
