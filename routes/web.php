@@ -6,6 +6,7 @@ use App\Http\Controllers\CategoryPaymentController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\HakAksesController;
 use App\Http\Controllers\KasirController;
@@ -51,9 +52,7 @@ Route::get('/login', [AuthController::class, 'login'])->name('login')->middlewar
 // Route::post('/login/store', [AuthController::class, 'store'])->name('store');
 // Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
-Route::get('/', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

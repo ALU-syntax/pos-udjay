@@ -331,10 +331,16 @@
                                             <div class="container">
                                                 <div class="row">
                                                     <div class="col-12">
-                                                        <button id="end-current-shift"
-                                                            class="btn btn-outline-primary w-100 btn-lg mb-4">End
-                                                            Current Shift</button>
-
+                                                        <div class="row">
+                                                            <div class="col-6">
+                                                                <button id="end-current-shift"
+                                                                class="btn btn-outline-primary w-100 btn-lg mb-4">Akhiri Shift</button>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <button id="end-current-shift"
+                                                                class="btn btn-outline-primary w-100 btn-lg mb-4">Cetak Laporan Shift</button>
+                                                            </div>
+                                                        </div>
                                                         <div class="container" id="container-shift">
                                                             <div class="row">
                                                                 <div class="col-12">
@@ -896,7 +902,7 @@
                 <div class="col-8" style="max-height: 90vh; overflow-y: auto;">
                     <div class="container px-5">
                         <div class="row mt-3">
-                            <a href="javascript:void(0);" class="btn btn-primary btn-lg" target="_blank"
+                            <a  class="btn btn-primary btn-lg disabled" target="_blank"
                                 id="btn-print-history-transaction"><i class="fas fa-receipt me-1"></i>Print Struk</a>
                         </div>
                         <div class="row mt-2">
@@ -2399,6 +2405,7 @@
             $('#metode-pembayaran').text(data.nama_tipe_pembayaran)
             $('#waktu-pembelian').text(data.created_tanggal +' pada ' + data.created_time);
 
+            $('#btn-print-history-transaction').removeClass('disabled');
             $('#btn-print-history-transaction').attr('href', 'intent://cetak-struk-history?id=' + data.id);
             var subTotalTransaction = 0;
 
@@ -2849,7 +2856,7 @@
                             $('#list-transaction-container').empty();
                             listActivityTransaction = res.data;
                             console.log(res.data);
-                            if(res.data){
+                            if(res.data.length){
                                 detailTransactionHandle(res.data[0]);
                             }
 
