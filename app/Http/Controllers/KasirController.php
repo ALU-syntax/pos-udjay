@@ -16,6 +16,8 @@ use App\Models\Discount;
 use App\Models\HistoryExpMembershipLevel;
 use App\Models\ItemOpenBill;
 use App\Models\LevelMembership;
+use App\Models\ModifierGroup;
+use App\Models\Modifiers;
 use App\Models\OpenBill;
 use App\Models\Outlets;
 use App\Models\PettyCash;
@@ -699,13 +701,107 @@ class KasirController extends Controller
             $itemTransaction->with(['product', 'variant']);
         }])->whereDate('created_at', $today)->where('outlet_id', $id)->orderBy('created_at', 'desc')->get();
         $transaction->map(function($item){
-            $item->created_time = Carbon::parse($item->created_at)->format('H:m');
+            $item->created_time = Carbon::parse($item->created_at)->format('H:i');
             $item->created_tanggal = Carbon::parse($item->created_at)->format('d-m-Y');
             return $item;
         });
 
         return response()->json([
             'data' => $transaction
+        ]);
+    }
+
+    public function printShiftDetail($petty_cash_id){
+        $pattyCash = PettyCash::find($petty_cash_id);
+
+        // Mengambil VariantProduct yang memiliki itemTransaction terkait dengan petty_cash_id dan transaction tidak null
+        $data = VariantProduct::with(['itemTransaction' => function($itemTransaction) use($petty_cash_id) {
+            $itemTransaction->whereHas('transaction', function($transaction) use($petty_cash_id) {
+                $transaction->where('patty_cash_id', $petty_cash_id);
+            });
+        }, 'product.category'])
+        ->whereHas('itemTransaction.transaction', function($transaction) use($petty_cash_id) {
+            $transaction->where('patty_cash_id', $petty_cash_id);
+        })
+        ->whereHas('itemTransaction', function($itemTransaction) {
+            $itemTransaction->whereHas('transaction');
+        })
+        ->whereHas('product') // Memastikan ada relasi product
+        ->get();
+
+        $customData = [];
+
+        $dataModifier = ModifierGroup::with(['modifier'])->where('outlet_id', $pattyCash->outlet_id)->get();
+
+        $testModifier = TransactionItem::with(['modifiers'])->get();
+        dd($testModifier);
+        $test = [];
+        $id = 0;
+        foreach($dataModifier as $modifierParent){
+            $tmpDataParent = [];
+            $quantitySoldParent = 0;
+            $grossSoldParent = 0;
+            $discountParent = 0;
+            $netSalesParent = 0;
+
+            $id++;
+            array_push($tmpDataParent, $id);
+            array_push($tmpDataParent, $modifierParent->name);
+
+            $tmpDataChild = [];
+            foreach($modifierParent->modifier as $modifier){
+                $tmpDataModifier = [];
+                $transactions = TransactionItem::whereJsonContains('modifier_id', ['id' => strval($modifier->id)])->whereHas('transaction', function($query) use($petty_cash_id){
+                    $query->where('patty_cash_id', $petty_cash_id);
+                })->get();
+
+                array_push($test, $transactions);
+                $quantitySoldModifier = count($transactions);
+                $grossSalesModifier = $modifier->harga * $quantitySoldModifier;
+                $totalDiskon = 0;
+
+                foreach($transactions as $transaction){
+                    $dataDiskonTransaction = json_decode($transaction->discount_id);
+                    foreach($dataDiskonTransaction as $diskon){
+                        $totalDiskon += $modifier->harga * $diskon->value / 100;
+                    }
+                }
+                $netSales = $grossSalesModifier - $totalDiskon;
+
+                $id++;
+                array_push($tmpDataModifier, $id);
+                array_push($tmpDataModifier, $modifier->name);
+                array_push($tmpDataModifier, $quantitySoldModifier);
+                array_push($tmpDataModifier, $grossSalesModifier);
+                array_push($tmpDataModifier, $totalDiskon);
+                array_push($tmpDataModifier, $netSales);
+                array_push($tmpDataModifier, false);
+
+                $quantitySoldParent += $quantitySoldModifier;
+                $grossSoldParent += $grossSalesModifier;
+                $discountParent += $totalDiskon;
+                $netSalesParent += $netSales;
+
+                array_push($tmpDataChild, $tmpDataModifier);
+            }
+
+            array_push($tmpDataParent, $quantitySoldParent);
+            array_push($tmpDataParent, $grossSoldParent);
+            array_push($tmpDataParent, $discountParent);
+            array_push($tmpDataParent, $netSalesParent);
+            array_push($tmpDataParent, true);
+
+            array_push($customData, $tmpDataParent);
+            array_push($customData, ...$tmpDataChild);
+        }
+
+        dd($test);
+
+
+        return response()->json([
+            'data' => $data,
+            'data_modifier' => $customData,
+            'patty_cash' => $pattyCash,
         ]);
     }
 }

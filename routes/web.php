@@ -353,6 +353,7 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/api-struk/{id}', [KasirController::class, 'apiStruk'])->name('kasir/apiStruk');
 Route::get('/api-open-bill/{bill_id}', [KasirController::class, 'printOpenBillOrder']);
+Route::get('/api-print-shift-detail/{petty_cash_id}', [KasirController::class, 'printShiftDetail']);
 Route::get('/get-akun/{outlet_id}', [OutletController::class, 'getAkun']);
 Route::post('/log-error-android', [LogController::class, 'logErrorAndroid'])->name('log/logErrorAndroid');
 
