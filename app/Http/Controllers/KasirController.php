@@ -712,6 +712,9 @@ class KasirController extends Controller
     }
 
     public function printShiftDetail($petty_cash_id){
+        $soldModifier = 0;
+        $soldProduct = 0;
+
         $pattyCash = PettyCash::find($petty_cash_id);
 
         // Mengambil VariantProduct yang memiliki itemTransaction terkait dengan petty_cash_id dan transaction tidak null
@@ -727,81 +730,55 @@ class KasirController extends Controller
             $itemTransaction->whereHas('transaction');
         })
         ->whereHas('product') // Memastikan ada relasi product
-        ->get();
+        ->get()->map(function($item) use($soldProduct){
+            $item->total_transaction = count($item->itemTransaction);
 
-        $customData = [];
+            $totalHarga = $item->harga * count($item->itemTransaction);
+            $item->total_transaction_amount = formatRupiah(strval($totalHarga), "Rp. ");
+            return $item;
+        });
 
-        $dataModifier = ModifierGroup::with(['modifier'])->where('outlet_id', $pattyCash->outlet_id)->get();
-
-        $testModifier = TransactionItem::with(['modifiers'])->get();
-        dd($testModifier);
-        $test = [];
-        $id = 0;
-        foreach($dataModifier as $modifierParent){
-            $tmpDataParent = [];
-            $quantitySoldParent = 0;
-            $grossSoldParent = 0;
-            $discountParent = 0;
-            $netSalesParent = 0;
-
-            $id++;
-            array_push($tmpDataParent, $id);
-            array_push($tmpDataParent, $modifierParent->name);
-
-            $tmpDataChild = [];
-            foreach($modifierParent->modifier as $modifier){
-                $tmpDataModifier = [];
-                $transactions = TransactionItem::whereJsonContains('modifier_id', ['id' => strval($modifier->id)])->whereHas('transaction', function($query) use($petty_cash_id){
-                    $query->where('patty_cash_id', $petty_cash_id);
-                })->get();
-
-                array_push($test, $transactions);
-                $quantitySoldModifier = count($transactions);
-                $grossSalesModifier = $modifier->harga * $quantitySoldModifier;
-                $totalDiskon = 0;
-
-                foreach($transactions as $transaction){
-                    $dataDiskonTransaction = json_decode($transaction->discount_id);
-                    foreach($dataDiskonTransaction as $diskon){
-                        $totalDiskon += $modifier->harga * $diskon->value / 100;
-                    }
-                }
-                $netSales = $grossSalesModifier - $totalDiskon;
-
-                $id++;
-                array_push($tmpDataModifier, $id);
-                array_push($tmpDataModifier, $modifier->name);
-                array_push($tmpDataModifier, $quantitySoldModifier);
-                array_push($tmpDataModifier, $grossSalesModifier);
-                array_push($tmpDataModifier, $totalDiskon);
-                array_push($tmpDataModifier, $netSales);
-                array_push($tmpDataModifier, false);
-
-                $quantitySoldParent += $quantitySoldModifier;
-                $grossSoldParent += $grossSalesModifier;
-                $discountParent += $totalDiskon;
-                $netSalesParent += $netSales;
-
-                array_push($tmpDataChild, $tmpDataModifier);
-            }
-
-            array_push($tmpDataParent, $quantitySoldParent);
-            array_push($tmpDataParent, $grossSoldParent);
-            array_push($tmpDataParent, $discountParent);
-            array_push($tmpDataParent, $netSalesParent);
-            array_push($tmpDataParent, true);
-
-            array_push($customData, $tmpDataParent);
-            array_push($customData, ...$tmpDataChild);
+        foreach($data as $item){
+            $soldProduct += count($item->itemTransaction);
         }
 
-        dd($test);
+        $listModifierTransaction = [];
 
+        $dataModifier = Modifiers::whereHas('modifierGroup', function($modifierGroup) use($pattyCash){
+            $modifierGroup->where('outlet_id', $pattyCash->outlet_id);
+        })->get();
+
+        foreach($dataModifier as $modifier){
+            $transactions = TransactionItem::whereJsonContains('modifier_id', ['id' => strval($modifier->id)])->whereHas('transaction', function($query) use($petty_cash_id){
+                $query->where('patty_cash_id', $petty_cash_id);
+            })->get();
+            
+            if(count($transactions)){
+                $soldModifier += count($transactions);
+                $modifier->item_transactions = $transactions;
+                $modifier->total_transaction = count($transactions);
+                
+                $totalHarga = $modifier->harga * count($transactions);
+                $modifier->total_transaction_amount = formatRupiah(strval($totalHarga), "Rp. ");
+                array_push($listModifierTransaction, $modifier);
+            }
+        }
+
+        $listCategoryPayment = CategoryPayment::with(['transactions' => function ($transaction) use ($pattyCash) {
+            $transaction->with(['payments'])->where('patty_cash_id', $pattyCash->id);
+        }, 'payment' => function ($payment) use ($pattyCash) {
+            $payment->with(['transactions' => function ($transaction) use ($pattyCash) {
+                $transaction->where('patty_cash_id', $pattyCash->id);
+            }]);
+        }])->get();
 
         return response()->json([
-            'data' => $data,
-            'data_modifier' => $customData,
+            'data_product_transaction' => $data,
+            'data_modifier_transaction' => $listModifierTransaction,
             'patty_cash' => $pattyCash,
+            'sold_product' => $soldProduct,
+            'sold_modifier' => $soldModifier,
+            'data_payment' => $listCategoryPayment,
         ]);
     }
 }
