@@ -337,8 +337,7 @@
                                                                 class="btn btn-outline-primary w-100 btn-lg mb-4">Akhiri Shift</button>
                                                             </div>
                                                             <div class="col-6">
-                                                                <button id="end-current-shift"
-                                                                class="btn btn-outline-primary w-100 btn-lg mb-4">Cetak Laporan Shift</button>
+                                                                <a href="javascript:void(0);" class="btn btn-outline-primary w-100 btn-lg mb-4" target="_blank" id="btn-print-shift">Cetak Laporan Shift</a>
                                                             </div>
                                                         </div>
                                                         <div class="container" id="container-shift">
@@ -2406,7 +2405,7 @@
             $('#waktu-pembelian').text(data.created_tanggal +' pada ' + data.created_time);
 
             $('#btn-print-history-transaction').removeClass('disabled');
-            $('#btn-print-history-transaction').attr('href', 'intent://cetak-struk-history?id=' + data.id);
+            $('#btn-print-history-transaction').attr('href', 'intent://struk-history-print?id=' + data.id);
             var subTotalTransaction = 0;
 
             $('#row-product').empty();
@@ -2837,43 +2836,43 @@
                     $('#content-area').addClass('d-none');
                     $('#bottom-navbar').addClass('d-none');
 
-                    const baseUrlListTransaction = `{{ route('kasir/getListTransactionToday', ':id') }}`; // Placeholder ':id'
-                    const urlListTransaction = baseUrlListTransaction.replace(':id', dataPattyCash[0].outlet_data.id); // Ganti ':id' dengan nilai dataId
+                    $('#list-transaction-container').empty();
+                    if(dataPattyCash.length){
+                        const baseUrlListTransaction = `{{ route('kasir/getListTransactionToday', ':id') }}`; // Placeholder ':id'
+                        const urlListTransaction = baseUrlListTransaction.replace(':id', dataPattyCash[0].id); // Ganti ':id' dengan nilai dataId
 
-                    console.log(dataPattyCash[0].outlet_data.id)
-                    $.ajax({
-                        url: urlListTransaction,
-                        method: "GET",
-                        beforeSend: function() {
-                            showLoader();
-                            // showLoading()
-                        },
-                        complete: function() {
-                            showLoader(false);
-                            // hideLoading(false)
-                        },
-                        success: (res) => {
-                            $('#list-transaction-container').empty();
-                            listActivityTransaction = res.data;
-                            console.log(res.data);
-                            if(res.data.length){
-                                detailTransactionHandle(res.data[0]);
+                        console.log(dataPattyCash[0].outlet_data.id)
+                        $.ajax({
+                            url: urlListTransaction,
+                            method: "GET",
+                            beforeSend: function() {
+                                showLoader();
+                            },
+                            complete: function() {
+                                showLoader(false);
+                            },
+                            success: (res) => {
+                                listActivityTransaction = res.data;
+                                console.log(res.data);
+                                if(res.data.length){
+                                    detailTransactionHandle(res.data[0]);
+                                }
+
+                                res.data.forEach(function(transaction, index){
+                                    const truncateItemText = getTruncatedItemText(transaction.item_transaction);
+                                    const paymentIcon = getPaymentIcon(transaction.nama_tipe_pembayaran);
+                                    const htmlTransaction = createTransactionHTML(transaction, truncateItemText, paymentIcon, index);
+
+                                    $('#list-transaction-container').append(htmlTransaction);
+                                    attachTransactionClickEvent();
+                                });
+                            },
+                            error: function(err) {
+                                console.log(err);
+                                reject(err); // Rejecting the promise on error
                             }
-
-                            res.data.forEach(function(transaction, index){
-                                const truncateItemText = getTruncatedItemText(transaction.item_transaction);
-                                const paymentIcon = getPaymentIcon(transaction.nama_tipe_pembayaran);
-                                const htmlTransaction = createTransactionHTML(transaction, truncateItemText, paymentIcon, index);
-
-                                $('#list-transaction-container').append(htmlTransaction);
-                                attachTransactionClickEvent();
-                            });
-                        },
-                        error: function(err) {
-                            console.log(err);
-                            reject(err); // Rejecting the promise on error
-                        }
-                    });
+                        });
+                    }
 
                 } else if(targetView == "shift-menu") {
                     if (dataPattyCash.length < 1) {
@@ -2885,6 +2884,7 @@
                         $('#setting-section > .child-section').addClass('d-none'); // Hide all views
                         $(`#${targetView}`).removeClass('d-none'); // Show selected view
                         $('#text-title-setting').text(`${titleSectionSetting}`)
+                        $('#btn-print-shift').attr('href', 'intent://shift-order-print?id=' + dataPattyCash[0].id);
                     }
 
                 }

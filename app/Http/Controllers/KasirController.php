@@ -697,9 +697,16 @@ class KasirController extends Controller
 
     public function getListTransactionToday($id){
         $today = Carbon::today(); // Mendapatkan tanggal hari ini
+        $activeShift = PettyCash::find($id);
         $transaction = Transaction::with(['itemTransaction' => function($itemTransaction){
             $itemTransaction->with(['product', 'variant']);
-        }])->whereDate('created_at', $today)->where('outlet_id', $id)->orderBy('created_at', 'desc')->get();
+        }])
+        ->whereDate('created_at', $today)
+        ->where('outlet_id', $activeShift->outlet_id)
+        ->where('patty_cash_id', $id)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
         $transaction->map(function($item){
             $item->created_time = Carbon::parse($item->created_at)->format('H:i');
             $item->created_tanggal = Carbon::parse($item->created_at)->format('d-m-Y');
@@ -714,12 +721,13 @@ class KasirController extends Controller
     public function printShiftDetail($petty_cash_id){
         $soldModifier = 0;
         $soldProduct = 0;
+        $rounding = 0;
 
-        $pattyCash = PettyCash::find($petty_cash_id);
+        $pattyCash = PettyCash::find($petty_cash_id)->load(['outlet', 'userStarted', 'userEnded']);
 
         // Mengambil VariantProduct yang memiliki itemTransaction terkait dengan petty_cash_id dan transaction tidak null
         $data = VariantProduct::with(['itemTransaction' => function($itemTransaction) use($petty_cash_id) {
-            $itemTransaction->whereHas('transaction', function($transaction) use($petty_cash_id) {
+            $itemTransaction->whereHas('transaction', function($transaction) use($petty_cash_id)  {
                 $transaction->where('patty_cash_id', $petty_cash_id);
             });
         }, 'product.category'])
@@ -738,9 +746,11 @@ class KasirController extends Controller
             return $item;
         });
 
+
         foreach($data as $item){
             $soldProduct += count($item->itemTransaction);
         }
+
 
         $listModifierTransaction = [];
 
@@ -752,12 +762,12 @@ class KasirController extends Controller
             $transactions = TransactionItem::whereJsonContains('modifier_id', ['id' => strval($modifier->id)])->whereHas('transaction', function($query) use($petty_cash_id){
                 $query->where('patty_cash_id', $petty_cash_id);
             })->get();
-            
+
             if(count($transactions)){
                 $soldModifier += count($transactions);
                 $modifier->item_transactions = $transactions;
                 $modifier->total_transaction = count($transactions);
-                
+
                 $totalHarga = $modifier->harga * count($transactions);
                 $modifier->total_transaction_amount = formatRupiah(strval($totalHarga), "Rp. ");
                 array_push($listModifierTransaction, $modifier);
@@ -772,6 +782,14 @@ class KasirController extends Controller
             }]);
         }])->get();
 
+
+        $roundingTransaction = Transaction::where('patty_cash_id', $petty_cash_id)->get();
+
+
+        foreach($roundingTransaction as $dataTransaction){
+            $rounding += $dataTransaction->rounding_amount;
+        }
+
         return response()->json([
             'data_product_transaction' => $data,
             'data_modifier_transaction' => $listModifierTransaction,
@@ -779,6 +797,7 @@ class KasirController extends Controller
             'sold_product' => $soldProduct,
             'sold_modifier' => $soldModifier,
             'data_payment' => $listCategoryPayment,
+            'rounding' => $rounding
         ]);
     }
 }

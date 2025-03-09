@@ -14,4 +14,12 @@ class PettyCash extends Model
     public function userStarted(){
         return $this->belongsTo(User::class, 'user_id_started', 'id');
     }
+
+    public function userEnded(){
+        return $this->belongsTo(User::class, 'user_id_ended', 'id');
+    }
+
+    public function outlet(){
+        return $this->belongsTo(Outlets::class, 'outlet_id', 'id');
+    }
 }
