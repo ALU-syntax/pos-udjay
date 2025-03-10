@@ -283,6 +283,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/tambah-customer', [KasirController::class, 'tambahCustomer'])->name('kasir/tambahCustomer');
         Route::get('/custom-diskon/{diskon}', [KasirController::class, 'customDiskon'])->name('kasir/customDiskon');
         Route::get('/view-open-bill', [KasirController::class, 'viewOpenBill'])->name('kasir/viewOpenBill');
+        Route::get('/history-shifts', [KasirController::class, 'historyShift']);
         Route::get('/choose-bill/{bill}', [KasirController::class, 'chooseBill'])->name('kasir/chooseBill');
         Route::get('/getListTransactionToday/{id}', [KasirController::class, 'getListTransactionToday'])->name('kasir/getListTransactionToday');
         Route::get('/bill-list', [KasirController::class, 'billList'])->name('kasir/billList');
@@ -355,6 +356,7 @@ Route::get('/api-struk/{id}', [KasirController::class, 'apiStruk'])->name('kasir
 Route::get('/api-open-bill/{bill_id}', [KasirController::class, 'printOpenBillOrder']);
 Route::get('/api-print-shift-detail/{petty_cash_id}', [KasirController::class, 'printShiftDetail']);
 Route::get('/get-akun/{outlet_id}', [OutletController::class, 'getAkun']);
+Route::post('/log-error-android', [LogController::class, 'logErrorAndroid'])->name('log/logErrorAndroid');
 Route::post('/log-error-android', [LogController::class, 'logErrorAndroid'])->name('log/logErrorAndroid');
 
 require __DIR__.'/auth.php';

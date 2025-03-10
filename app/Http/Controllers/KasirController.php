@@ -58,7 +58,7 @@ class KasirController extends Controller
 
         $promos = Promo::where('outlet_id', $userOutlet[0])->whereNull('deleted_at')->where('status', true)->get();
 
-        $pettyCash = PettyCash::with(['userStarted'])->where('outlet_id', $outletUser[0])->where('close', null)->get();
+        $pettyCash = PettyCash::with(['userStarted', 'outlet'])->where('outlet_id', $outletUser[0])->where('close', null)->get();
 
         if (count($pettyCash)) {
             // $pettyCash[0]['user_data_started'] = auth()->user();
@@ -800,4 +800,14 @@ class KasirController extends Controller
             'rounding' => $rounding
         ]);
     }
+
+    public function historyShift(Request $request){
+        $shifts = PettyCash::paginate(10); // Mengambil 10 data per halaman
+        return response()->json($shifts);
+    }
+
+    public function cetakBillNotReceipt(){
+
+    }
+
 }

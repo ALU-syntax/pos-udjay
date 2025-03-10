@@ -274,6 +274,21 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        .history-shift-list {
+            height: 65vh;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .history-shift-item {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+        .history-shift-item:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 
@@ -296,18 +311,28 @@
                                 <div id="setting-section">
                                     <div class="card">
                                         <div class="card-body d-flex" style="background-color: #0000002d">
-                                            <button id="back-btn-setting" class="btn btn-link"
+                                            <button id="back-btn-setting" class="btn btn-primary"
                                                 style="display: none !important;">&larr; Back</button>
-                                            <h4 id="text-title-setting">Setting</h4>
+                                            <h4 id="text-title-setting" class="ms-2">Setting</h4>
                                         </div>
                                     </div>
 
                                     <div id="setting-view" class="card mt-2 child-section">
+                                        <div class="card-header">
+                                            Hi, {{auth()->user()->name}}
+                                        </div>
                                         <div class="card-body">
                                             <div class="card list-setting bg-primary" id="shift"
                                                 data-target="shift-menu" data-name-section="Shift">
                                                 <div class="card-body">
                                                     <h5 class="text-white">Shift</h5>
+                                                </div>
+                                            </div>
+
+                                            <div class="card list-setting bg-primary mt-2" id="history-shift"
+                                                data-target="history-shift-menu" data-name-section="History-Shift">
+                                                <div class="card-body">
+                                                    <h5 class="text-white">History Shift</h5>
                                                 </div>
                                             </div>
 
@@ -347,10 +372,19 @@
                                                                     <hr>
                                                                     <div class="row">
                                                                         <div class="col-6">
-                                                                            Name
+                                                                            Open Shift
                                                                         </div>
                                                                         <div class="col-6" id="txt-open-patty-cash">
                                                                             Ardian
+                                                                        </div>
+                                                                    </div>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Close Shift
+                                                                        </div>
+                                                                        <div class="col-6" id="txt-close-patty-cash">
+                                                                            -
                                                                         </div>
                                                                     </div>
                                                                     <hr>
@@ -572,6 +606,21 @@
                                         </div>
                                     </div>
 
+                                    <div class="card d-none child-section" id="history-shift-menu" style="margin-bottom: 100px">
+                                        <div class="card-body">
+                                            <div class="container">
+                                                <div class="history-shift-list" id="shiftList">
+                                                    <!-- Shift items will be dynamically inserted here -->
+                                                </div>
+                                                <nav aria-label="Page navigation" class="mt-4">
+                                                    <ul class="pagination justify-content-center" id="pagination">
+                                                        <!-- Pagination links will be dynamically inserted here -->
+                                                    </ul>
+                                                </nav>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -636,10 +685,10 @@
                                     <div class="card d-flex align-items-center">
                                         <div class="row w-100" style="height: 80px">
                                             <div class="col-auto d-flex align-items-center">
-                                                <button id="back-btn" class="btn btn-link my-3 back-btn"
+                                                <button id="back-btn" class="btn btn-primary my-3 back-btn"
                                                     style="display: none !important;">&larr; Back</button>
                                                 <div class="col text-center">
-                                                    <h5 class="my-3" id="text-judul">Library</h5>
+                                                    <h5 class="my-3 ms-2" id="text-judul">Library</h5>
                                                 </div>
                                             </div>
                                         </div>
@@ -850,7 +899,7 @@
                                     <button class="btn btn-secondary w-50 me-2" id="simpan-bill"
                                         style="height: 60px;">Simpan
                                         Bill</button>
-                                    <button class="btn btn-outline-primary w-50" style="height: 60px;">Cetak
+                                    <button id="cetak-bill" onclick="sendDataInCart()" class="btn btn-outline-primary w-50" style="height: 60px;">Cetak
                                         Bill</button>
                                 </div>
 
@@ -872,7 +921,7 @@
             <div class="row">
                 <div class="card d-flex">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <button class="btn btn-primary" id="btn-back-activity">&#8592;</button>
+                        <button class="btn btn-primary" id="btn-back-activity">&#8592; Back</button>
                         <div class="flex-grow-1 d-flex justify-content-center">
                             <h4 class="text-center">Aktivitas</h4>
                         </div>
@@ -1113,6 +1162,26 @@
 
         let openBillForm = new FormData();
         var billId = 0;
+
+        var resultNominalDiskon = 0;
+
+        const shiftData = [
+            { id: 1, name: "Shift 1", start_time: "2023-10-01T08:00:00Z", end_time: "2023-10-01T16:00:00Z", employee: "John Doe" },
+            { id: 2, name: "Shift 2", start_time: "2023-10-02T08:00:00Z", end_time: "2023-10-02T16:00:00Z", employee: "Jane Smith" },
+            { id: 3, name: "Shift 3", start_time: "2023-10-03T08:00:00Z", end_time: "2023-10-03T16:00:00Z", employee: "Alice Johnson" },
+            { id: 4, name: "Shift 4", start_time: "2023-10-04T08:00:00Z", end_time: "2023-10-04T16:00:00Z", employee: "Bob Brown" },
+            { id: 5, name: "Shift 5", start_time: "2023-10-05T08:00:00Z", end_time: "2023-10-05T16:00:00Z", employee: "Charlie Davis" },
+            { id: 6, name: "Shift 6", start_time: "2023-10-06T08:00:00Z", end_time: "2023-10-06T16:00:00Z", employee: "Diana Evans" },
+            { id: 7, name: "Shift 7", start_time: "2023-10-07T08:00:00Z", end_time: "2023-10-07T16:00:00Z", employee: "Ethan Foster" },
+            { id: 8, name: "Shift 8", start_time: "2023-10-08T08:00:00Z", end_time: "2023-10-08T16:00:00Z", employee: "Fiona Garcia" },
+            { id: 9, name: "Shift 9", start_time: "2023-10-09T08:00:00Z", end_time: "2023-10-09T16:00:00Z", employee: "George Harris" },
+            { id: 10, name: "Shift 10", start_time: "2023-10-10T08:00:00Z", end_time: "2023-10-10T16:00:00Z", employee: "Hannah Hernandez" },
+            { id: 11, name: "Shift 11", start_time: "2023-10-11T08:00:00Z", end_time: "2023-10-11T16:00:00Z", employee: "Ian Jackson" },
+            { id: 12, name: "Shift 12", start_time: "2023-10-12T08:00:00Z", end_time: "2023-10-12T16:00:00Z", employee: "Judy King" }
+        ];
+
+        const itemsPerPage = 5;
+        let currentPage = 1;
 
         function showLoader(show = true) {
             const preloader = $("#preloader");
@@ -2174,6 +2243,8 @@
                 return acc + curr;
             }, 0);
 
+            resultNominalDiskon = totalDiskon;
+
             let bulatkanDiskon = Math.round(totalDiskon);
             if (bulatkanDiskon > 0) {
                 $("#group-diskon").removeClass('d-none');
@@ -2482,6 +2553,62 @@
                     box.textContent = initials; // Isi kotak dengan inisial
                 }
             });
+        }
+
+        function loadHistoryShifts(page) {
+            $.ajax({
+                url: '/shifts?page=' + page,
+                method: 'GET',
+                success: function(data) {
+                    data.data.forEach(shift => {
+                        $('#shift-list').append('<a href="#" class="list-group-item list-group-item-action">' + shift.name + ' - ' + shift.status + '</a>');
+                    });
+
+                    if (!data.next_page_url) {
+                        $('#load-more').hide(); // Sembunyikan tombol jika tidak ada halaman berikutnya
+                    }
+                }
+            });
+        }
+
+        function sendDataInCart() {
+            if (listItem.length > 0 || listItemPromo.length > 0) {
+                if(dataPattyCash.length > 0){
+                    // Contoh data JSON yang akan dikirim
+                    console.log(dataPattyCash[0].outlet);
+                    var data = {
+                        listItem: listItem,
+                        outlet: dataPattyCash[0].outlet,
+                        userCollect: dataPattyCash[0].user_started,
+                        listPajak: listPajak,
+                        nominalDiskon: resultNominalDiskon,
+                        nominalRounding: amountRounding,
+                    };
+
+                    console.log(data);
+
+                    // Mengonversi objek JavaScript menjadi string JSON
+                    var jsonData = JSON.stringify(data);
+
+                    // Mengirim data ke aplikasi Android
+                    if (window.Android) {
+                        // Panggil metode JavaScript Interface dengan ID transaksi
+                        window.Android.handleCetakBillNotReceipt(jsonData);
+                    }
+                }else{
+                    iziToast['error']({
+                    title: "Gagal",
+                    message: "Open Shift Terlebih Dahulu",
+                    position: 'topRight'
+                });
+                }
+            } else {
+                iziToast['error']({
+                    title: "Gagal",
+                    message: "Product Belum Dipilih",
+                    position: 'topRight'
+                });
+            }
         }
 
         $(document).ready(function() {
@@ -2887,6 +3014,18 @@
                         $('#btn-print-shift').attr('href', 'intent://shift-order-print?id=' + dataPattyCash[0].id);
                     }
 
+                }else if(targetView == "history-shift-menu"){
+                    iziToast['warning']({
+                        title: "Warning",
+                        message: "Sementara belum bisa digunakan",
+                        position: 'topRight'
+                    });
+                    // backBtnSetting.style.setProperty('display', 'flex', 'important');
+                    // let titleSectionSetting = $(this).data('name-section');
+
+                    // $('#setting-section > .child-section').addClass('d-none'); // Hide all views
+                    // $(`#${targetView}`).removeClass('d-none'); // Show selected view
+                    // $('#text-title-setting').text(`${titleSectionSetting}`)
                 }
             });
 
