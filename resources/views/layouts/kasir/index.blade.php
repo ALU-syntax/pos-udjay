@@ -606,6 +606,113 @@
                                         </div>
                                     </div>
 
+                                    <div class="card d-none child-section" id="detail-shift-history" style="margin-bottom: 100px">
+                                        <div class="card-body">
+                                            <div class="container">
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="row">
+                                                            <div class="col-6">
+                                                                {{-- <button id="end-current-shift"
+                                                                class="btn btn-outline-primary w-100 btn-lg mb-4">Akhiri Shift</button> --}}
+                                                            </div>
+                                                            <div class="col-12">
+                                                                <a href="javascript:void(0);" class="btn btn-outline-primary w-100 btn-lg mb-4" target="_blank" id="btn-print-history-shift">Cetak Laporan Shift</a>
+                                                            </div>
+                                                        </div>
+                                                        <div class="container" id="container-detail-shift">
+                                                            <div class="row">
+                                                                <div class="col-12">
+                                                                    <h5>Shift Details</h5>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Open Shift
+                                                                        </div>
+                                                                        <div class="col-6" id="txt-detail-open-patty-cash">
+                                                                            Ardian
+                                                                        </div>
+                                                                    </div>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Close Shift
+                                                                        </div>
+                                                                        <div class="col-6" id="txt-detail-close-patty-cash">
+                                                                            -
+                                                                        </div>
+                                                                    </div>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Outlet
+                                                                        </div>
+                                                                        <div class="col-6" id="txt-detail-outlet">
+                                                                            Outlet 1
+                                                                        </div>
+                                                                    </div>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Starting Shift
+                                                                        </div>
+                                                                        <div class="col-6" id="txt-detail-starting-shift">
+                                                                            Thursday blablabla
+                                                                        </div>
+                                                                    </div>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Ending Shift
+                                                                        </div>
+                                                                        <div class="col-6" id="txt-detail-ending-shift">
+                                                                            Thursday blablabla
+                                                                        </div>
+                                                                    </div>
+                                                                    <hr>
+                                                                    {{-- <div class="row">
+                                                                        <div class="col-6">
+                                                                            Expense / Income
+                                                                        </div>
+                                                                        <div class="col-6">
+                                                                            0
+                                                                        </div>
+                                                                    </div> --}}
+                                                                    <hr>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="row mt-3">
+                                                                <div class="col-12">
+                                                                    {{-- <h5>Order Details (Except Moka Order Delivery)</h5> --}}
+                                                                    <h5>Order Details</h5>
+                                                                    <hr>
+                                                                    <div class="row">
+                                                                        <div class="col-6">
+                                                                            Sold Items
+                                                                        </div>
+                                                                        <div class="col-6" id="txt-detail-sold-items">
+                                                                            27
+                                                                        </div>
+                                                                    </div>
+                                                                    <hr>
+                                                                    {{-- <div class="row">
+                                                                        <div class="col-6">
+                                                                            Refunded Items
+                                                                        </div>
+                                                                        <div class="col-6">
+                                                                            0
+                                                                        </div>
+                                                                    </div> --}}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="card d-none child-section" id="history-shift-menu" style="margin-bottom: 100px">
                                         <div class="card-body">
                                             <div class="container">
@@ -1164,6 +1271,7 @@
         var billId = 0;
 
         var resultNominalDiskon = 0;
+        var dataLogin = @json(auth()->user());
 
         const shiftData = [
             { id: 1, name: "Shift 1", start_time: "2023-10-01T08:00:00Z", end_time: "2023-10-01T16:00:00Z", employee: "John Doe" },
@@ -2556,12 +2664,19 @@
         }
 
         function loadHistoryShifts(page) {
+            let baseUrlHistoryShift = `{{ route('kasir/historyShift', ':outletid') }}`; // Placeholder ':id'
+            let outletTerpilih = JSON.parse(dataLogin.outlet_id);
+            let urlHistoryShift = baseUrlHistoryShift.replace(':outletid', outletTerpilih[0]); // Ganti ':id' dengan nilai dataId
+
             $.ajax({
-                url: '/shifts?page=' + page,
+                url: urlHistoryShift,
                 method: 'GET',
                 success: function(data) {
-                    data.data.forEach(shift => {
-                        $('#shift-list').append('<a href="#" class="list-group-item list-group-item-action">' + shift.name + ' - ' + shift.status + '</a>');
+                    $('#shiftList').empty();
+                    data.forEach(shift => {
+                        let shiftCloseResult = shift.close ? shift.close : "Masih Berjalan";
+
+                        $('#shiftList').append(`<div class="list-group-item-action" onclick="handleDetailShift(this)" data-idshift="${shift.id}">` + shift.open + ' - ' + shiftCloseResult + '</div> <hr>');
                     });
 
                     if (!data.next_page_url) {
@@ -2609,6 +2724,47 @@
                     position: 'topRight'
                 });
             }
+        }
+
+        function handleDetailShift(element){
+            let widget = $(element);
+            let idShift = widget.data('idshift');
+
+            $('#detail-shift-history').removeClass('d-none');
+            $('#history-shift-menu').addClass('d-none');
+            $('#back-btn-setting').attr('data-section', 'detail-history-shift');
+            $('#btn-print-history-shift').attr('href', 'intent://shift-order-print?id=' + idShift);
+
+            $.ajax({
+                url: urlListTransaction,
+                method: "GET",
+                beforeSend: function() {
+                    showLoader();
+                },
+                complete: function() {
+                    showLoader(false);
+                },
+                success: (res) => {
+                    listActivityTransaction = res.data;
+                    console.log(res.data);
+                    if(res.data.length){
+                        detailTransactionHandle(res.data[0]);
+                    }
+
+                    res.data.forEach(function(transaction, index){
+                        const truncateItemText = getTruncatedItemText(transaction.item_transaction);
+                        const paymentIcon = getPaymentIcon(transaction.nama_tipe_pembayaran);
+                        const htmlTransaction = createTransactionHTML(transaction, truncateItemText, paymentIcon, index);
+
+                        $('#list-transaction-container').append(htmlTransaction);
+                        attachTransactionClickEvent();
+                    });
+                },
+                error: function(err) {
+                    console.log(err);
+                    reject(err); // Rejecting the promise on error
+                }
+            });
         }
 
         $(document).ready(function() {
@@ -2924,12 +3080,15 @@
             if (backBtnSetting) {
                 backBtnSetting.addEventListener('click', function() {
                     let section = $(this).data('section');
-
+                    $(this).removeAttr('data-section').removeData('section');
                     if (section == "end-current-shift") {
-                        $(this).removeAttr('data-section').removeData('section');
                         $('#shift-menu').removeClass('d-none');
                         $('#end-current-shift-section').addClass('d-none');
+                    }else if(section == "detail-history-shift"){
+                        $('#detail-shift-history').addClass('d-none');
+                        $('#history-shift-menu').removeClass('d-none');
                     } else {
+                        console.log('masuk else');
                         backBtnSetting.style.setProperty('display', 'none', 'important');
                         $('#setting-section > .child-section').addClass('d-none'); // Hide all views
                         $('#setting-view').removeClass('d-none'); // Show library view
@@ -3015,17 +3174,19 @@
                     }
 
                 }else if(targetView == "history-shift-menu"){
-                    iziToast['warning']({
-                        title: "Warning",
-                        message: "Sementara belum bisa digunakan",
-                        position: 'topRight'
-                    });
-                    // backBtnSetting.style.setProperty('display', 'flex', 'important');
-                    // let titleSectionSetting = $(this).data('name-section');
+                    // iziToast['warning']({
+                    //     title: "Warning",
+                    //     message: "Sementara belum bisa digunakan",
+                    //     position: 'topRight'
+                    // });
+                    backBtnSetting.style.setProperty('display', 'flex', 'important');
+                    let titleSectionSetting = $(this).data('name-section');
 
-                    // $('#setting-section > .child-section').addClass('d-none'); // Hide all views
-                    // $(`#${targetView}`).removeClass('d-none'); // Show selected view
-                    // $('#text-title-setting').text(`${titleSectionSetting}`)
+                    $('#setting-section > .child-section').addClass('d-none'); // Hide all views
+                    $(`#${targetView}`).removeClass('d-none'); // Show selected view
+                    $('#text-title-setting').text(`${titleSectionSetting}`)
+
+                    loadHistoryShifts();
                 }
             });
 

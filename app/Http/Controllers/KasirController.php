@@ -801,12 +801,12 @@ class KasirController extends Controller
         ]);
     }
 
-    public function historyShift(Request $request){
-        $shifts = PettyCash::paginate(10); // Mengambil 10 data per halaman
+    public function historyShift($outletid){
+        $shifts = PettyCash::where('outlet_id', $outletid)->limit(30)->orderBy('created_at', 'desc')->get(); // Mengambil 10 data per halaman
         return response()->json($shifts);
     }
 
-    public function cetakBillNotReceipt(){
+    public function detailHistoryShift($shiftid){
 
     }
 
