@@ -60,9 +60,33 @@ class KasirController extends Controller
 
         $pettyCash = PettyCash::with(['userStarted', 'outlet'])->where('outlet_id', $outletUser[0])->where('close', null)->get();
 
+        $soldItem = [];
+
         if (count($pettyCash)) {
             // $pettyCash[0]['user_data_started'] = auth()->user();
             $pettyCash[0]['outlet_data'] = $outlet;
+
+            $soldItem = VariantProduct::with(['itemTransaction' => function($itemTransaction) use($pettyCash) {
+                $itemTransaction->whereHas('transaction', function($transaction) use($pettyCash)  {
+                    $transaction->where('patty_cash_id', $pettyCash[0]->id);
+                });
+            }, 'product.category'])
+            ->whereHas('itemTransaction.transaction', function($transaction) use($pettyCash) {
+                $transaction->where('patty_cash_id', $pettyCash[0]->id);
+            })
+            ->whereHas('itemTransaction', function($itemTransaction) {
+                $itemTransaction->whereHas('transaction');
+            })
+            ->whereHas('product') // Memastikan ada relasi product
+            ->get()->map(function($item) {
+                $item->total_transaction = count($item->itemTransaction);
+
+                // $totalHarga = $item->harga * count($item->itemTransaction);
+                // $item->total_transaction_amount = formatRupiah(strval($totalHarga), "Rp. ");
+                return $item;
+            })
+            ->select(['harga', 'product', 'name', 'total_transaction']);
+
         }
 
         $listCategoryPayment = CategoryPayment::with(['transactions' => function ($transaction) use ($pettyCash) {
@@ -87,7 +111,8 @@ class KasirController extends Controller
             'promos' => $promos,
             'discounts' => $diskon,
             'pettyCash' => $pettyCash,
-            'listCategoryPayment' => $listCategoryPayment
+            'listCategoryPayment' => $listCategoryPayment,
+            'soldItem' => $soldItem
         ]);
     }
 
@@ -807,7 +832,41 @@ class KasirController extends Controller
     }
 
     public function detailHistoryShift($shiftid){
+        $shift = PettyCash::find($shiftid)->load(['userStarted', 'userEnded', 'outlet']);
+        $listCategoryPayment = CategoryPayment::with(['transactions' => function ($transaction) use ($shift) {
+            $transaction->with(['payments'])->where('patty_cash_id', $shift->id);
+        }, 'payment' => function ($payment) use ($shift) {
+            $payment->with(['transactions' => function ($transaction) use ($shift) {
+                $transaction->where('patty_cash_id', $shift->id);
+            }]);
+        }])->get();
 
+        $soldItem = VariantProduct::with(['itemTransaction' => function($itemTransaction) use($shift) {
+            $itemTransaction->whereHas('transaction', function($transaction) use($shift)  {
+                $transaction->where('patty_cash_id', $shift->id);
+            });
+        }, 'product.category'])
+        ->whereHas('itemTransaction.transaction', function($transaction) use($shift) {
+            $transaction->where('patty_cash_id', $shift->id);
+        })
+        ->whereHas('itemTransaction', function($itemTransaction) {
+            $itemTransaction->whereHas('transaction');
+        })
+        ->whereHas('product') // Memastikan ada relasi product
+        ->get()->map(function($item) {
+            $item->total_transaction = count($item->itemTransaction);
+
+            // $totalHarga = $item->harga * count($item->itemTransaction);
+            // $item->total_transaction_amount = formatRupiah(strval($totalHarga), "Rp. ");
+            return $item;
+        })
+        ->select(['harga', 'product', 'name', 'total_transaction']);
+
+        return response()->json([
+            'data' => $shift,
+            'listCategoryPayment' => $listCategoryPayment,
+            'soldItem' => $soldItem
+        ]);
     }
 
 }

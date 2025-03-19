@@ -289,6 +289,10 @@
         .history-shift-item:last-child {
             border-bottom: none;
         }
+
+        .list-sold-item{
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -427,8 +431,15 @@
                                                                         <div class="col-6">
                                                                             Sold Items
                                                                         </div>
-                                                                        <div class="col-6" id="txt-sold-items">
-                                                                            27
+                                                                        <div class="col-6">
+                                                                            <div class="row">
+                                                                                <div class="col-10">
+                                                                                    <span id="txt-sold-items"></span>
+                                                                                </div>
+                                                                                <div class="col-2">
+                                                                                    <i class="fas fa-arrow-right ms-auto list-sold-item" data-session="sold-item"></i></a>
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                     <hr>
@@ -606,6 +617,20 @@
                                         </div>
                                     </div>
 
+                                    <div class="card d-none child-section" id="list-sold-item" style="margin-bottom: 100px">
+                                        <div class="card-body">
+                                            <div class="container">
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="container" id="container-sold-item">
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="card d-none child-section" id="detail-shift-history" style="margin-bottom: 100px">
                                         <div class="card-body">
                                             <div class="container">
@@ -677,8 +702,8 @@
                                                                         <div class="col-6">
                                                                             0
                                                                         </div>
-                                                                    </div> --}}
-                                                                    <hr>
+                                                                    </div>
+                                                                    <hr> --}}
                                                                 </div>
                                                             </div>
 
@@ -691,8 +716,15 @@
                                                                         <div class="col-6">
                                                                             Sold Items
                                                                         </div>
-                                                                        <div class="col-6" id="txt-detail-sold-items">
-                                                                            27
+                                                                        <div class="col-6" >
+                                                                            <div class="row">
+                                                                                <div class="col-10">
+                                                                                    <span id="txt-detail-sold-items"></span>
+                                                                                </div>
+                                                                                <div class="col-2">
+                                                                                    <i class="fas fa-arrow-right ms-auto list-sold-item"></i></a>
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                     <hr>
@@ -1273,23 +1305,8 @@
         var resultNominalDiskon = 0;
         var dataLogin = @json(auth()->user());
 
-        const shiftData = [
-            { id: 1, name: "Shift 1", start_time: "2023-10-01T08:00:00Z", end_time: "2023-10-01T16:00:00Z", employee: "John Doe" },
-            { id: 2, name: "Shift 2", start_time: "2023-10-02T08:00:00Z", end_time: "2023-10-02T16:00:00Z", employee: "Jane Smith" },
-            { id: 3, name: "Shift 3", start_time: "2023-10-03T08:00:00Z", end_time: "2023-10-03T16:00:00Z", employee: "Alice Johnson" },
-            { id: 4, name: "Shift 4", start_time: "2023-10-04T08:00:00Z", end_time: "2023-10-04T16:00:00Z", employee: "Bob Brown" },
-            { id: 5, name: "Shift 5", start_time: "2023-10-05T08:00:00Z", end_time: "2023-10-05T16:00:00Z", employee: "Charlie Davis" },
-            { id: 6, name: "Shift 6", start_time: "2023-10-06T08:00:00Z", end_time: "2023-10-06T16:00:00Z", employee: "Diana Evans" },
-            { id: 7, name: "Shift 7", start_time: "2023-10-07T08:00:00Z", end_time: "2023-10-07T16:00:00Z", employee: "Ethan Foster" },
-            { id: 8, name: "Shift 8", start_time: "2023-10-08T08:00:00Z", end_time: "2023-10-08T16:00:00Z", employee: "Fiona Garcia" },
-            { id: 9, name: "Shift 9", start_time: "2023-10-09T08:00:00Z", end_time: "2023-10-09T16:00:00Z", employee: "George Harris" },
-            { id: 10, name: "Shift 10", start_time: "2023-10-10T08:00:00Z", end_time: "2023-10-10T16:00:00Z", employee: "Hannah Hernandez" },
-            { id: 11, name: "Shift 11", start_time: "2023-10-11T08:00:00Z", end_time: "2023-10-11T16:00:00Z", employee: "Ian Jackson" },
-            { id: 12, name: "Shift 12", start_time: "2023-10-12T08:00:00Z", end_time: "2023-10-12T16:00:00Z", employee: "Judy King" }
-        ];
-
-        const itemsPerPage = 5;
-        let currentPage = 1;
+        var listSoldItem = [];
+        var listExistingSoldItem = @json($soldItem)
 
         function showLoader(show = true) {
             const preloader = $("#preloader");
@@ -2459,7 +2476,6 @@
         }
 
         function handleAjax(url, primaryModal = true, method = 'get') {
-            console.log("masok lagi")
             return {
                 excute: function() {
                     return new Promise((resolve, reject) => {
@@ -2475,7 +2491,6 @@
                                 // hideLoading(false)
                             },
                             success: (res) => {
-                                console.log(res)
                                 if (primaryModal) {
                                     const modal = $('#itemModal');
                                     modal.html(res);
@@ -2730,13 +2745,17 @@
             let widget = $(element);
             let idShift = widget.data('idshift');
 
+            $()
             $('#detail-shift-history').removeClass('d-none');
             $('#history-shift-menu').addClass('d-none');
             $('#back-btn-setting').attr('data-section', 'detail-history-shift');
             $('#btn-print-history-shift').attr('href', 'intent://shift-order-print?id=' + idShift);
+            const baseUrlDetailHistoryShift = `{{ route('kasir/detailHistoryShift', ':shiftid') }}`; // Placeholder ':id'
+            const urlDetailHistoryShift = baseUrlDetailHistoryShift.replace(':shiftid', idShift); // Ganti ':id' dengan nilai dataId
+
 
             $.ajax({
-                url: urlListTransaction,
+                url:  urlDetailHistoryShift,
                 method: "GET",
                 beforeSend: function() {
                     showLoader();
@@ -2745,20 +2764,183 @@
                     showLoader(false);
                 },
                 success: (res) => {
-                    listActivityTransaction = res.data;
-                    console.log(res.data);
-                    if(res.data.length){
-                        detailTransactionHandle(res.data[0]);
-                    }
+                    console.log(res);
+                    listSoldItem = res.soldItem;
 
-                    res.data.forEach(function(transaction, index){
-                        const truncateItemText = getTruncatedItemText(transaction.item_transaction);
-                        const paymentIcon = getPaymentIcon(transaction.nama_tipe_pembayaran);
-                        const htmlTransaction = createTransactionHTML(transaction, truncateItemText, paymentIcon, index);
+                    let soldItemShift = 0;
+                    let openNameShift = res.data.user_started.name;
+                    let closeNameShift = res.data.user_ended ? res.data.user_ended.name : '-';
+                    $('#txt-detail-open-patty-cash').text(openNameShift);
+                    $('#txt-detail-close-patty-cash').text(closeNameShift);
 
-                        $('#list-transaction-container').append(htmlTransaction);
-                        attachTransactionClickEvent();
+                    let namaOutlet = res.data.outlet.name;
+                    $('#txt-detail-outlet').text(namaOutlet);
+
+                    let detailStartingShift = res.data.open;
+                    $('#txt-detail-starting-shift').text(detailStartingShift);
+
+                    let detailEndedShift = res.data.close;
+                    $('#txt-detail-ending-shift').text(detailEndedShift)
+
+                    let totalSoldItem = 0;
+                    res.soldItem.forEach(function(itemSold){
+                        totalSoldItem += itemSold.total_transaction;
                     });
+
+                    $('#txt-detail-sold-items').text(totalSoldItem);
+
+                    let totalSeluruhTipe = parseInt(res.data.amount_awal);
+
+
+                    $('#container-detail-shift .history-category-payment').remove();
+                    res.listCategoryPayment.forEach(function(item) {
+                        if (item.name == 'Cash') {
+                            let sales = 0;
+                            let expectedEndingCash = parseInt(res.data.amount_awal);
+
+                            soldItemShift += item.transactions.length;
+                            item.transactions.forEach(function(cashTransaction) {
+                                sales += cashTransaction.total;
+                                expectedEndingCash += parseInt(cashTransaction.total);
+
+                                totalSeluruhTipe += parseInt(cashTransaction.total);
+                            })
+
+                            let actualEndingCash = parseInt(res.data.amount_akhir);
+                            let differenceCash = expectedEndingCash - actualEndingCash;
+
+                            let html = `
+                                <div class="row mt-3 history-category-payment">
+                                    <div class="col-12">
+                                        <h5>${item.name}</h5>
+                                        <hr>
+
+                                        <div class="row">
+                                            <div class="col-6">
+                                                Starting Cash In Drawer
+                                            </div>
+                                            <div class="col-6" >
+                                                ${formatRupiah(res.data.amount_awal.toString(), "Rp. ")}
+                                            </div>
+                                        </div>
+                                        <hr>
+
+                                        <div class="row">
+                                            <div class="col-6">
+                                                Cash Sales
+                                            </div>
+                                            <div class="col-6" >
+                                                ${formatRupiah(sales.toString(), "Rp. ")}
+                                            </div>
+                                        </div>
+                                        <hr>
+
+                                        <div class="row">
+                                            <div class="col-6">
+                                                Expected Ending Cash
+                                            </div>
+                                            <div class="col-6" >
+                                                ${formatRupiah(expectedEndingCash.toString(), "Rp. ")}
+                                            </div>
+                                        </div>
+                                        <hr>
+
+                                        <div class="row">
+                                            <div class="col-6">
+                                                Actual Ending Cash
+                                            </div>
+                                            <div class="col-6" >
+                                                ${formatRupiah(actualEndingCash.toString(), "Rp. ")}
+                                            </div>
+                                        </div>
+                                        <hr>
+
+                                        <div class="row">
+                                            <div class="col-6">
+                                                Cash Differences
+                                            </div>
+                                            <div class="col-6" >
+                                                ${formatRupiah(differenceCash.toString(), "Rp. ")}
+                                            </div>
+                                        </div>
+                                        <hr>
+
+                                    </div>
+
+                                </div>
+
+                            `
+                            $('#container-detail-shift').append(html);
+                        } else {
+                            let totalPerCategory = 0;
+                            let html = `
+                                <div class="row mt-3 history-category-payment">
+                                    <div class="col-12">
+                                        <h5>${item.name}</h5>
+                                        <hr>
+
+                                    ${item.payment.map(function(itemPayment) {
+                                        let total = 0;
+                                        soldItemShift += itemPayment.transactions.length;
+                                        itemPayment.transactions.forEach(function(transactionPaymentItem){
+                                            total += transactionPaymentItem.total;
+                                            totalPerCategory += transactionPaymentItem.total;
+
+                                            totalSeluruhTipe += parseInt(transactionPaymentItem.total);
+                                        })
+                                        return `<div class="row" >
+                                                    <div class="col-6" >
+                                                        ${itemPayment.name}
+                                                    </div>
+                                                    <div class="col-6" >
+                                                        ${formatRupiah(total.toString(), "Rp. ")}
+                                                    </div>
+                                                </div>
+                                                <hr> `;}).join('')}
+
+                                        <div class="row">
+                                            <div class="col-6">
+                                                Expected ${item.name} Payment
+                                            </div>
+                                            <div class="col-6" >
+                                                ${formatRupiah(totalPerCategory.toString(), "Rp. ")}
+                                            </div>
+                                        </div>
+                                        <hr>
+
+                                    </div>
+
+                                </div>
+
+                            `;
+
+
+                            $('#container-detail-shift').append(html);
+                        }
+
+                    });
+
+                    let totalHtml = `<div class="row mt-3 history-category-payment">
+                                    <div class="col-12">
+                                        <h5>Total</h5>
+                                        <hr>
+
+                                        <div class="row">
+                                            <div class="col-6">
+                                                Total Expected
+                                            </div>
+                                            <div class="col-6" >
+                                                ${formatRupiah(totalSeluruhTipe.toString(), "Rp. ")}
+                                            </div>
+                                        </div>
+                                        <hr>
+
+                                    </div>
+
+                                </div>`
+
+                    $('#container-detail-shift').append(totalHtml);
+
                 },
                 error: function(err) {
                     console.log(err);
@@ -2766,6 +2948,51 @@
                 }
             });
         }
+
+        $('.list-sold-item').on('click', function(){
+            let dataSession = $(this).data('session');
+            let html = "";
+            if(dataSession == "sold-item"){
+                $('#shift-menu').addClass('d-none');
+                $('#list-sold-item').removeClass('d-none');
+                $('#back-btn-setting').attr('data-section', 'list-sold-item');
+
+                listExistingSoldItem.forEach(function(item){
+                    let nameProduct = item.product.name == item.name ? item.name : item.product.name + " - " + item.name;
+
+                    html += `<div class="row">
+                                    <div class="col-6">
+                                        ${nameProduct}
+                                    </div>
+                                    <div class="col-6 text-center" id="txt-detail-open-patty-cash">
+                                        ${item.total_transaction}
+                                    </div>
+                                </div>
+                                <hr>`;
+
+                });
+            }else{
+                $('#detail-shift-history').addClass('d-none');
+                $('#list-sold-item').removeClass('d-none');
+                $('#back-btn-setting').attr('data-section', 'history-sold-item');
+
+                listSoldItem.forEach(function(item){
+                    let nameProduct = item.product.name == item.name ? item.name : item.product.name + " - " + item.name;
+
+                    html += `<div class="row">
+                                    <div class="col-6">
+                                        ${nameProduct}
+                                    </div>
+                                    <div class="col-6 text-center" id="txt-detail-open-patty-cash">
+                                        ${item.total_transaction}
+                                    </div>
+                                </div>
+                                <hr>`;
+
+                });
+            }
+            $('#container-sold-item').append(html)
+        });
 
         $(document).ready(function() {
             showLoader(false);
@@ -2789,12 +3016,15 @@
                 $('#txt-starting-cash-end-current-shift').text(formatRupiah(dataPattyCash[0].amount_awal.toString(),
                     "Rp. "));
 
+                listExistingSoldItem.forEach(function(item){
+                    soldItem += item.total_transaction;
+                })
+
 
                 listCategoryPayment.forEach(function(item) {
                     if (item.name == 'Cash') {
                         let sales = 0;
                         let expectedEndingCash = parseInt(dataPattyCash[0].amount_awal);
-                        soldItem += item.transactions.length;
                         item.transactions.forEach(function(cashTransaction) {
                             sales += cashTransaction.total;
                             expectedEndingCash += parseInt(cashTransaction.total);
@@ -2858,7 +3088,6 @@
 
                                 ${item.payment.map(function(itemPayment) {
                                     let total = 0;
-                                    soldItem += itemPayment.transactions.length;
                                     itemPayment.transactions.forEach(function(transactionPaymentItem){
                                         total += transactionPaymentItem.total;
                                         totalPerCategory += transactionPaymentItem.total;
@@ -2891,12 +3120,13 @@
 
 
                         $('#container-shift').append(html);
-                        $('#txt-sold-items').text(soldItem);
+
                     }
-
-
                 });
-                console.log(listCategoryPayment);
+
+
+                $('#txt-sold-items').text(soldItem);
+
             }
 
             $('.nav-link').on('click', function(e) {
@@ -3087,6 +3317,14 @@
                     }else if(section == "detail-history-shift"){
                         $('#detail-shift-history').addClass('d-none');
                         $('#history-shift-menu').removeClass('d-none');
+                    } else if(section == "history-sold-item"){
+                        $('#detail-shift-history').removeClass('d-none');
+                        $('#list-sold-item').addClass('d-none');
+                        $('#container-sold-item').empty();
+                    } else if(section == "list-sold-item"){
+                        $('#shift-menu').removeClass('d-none');
+                        $('#list-sold-item').addClass('d-none');
+                        $('#container-sold-item').empty();
                     } else {
                         console.log('masuk else');
                         backBtnSetting.style.setProperty('display', 'none', 'important');
