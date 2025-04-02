@@ -476,14 +476,36 @@ class KasirController extends Controller
 
         $transaction['tax'] = $transactionPajak;
 
-        $transactionItems = TransactionItem::with(['product', 'variant'])->where('transaction_id', $id)->get();
+        // $transactionItems = TransactionItem::with(['product', 'variant'])->where('transaction_id', $id)->get();
+
+
+        $transactionItems = TransactionItem::select(
+            'variant_id',
+            DB::raw('COUNT(*) as total_count'),
+            'product_id',
+            'discount_id',
+            'modifier_id',
+            'promo_id',
+            'sales_type_id',
+            'transaction_id',
+            'catatan',
+            'reward_item'
+        )->with(['product', 'variant'])->where('transaction_id', $id)
+        ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'deleted_at', 'created_at', 'updated_at', 'reward_item')
+        ->orderBy('id')
+        ->get();
+
+        // dd($transactionItems);
+
         foreach ($transactionItems as $transactionItem) {
             $tmpModifier = [];
             $modifierItem = $transactionItem->modifiers();
             foreach ($modifierItem as $modifier) {
                 array_push($tmpModifier, $modifier->name);
             }
+
             $transactionItem['modifier'] = $tmpModifier;
+            $transactionItem['total_transaction'] = $transactionItem->total_count * $transactionItem->variant->harga;
         }
 
 
