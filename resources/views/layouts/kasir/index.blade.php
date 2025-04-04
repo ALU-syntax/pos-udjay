@@ -2524,9 +2524,12 @@
         // Fungsi untuk mendapatkan teks item yang dipotong
         function getTruncatedItemText(itemTransactions) {
             return itemTransactions.map(itemTransaction => {
+                console.log(itemTransaction);
+                if(itemTransaction.product){
                 return itemTransaction.product.name === itemTransaction.variant.name
                     ? itemTransaction.product.name
                     : `${itemTransaction.product.name} - ${itemTransaction.variant.name}`;
+                }
             }).join(', ');
         }
 
@@ -2550,7 +2553,7 @@
                                     </div>
                                     <div class="col-8">
                                         <p>${formatRupiah(transaction.total.toString(), "Rp. ")}</p>
-                                        <p class="list-product-transaction">${truncateItemText}</p>
+                                        <p class="list-product-transaction">${truncateItemText ? truncateItemText : 'custom'}</p>
                                     </div>
                                     <div class="col-2" id="time-transaction">
                                         ${transaction.created_time}
@@ -2570,7 +2573,7 @@
                                     </div>
                                     <div class="col-8">
                                         <p>${formatRupiah(transaction.total.toString(), "Rp. ")}</p>
-                                        <p class="list-product-transaction">${truncateItemText}</p>
+                                        <p class="list-product-transaction">${truncateItemText ? truncateItemText : 'custom'}</p>
                                     </div>
                                     <div class="col-2" id="time-transaction">
                                         ${transaction.created_time}
@@ -2604,11 +2607,15 @@
 
             $('#row-product').empty();
             data.item_transaction.forEach(function(item, index){
-                var nameProductTransaction = item.product.name == item.variant.name ? item.product.name : item.product.name + ' - ' + item.variant.name;
+                console.log(item);
+                // var nameProductTransaction = item.product.name == item.variant.name ? item.product.name : item.product.name + ' - ' + item.variant.name;
+                var nameProductTransaction = item.product ? (item.product.name == item.variant.name ? item.product.name : item.product.name + ' - ' + item.variant.name) : 'custom';
                 var modifierTransactionJson = JSON.parse(item.modifier_id);
+                var inisialNameBox = item.product ? item.product.name : 'custom';
+                var hargaItem = item.variant ? formatRupiah(item.variant.harga.toString(), "Rp. ") : (item.harga ? formatRupiah(item.harga.toString(), "Rp. ") : "Rp.");
 
                 var htmlListProductTransaction = `
-                            <div class="col-2 icon-box" data-text="${item.product.name}"></div>
+                            <div class="col-2 icon-box" data-text="${inisialNameBox}"></div>
                             <div class="col-5 pt-2">
                                 <span>${nameProductTransaction}</span>
                                 <br>
@@ -2616,7 +2623,7 @@
                                     return `<span style="color:gray;">${modifier.nama}</span><br> `;}).join('')}
                             </div>
                             <div class="col-5 text-end">
-                                <span>${formatRupiah(item.variant.harga.toString(), "Rp. ")}</span>
+                                <span>${hargaItem}</span>
                                 <br>
                                 ${modifierTransactionJson.map(function(modifier) {
                                     return `<span style="color:gray;">${formatRupiah(modifier.harga.toString(), "Rp. ")}</span><br> `;}).join('')}
@@ -2624,7 +2631,7 @@
                 `;
                 $('#row-product').append(htmlListProductTransaction);
 
-                subTotalTransaction += item.variant.harga;
+                subTotalTransaction += item.harga ? item.harga : (item.variant ? item.variant.harga : 0);
 
                 syncIconBoxes();
             });

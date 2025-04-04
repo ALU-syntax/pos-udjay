@@ -360,16 +360,25 @@
 
                         // Mengisi tabel dengan data item_transaction
                         res.data.item_transaction.forEach(item => {
-                            let namaProduct = item.variant.name == item.product.name ? item
-                                .product.name :
-                                `${item.product.name} - ${item.variant.name}`
+                            if(item.product){
+                                let namaProduct = item.variant.name == item.product.name ? item
+                                    .product.name :
+                                    `${item.product.name} - ${item.variant.name}`
 
-                            tbody.append(`
-                                            <tr>
-                                                <td>${namaProduct}</td>
-                                                <td>${item.total_count}</td>
-                                            </tr>
-                                        `);
+                                tbody.append(`
+                                                <tr>
+                                                    <td>${namaProduct}</td>
+                                                    <td>${item.total_count}</td>
+                                                </tr>
+                                            `);
+                            }else{
+                                tbody.append(`
+                                                <tr>
+                                                    <td>custom</td>
+                                                    <td>1</td>
+                                                </tr>
+                                            `);
+                            }
                         });
 
                     },

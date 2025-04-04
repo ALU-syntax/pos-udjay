@@ -76,10 +76,10 @@
                             @foreach ($data->itemTransaction as $transaction)
                                 <tr>
                                     <td style="font-weight: normal;">
-                                        {{ $transaction->product->name == $transaction->variant->name ? $transaction->product->name : $transaction->product->name . ' - ' . $transaction->variant->name }}
+                                        {{ $transaction->product ? $transaction->product->name == $transaction->variant->name ? $transaction->product->name : $transaction->product->name . ' - ' . $transaction->variant->name : 'custom' }}
                                     </td>
                                     <td>x{{ $transaction->total_count }}</td>
-                                    <td>{{ formatRupiah(strval($transaction->variant->harga * $transaction->total_count), 'Rp. ') }}
+                                    <td>{{ $transaction->variant ? formatRupiah(strval($transaction->variant->harga * $transaction->total_count), 'Rp. ') : ($transaction->harga ? formatRupiah(strval($transaction->harga), "Rp. ") : '') }}
                                     </td>
                                 </tr>
 

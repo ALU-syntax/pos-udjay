@@ -246,6 +246,8 @@
         }
 
         $('#pay').on('click', function() {
+            $(this).prop('disabled', true);
+
             let selectButton = $('button.active').text();
             let selectButtonTrim = selectButton.trim();
             let selectButtonAngka = parseInt(selectButtonTrim.replace(/[^\d]/g, ""));
@@ -303,6 +305,7 @@
                     for (let x = 0; x < item.quantity; x++) {
                         dataForm.append('idProduct[]', item.idProduct);
                         dataForm.append('idVariant[]', item.idVariant);
+                        dataForm.append('harga[]', item.harga);
                         let tmpDiscountData = [];
                         item.diskon.forEach(function(discountItem, indexItem) {
                             let discount = {
@@ -345,13 +348,17 @@
                         dataForm.append('sales_type[]', item.salesType);
 
                         let resultCatatan = item.catatan == '' ? '' : item.catatan;
+
+                        let checkProductCustom = item.idProduct ? resultCatatan : 'custom';
+
                         dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
-                        dataForm.append('catatan[]', resultCatatan);
+                        dataForm.append('catatan[]', checkProductCustom);
                         dataForm.append('reward[]', false);
                     }
                 } else {
                     dataForm.append('idProduct[]', item.idProduct);
                     dataForm.append('idVariant[]', item.idVariant);
+                    dataForm.append('harga[]', item.harga);
                     let tmpDiscountData = [];
                     item.diskon.forEach(function(discountItem, indexItem) {
                         let discount = {
@@ -393,9 +400,12 @@
                     dataForm.append('sales_type[]', item.salesType);
 
                     let resultCatatan = item.catatan == '' ? '' : item.catatan;
+
+                    let checkProductCustom = item.idProduct ? resultCatatan : 'custom';
+
                     dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
                     dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
-                    dataForm.append('catatan[]', resultCatatan);
+                    dataForm.append('catatan[]', checkProductCustom);
 
                     dataForm.append('reward[]', false);
                 }
@@ -619,6 +629,7 @@
             dataForm.append('bill_id', billId);
             dataForm.append('potongan_point', potonganPoint);
 
+            console.log(dataForm);
             $.ajax({
                 url: "{{ route('kasir/bayar') }}",
                 method: "POST",

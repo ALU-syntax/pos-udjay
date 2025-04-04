@@ -367,6 +367,7 @@ class KasirController extends Controller
                 'product_id' => $idProduct,
                 'discount_id' => $request->discount_id[$x],
                 'modifier_id' => $request->modifier_id[$x],
+                'harga' => $request->harga[$x],
                 'variant_id' => ($request->idVariant[$x] == 'null' || $request->idVariant[$x] == 'undefined') ? null : $request->idVariant[$x],
                 'promo_id' => $request->promo_id[$x],
                 'reward_item' => $request->reward[$x] == "true" ? true : false,

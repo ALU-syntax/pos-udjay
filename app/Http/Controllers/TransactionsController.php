@@ -109,7 +109,7 @@ class TransactionsController extends Controller
         foreach($idTransaction->itemTransaction()->with(['variant'])->get() as $item){
             $tmpDataDiskonItem = json_decode($item->discount_id);
             $tmpDataModifierItem = json_decode($item->modifier_id);
-            $subTotal += $item->variant->harga;
+            $subTotal += $item->variant ? $item->variant->harga : ($item->harga ? $item->harga : 0);
 
             foreach($tmpDataModifierItem as $modifier){
                 $totalNominalModifier += $modifier->harga;

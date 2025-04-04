@@ -40,15 +40,17 @@ class TransactionsDataTable extends DataTable
                 foreach ($itemWithProduct as $item) {
                     if($item->product){
                         $itemText .= "<span>{$item->product->name}, </span>";
+                    }else{
+                        $itemText .= "<span>custom, </span>";
                     }
                 }
-                
+
                 if(count($itemWithProduct)){
-                    $result = substr($itemText, 0, -9);    
+                    $result = substr($itemText, 0, -9);
                 }else{
                     $result = '-';
                 }
-                
+
                 return $result;
             })
             ->addColumn('total', function ($row) {
@@ -80,26 +82,26 @@ class TransactionsDataTable extends DataTable
         } else {
             $dataOutletUser = json_decode(auth()->user()->outlet_id);
             $query->where('outlet_id', $dataOutletUser[0])->whereDate('created_at', Carbon::today());
-            
+
         }
 
-        // Filter berdasarkan rentang tanggal untuk kolom created_at  
+        // Filter berdasarkan rentang tanggal untuk kolom created_at
         if ($this->request()->has('date') && $this->request()->get('date') != '') {
             $dates = explode(' - ', $this->request()->get('date'));
             if (count($dates) == 2) {
-                // Mengonversi format tanggal dari input  
+                // Mengonversi format tanggal dari input
                 $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
                 $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
 
-                // Menggunakan whereBetween untuk memfilter berdasarkan created_at  
+                // Menggunakan whereBetween untuk memfilter berdasarkan created_at
                 $query->whereBetween('created_at', [$startDate, $endDate]);
             }
         }
 
-        // Hitung total  
+        // Hitung total
         $total = $query->sum('total');
 
-        // Simpan total ke dalam session atau variabel statis untuk diakses di frontend  
+        // Simpan total ke dalam session atau variabel statis untuk diakses di frontend
         session(['total_transaction' => $total]);
 
         return $query;
@@ -112,7 +114,7 @@ class TransactionsDataTable extends DataTable
     {
         $userOutlet = json_decode(auth()->user()->outlet_id);
         $dataOutlet = Outlets::find($userOutlet[0]);
-        
+
         return $this->builder()
             ->setTableId('transactions-table')
             ->columns($this->getColumns())
@@ -130,29 +132,29 @@ class TransactionsDataTable extends DataTable
                 Button::make('reload')
             ])
             ->parameters([
-                'drawCallback' => 'function(settings) {  
-                    var api = this.api();  
-                    var data = api.rows({page: "current"}).data();  
+                'drawCallback' => 'function(settings) {
+                    var api = this.api();
+                    var data = api.rows({page: "current"}).data();
 
-                     // Ambil outlet dari request  
-                    
-                    var outlet = "' . $this->request()->get('outlet') . '"; // Ambil outlet dari request  
+                     // Ambil outlet dari request
+
+                    var outlet = "' . $this->request()->get('outlet') . '"; // Ambil outlet dari request
                     if(!outlet){
                         outlet = "' . $dataOutlet->name . '";
                         // let outletUser = ' . $dataOutlet->name . '
                         // outlet = outletUser[0]
                     }
-                    
-                    var total = ' . session('total_transaction', 0) . '; // Ambil total dari session  
 
-                    // Tambahkan custom row di paling atas  
-                    if (data.length > 0) {  
-                        var customRow = "<tr>" +  
-                            "<td colspan=\'4\' style=\'text-align: left; background-color: #f0f0f0;\'> " + outlet + "</td>" +  
-                            "<td style=\'text-align: center; background-color: #f0f0f0;\'> " + formatRupiah(total.toString(), "Rp. ") + "</td>" +  
-                            "</tr>";  
-                        $(api.table().body()).prepend(customRow);  
-                    }  
+                    var total = ' . session('total_transaction', 0) . '; // Ambil total dari session
+
+                    // Tambahkan custom row di paling atas
+                    if (data.length > 0) {
+                        var customRow = "<tr>" +
+                            "<td colspan=\'4\' style=\'text-align: left; background-color: #f0f0f0;\'> " + outlet + "</td>" +
+                            "<td style=\'text-align: center; background-color: #f0f0f0;\'> " + formatRupiah(total.toString(), "Rp. ") + "</td>" +
+                            "</tr>";
+                        $(api.table().body()).prepend(customRow);
+                    }
                 }'
             ]);
     }
