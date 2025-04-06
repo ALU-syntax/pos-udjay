@@ -170,7 +170,19 @@
                 <div class="card">
                     <div class="card-body">
                         <div class="container">
-                            <h5>Order Details</h5>
+                            <div class="row">
+                                <div class="col-6">
+                                    <h5>Order Details</h5>
+                                </div>
+
+                                @can('delete report/transactions')
+                                    <div class="col-6 d-flex align-self-end justify-content-end">
+                                        {{-- <button class="btn btn-danger">Hapus Transaksi</button> --}}
+                                        <a id="btn-delete-transaction" class="btn btn-danger" href="">Hapus
+                                            Transaksi</a>
+                                    </div>
+                                @endcan
+                            </div>
                             <hr>
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">Status</div>
@@ -354,13 +366,17 @@
                         $('#total-amount').text(formatRupiah(res.data.total.toString(), "Rp. "));
                         $('#payment-method').text(res.data.nama_tipe_pembayaran)
 
+                        var urlDestroyTransaction = "{{ route('report/transaction/destroy', ':id') }}".replace(
+                            ':id', res.data.id);
+                        $('#btn-delete-transaction').attr('href', urlDestroyTransaction);
+
                         // Mengosongkan tabel sebelum mengisi data baru
                         const tbody = $('#table-list-item tbody');
                         tbody.empty(); // Menghapus semua baris yang ada
 
                         // Mengisi tabel dengan data item_transaction
                         res.data.item_transaction.forEach(item => {
-                            if(item.product){
+                            if (item.product) {
                                 let namaProduct = item.variant.name == item.product.name ? item
                                     .product.name :
                                     `${item.product.name} - ${item.variant.name}`
@@ -371,7 +387,7 @@
                                                     <td>${item.total_count}</td>
                                                 </tr>
                                             `);
-                            }else{
+                            } else {
                                 tbody.append(`
                                                 <tr>
                                                     <td>custom</td>
@@ -563,7 +579,6 @@
                 });
 
                 handleAction(datatable);
-                handleDelete(datatable);
 
                 $('#filter-outlet').on('change', function() {
                     console.log($('#filter-outlet').val());
@@ -577,6 +592,32 @@
 
                     getNewData()
                 });
+
+                $('#btn-delete-transaction').on('click', function(e) {
+                    e.preventDefault();
+                    console.log('masok')
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: "You won't be able to revert this!",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Yes, delete it!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            handleAjax(this.href, 'delete').onSuccess(function(res) {
+                                // showToast(res.status, res.message)
+                                window.LaravelDataTables[datatable].ajax.reload(null, false)
+                            }, false).excute();
+                            console.log(result);
+                            showToast('success', "Data berhasil dihapus");
+                            removeDetailCard(detailCard, tableContainer, transactionTable);
+                        }
+                    })
+
+                });
+
             });
         </script>
     @endpush

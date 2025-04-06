@@ -129,4 +129,11 @@ class TransactionsController extends Controller
             'data' => $idTransaction
         ]);
     }
+
+    public function destroy(Transaction $idTransaction){
+        $idTransaction->itemTransaction()->delete();
+        $idTransaction->delete();
+
+        return responseSuccessDelete();
+    }
 }
