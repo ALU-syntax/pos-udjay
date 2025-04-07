@@ -162,13 +162,15 @@
         let angkaTotal = parseInt(textTotal.replace(/[^\d]/g, ""));
 
         let rounding = document.getElementById("rounding").textContent;
+        let hargaFinal = angkaTotal;
+
         if (rounding) {
             let textRounding = rounding.trim();
             let angkaRounding = parseInt(textRounding.replace(/[^\d]/g, ""));
 
             let symbol = textRounding.charAt(0);
 
-            let hargaFinal = symbol == "-" ? angkaTotal - angkaRounding : angkaTotal + angkaRounding;
+            hargaFinal = symbol == "-" ? angkaTotal - angkaRounding : angkaTotal + angkaRounding;
 
             if (hargaFinal <= pointCustomer) {
                 potonganPoint = hargaFinal;

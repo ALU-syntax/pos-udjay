@@ -50,7 +50,6 @@ if (!function_exists('menus')) {
                 ]);
             }
 
-            
         }
     }
 
@@ -140,7 +139,7 @@ if (!function_exists('menus')) {
             $rupiah = isset($split[1]) ? $rupiah . ',' . $split[1] : $rupiah;
 
             // Tambahkan prefix jika ada
-            return $prefix === null ? $rupiah : ($rupiah ? $prefix . $rupiah : '');
+            return $prefix === null ? $rupiah : ($rupiah != null ? $prefix . $rupiah : '');
         }
     }
 }
