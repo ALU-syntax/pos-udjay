@@ -24,6 +24,13 @@
                 placeholder="Nomor telfon.." required>
         </div>
     </div>
+    <div class="col-sm-12">
+        <div class="form-group">
+            <label>Catatan Nota</label>
+            <textarea id="catatan_nota" name="catatan_nota" value="{{ $data->catatan_nota }}" type="text" class="form-control"
+                placeholder="note.." aria-label="With textarea">{{ $data->catatan_nota }}</textarea>
+        </div>
+    </div>
     <script>
         $(".select2InsideModal").select2({
             dropdownParent: $("#modal_action")

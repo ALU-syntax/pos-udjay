@@ -24,7 +24,8 @@ class OutletRequest extends FormRequest
         return [
             'name' => 'required',
             'address' => 'required',
-            'phone' => 'required|numeric'
+            'phone' => 'required|numeric',
+            'catatan_nota' => 'nullable|string',
         ];
     }
 }
