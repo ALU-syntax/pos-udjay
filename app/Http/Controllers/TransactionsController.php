@@ -136,4 +136,11 @@ class TransactionsController extends Controller
 
         return responseSuccessDelete();
     }
+
+    public function modalResendReceipt($idTransaction){
+
+        return view("layouts.reports.modal-resend-receipt", [
+            "action" => route('report/transaction/modalResendReceipt', $idTransaction)
+        ]);
+    }
 }
