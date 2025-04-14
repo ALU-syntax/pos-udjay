@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\TransactionsDataTable;
+use App\Mail\ResendReceiptMail;
 use App\Models\Outlets;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class TransactionsController extends Controller
 {
@@ -143,4 +145,10 @@ class TransactionsController extends Controller
             "action" => route('report/transaction/modalResendReceipt', $idTransaction)
         ]);
     }
+
+    public function resendReceipt(Request $request, $idTransaction){
+        $email = $request->email;
+        Mail::to($email)->send(new ResendReceiptMail($dataEmailPointUse));
+    }
+
 }

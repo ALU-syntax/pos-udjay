@@ -346,6 +346,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/getTransactionDataDetail', [TransactionsController::class, 'getTransactionDataDetail'])->name('transaction/getTransactionDataDetail');
             Route::get('/showReceipt/{idTransaction}', [TransactionsController::class, 'showReceipt'])->name('transaction/showReceipt');
             Route::get('/modalResendReceipt/{idTransaction}', [TransactionsController::class, 'modalResendReceipt'])->name('transaction/modalResendReceipt');
+            Route::post('/resendReceipt/{idTransaction}', [TransactionsController::class, 'resendReceipt'])->name('transaction/resendReceipt');
             Route::delete('/destroy/{idTransaction}', [TransactionsController::class, 'destroy'])->name('transaction/destroy');
         });
     });
