@@ -27,7 +27,7 @@ class ResendReceiptMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Resend Receipt Mail',
+            subject: 'Resend Receipt',
         );
     }
 
@@ -37,7 +37,7 @@ class ResendReceiptMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'view.name',
+            view: 'email.resend-receipt2',
         );
     }
 

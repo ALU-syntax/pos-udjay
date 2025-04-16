@@ -142,13 +142,74 @@ class TransactionsController extends Controller
     public function modalResendReceipt($idTransaction){
 
         return view("layouts.reports.modal-resend-receipt", [
-            "action" => route('report/transaction/modalResendReceipt', $idTransaction)
+            "action" => route('report/transaction/resendReceipt', $idTransaction)
         ]);
     }
 
-    public function resendReceipt(Request $request, $idTransaction){
+    public function resendReceipt(Request $request, Transaction $idTransaction){
+        dd($idTransaction);
+        $idTransaction->total_pajak = json_decode($idTransaction->total_pajak);
+        $idTransaction->diskon_all_item = json_decode($idTransaction->diskon_all_item);
+        $idTransaction->load(['outlet', 'user', 'customer','itemTransaction' => function($itemTransaction){
+            $itemTransaction->select(
+                'variant_id',
+                DB::raw('COUNT(*) as total_count'),
+                'product_id',
+                'discount_id',
+                'modifier_id',
+                'promo_id',
+                'sales_type_id',
+                'transaction_id',
+                'catatan',
+                'reward_item'
+            )
+            ->with(['variant', 'product'])
+            ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'reward_item');
+        }]);
+        $idTransaction->tanggal_beli = Carbon::parse($idTransaction->created_at)->format('d M Y');
+        $idTransaction->waktu_beli = Carbon::parse($idTransaction->created_at)->format('H:i');
+
+        $dataTransaction = $idTransaction;
+
+        $totalNominalPajak = 0;
+        $totalNominalDiskon = 0;
+        $totalNominalModifier = 0;
+        $subTotal = 0;
+
+        foreach($idTransaction->total_pajak as $pajak){
+            $totalNominalPajak += $pajak->total;
+        }
+
+        $idTransaction->total_nominal_pajak = $totalNominalPajak;
+
+        foreach($idTransaction->diskon_all_item as $diskonAllItem){
+            $totalNominalDiskon += $diskonAllItem->value;
+        }
+
+        // dd($idTransaction->itemTransaction()->with(['variant'])->get());
+
+        foreach($idTransaction->itemTransaction()->with(['variant'])->get() as $item){
+            $tmpDataDiskonItem = json_decode($item->discount_id);
+            $tmpDataModifierItem = json_decode($item->modifier_id);
+            $subTotal += $item->variant ? $item->variant->harga : ($item->harga ? $item->harga : 0);
+
+            foreach($tmpDataModifierItem as $modifier){
+                $totalNominalModifier += $modifier->harga;
+                $subTotal += $modifier->harga;
+            }
+
+            foreach($tmpDataDiskonItem as $diskonItem){
+                $totalNominalDiskon += $diskonItem->result;
+            }
+        }
+
+        $idTransaction->total_nominal_diskon = $totalNominalDiskon;
+        $idTransaction->sub_total = $subTotal;
+        $idTransaction->total_nominal_modifier = $totalNominalModifier;
         $email = $request->email;
-        Mail::to($email)->send(new ResendReceiptMail($dataEmailPointUse));
+        Mail::to($email)->send(new ResendReceiptMail());
+
+        return responseSuccess(false);
     }
 
 }
