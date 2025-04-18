@@ -417,6 +417,8 @@
                 if (item.quantity > 1) {
                     for (let x = 0; x < item.quantity; x++) {
                         dataForm.append('idProduct[]', item.idProduct);
+                        dataForm.append('idVariant[]', item.idVariant);
+                        dataForm.append('harga[]', item.harga);
                         let tmpDiscountData = [];
                         item.diskon.forEach(function(discountItem, indexItem) {
                             let discount = {
@@ -465,6 +467,8 @@
                     }
                 } else {
                     dataForm.append('idProduct[]', item.idProduct);
+                    dataForm.append('idVariant[]', item.idVariant);
+                    dataForm.append('harga[]', item.harga);
                     let tmpDiscountData = [];
                     item.diskon.forEach(function(discountItem, indexItem) {
                         let discount = {

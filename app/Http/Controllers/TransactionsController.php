@@ -147,7 +147,7 @@ class TransactionsController extends Controller
     }
 
     public function resendReceipt(Request $request, Transaction $idTransaction){
-        dd($idTransaction);
+        // dd($idTransaction);
         $idTransaction->total_pajak = json_decode($idTransaction->total_pajak);
         $idTransaction->diskon_all_item = json_decode($idTransaction->diskon_all_item);
         $idTransaction->load(['outlet', 'user', 'customer','itemTransaction' => function($itemTransaction){
@@ -207,7 +207,7 @@ class TransactionsController extends Controller
         $idTransaction->sub_total = $subTotal;
         $idTransaction->total_nominal_modifier = $totalNominalModifier;
         $email = $request->email;
-        Mail::to($email)->send(new ResendReceiptMail());
+        Mail::to($email)->send(new ResendReceiptMail($idTransaction));
 
         return responseSuccess(false);
     }

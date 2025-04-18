@@ -16,9 +16,9 @@ class ResendReceiptMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public function __construct($data)
     {
-        //
+        $this->data = $data;
     }
 
     /**
@@ -27,7 +27,7 @@ class ResendReceiptMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Resend Receipt',
+            subject: 'Receipt Transaction',
         );
     }
 
@@ -37,7 +37,7 @@ class ResendReceiptMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'email.resend-receipt2',
+            view: 'email.resend-receipt',
         );
     }
 
@@ -49,5 +49,13 @@ class ResendReceiptMail extends Mailable
     public function attachments(): array
     {
         return [];
+    }
+
+    public function build()
+    {
+        return $this->view('email.resend-receipt')
+            ->from('no-reply@udjaya.com')
+            ->subject('Receipt Transaction')
+            ->with('data', $this->data);
     }
 }

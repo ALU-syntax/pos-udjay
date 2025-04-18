@@ -7,7 +7,7 @@
     </div>
 
     <div class="modal-footer border-0">
-        <button type="submit" id="addRowButton" class="btn btn-primary">Send &nbsp; <i class="fas fa-paper-plane" style="font-size: 18px;"></i></button>
+        <button type="submit" class="btn btn-primary">Send &nbsp; <i class="fas fa-paper-plane" style="font-size: 18px;"></i></button>
         <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
     </div>
 

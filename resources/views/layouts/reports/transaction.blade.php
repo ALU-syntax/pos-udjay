@@ -257,7 +257,7 @@
                                 <button class="btn btn-primary" id="btn-close-detail">Close</button>
                             </div>
                             <div class="col-10 d-flex justify-content-end">
-                                <a href="{{ route('report/transaction/modalResendReceipt', 1) }}" class="btn btn-outline-primary "
+                                <a href="{{ route('report/transaction/modalResendReceipt', 1) }}" class="btn btn-outline-primary action"
                                     id="btn-resend-receipt">Resend Receipt</a>
                                 <a href="{{ route('report/transaction/showReceipt', 1) }}" class="btn btn-outline-primary ms-2"
                                 id="btn-show-receipt">Show Receipt</a>
@@ -647,7 +647,7 @@
 
                 $('#btn-delete-transaction').on('click', function(e) {
                     e.preventDefault();
-                    console.log('masok')
+
                     Swal.fire({
                         title: 'Are you sure?',
                         text: "You won't be able to revert this!",
@@ -669,13 +669,7 @@
                     })
 
                 });
-                
-                $('#btn-resend-receipt').on('click', function(e){
-                    e.preventDefault();
 
-                    let url = $(this).attr('href');
-                    showModalResendReceipt(url);
-                });
 
             });
         </script>
