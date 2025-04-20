@@ -209,7 +209,7 @@ class TransactionsController extends Controller
         $email = $request->email;
         Mail::to($email)->send(new ResendReceiptMail($idTransaction));
 
-        return responseSuccess(false);
+        return responseSuccess(false, "Receipt berhasil dikirim");
     }
 
 }

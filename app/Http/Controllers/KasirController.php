@@ -892,4 +892,10 @@ class KasirController extends Controller
         ]);
     }
 
+    public function viewResendReceipt($id){
+        return view('layouts.kasir.modal-resend-struk', [
+            "action" => route('report/transaction/resendReceipt', $id)
+        ]);
+    }
+
 }

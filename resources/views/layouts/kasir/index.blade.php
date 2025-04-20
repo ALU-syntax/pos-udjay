@@ -1089,8 +1089,15 @@
                 <div class="col-8" style="max-height: 90vh; overflow-y: auto;">
                     <div class="container px-5">
                         <div class="row mt-3">
-                            <a  class="btn btn-primary btn-lg disabled" target="_blank"
-                                id="btn-print-history-transaction"><i class="fas fa-receipt me-1"></i>Print Struk</a>
+                            <div class="col-6">
+                                <button  class="btn btn-primary btn-lg w-100 disabled"
+                                    id="btn-resend-receipt"><i class="fas fa-paper-plane" style="font-size: 18px;"></i> &nbsp; Resend Receipt</button>
+                            </div>
+
+                            <div class="col-6">
+                                <a  class="btn btn-primary btn-lg disabled w-100" target="_blank"
+                                    id="btn-print-history-transaction"><i class="fas fa-receipt me-1"></i>Print Struk</a>
+                            </div>
                         </div>
                         <div class="row mt-2">
                             <h3>Detail</h3>
@@ -2603,6 +2610,9 @@
 
             $('#btn-print-history-transaction').removeClass('disabled');
             $('#btn-print-history-transaction').attr('href', 'intent://struk-history-print?id=' + data.id);
+
+            $('#btn-resend-receipt').removeClass('disabled');
+            $('#btn-resend-receipt').attr('data-id', data.id);
             var subTotalTransaction = 0;
 
             $('#row-product').empty();
@@ -3666,6 +3676,14 @@
             $('#clear-search-activity').off().on('click', function() {
                 $('#search-aktivitas').val(''); // Mengosongkan nilai input
                 filterTransactions(''); // Memanggil fungsi filter dengan nilai kosong
+            });
+
+            $('#btn-resend-receipt').on('click', function(){
+                let baseUrlResendReceipt = `{{ route('kasir/viewResendReceipt', ':id') }}`; // Placeholder ':id'
+                let dataId = $(this).attr('data-id');
+                let urlResendReceipt = baseUrlResendReceipt.replace(':id', dataId); // Ganti ':id' dengan nilai dataId
+
+                handleAjax(urlResendReceipt).excute();
             });
 
         });
