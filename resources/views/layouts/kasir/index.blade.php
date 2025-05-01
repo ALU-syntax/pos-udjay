@@ -1435,6 +1435,13 @@
             listItem = listItem.filter(item => item.tmpId !== dataTmpId);
             listItemPromo = listItemPromo.filter(item => item.tmpId !== dataTmpId);
             listRewardItem = listRewardItem.filter(item => item.idItemPromo !== dataTmpId);
+            listDiskonAllItem = listDiskonAllItem.filter(item => item.tmpId !== dataTmpId);
+
+            console.log(listItem.length)
+            if(!listItem.length){
+                listDiskonAllItem = listDiskonAllItem.filter(item => item.hasOwnProperty('tmpId'));
+
+            }
 
             syncItemCart()
         }
@@ -1874,6 +1881,7 @@
                                                         satuan: satuanReward,
                                                         value: amount,
                                                         idPromo: item.id,
+                                                        tmpId: itemList.tmpId
                                                     }
 
                                                     listDiskonAllItem.push(dataDiscount)
@@ -2234,6 +2242,10 @@
                 item.modifier.forEach(function(itemModifier, indexModifier) {
                     tmpSubTotal.push(itemModifier.harga);
                 });
+
+                item.diskon.forEach(function(itemDiskon) {
+                    tmpSubTotal.push(-itemDiskon.result);
+                });
             });
 
             listDiskonAllItem.forEach(function(item, index){
@@ -2246,6 +2258,7 @@
                 return acc + curr;
             }, 0);
 
+            console.log(subTotal);
             let tmpTotalPajak = [];
             let tmpDataPajak = [];
 
@@ -3591,6 +3604,7 @@
                     listItem = [];
                     listItemPromo = [];
                     listRewardItem = [];
+                    listDiskonAllItem = [];
 
                     syncItemCart();
                 }

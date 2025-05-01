@@ -125,6 +125,7 @@
                 listItem = [];
                 listItemPromo = [];
                 listRewardItem = [];
+                listDiskonAllItem = [];
                 console.log(res);
 
                 if(res.data.customer){
@@ -179,6 +180,7 @@
         listItem = [];
         listItemPromo = [];
         listRewardItem = [];
+        listDiskonAllItem = [];
 
         syncItemCart()
 

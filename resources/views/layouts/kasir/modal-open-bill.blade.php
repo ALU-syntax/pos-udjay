@@ -56,6 +56,24 @@
             openBillForm.append('bill_id_item[]', item.billId);
         });
 
+        listItemPromo.forEach(function(item, index) {
+            openBillForm.append('catatan[]', item.catatan);
+            openBillForm.append('diskon[]', JSON.stringify(item.diskon));
+            openBillForm.append('harga[]', item.harga);
+            openBillForm.append('idProduct[]', item.idProduct);
+            openBillForm.append('idVariant[]', item.idVariant);
+            openBillForm.append('modifier[]', JSON.stringify(item.modifier));
+            openBillForm.append('namaProduct[]', item.namaProduct);
+            openBillForm.append('namaVariant[]', item.namaVariant);
+            openBillForm.append('pilihan[]', JSON.stringify(item.pilihan));
+            openBillForm.append('promo[]', JSON.stringify(item.promo));
+            openBillForm.append('quantity[]', item.quantity);
+            openBillForm.append('resultTotal[]', item.resultTotal);
+            openBillForm.append('salesType[]', item.salesType);
+            openBillForm.append('tmpId[]', item.tmpId);
+            openBillForm.append('bill_id_item[]', item.billId);
+        });
+
         console.log(openBillForm);
         $.ajax({
             url: "{{ route('kasir/openBill') }}",
@@ -70,6 +88,7 @@
                 listItem = [];
                 listItemPromo = [];
                 listRewardItem = [];
+                listDiskonAllItem = [];
                 idPelanggan = '';
 
                 console.log(res);
