@@ -535,9 +535,10 @@ class KasirController extends Controller
             'sales_type_id',
             'transaction_id',
             'catatan',
-            'reward_item'
+            'reward_item',
+            'harga'
         )->with(['product', 'variant'])->where('transaction_id', $id)
-        ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'deleted_at', 'created_at', 'updated_at', 'reward_item')
+        ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'deleted_at', 'created_at', 'updated_at', 'reward_item', 'harga')
         ->orderBy('id')
         ->get();
 
@@ -551,7 +552,11 @@ class KasirController extends Controller
             }
 
             $transactionItem['modifier'] = $tmpModifier;
-            $transactionItem['total_transaction'] = $transactionItem->total_count * $transactionItem->variant->harga;
+            if(!isNull($transactionItem->variant)){
+                $transactionItem['total_transaction'] = $transactionItem->total_count * $transactionItem->variant->harga;
+            }else{
+                $transactionItem['total_transaction'] = $transactionItem->total_count * $transactionItem->harga;
+            }
         }
 
 
