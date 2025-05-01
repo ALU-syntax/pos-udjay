@@ -35,6 +35,8 @@
         openBillForm = new FormData();
         openBillForm.append('name', $('#name-open-bill').val());
         openBillForm.append('outlet_id', dataPattyCash[0].outlet_data.id);
+        openBillForm.append('customer_id', idPelanggan);
+
 
         listItem.forEach(function(item, index) {
             openBillForm.append('catatan[]', item.catatan);
@@ -54,6 +56,7 @@
             openBillForm.append('bill_id_item[]', item.billId);
         });
 
+        console.log(openBillForm);
         $.ajax({
             url: "{{ route('kasir/openBill') }}",
             method: "POST",
@@ -67,11 +70,12 @@
                 listItem = [];
                 listItemPromo = [];
                 listRewardItem = [];
+                idPelanggan = '';
 
                 console.log(res);
 
                 if (window.Android) {
-                    // Panggil metode JavaScript Interface dengan ID transaksi  
+                    // Panggil metode JavaScript Interface dengan ID transaksi
                     window.Android.handlePrintOpenBill(res.data.id);
                 }
 

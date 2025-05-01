@@ -38,7 +38,7 @@ use Illuminate\Support\Facades\Mail;
 
 class KasirController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $outletUser = auth()->user()->outlet_id;
         $dataOutletUser = json_decode($outletUser);
@@ -202,7 +202,52 @@ class KasirController extends Controller
         $outletUser = auth()->user()->outlet_id;
         $dataOutletUser = json_decode($outletUser);
 
-        if ($request->bill_id != "0" || $request->bill_id != 0) {
+        //jika split bill dari open bill
+        if(($request->bill_id != "0" || $request->bill_id != 0) && $request->split_bill == true){
+            $bill = OpenBill::with(['item'])->where('id', $request->bill_id)->first();
+
+            // Hitung frekuensi kemunculan setiap tmpId
+            $countsItem = array_count_values($request->tmpId);
+
+            // Buat array hasil dengan struktur yang diinginkan
+            $resultCountItem = [];
+
+            foreach ($countsItem as $tmpId => $qty) {
+                $resultCountItem[] = [
+                    'tmpId' => $tmpId,
+                    'qty' => $qty
+                ];
+            }
+
+            foreach ($bill->item as $item) {
+                // Cari data gabungan yang matching tmp_id
+                $match = null;
+                foreach ($resultCountItem as $data) {
+                    if ($data['tmpId'] === $item['tmp_id']) {
+                        $match = $data;
+                        break;
+                    }
+                }
+
+                if ($match) {
+                    $itemQty = (int) $item['quantity'];
+                    $mergeQty = (int) $match['qty'];
+
+                    if ($itemQty > $mergeQty) {
+                        $newQty = $itemQty - $mergeQty;
+                        // Kurangi quantity dan update result_total
+                        $item['quantity'] = (string) $newQty;
+                        $item['result_total'] = $item['harga'] * $newQty;
+
+                        $item->save();
+                    }else{
+                        $item->delete();
+                    }
+                }
+            }
+        }
+
+        if (($request->bill_id != "0" || $request->bill_id != 0) && $request->split_bill == false) {
             $bill = OpenBill::with(['item'])->where('id', $request->bill_id)->first();
             $bill->item()->delete();
             $bill->delete();
@@ -556,7 +601,8 @@ class KasirController extends Controller
             'quantity' => 'array',
             'resultTotal' => 'array',
             'salesType' => 'array',
-            'tmpId' => 'array'
+            'tmpId' => 'array',
+            'customer_id' => 'nullable',
         ]);
 
         // DB::transaction(function () use ($validatedData) {
@@ -604,7 +650,8 @@ class KasirController extends Controller
             'name' => $validatedData['name'],
             'user_id' => auth()->user()->id,
             'outlet_id' => $validatedData['outlet_id'],
-            'queue_order' => 1
+            'queue_order' => 1,
+            'customer_id' => $validatedData['customer_id'],
         ];
 
         $openBill = OpenBill::create($dataOpenBill);
@@ -663,7 +710,7 @@ class KasirController extends Controller
 
     public function chooseBill($id)
     {
-        $data = OpenBill::with(['item'])->where('id', $id)->first();
+        $data = OpenBill::with(['item', 'customer'])->where('id', $id)->first();
 
         return response()->json([
             'data' => $data
@@ -895,6 +942,22 @@ class KasirController extends Controller
     public function viewResendReceipt($id){
         return view('layouts.kasir.modal-resend-struk', [
             "action" => route('report/transaction/resendReceipt', $id)
+        ]);
+    }
+
+    public function viewSplitBill(){
+        return view('layouts.kasir.modal-split-bill');
+    }
+
+    public function choosePaymentSplitBill(){
+        $listCategoryPayment = CategoryPayment::with(['payment' => function ($payment) {
+            $payment->where('status', true);
+        }])->where('status', true)->orderBy('name', 'asc')->get();
+        $rounding = Checkout::find(1);
+
+        return view('layouts.kasir.modal-bayar-splitbill', [
+            'listPayment' => $listCategoryPayment,
+            'rounding' => $rounding
         ]);
     }
 

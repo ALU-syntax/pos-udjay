@@ -58,7 +58,8 @@
         }
 
         .bottom-nav-li {
-            height: 55px
+            height: 55px;
+            padding-bottom: 55px !important;
         }
 
         .icon-box {
@@ -292,6 +293,15 @@
 
         .list-sold-item{
             cursor: pointer;
+        }
+
+        .btn-xl{
+            padding-top: 1.75rem;
+            padding-bottom: 1.75rem;
+            padding-left: 3.5rem;
+            padding-right: 3.5rem;
+            font-size: 1.25rem;
+            border-radius: 0.5rem;
         }
     </style>
 </head>
@@ -1043,9 +1053,18 @@
                                 </div>
 
                                 <!-- Charge Button -->
-                                <div class="row">
-                                    <button class="btn btn-primary btn-lg btn-block" id="bayar"
-                                        style="height: 60px;">Bayar</button>
+                                <div class="row d-flex">
+                                    <div class="col-12 d-flex bg-primary rounded" >
+                                        <button class="btn w-25 btn-lg my-0 ms-0  ps-0 pe-2 pb-0 "
+                                            style="border-right: 2px solid white; border-radius: 0px;"
+                                            id="split-bill">
+                                            <img src="{{ asset('img/split-bill.png') }}" alt="" width="40">
+                                            <p class="m-0" style="font-size: 12px; color: white ;">Split Bill</p>
+                                        </button>
+                                        <button class="btn btn-primary btn-lg btn-block w-75" id="bayar"
+                                            style="height: 100%; width: 100%;">Bayar</button>
+                                    </div>
+
                                 </div>
 
                             </div>
@@ -1249,6 +1268,36 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalSuccessSplitBill" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <center>
+                        <img src="https://i.gifer.com/7efs.gif" alt="Transaction Successfully" class="img-fluid">
+                        <h3>Transaksi Sukses!</h3>
+                        <p>Kembalian :
+                        <h2><strong id="changeSplitBill"></strong></h2>
+                        </p>
+                        <span class="badge rounded-pill bg-primary text-white mb-4">Metode Pembayaran : <span
+                                id="metodetrxSplitBill"></span></span>
+                        <div class="d-flex justify-content-center mt-4">
+                            {{-- <a href="javascript:void(0);" class="btn btn-secondary me-4" target="_blank"
+                                id="btninvoice"><i class="fab fa-whatsapp me-1"></i>Kirim Invoice</a> --}}
+                            <a href="javascript:void(0);" class="btn btn-secondary me-4" target="_blank"
+                                id="btnstrukSplitBill"><i class="fas fa-receipt me-1"></i>Cetak Struk</a>
+                            <a href="javascript:void(0);" class="btn btn-secondary" target="_blank"
+                                id="btnSettingDeviceSplitBill"><i class="fas fa-gear me-1"></i>Setting Device</a>
+                        </div>
+                    </center>
+                </div>
+                <div class="d-flex justify-content-center mb-4">
+                    <button type="button" class="btn btn-primary w-50" id="btnRedirectSplitBill">Kembali ke pesanan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JS Dependencies -->
     {{-- <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script> --}}
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
@@ -1290,6 +1339,8 @@
         var listCategory = @json($categorys);
         var listProduct = [];
         var listActivityTransaction = [];
+        var listItemSplitBill = [];
+        var listPajakSplitBill = [];
         listCategory.forEach(function(category) {
             category.products.forEach(function(product) {
                 listProduct.push(product);
@@ -3316,7 +3367,15 @@
             });
 
             $('#pilih-pelanggan').on('click', function() {
-                handleAjax("{{ route('kasir/pilihCustomer') }}").excute();
+                if(billId != 0 || billId != "0"){
+                    iziToast['warning']({
+                        title: "Gagal",
+                        message: "Tidak bisa menambahkan customer pada bill tersimpan, buat bill baru",
+                        position: 'topRight'
+                    });
+                }else{
+                    handleAjax("{{ route('kasir/pilihCustomer') }}").excute();
+                }
             });
 
             $('#tambah-pelanggan').on('click', function() {
@@ -3522,11 +3581,19 @@
             });
 
             $("#empty-cart").on('click', function() {
-                listItem = [];
-                listItemPromo = [];
-                listRewardItem = [];
+                if(billId != 0 && billId != "0"){
+                    iziToast['error']({
+                        title: "Gagal",
+                        message: "Bill tersimpan tidak bisa dihapus",
+                        position: 'topRight'
+                    });
+                }else{
+                    listItem = [];
+                    listItemPromo = [];
+                    listRewardItem = [];
 
-                syncItemCart();
+                    syncItemCart();
+                }
             });
 
             $('#simpan-bill').on('click', function() {
@@ -3560,7 +3627,6 @@
                         openBillForm.append('bill_id', billId);
 
                         if (itemBaru > 0) {
-                            console.log(billId);
                             $.ajax({
                                 url: "{{ route('kasir/updateBill') }}",
                                 method: "POST",
@@ -3678,12 +3744,32 @@
                 filterTransactions(''); // Memanggil fungsi filter dengan nilai kosong
             });
 
-            $('#btn-resend-receipt').on('click', function(){
+            $('#btn-resend-receipt').off().on('click', function(){
                 let baseUrlResendReceipt = `{{ route('kasir/viewResendReceipt', ':id') }}`; // Placeholder ':id'
                 let dataId = $(this).attr('data-id');
                 let urlResendReceipt = baseUrlResendReceipt.replace(':id', dataId); // Ganti ':id' dengan nilai dataId
 
                 handleAjax(urlResendReceipt).excute();
+            });
+
+            $('#split-bill').off().on('click', function(){
+                if(listItem.length > 0 || listItemPromo.length > 0){
+                    if(dataPattyCash.length > 0){
+                        handleAjax('{{route("kasir/viewSplitBill")}}').excute();
+                    }else{
+                        iziToast['error']({
+                            title: "Gagal",
+                            message: "Open Shift Terlebih Dahulu",
+                            position: 'topRight'
+                        });
+                    }
+                } else{
+                    iziToast['error']({
+                        title: "Gagal",
+                        message: "Product Belum Dipilih",
+                        position: 'topRight'
+                    });
+                }
             });
 
         });

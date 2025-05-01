@@ -282,6 +282,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/pilih-customer', [KasirController::class, 'pilihCustomer'])->name('kasir/pilihCustomer');
         Route::get('/tambah-customer', [KasirController::class, 'tambahCustomer'])->name('kasir/tambahCustomer');
         Route::get('/custom-diskon/{diskon}', [KasirController::class, 'customDiskon'])->name('kasir/customDiskon');
+        Route::get('/split-bill', [KasirController::class, 'viewSplitBill'])->name('kasir/viewSplitBill');
+        Route::get('/choose-payment-split-bill', [KasirController::class, 'choosePaymentSplitBill'])->name('kasir/choosePaymentSplitBill');
         Route::get('/view-open-bill', [KasirController::class, 'viewOpenBill'])->name('kasir/viewOpenBill');
         Route::get('/view-resend-receipt/{id}', [KasirController::class, 'viewResendReceipt'])->name('kasir/viewResendReceipt');
         Route::get('/history-shifts/{outletid}', [KasirController::class, 'historyShift'])->name('kasir/historyShift');

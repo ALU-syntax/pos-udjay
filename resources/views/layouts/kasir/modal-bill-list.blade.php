@@ -19,11 +19,11 @@
                     <a class="nav-link active" id="openBills-tab" data-toggle="tab" href="#openBills" role="tab"
                         aria-controls="openBills" aria-selected="true">Open Bills</a>
                 </li>
-                {{-- <li class="nav-item">  
-                    <a class="nav-link" id="cancelledBills-tab" data-toggle="tab" href="#cancelledBills" role="tab" aria-controls="cancelledBills" aria-selected="false">Cancelled Bills</a>  
-                </li>  
-                <li class="nav-item">  
-                    <a class="nav-link" id="itemVoid-tab" data-toggle="tab" href="#itemVoid" role="tab" aria-controls="itemVoid" aria-selected="false">Item Void</a>  
+                {{-- <li class="nav-item">
+                    <a class="nav-link" id="cancelledBills-tab" data-toggle="tab" href="#cancelledBills" role="tab" aria-controls="cancelledBills" aria-selected="false">Cancelled Bills</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="itemVoid-tab" data-toggle="tab" href="#itemVoid" role="tab" aria-controls="itemVoid" aria-selected="false">Item Void</a>
                 </li>   --}}
             </ul>
             <div class="tab-content" id="myTabContent">
@@ -52,13 +52,13 @@
                         </tbody>
                     </table>
                 </div>
-                {{-- <div class="tab-pane fade" id="cancelledBills" role="tabpanel" aria-labelledby="cancelledBills-tab">  
-                    <!-- Content for Cancelled Bills tab -->  
-                    <p>No cancelled bills available.</p>  
-                </div>  
-                <div class="tab-pane fade" id="itemVoid" role="tabpanel" aria-labelledby="itemVoid-tab">  
-                    <!-- Content for Item Void tab -->  
-                    <p>No voided items available.</p>  
+                {{-- <div class="tab-pane fade" id="cancelledBills" role="tabpanel" aria-labelledby="cancelledBills-tab">
+                    <!-- Content for Cancelled Bills tab -->
+                    <p>No cancelled bills available.</p>
+                </div>
+                <div class="tab-pane fade" id="itemVoid" role="tabpanel" aria-labelledby="itemVoid-tab">
+                    <!-- Content for Item Void tab -->
+                    <p>No voided items available.</p>
                 </div>   --}}
             </div>
         </div>
@@ -79,7 +79,7 @@
                                         <td><button class="btn btn-success btnSyncBill" data-id="${bill.id}"><i
                                                     class="fas fa-check text-white"
                                                     style="cursor: pointer"></i></button></td>
-                                        <td style="color: blue;">&#8226;</td>
+                                        <td style="color: blue;">&#11044;</td>
                                     </tr>`;
             } else {
                 var htmlBodyBill = `<tr>
@@ -103,11 +103,9 @@
     }
 
 
-    $('.btnSyncBill').on('click', function() {
+    $('.btnSyncBill').off().on('click', function() {
         const dataId = $(this).data('id');
         billId = dataId;
-
-        console.log(dataId)
 
         const baseUrlBill = `{{ route('kasir/chooseBill', ':id') }}`; // Placeholder ':id'
         const urlBill = baseUrlBill.replace(':id', dataId); // Ganti ':id' dengan nilai dataId
@@ -117,16 +115,26 @@
             method: "GET",
             beforeSend: function() {
                 showLoader();
-                // showLoading()  
+                // showLoading()
             },
             complete: function() {
                 showLoader(false);
-                // hideLoading(false)  
+                // hideLoading(false)
             },
             success: (res) => {
                 listItem = [];
                 listItemPromo = [];
                 listRewardItem = [];
+                console.log(res);
+
+                if(res.data.customer){
+                    idPelanggan = res.data.customer.id;
+                    $('#pilih-pelanggan').html('<i class="fas fa-user"></i> ' + res.data.customer.name);
+                }else{
+                    idPelanggan = '';
+                    $('#pilih-pelanggan').html("Pilih Pelanggan");
+                }
+                // Update button text with Font Awesome icon and name
                 res.data.item.forEach(function(item) {
                     let data = {
                         tmpId: item.tmp_id,
@@ -161,7 +169,7 @@
             },
             error: function(err) {
                 console.log(err);
-                reject(err); // Rejecting the promise on error  
+                reject(err); // Rejecting the promise on error
             }
         });
     });

@@ -23,4 +23,8 @@ class OpenBill extends Model
     public function item(){
         return $this->hasMany(ItemOpenBill::class, 'open_bill_id', 'id');
     }
+
+    public function customer(){
+        return $this->belongsTo(Customer::class, 'customer_id', 'id');
+    }
 }
