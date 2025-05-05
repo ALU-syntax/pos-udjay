@@ -1234,7 +1234,7 @@
     </div>
 
     <!-- Modal Promo-->
-    <div class="modal fade" id="promoModal" tabindex="-1" aria-labelledby="itemModalLabel">
+    <div class="modal fade" id="promoModal" tabindex="-1" aria-labelledby="promoModalLabel">
     </div>
 
     <!-- Modal Success -->
@@ -1297,6 +1297,64 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="modalEditPesanan" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" id="editPesananModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal"
+                        id="btnBatalEditItem">Batal</button>
+                    <h5 class="modal-title mx-auto text-center" id="productEditModalLabel">
+                        <strong id="namaProductEdit"></strong><br>
+                        <span id="totalHargaItemEdit"></span>
+                    </h5>
+                    <button id="saveItemToCartEdit" type="button" class="btn btn-primary btn-lg">Simpan</button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="listVariantEdit"></div>
+
+                    <div id="listPilihanEdit"></div>
+
+                    <!-- Jumlah -->
+                    <div class="mb-4">
+                        <label for="quantity" class="form-label"><strong>Jumlah</strong></label>
+                        <div class="row">
+                            <div class="col-6">
+                                <input type="number" class="form-control text-center form-control-lg" id="quantity-edit"
+                                    style="height: 75px; font-size: 17px;" value="1" min="1" readonly>
+                            </div>
+                            <div class="col-3">
+                                <button
+                                    class="text-center align-items-center justify-content-center btn btn-lg btn-outline-primary w-100 d-flex"
+                                    id="decrement-edit" style="height: 75px; font-size:25px;"><span
+                                        class="text-center"></span>-</button>
+                            </div>
+                            <div class="col-3">
+                                <button
+                                    class="text-center btn btn-lg align-items-center justify-content-center btn-outline-primary w-100 d-flex"
+                                    id="increment-edit" style="height: 75px; font-size:25px;"><span
+                                        class="text-center">+</span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="salesTypeEdit"></div>
+
+                    <div id="listModifierEdit"></div>
+
+                    <div id="listDiskonEdit"></div>
+
+                    <div class="mb-4 mt-2">
+                        <label for="note" class="form-label"><strong>Catatan</strong></label>
+                        <textarea style="height: 220px;" class="form-control" id="catatanEdit" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- JS Dependencies -->
     {{-- <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script> --}}
@@ -1365,6 +1423,27 @@
 
         var listSoldItem = [];
         var listExistingSoldItem = @json($soldItem)
+
+        // properties edit item
+        var listModifierIdEdit = [];
+        var listModifierNameEdit = [];
+        var listModifierHargaEdit = [];
+
+        var listPilihanIdEdit = [];
+        var listPilihanNameEdit = [];
+        var listPilihanHarga = [];
+
+        var listDiskonIdEdit = [];
+        var listDiskonNameEdit = [];
+        var listDiskonTypeEdit = [];
+        var listDiskonValueEdit = [];
+        var listDiskonAmountEdit = [];
+
+        var hargaAkhirEditItem = 0;
+        var variantIdEdit = '';
+        var variantNameEdit = '';
+
+        var salesTypeIdEdit = '';
 
         function showLoader(show = true) {
             const preloader = $("#preloader");
@@ -1449,7 +1528,7 @@
         function updateCustomAmount() {
             let tmpId = generateRandomID();
             let html = `
-            <div class="row mb-0 mt-2">
+            <div class="row mb-0 mt-2" data-tmpid="${tmpId}" onclick="handlerEditItem(this)">
                 <div class="col-6" style="color:gray;">Custom Amount</div>
                 <input type="text" name="nama[]" value="custom" hidden>
                 <div class="col-5 text-end">${formatRupiah(tmpTampungCustomAmount.toString(), "Rp. ")}</div>
@@ -2024,15 +2103,15 @@
                 let html = '';
                 if (item.openBillId) {
                     html = `
-                    <div class="row mb-0 mt-2">
-                        <div class="col-6">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
+                    <div class="row mb-0 mt-2" >
+                        <div class="col-6" data-tmpid="${item.tmpId}" onclick="handlerEditItem(this)">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
                         <div class="col-5 text-end">${formatRupiah(item.resultTotal.toString(), "Rp. ")}</div>
                     </div>
                     `;
                 } else {
                     html = `
                     <div class="row mb-0 mt-2">
-                        <div class="col-6">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
+                        <div class="col-6" data-tmpid="${item.tmpId}" onclick="handlerEditItem(this)">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
                         <div class="col-5 text-end">${formatRupiah(item.resultTotal.toString(), "Rp. ")}</div>
                         <div class="col-1 text-end text-danger">
                             <button type="button" onclick="deleteItem(this)" data-tmpId="${item.tmpId}" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
@@ -3075,6 +3154,494 @@
             $('#container-sold-item').append(html)
         });
 
+        function handlerEditItem(widget){
+            let quantity = document.getElementById('quantity-edit');
+
+            $('#listVariantEdit').empty();
+            $('#listPilihanEdit').empty();
+            $('#salesTypeEdit').empty();
+            $('#listModifierEdit').empty();
+            $('#listDiskonEdit').empty();
+
+            let item = $(widget);
+            let itemTmpId = item.attr('data-tmpid');
+
+            let dataItem = listItem.find(item => item.tmpId == itemTmpId);
+
+            console.log(dataItem);
+            hargaAkhirEditItem = dataItem.harga;
+
+            $('#namaProductEdit').html(dataItem.namaProduct);
+            $('#totalHargaItemEdit').html(formatRupiah(dataItem.resultTotal.toString(), "Rp. "));
+            $('#quantity-edit').val(dataItem.quantity);
+            $('#catatanEdit').val(dataItem.catatan);
+
+            if(dataItem.listVariant && dataItem.listVariant.length > 1){
+                // Membuat container utama seperti div mb-4 dengan label dan small
+               let containerVariant = $(`
+                   <div class="mb-4">
+                       <label for="quantity" class="form-label"><strong>Variants</strong></label> |
+                       <small>Single Choose</small>
+                       <div class="row mt-1"></div>
+                   </div>
+               `);
+
+               // Ambil div row di dalam container untuk append tombol variant
+                let rowDiv = containerVariant.find('div.row');
+
+                dataItem.listVariant.forEach(function(variant){
+                    let variantHtml = $(`
+                        <div class="form-group col-6 mt-2">
+                            <button class="btn w-100 btn-xl btn-outline-primary btn-variant-edit"
+                                data-variantid="${variant.id}" data-harga="${variant.harga}" data-name="${variant.name}">
+                                <div class="row">
+                                    <div class="col-6 me-auto">
+                                        ${variant.name} (${variant.stok})
+                                    </div>
+                                    <div class="col-4 ms-auto pe-0">
+                                        ${formatRupiah(variant.harga.toString(), 'Rp. ')}
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    `);
+
+                    if(dataItem.idVariant == variant.id){
+                        variantHtml.find('button.btn-variant-edit').addClass('active');
+                    }
+                    rowDiv.append(variantHtml);
+                });
+
+                // Append container ke elemen dengan id listVariantEdit
+                $('#listVariantEdit').append(containerVariant);
+
+            }
+
+            if(dataItem.listPilihan && dataItem.listPilihan.length > 0){
+
+                // Render Pilihan (Choose Many)
+                dataItem.listPilihan.forEach(function(pilihan){
+                    let containerPilihan = $(`
+                        <div class="mb-4">
+                            <label for="quantity" class="form-label"><strong>${pilihan.name}</strong></label> |
+                            <small>Choose Many</small>
+                            <div class="row mt-1"></div>
+                        </div>
+                    `);
+
+                    let rowDivPilihan = containerPilihan.find('div.row');
+
+                    // Asumsi pilihan.pilihans adalah array pilihan di dalam listPilihan
+                    pilihan.pilihans.forEach(function(data){
+                        let pilihanHtml = $(`
+                            <div class="col-6 mt-2">
+                                <div class="custom-card">
+                                    <span>${data.name} <small>(${formatRupiah(data.harga.toString(), 'Rp. ')})</small></span>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input form-pilihan-edit form-switch"
+                                            value="${data.harga}" type="checkbox" data-id="${data.id}" data-name="${data.name}">
+                                    </div>
+                                </div>
+                            </div>
+                        `);
+
+                        if(dataItem.pilihan && dataItem.pilihan.length > 0){
+                            dataItem.pilihan.forEach(function(pilihanChoosed){
+                                if(data.id == pilihan.pilihanChoosed.id){
+                                    pilihanHtml.find('input.form-pilihan-edit').checked;
+                                }
+                            });
+                        }
+                        rowDivPilihan.append(pilihanHtml);
+                    });
+
+                    $('#listPilihanEdit').append(containerPilihan);
+                });
+            }
+
+            // Render Sales Type (Single Choose)
+            if(dataItem.listSalesType && dataItem.listSalesType.length > 0){
+                let containerSalesType = $(`
+                    <div class="mb-4">
+                        <label for="quantity" class="form-label"><strong>Sales Type</strong></label> |
+                        <small>Single Choose</small>
+                        <div class="row mt-1"></div>
+                    </div>
+                `);
+
+                let rowDivSalesType = containerSalesType.find('div.row');
+
+                dataItem.listSalesType.forEach(function(salesType){
+                    let salesTypeHtml = $(`
+                        <div class="form-group col-md-6 mt-2">
+                            <button class="btn w-100 btn-xl btn-outline-primary btn-sales-type-edit"
+                                data-salestypeid="${salesType.id}" data-salestypename="${salesType.name}">
+                                <div class="row">
+                                    <div class="col-6 me-auto">
+                                        ${salesType.name}
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    `);
+
+                    if(dataItem.salesType == salesType.id){
+                        salesTypeHtml.find('button.btn-sales-type-edit').addClass('active');
+                        salesTypeIdEdit = dataItem.salesType;
+                    }
+                    rowDivSalesType.append(salesTypeHtml);
+                });
+
+                $('#salesTypeEdit').append(containerSalesType);
+            }
+
+            // Render Modifier (Choose Many)
+            dataItem.listModifier.forEach(function(dataModifier){
+                let containerModifier = $(`
+                    <div class="mb-4">
+                        <label for="quantity" class="form-label"><strong>${dataModifier.name}</strong></label> |
+                        <small>Choose Many</small>
+                        <div class="row mt-1"></div>
+                    </div>
+                `);
+
+                let rowDivModifier = containerModifier.find('div.row');
+
+                dataModifier.modifier.forEach(function(data){
+                    let modifierHtml = $(`
+                        <div class="col-md-6 mt-2">
+                            <div class="custom-card">
+                                <span>${data.name} <small>(${formatRupiah(data.harga.toString(), 'Rp. ')})</small></span>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input form-modifier-edit form-switch"
+                                        value="${data.harga}" type="checkbox" data-id="${data.id}" data-name="${data.name}">
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                    dataItem.modifier.forEach(function(modifierChoosed){
+                        if(modifierChoosed.id == data.id){
+                            modifierHtml.find('input.form-modifier-edit').attr('checked', true)
+                        }
+                    });
+                    rowDivModifier.append(modifierHtml);
+                });
+
+
+                $('#listModifierEdit').append(containerModifier);
+            });
+
+            // Render Diskon (Discount)
+            if(dataItem.listDiskon && dataItem.listDiskon.length > 0){
+                let containerDiskon = $(`
+                    <div class="mb-4">
+                        <label class="form-label"><strong>Diskon</strong></label>
+                        <div class="row mt-1"></div>
+                    </div>
+                `);
+
+                let rowDivDiskon = containerDiskon.find('div.row');
+
+                dataItem.listDiskon.forEach(function(discount){
+                    let discountLabel = '';
+                    if(discount.satuan === 'rupiah'){
+                        discountLabel = `(${formatRupiah(discount.amount.toString(), 'Rp. ')})`;
+                    } else {
+                        discountLabel = `(%${discount.amount})`;
+                    }
+
+                    let diskonHtml = $(`
+                        <div class="col-md-6 mt-2">
+                            <div class="custom-card">
+                                <span>${discount.name} ${discountLabel}</span>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input form-diskon-edit form-switch"
+                                        value="${discount.amount}" data-type="${discount.satuan}"
+                                        data-name="${discount.name}" type="checkbox"
+                                        data-id="${discount.id}" id="discount-${discount.id}">
+                                </div>
+                            </div>
+                        </div>
+                    `);
+
+                    dataItem.diskon.forEach(function(diskonChoosed){
+                        if(diskonChoosed.id == discount.id){
+                            diskonHtml.find('input.form-diskon-edit').attr('checked', true);
+                        }
+                    });
+                    rowDivDiskon.append(diskonHtml);
+                });
+
+                $('#listDiskonEdit').append(containerDiskon);
+            }
+
+            updateHargaAkhirEditItem();
+
+            // seluruh fungsi button edit disini
+            $('.btn-variant-edit').off().on('click', function() {
+                console.log("masuk variant edit")
+                $('.btn-variant-edit').removeClass('active');
+                $(this).addClass('active')
+
+                let id = $(this).data('variantid');
+                let harga = $(this).data('harga');
+                let name = $(this).data('name');
+
+                variantIdEdit = id;
+                hargaAkhirEditItem = harga;
+                variantNameEdit= name;
+
+                updateHargaAkhirEditItem();
+            });
+
+            // Event listener untuk tombol decrement
+            $('#decrement-edit').off().on('click', function(){
+                const value = parseInt($('#quantity-edit').val());
+                if (value > 1) {
+                    $('#quantity-edit').val(value - 1);
+                    updateHargaAkhirEditItem();
+                }
+            });
+
+            // Event listener untuk tombol increment
+            $('#increment-edit').off().on('click', function(){
+                const value = parseInt($('#quantity-edit').val());
+                $('#quantity-edit').val(value + 1);
+                updateHargaAkhirEditItem();
+            });
+
+            $('.btn-sales-type-edit').off().on('click', function() {
+                $('.btn-sales-type-edit').removeClass('active');
+                $(this).addClass('active')
+
+                let id = $(this).attr('data-salestypeid');
+                let name = $(this).attr('data-salestypename');
+
+                salesTypeIdEdit = id;
+
+                updateHargaAkhir();
+            });
+
+            $('.form-modifier-edit').off().on('change', function() {
+                updateHargaAkhirEditItem();
+            });
+
+            $('.form-diskon-edit').off().on('change', function(){
+                updateHargaAkhirEditItem();
+            });
+
+            $('#saveItemToCartEdit').off().on('click', function(){
+                // DISKON
+                let dataDiskonId = listDiskonIdEdit;
+                let dataDiskonNama = listDiskonNameEdit;
+                let dataDiskonHarga = listDiskonAmountEdit;
+                let dataDiskonValue = listDiskonValueEdit;
+                let dataDiskonType = listDiskonTypeEdit;
+
+                let dataDiskon = [];
+
+                // console.log(dataDiskonNama);
+                for (let i = 0; i < dataDiskonId.length; i++) {
+                    let tmpDataDiskon = {
+                        tmpIdProduct: dataItem.tmpId,
+                        id: dataDiskonId[i],
+                        nama: dataDiskonNama[i],
+                        satuan: dataDiskonType[i],
+                        value: dataDiskonValue[i],
+                        result: dataDiskonHarga[i],
+                    };
+
+                    dataDiskon.push(tmpDataDiskon);
+                }
+
+                // MODIFIER
+                let dataModifierId = listModifierIdEdit;
+                let dataModifierNama = listModifierNameEdit;
+                let dataModifierHarga = listModifierHargaEdit;
+
+                let dataModifier = [];
+                for (let x = 0; x < dataModifierId.length; x++) {
+                    let tmpDataModifier = {
+                        tmpIdProduct: dataItem.tmpId,
+                        id: dataModifierId[x],
+                        nama: dataModifierNama[x],
+                        harga: dataModifierHarga[x],
+                    }
+
+                    dataModifier.push(tmpDataModifier);
+                }
+
+                // Pilihan
+                let dataPilihanId = listPilihanIdEdit;
+                let dataPilihanNama = listPilihanNameEdit;
+                let dataPilihanHarga = listPilihanHargaEdit;
+
+                let dataPilihan = [];
+                for(let i = 0; i < dataPilihanId.length; i++){
+                    let tmpDataPilihan = {
+                        tmpIdProduct: dataItem.tmpId,
+                        id: dataPilihanId[i],
+                        nama: dataPilihanNama[i],
+                        harga: dataPilihanHarga[i],
+                    }
+
+                    dataPilihan.push(tmpDataPilihan);
+                }
+
+                let totalHargaProduct = hargaAkhirEditItem * parseInt($('#quantity-edit').val());
+
+                dataItem.quantity = $('#quantity-edit').val();
+                dataItem.diskon = dataDiskon;
+                dataItem.salesType = salesTypeIdEdit;
+                dataItem.idVariant = variantIdEdit;
+                dataItem.namaVariant = variantNameEdit;
+                dataItem.modifier = dataModifier;
+                dataItem.pilihan = dataPilihan;
+                dataItem.harga = hargaAkhirEditItem;
+                dataItem.resultTotal = totalHargaProduct;
+                dataItem.catatan = $('#catatanEdit').val();
+
+                syncItemCart();
+
+                hargaAkhirEditItem = 0;
+                const modal = $('#modalEditPesanan');
+                modal.modal('hide');
+
+            })
+
+
+            const modalEdit = $('#modalEditPesanan');
+            modalEdit.modal({
+                backdrop: 'static',
+                keyboard: true
+            });
+            modalEdit.modal('show');
+
+        }
+
+        function updateHargaAkhirEditItem() {
+            const quantityValue = parseInt($('#quantity-edit').val());
+            const totalModifier = hitungModifierEditItem();
+            const totalPilihan = hitungPilihanEditItem();
+            const totalDiskon = hitungDiskonEditItem();
+
+            // Hitung harga akhir setelah diskon
+            const hargaSebelumDiskon = hargaAkhirEditItem * quantityValue;
+            hargaAkhir = hargaSebelumDiskon - totalDiskon + totalModifier + totalPilihan;
+
+            // Pastikan harga tidak negatif
+
+            if (hargaAkhir < 0) {
+                hargaAkhir = 0;
+            }
+
+            let resultHargaAkhir = Math.round(hargaAkhir);
+            // Update harga pada elemen HTML
+            $('#totalHargaItemEdit').text(formatRupiah(resultHargaAkhir.toString(), "Rp. "));
+        }
+
+        function hitungModifierEditItem() {
+            let modifierCheckboxesEdit = document.querySelectorAll('.form-modifier-edit');
+            let totalModifier = 0;
+            let totalModifierId = [];
+            let totalModifierName = [];
+            let totalModifierHarga = [];
+
+            modifierCheckboxesEdit.forEach((checkbox) => {
+                if (checkbox.checked) {
+                    const amount = parseFloat(checkbox.value);
+                    const id = checkbox.dataset.id;
+                    const name = checkbox.dataset.name;
+                    totalModifier += parseInt($('#quantity-edit').val()) * amount;
+
+                    totalModifierId.push(id);
+                    totalModifierHarga.push(amount);
+                    totalModifierName.push(name);
+                }
+            });
+
+            console.log(totalModifierHarga);
+
+            listModifierIdEdit = totalModifierId;
+            listModifierHargaEdit = totalModifierHarga;
+            listModifierNameEdit = totalModifierName;
+            return totalModifier;
+        }
+
+        function hitungPilihanEditItem(){
+            let pilihanCheckboxesEdit = document.querySelectorAll('.form-pilihan-edit');
+
+            let totalPilihan = 0;
+            let totalPilihanId = [];
+            let totalPilihanName = [];
+            let totalPilihanHarga = [];
+
+            pilihanCheckboxesEdit.forEach((pilihan) => {
+                if(pilihan.checked){
+                    const amount = parseFloat(pilihan.value);
+                    const id = pilihan.dataset.id;
+                    const name = pilihan.dataset.name;
+                    totalPilihan += parseInt($('#quantity-edit').val()) * amount;
+
+                    totalPilihanId.push(id);
+                    totalPilihanHarga.push(amount);
+                    totalPilihanName.push(name);
+                }
+            });
+
+            listPilihanIdEdit = totalPilihanId;
+            listPilihanHargaEdit = totalPilihanHarga;
+            listPilihanNameEdit = totalPilihanName;
+            return totalPilihan;
+
+        }
+
+        function hitungDiskonEditItem() {
+            var diskonCheckboxesEditItem = document.querySelectorAll('.form-diskon-edit');
+            let totalDiskon = 0;
+            let totalDiskonId = [];
+            let totalDiskonNama = [];
+            let totalDiskonHarga = [];
+            let totalDiskonValue = [];
+            let totalDiskonType = [];
+
+            diskonCheckboxesEditItem.forEach((checkbox) => {
+                if (checkbox.checked) {
+                    const amount = parseFloat(checkbox.value);
+                    const type = checkbox.dataset.type;
+                    const id = checkbox.dataset.id;
+                    const name = checkbox.dataset.name;
+
+                    if (type === "rupiah") {
+                        totalDiskon += amount;
+                    } else if (type === "percent") {
+                        if (listModifierHargaEdit.length > 0) {
+                            let hargaBarang = hargaAkhirEditItem
+                            listModifierHargaEdit.forEach(function(itemModifier) {
+                                hargaBarang += itemModifier;
+                            });
+                            totalDiskon += (hargaBarang * parseInt($('#quantity-edit').val()) * amount) / 100;
+                        } else {
+                            totalDiskon += (dataHarga * parseInt($('#quantity-edit').val()) * amount) / 100;
+                        }
+                    }
+
+                    totalDiskonId.push(id);
+                    totalDiskonValue.push(amount);
+                    totalDiskonHarga.push(totalDiskon);
+                    totalDiskonType.push(type);
+                    totalDiskonNama.push(name);
+                }
+            });
+
+            listDiskonAmountEdit = totalDiskonHarga;
+            listDiskonIdEdit = totalDiskonId;
+            listDiskonNameEdit = totalDiskonNama;
+            listDiskonValueEdit = totalDiskonValue;
+            listDiskonTypeEdit = totalDiskonType;
+            return totalDiskon;
+        }
+
         $(document).ready(function() {
             showLoader(false);
             generateListDiskon();
@@ -3785,6 +4352,12 @@
                     });
                 }
             });
+
+            $('#btnBatalEditItem').off().on('click', function(){
+                hargaAkhirEditItem = 0;
+                const modal = $('#modalEditPesanan');
+                modal.modal('hide');
+            })
 
         });
     </script>

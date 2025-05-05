@@ -217,8 +217,7 @@
     var variantName = '{{ $variants[0]->name }}';
 
     var dataSalesType = @json($salesType);
-    console.log(dataSalesType);
-    if (dataSalesType.length > 1) {
+    if (dataSalesType.length > 0) {
         var salesTypeId = dataSalesType[0].id;
         var salesTypeName = dataSalesType[0].name;
     } else {
@@ -314,10 +313,11 @@
                     totalDiskon += amount;
                 } else if (type === "percent") {
                     if (listModifierHarga.length > 0) {
+                        let hargaBarang = dataHarga;
                         listModifierHarga.forEach(function(itemModifier) {
-                            let hargaBarang = dataHarga + itemModifier;
-                            totalDiskon += (hargaBarang * parseInt(quantity.value) * amount) / 100;
+                            hargaBarang += itemModifier;
                         });
+                        totalDiskon += (hargaBarang * parseInt(quantity.value) * amount) / 100;
                     } else {
                         totalDiskon += (dataHarga * parseInt(quantity.value) * amount) / 100;
                     }
@@ -415,8 +415,8 @@
         $('.btn-sales-type').removeClass('active');
         $(this).addClass('active')
 
-        let id = $(this).data('salestypeid');
-        let name = $(this).data('name');
+        let id = $(this).attr('data-salestypeid');
+        let name = $(this).attr('data-salestypename');
 
         salesTypeId = id;
         salesTypeName = name;
@@ -455,7 +455,7 @@
 
             dataModifier.push(tmpDataModifier);
         }
-        
+
         // Pilihan
         let dataPilihanId = listPilihanId;
         let dataPilihanNama = listPilihanName;
@@ -526,6 +526,11 @@
             pilihan: dataPilihan,
             catatan: catatan,
             resultTotal: totalHargaProduct, //result
+            listVariant: @json($variants),
+            listPilihan: @json($pilihans),
+            listSalesType: @json($salesType),
+            listModifier: @json($modifiers),
+            listDiskon: @json($discounts)
         }
 
         listItem.push(data);
