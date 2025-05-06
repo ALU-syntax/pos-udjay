@@ -135,7 +135,7 @@
                 <div class="row">
                     <div class="col-4 align-self-center d-flex">
                         <select id="filter-outlet" class="form-control select2">
-                            {{-- <option value="all" selected>-- Semua Outlet --</option> --}}
+                            <option value="all" selected>-- Semua Outlet --</option>
                             @foreach ($outlets as $outlet)
                                 <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
                             @endforeach
@@ -513,7 +513,7 @@
                 var date = $('#date_range_transaction').val();
 
                 if (activeTab === '#sales-summary-nobd') {
-                    // Logika untuk Sales Summary  
+                    // Logika untuk Sales Summary
                     $.ajax({
                         url: '{{ route('report/sales/getSalesSummary') }}',
                         method: 'GET',
@@ -602,39 +602,39 @@
 
                                 if (transaction.parent) {
                                     if (transaction.payment_method == "Cash") {
-                                        tbody.append(`  
-                                            <tr>  
-                                                <td>${transaction.payment_method}</td>  
-                                                <td>${transaction.number_of_transactions}</td>  
-                                                <td>${formatRupiah(transaction.total_collected.toString(), "Rp. ")}</td>  
-                                            </tr>  
+                                        tbody.append(`
+                                            <tr>
+                                                <td>${transaction.payment_method}</td>
+                                                <td>${transaction.number_of_transactions}</td>
+                                                <td>${formatRupiah(transaction.total_collected.toString(), "Rp. ")}</td>
+                                            </tr>
                                         `);
                                     } else {
-                                        tbody.append(`  
-                                            <tr>  
-                                                <td>${transaction.payment_method}</td>  
-                                                <td>${transaction.number_of_transactions}</td>  
-                                                <td></td>  
-                                            </tr>  
+                                        tbody.append(`
+                                            <tr>
+                                                <td>${transaction.payment_method}</td>
+                                                <td>${transaction.number_of_transactions}</td>
+                                                <td></td>
+                                            </tr>
                                         `);
                                     }
                                 } else {
-                                    tbody.append(`  
-                                        <tr>  
-                                            <td style="color: rgb(133 133 133 / 75%) !important;">&nbsp ${transaction.payment_method}</td>  
-                                            <td>${transaction.number_of_transactions}</td>  
-                                            <td>${formatRupiah(transaction.total_collected.toString(), "Rp. ")}</td>  
-                                        </tr>  
+                                    tbody.append(`
+                                        <tr>
+                                            <td style="color: rgb(133 133 133 / 75%) !important;">&nbsp ${transaction.payment_method}</td>
+                                            <td>${transaction.number_of_transactions}</td>
+                                            <td>${formatRupiah(transaction.total_collected.toString(), "Rp. ")}</td>
+                                        </tr>
                                     `);
                                 }
                             });
 
-                            tbody.append(`  
-                                <tr>  
-                                    <td>Total</td>  
-                                    <td>${numberOfTransaction}</td>  
-                                    <td>${formatRupiah(totalCollected.toString(), "Rp. ")}</td>  
-                                </tr>  
+                            tbody.append(`
+                                <tr>
+                                    <td>Total</td>
+                                    <td>${numberOfTransaction}</td>
+                                    <td>${formatRupiah(totalCollected.toString(), "Rp. ")}</td>
+                                </tr>
                             `);
                         },
                         error: function(xhr) {
@@ -792,7 +792,7 @@
 
                             var totalGrossSales = api.column(3).data().reduce(function(a, b) {
                                 // return parseFloat(a) + parseFloat(b);
-                                return getAmount(a.toString()) + getAmount(b.toString()); 
+                                return getAmount(a.toString()) + getAmount(b.toString());
                             }, 0);
 
                             var totalDiscounts = api.column(4).data().reduce(function(a, b) {
@@ -1240,7 +1240,7 @@
                     `);
 
                 }
-                // Tambahkan logika untuk tab lainnya  
+                // Tambahkan logika untuk tab lainnya
             }
 
             $(document).ready(function() {
@@ -1277,11 +1277,11 @@
                     startDate = start;
                     endDate = end;
 
-                    // Trigger refresh DataTable setelah memilih rentang tanggal  
+                    // Trigger refresh DataTable setelah memilih rentang tanggal
                     checkActiveTab();
                 });
 
-                // Set initial value for the input field  
+                // Set initial value for the input field
                 $('#date_range_transaction').val(startDate.format('YYYY/MM/DD') + ' - ' + endDate.format('YYYY/MM/DD'));
 
                 // Fungsi untuk mengubah tanggal
@@ -1323,9 +1323,9 @@
                     picker.setEndDate(moment().startOf('day')); // Set end date ke hari ini atau tanggal lain
                 });
 
-                // Event untuk menangani pemilihan rentang yang telah ditentukan  
+                // Event untuk menangani pemilihan rentang yang telah ditentukan
                 $('#date_range_transaction').on('apply.daterangepicker', function(ev, picker) {
-                    // Memperbarui DataTable ketika rentang yang telah ditentukan dipilih  
+                    // Memperbarui DataTable ketika rentang yang telah ditentukan dipilih
                     checkActiveTab();
                 });
 

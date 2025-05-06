@@ -40,7 +40,7 @@ class SalesController extends Controller
         // $data = TransactionItem::whereJsonContains('modifier_id', ['id' => "1"])->get();
 
 
-        
+
         // dd(json_decode($data[0]->variants[0]->itemTransaction[0]->discount_id));
         return view('layouts.sales.index', [
             "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
@@ -61,12 +61,16 @@ class SalesController extends Controller
 
         $outlet = $request->input('outlet');
 
-        $dataTransaction = Transaction::with(['itemTransaction'])
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('outlet_id', $outlet)->get(); // Ambil data sesuai kebutuhan  
-        // dd($data);
+        if($outlet == "all"){
+            $dataTransaction = Transaction::with(['itemTransaction'])
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->get(); // Ambil data sesuai kebutuhan
+        }else{
+            $dataTransaction = Transaction::with(['itemTransaction'])
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->where('outlet_id', $outlet)->get(); // Ambil data sesuai kebutuhan
+        }
 
-        // dd(json_decode($dataTransaction[0]->total_pajak));
         $grossSales = 0;
         $discount = 0;
         $netSales = 0;
@@ -113,17 +117,31 @@ class SalesController extends Controller
 
         $outlet = $request->input('outlet');
 
-        $data = CategoryPayment::with(['payment' => function ($payment) use ($startDate, $endDate, $outlet) {
-            $payment->with(['transactions' => function ($transaction) use ($startDate, $endDate, $outlet) {
+        if($outlet == "all"){
+            $data = CategoryPayment::with(['payment' => function ($payment) use ($startDate, $endDate, $outlet) {
+                $payment->with(['transactions' => function ($transaction) use ($startDate, $endDate) {
+                    $transaction->whereBetween('created_at', [$startDate, $endDate]);
+                    // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
+                }]);
+            }, 'transactions' => function ($transaction) use ($startDate, $endDate) {
+                $transaction->whereBetween('created_at', [$startDate, $endDate]);
+                // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
+            }])->get();
+        }else{
+            $data = CategoryPayment::with(['payment' => function ($payment) use ($startDate, $endDate, $outlet) {
+                $payment->with(['transactions' => function ($transaction) use ($startDate, $endDate, $outlet) {
+                    $transaction->whereBetween('created_at', [$startDate, $endDate])->where('outlet_id', $outlet);
+                    // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
+                }]);
+            }, 'transactions' => function ($transaction) use ($startDate, $endDate, $outlet) {
                 $transaction->whereBetween('created_at', [$startDate, $endDate])->where('outlet_id', $outlet);
                 // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
-            }]);
-        }, 'transactions' => function ($transaction) use ($startDate, $endDate, $outlet) {
-            $transaction->whereBetween('created_at', [$startDate, $endDate])->where('outlet_id', $outlet);
-            // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
-        }])->get();
+            }])->get();
 
-        // Format data untuk dikembalikan  
+        }
+
+
+        // Format data untuk dikembalikan
         $result = [];
         foreach ($data as $category) {
             $tmpData = [];
@@ -181,9 +199,15 @@ class SalesController extends Controller
 
         $outlet = $request->input('outlet');
 
-        $dataTransaction = Transaction::with(['itemTransaction'])
+        if($outlet == "all"){
+            $dataTransaction = Transaction::with(['itemTransaction'])
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('outlet_id', $outlet)->get(); // Ambil data sesuai kebutuhan  
+            ->get(); // Ambil semua data outlet
+        }else{
+            $dataTransaction = Transaction::with(['itemTransaction'])
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->where('outlet_id', $outlet)->get(); // Ambil data sesuai kebutuhan
+        }
 
         $grossSales = 0;
         $discount = 0;
@@ -222,9 +246,16 @@ class SalesController extends Controller
 
         $outlet = $request->input('outlet');
 
-        $query = SalesType::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate, $outlet) {
-            $transaction->with(['variant'])->whereBetween('created_at', [$startDate, $endDate]);
-        }])->where('outlet_id', $outlet)->get();
+        if($outlet == "all"){
+            $query = SalesType::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate) {
+                $transaction->with(['variant'])->whereBetween('created_at', [$startDate, $endDate]);
+            }])->get();
+        }else{
+            $query = SalesType::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate) {
+                $transaction->with(['variant'])->whereBetween('created_at', [$startDate, $endDate]);
+            }])->where('outlet_id', $outlet)->get();
+        }
+
         return DataTables::of($query)
             ->addColumn('sales_type', function ($row) {
                 return $row->name;
@@ -258,16 +289,26 @@ class SalesController extends Controller
 
         $outlet = $request->input('outlet');
 
-        $data = VariantProduct::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate) {
-            $transaction->whereBetween('created_at', [$startDate, $endDate]);
-        }, 'product.category'])->whereHas('product', function ($query) use ($outlet) {
-            $query->where('outlet_id', $outlet);
-        })->get();
+        if($outlet == "all"){
+            $data = VariantProduct::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate) {
+                $transaction->whereBetween('created_at', [$startDate, $endDate]);
+            }, 'product.category', 'product.outlet'])->get();
+        }else{
+            $data = VariantProduct::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate) {
+                $transaction->whereBetween('created_at', [$startDate, $endDate]);
+            }, 'product.category', 'product.outlet'])->whereHas('product', function ($query) use ($outlet) {
+                $query->where('outlet_id', $outlet);
+            })->get();
+        }
 
         return DataTables::of($data)
-            ->addColumn('name', function ($row) {
+            ->addColumn('name', function ($row) use($outlet) {
                 // $namaVariant
-                return ($row->name == $row->product->name) ? $row->product->name : $row->product->name . ' - ' . $row->name;
+                if($outlet == "all"){
+                    return ($row->name == $row->product->name) ? $row->product->name . " (" . $row->product->outlet->name . ")" : $row->product->name . ' - ' . $row->name . " (" . $row->product->outlet->name . ")";
+                }else{
+                    return ($row->name == $row->product->name) ? $row->product->name : $row->product->name . ' - ' . $row->name;
+                }
             })
             ->addColumn('category', function ($row) {
                 return $row->product->category->name;
@@ -343,21 +384,38 @@ class SalesController extends Controller
 
         $outlet = $request->input('outlet');
 
-        $data = Category::with(['products' => function ($product) use ($startDate, $endDate, $outlet) {
-            $product->with(['variants' => function ($variant) use ($startDate, $endDate) {
-                $variant->with(['itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
+        if($outlet == "all"){
+            $data = Category::with(['products' => function ($product) use ($startDate, $endDate) {
+                $product->with(['outlet', 'variants' => function ($variant) use ($startDate, $endDate) {
+                    $variant->with(['itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
+                        $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
+                    }]);
+                }, 'itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
                     $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
                 }]);
-            }, 'itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
-                $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
-            }])->where('outlet_id', $outlet);
-        }])->whereHas('products', function ($query) use ($outlet) {
-            $query->where('outlet_id', $outlet);
-        })->get();
+            }])->whereHas('products')->get();
+        }else{
+            $data = Category::with(['products' => function ($product) use ($startDate, $endDate, $outlet) {
+                $product->with(['variants' => function ($variant) use ($startDate, $endDate) {
+                    $variant->with(['itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
+                        $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
+                    }]);
+                }, 'itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
+                    $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
+                }])->where('outlet_id', $outlet);
+            }])->whereHas('products', function ($query) use ($outlet) {
+                $query->where('outlet_id', $outlet);
+            })->get();
+        }
+
 
         return DataTables::of($data)
-            ->addColumn('category', function ($row) {
-                return $row->name;
+            ->addColumn('category', function ($row) use($outlet) {
+                if($outlet == "all"){
+                    return $row->name . " (" . $row->products[0]->outlet->name . ")";
+                }else{
+                    return $row->name;
+                }
             })
             ->addColumn('item_sold', function ($row) {
                 $itemSold = 0;
@@ -385,7 +443,7 @@ class SalesController extends Controller
                         $discountVariant = 0;
                         foreach($variant->itemTransaction as $itemTransaction){
                             $dataDiscount = json_decode($itemTransaction->discount_id);
-    
+
                             foreach($dataDiscount as $discount){
                                 $discountVariant += $discount->result;
                             }
@@ -393,7 +451,7 @@ class SalesController extends Controller
                         $totalDiscount += $discountVariant;
                     }
                 }
-                
+
                 return $totalDiscount == 0 ? "Rp. 0" : formatRupiah(strval($totalDiscount), "Rp. ");
             })
             ->setRowId('id')
@@ -401,7 +459,7 @@ class SalesController extends Controller
     }
 
     public function getModifierSales(Request $request){
-        
+
         $dates = explode(' - ', $request->input('date'));
         if (count($dates) == 2) {
             $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
@@ -415,7 +473,12 @@ class SalesController extends Controller
         $outlet = $request->input('outlet');
         $customData = [];
 
-        $dataModifier = ModifierGroup::with(['modifier'])->where('outlet_id', $outlet)->get();
+        if($outlet == "all"){
+            $dataModifier = ModifierGroup::with(['modifier', 'outlet'])->get();
+        }else{
+            $dataModifier = ModifierGroup::with(['modifier'])->where('outlet_id', $outlet)->get();
+        }
+
 
         $id = 0;
         foreach($dataModifier as $modifierParent){
@@ -428,7 +491,7 @@ class SalesController extends Controller
             $id++;
             array_push($tmpDataParent, $id);
             array_push($tmpDataParent, $modifierParent->name);
-            
+
             $tmpDataChild = [];
             foreach($modifierParent->modifier as $modifier){
                 $tmpDataModifier = [];
@@ -468,14 +531,22 @@ class SalesController extends Controller
             array_push($tmpDataParent, $netSalesParent);
             array_push($tmpDataParent, true);
 
+            if($outlet == "all"){
+                array_push($tmpDataParent, $modifierParent->outlet->name);
+            }
+
             array_push($customData, $tmpDataParent);
             array_push($customData, ...$tmpDataChild);
         }
 
         return DataTables::of($customData)
-        ->addColumn('name',function($row){
+        ->addColumn('name',function($row) use($outlet){
             if($row[6]){
-                return $row[1];
+                if($outlet == "all"){
+                    return $row[1] . " (" . $row[7] . ")";
+                }else{
+                    return $row[1];
+                }
             }else{
                 return "- " . $row[1];
             }
@@ -508,12 +579,16 @@ class SalesController extends Controller
         }
 
         $outlet = $request->input('outlet');
-        
-        $dataDiscount = Discount::where('outlet_id', $outlet)->get();
+
+        if($outlet == "all"){
+            $dataDiscount = Discount::with(['outlet'])->get();
+        }else{
+            $dataDiscount = Discount::where('outlet_id', $outlet)->get();
+        }
 
         foreach($dataDiscount as $discount){
             if($discount->satuan == "percent"){
-                $dataTransactions = TransactionItem::whereBetween('created_at', [$startDate, $endDate])->whereJsonContains('discount_id', ['id' => strval($discount->id)])->get();    
+                $dataTransactions = TransactionItem::whereBetween('created_at', [$startDate, $endDate])->whereJsonContains('discount_id', ['id' => strval($discount->id)])->get();
                 $discount['count'] = count($dataTransactions);
                 $totalDiscount = 0;
                 foreach($dataTransactions as $transaction){
@@ -533,8 +608,12 @@ class SalesController extends Controller
         }
 
         return DataTables::of($dataDiscount)
-        ->addColumn('name', function($row){
-            return $row->name;
+        ->addColumn('name', function($row) use($outlet){
+            if($outlet == "all"){
+                return $row->name . " (" . $row->outlet->name . ")";
+            }else{
+                return $row->name;
+            }
         })
         ->addColumn('discount_amount', function($row){
             if($row->satuan == "percent"){
@@ -565,9 +644,13 @@ class SalesController extends Controller
         }
 
         $outlet = $request->input('outlet');
-        
-        $data = Taxes::where('outlet_id', $outlet)->get();
-        
+
+        if($outlet == "all"){
+            $data = Taxes::with(['outlets'])->get();
+        }else{
+            $data = Taxes::where('outlet_id', $outlet)->get();
+        }
+
 
         foreach($data as $tax){
             $dataTransactions = Transaction::with(['itemTransaction'])->whereBetween('created_at', [$startDate, $endDate])->whereJsonContains('total_pajak', ['id' => $tax->id])->get();
@@ -590,8 +673,12 @@ class SalesController extends Controller
         }
 
         return DataTables::of($data)
-        ->addColumn('name', function($row){
-            return $row->name;
+        ->addColumn('name', function($row) use($outlet){
+            if($outlet == "all"){
+                return $row->name . " (" . $row->outlets->name . ")";
+            }else{
+                return $row->name;
+            }
         })
         ->addColumn('tax_rate', function($row){
             return strval($row->amount) . "%";
@@ -619,16 +706,20 @@ class SalesController extends Controller
         }
 
         $outlet = $request->input('outlet');
-        
+
         $data = User::with(['transaction' => function($transaction) use($startDate, $endDate){
             $transaction->whereBetween('created_at', [$startDate, $endDate]);
         }])->where('name' , '!=', 'ardian')->get();
 
-        $filteredData = $data->filter(function($user) use($outlet) {
-            $outletIds = json_decode($user->outlet_id);
-            return in_array($outlet, $outletIds);
-        });
-        
+        if($outlet == "all"){
+            $filteredData = $data;
+        }else{
+            $filteredData = $data->filter(function($user) use($outlet) {
+                $outletIds = json_decode($user->outlet_id);
+                return in_array($outlet, $outletIds);
+            });
+        }
+
 
         return DataTables::of($filteredData)
         ->addColumn('name', function($row){

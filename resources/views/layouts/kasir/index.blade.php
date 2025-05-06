@@ -3171,6 +3171,9 @@
             console.log(dataItem);
             hargaAkhirEditItem = dataItem.harga;
 
+            variantIdEdit = dataItem.idVariant;
+            variantNameEdit = dataItem.namaVariant;
+
             $('#namaProductEdit').html(dataItem.namaProduct);
             $('#totalHargaItemEdit').html(formatRupiah(dataItem.resultTotal.toString(), "Rp. "));
             $('#quantity-edit').val(dataItem.quantity);
