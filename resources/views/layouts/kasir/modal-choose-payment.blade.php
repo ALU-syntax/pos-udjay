@@ -295,7 +295,7 @@
                 }
             } else {
                 tipePembayaran = null;
-                category_payment_id = idCash;;
+                category_payment_id = idCash;
                 nama_tipe_pembayaran = "Cash"
                 nominalBayar = cashInputAngka;
                 change = hargaTotal - cashInputAngka;
