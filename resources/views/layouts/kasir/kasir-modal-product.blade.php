@@ -26,6 +26,27 @@
         font-size: 12px;
         color: black;
     }
+
+    .callout {
+        padding: 20px;
+        margin: 20px 0;
+        border: 1px solid #5bc0de;
+        border-left-width: 5px;
+        border-radius: 3px;
+        h4 {
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+        p:last-child {
+            margin-bottom: 0;
+        }
+        code {
+            border-radius: 3px;
+        }
+        & + .bs-callout {
+            margin-top: -5px;
+        }
+    }
 </style>
 
 <div class="modal-dialog modal-xl" id="productModal">
@@ -41,6 +62,20 @@
         </div>
         <div class="modal-body">
             <input type="text" value="{{ $data->id }}" name="idProduct" id="idProduct" hidden>
+
+            @if($data->description)
+                <div class="callout callout-info ">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-1"><i class="d-flex justify-content-center align-items-center fa-solid fa-circle-info" style="color: #5bc0de; font-size: 30px;"></i></div>
+                            <div class="col-11">
+                                <h4>Deskripsi Produk</h4>
+                                {{$data->description}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             {{-- Variant --}}
             @if (count($variants) > 1)

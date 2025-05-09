@@ -43,7 +43,8 @@ class ProductController extends Controller
                 'harga_modal' => getAmount($validatedData['harga_modal']),
                 // 'stock' => $validatedData['stock'],
                 'outlet_id' => $outlet,
-                'status' => $validatedData['status']
+                'status' => $validatedData['status'],
+                'description' => $validatedData['description']
             ];
 
             if ($request->hasFile('photo')) {

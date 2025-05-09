@@ -32,6 +32,9 @@ class ProductDataTable extends DataTable
             ->addColumn('status',function($row){
                 return view('components.badge', ['data' => $row]);
             })
+            ->addColumn('description',function($row){
+                return $row->description ? $row->description : '-';
+            })
             ->addColumn('created_at', function($row){
                 return Carbon::parse($row->created_at)->diffForHumans();
             })
@@ -47,10 +50,10 @@ class ProductDataTable extends DataTable
                 }else{
                     return formatRupiah(intval($row->variants[0]->harga), "Rp. ");
                 }
-            })  
+            })
             ->addColumn('harga_modal', function($row){
                 return formatRupiah(intval($row->harga_modal), "Rp. ");
-            })  
+            })
             ->addColumn('outlet_id', function($row){
                 return "<span class='badge badge-primary'>{$row->outlet->name} </span></br>";
             })
@@ -69,7 +72,7 @@ class ProductDataTable extends DataTable
      * Get the query source of dataTable.
      */
     public function query(Product $model): QueryBuilder
-    {   
+    {
         $query = $model->newQuery()->with(['outlet']);
         if ($this->request()->has('outlet') && $this->request()->get('outlet') != '') {
             if($this->request()->get('outlet') == 'all'){
@@ -117,6 +120,7 @@ class ProductDataTable extends DataTable
             Column::make('name'),
             Column::make('category_id')->title('CATEGORY'),
             Column::make('status'),
+            Column::make('description'),
             Column::make('photo'),
             Column::make('harga_jual'),
             Column::make('harga_modal'),

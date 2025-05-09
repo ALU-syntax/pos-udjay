@@ -53,6 +53,13 @@
         </div>
     </div>
 
+    <div class="col-md-12 mb-3">
+        <div class="form-group">
+            <label for="description" class="form-label">Deskripsi</label>
+            <textarea class="form-control" name="description" id="description" placeholder="Masukkan deskripsi produk, kosongkan bila tidak ada">{{$data->description}}</textarea>
+        </div>
+    </div>
+
     <div class="col-12 mt-3 px-4" id="container-list-variant">
         <button type="button" id="tambah-varian" class="btn btn-primary w-100"> Tambah Varian</button>
         <div class="input-group col-12 list-varian">
@@ -118,7 +125,7 @@
         @if ($data->id)
             var valueHargaJual = "{{ $data->harga_jual }}";
             var valueHargaModal = "{{ $data->harga_modal }}";
-            var valueNamaProduct = "{{$data->name}}";
+            var valueNamaProduct = "{{ $data->name }}";
             var listVariants = '{!! $data->variants !!}';
             var jsonListVariants = JSON.parse(listVariants);
 
@@ -147,7 +154,7 @@
                                 </div>
                             `);
                     }
-                } else if(jsonListVariants.length == 1 && item.name == valueNamaProduct){
+                } else if (jsonListVariants.length == 1 && item.name == valueNamaProduct) {
                     $('#tambah-varian').after(`
                             <div class="input-group col-12 mt-1 list-varian">
                                 <input name="id_variant[]" type="hidden" value="${item.id}" class="form-control">
@@ -155,7 +162,7 @@
                                 <input id="stok-varian" name="stock[]" type="number" value="${item.stok}" class="form-control" placeholder="Stok" required>
                             </div>
                         `);
-                }else{
+                } else {
                     $('#tambah-varian').after(`
                                 <div class="input-group col-12 mt-1 list-varian">
                                     <input name="id_variant[]" type="hidden" value="${item.id}" class="form-control">
