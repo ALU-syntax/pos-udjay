@@ -109,8 +109,7 @@ class PilihProductDataTable extends DataTable
     public function getColumns(): array
     {
         return [
-            // ['data' => 'checkbox', 'name' => 'checkbox', 'orderable' => false, 'searchable' => false, 'title' => '<input type="checkbox" id="checkAll">'],
-            ['data' => 'checkbox', 'name' => 'checkbox', 'orderable' => false, 'searchable' => false, 'title' => ''],
+            ['data' => 'checkbox', 'name' => 'checkbox', 'orderable' => false, 'searchable' => false, 'title' => '<input type="checkbox" id="checkAll">', 'exportable' => false, 'printable' => false, 'width' => '10px', 'class' => 'text-center'],
             ['data' => 'name', 'name' => 'name', 'title' => 'Nama Produk'],
             // ['data' => 'price', 'name' => 'price', 'title' => 'Harga', 'orderable' => false, 'searchable' => false],
         ];

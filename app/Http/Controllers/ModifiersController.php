@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\ModifiersDatatables;
-use Illuminate\Support\Facades\DB;  
+use Illuminate\Support\Facades\DB;
 use App\DataTables\PilihProductDataTable;
 use App\Models\ModifierGroup;
 use App\Models\Modifiers;
 use App\Models\Outlets;
+use App\Models\Product;
 use Illuminate\Http\Request;
 
 class ModifiersController extends Controller
@@ -19,73 +20,73 @@ class ModifiersController extends Controller
         ]);
     }
 
-    // public function index(Request $request)  
-    // {  
-    //     $query = ModifierGroup::with(['modifier', 'outlet']);  
-  
-    //     if ($request->has('outlet') && $request->get('outlet') != '') {  
-    //         if ($request->get('outlet') == 'all') {  
-    //             $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));  
-    //         } else {  
-    //             $query->where('outlet_id', $request->get('outlet'));  
-    //         }  
-    //     } elseif ($request->has('outlet') && $request->get('outlet') == '') {  
-    //         $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));  
-    //     }  
-  
-    //     if ($request->ajax()) {  
-    //         return DataTables::of($query)  
-    //             ->addColumn('option_name', function ($row) {  
-    //                 $modifiers = $row->modifier;  
-    //                 $tag = '';  
-    //                 foreach ($modifiers as $modifier) {  
-    //                     $tag .= "<span>{$modifier->name}, </span>";  
-    //                 }  
-    //                 $result = substr($tag, 0, -9);  
-    //                 return $result;  
-    //             })  
-    //             ->addColumn('outlet', function ($row) {  
-    //                 return "<span class='badge badge-primary'>{$row->outlet->name}</span>";  
-    //             })  
-    //             ->addColumn('action', function ($row) {  
-    //                 return view('layouts.modifiers.action', [  
-    //                     'edit' => route('library/modifiers/edit', $row->id),  
-    //                     'aturProduk' => route('library/modifiers/getProduct', $row->id),  
-    //                     'routeDelete' => route('library/modifiers/destroy', $row->id)  
-    //                 ]);  
-    //             })  
-    //             ->rawColumns(['option_name', 'outlet', 'action'])  
-    //             ->setRowId('id')  
-    //             ->make(true);  
-    //     }  
-  
-    //     return view('layouts.modifiers.index', [  
-    //         "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),  
-    //     ]);  
-    // } 
+    // public function index(Request $request)
+    // {
+    //     $query = ModifierGroup::with(['modifier', 'outlet']);
 
-    // $(document).ready(function() {  
-    //     $('#modifiers-table').DataTable({  
-    //         processing: true,  
-    //         serverSide: true,  
-    //         ajax: '{{ route('modifiers.index') }}',  
-    //         columns: [  
-    //             { data: 'name', name: 'name' },  
-    //             { data: 'option_name', name: 'option_name' },  
-    //             { data: 'outlet', name: 'outlet' },  
-    //             { data: 'action', name: 'action', orderable: false, searchable: false }  
-    //         ],  
-    //         dom: 'Bfrtip',  
-    //         buttons: [  
-    //             'excel',  
-    //             'csv',  
-    //             'pdf',  
-    //             'print',  
-    //             'reset',  
-    //             'reload'  
-    //         ]  
-    //     });  
-    // });  
+    //     if ($request->has('outlet') && $request->get('outlet') != '') {
+    //         if ($request->get('outlet') == 'all') {
+    //             $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
+    //         } else {
+    //             $query->where('outlet_id', $request->get('outlet'));
+    //         }
+    //     } elseif ($request->has('outlet') && $request->get('outlet') == '') {
+    //         $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
+    //     }
+
+    //     if ($request->ajax()) {
+    //         return DataTables::of($query)
+    //             ->addColumn('option_name', function ($row) {
+    //                 $modifiers = $row->modifier;
+    //                 $tag = '';
+    //                 foreach ($modifiers as $modifier) {
+    //                     $tag .= "<span>{$modifier->name}, </span>";
+    //                 }
+    //                 $result = substr($tag, 0, -9);
+    //                 return $result;
+    //             })
+    //             ->addColumn('outlet', function ($row) {
+    //                 return "<span class='badge badge-primary'>{$row->outlet->name}</span>";
+    //             })
+    //             ->addColumn('action', function ($row) {
+    //                 return view('layouts.modifiers.action', [
+    //                     'edit' => route('library/modifiers/edit', $row->id),
+    //                     'aturProduk' => route('library/modifiers/getProduct', $row->id),
+    //                     'routeDelete' => route('library/modifiers/destroy', $row->id)
+    //                 ]);
+    //             })
+    //             ->rawColumns(['option_name', 'outlet', 'action'])
+    //             ->setRowId('id')
+    //             ->make(true);
+    //     }
+
+    //     return view('layouts.modifiers.index', [
+    //         "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
+    //     ]);
+    // }
+
+    // $(document).ready(function() {
+    //     $('#modifiers-table').DataTable({
+    //         processing: true,
+    //         serverSide: true,
+    //         ajax: '{{ route('modifiers.index') }}',
+    //         columns: [
+    //             { data: 'name', name: 'name' },
+    //             { data: 'option_name', name: 'option_name' },
+    //             { data: 'outlet', name: 'outlet' },
+    //             { data: 'action', name: 'action', orderable: false, searchable: false }
+    //         ],
+    //         dom: 'Bfrtip',
+    //         buttons: [
+    //             'excel',
+    //             'csv',
+    //             'pdf',
+    //             'print',
+    //             'reset',
+    //             'reload'
+    //         ]
+    //     });
+    // });
 
     public function create()
     {
@@ -106,33 +107,33 @@ class ModifiersController extends Controller
             'outlet_id' => 'required|array'
         ]);
 
-        DB::transaction(function () use ($validatedData) {  
-            foreach ($validatedData['outlet_id'] as $outlet) {  
-                $dataModifierGroup = [  
-                    "name" => $validatedData['name'],  
-                    'outlet_id' => $outlet  
-                ];  
-      
-                // Simpan ModifierGroup  
-                $modifierGroup = ModifierGroup::create($dataModifierGroup);  
-      
-                // Buat data Modifiers  
-                $dataModifier = [];  
-                for ($x = 0; $x < count($validatedData['option_name']); $x++) {  
-                    $dataModifier[] = [  
-                        'name' => $validatedData['option_name'][$x],  
-                        'harga' => getAmount($validatedData['price'][$x]),  
-                        'stok' => $validatedData['stok'][$x],  
-                        'modifiers_group_id' => $modifierGroup->id,  
-                        'created_at' => now(),  
-                        'updated_at' => now()  
-                    ];  
-                }  
-      
-                // Simpan semua Modifiers secara bulk  
-                Modifiers::insert($dataModifier);  
-            }  
-        });  
+        DB::transaction(function () use ($validatedData) {
+            foreach ($validatedData['outlet_id'] as $outlet) {
+                $dataModifierGroup = [
+                    "name" => $validatedData['name'],
+                    'outlet_id' => $outlet
+                ];
+
+                // Simpan ModifierGroup
+                $modifierGroup = ModifierGroup::create($dataModifierGroup);
+
+                // Buat data Modifiers
+                $dataModifier = [];
+                for ($x = 0; $x < count($validatedData['option_name']); $x++) {
+                    $dataModifier[] = [
+                        'name' => $validatedData['option_name'][$x],
+                        'harga' => getAmount($validatedData['price'][$x]),
+                        'stok' => $validatedData['stok'][$x],
+                        'modifiers_group_id' => $modifierGroup->id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ];
+                }
+
+                // Simpan semua Modifiers secara bulk
+                Modifiers::insert($dataModifier);
+            }
+        });
 
         return responseSuccess(false);
     }
@@ -213,8 +214,10 @@ class ModifiersController extends Controller
 
     public function getProduct(PilihProductDataTable $datatable, ModifierGroup $modifierGroup)
     {
+        $dataProduct = Product::select('id')->where('outlet_id', $modifierGroup->outlet_id)->get()->pluck('id');
         return $datatable->with('modifierGroup', $modifierGroup)->render('layouts.modifiers.modal-tambah-product', [
             "data" => $modifierGroup,
+            "dataProduct" => $dataProduct,
             "action" => route("library/modifiers/update-product", $modifierGroup->id),
         ]);
     }
@@ -235,7 +238,7 @@ class ModifiersController extends Controller
     {
         $modifier->modifier()->delete();
         $modifier->delete();
-        
+
         return responseSuccessDelete();
     }
 }

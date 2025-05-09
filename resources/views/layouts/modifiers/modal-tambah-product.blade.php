@@ -15,11 +15,10 @@
             // ambil data product_id dari database jika ada
             let dataModifierGroup = @json($data);
             let dataProduct = JSON.parse(dataModifierGroup.product_id);
+            let allIdProduct = @json($dataProduct);
 
-            console.log(dataProduct);
-            
-            if(dataProduct) tmpDataProductModifier.push(...dataProduct);
-            
+            if (dataProduct) tmpDataProductModifier.push(...dataProduct);
+
             // Jalankan DataTables secara otomatis
             $('#pilihproduct-table').on('preInit.dt', function() {
                 $('#pilihproduct-table thead tr').addClass('bg-light');
@@ -28,6 +27,14 @@
             // Checkbox "Select All"
             $('#checkAll').on('change', function() {
                 $('.product-checkbox').prop('checked', this.checked);
+
+                if(this.checked){
+                    tmpDataProductModifier = [];
+                    tmpDataProductModifier = allIdProduct;
+                }else{
+                    tmpDataProductModifier = [];
+                }
+
             });
 
             // $(document).on('change', '#checkAll', function() {
@@ -55,8 +62,10 @@
 
             // Fungsi untuk memperbarui status #checkAll
             function updateCheckAll() {
-                const totalCheckboxes = $('.product-checkbox').length; // Total checkbox di halaman saat ini
-                const checkedCheckboxes = $('.product-checkbox:checked').length; // Checkbox yang dicentang
+                const totalCheckboxes = allIdProduct.length; // Total checkbox di halaman saat ini
+                const checkedCheckboxes = tmpDataProductModifier.length; // Checkbox yang dicentang
+                console.log(totalCheckboxes);
+                console.log(checkedCheckboxes);
                 $('#checkAll').prop('checked', totalCheckboxes > 0 && totalCheckboxes ===
                     checkedCheckboxes); // Update status
             }
@@ -78,7 +87,7 @@
             });
 
 
-            
+
 
             // Event listener untuk checkbox
             $(document).on('change', '.product-checkbox', function() {
@@ -91,16 +100,18 @@
                     }
                 } else {
                     // Hapus ID dari tmpDataProductModifier jika tidak dicentang
-                    tmpDataProductModifier = tmpDataProductModifier.filter(id => id !== productId);
+                    console.log("masuk ke hapus")
+                    tmpDataProductModifier = tmpDataProductModifier.filter(id => id != productId);
                 }
 
-                console.log(productId);
+                console.log(tmpDataProductModifier);
             });
 
             // Kirim daftar tmpDataProductModifier saat DataTable melakukan request AJAX
             $('#pilihproduct-table').on('preXhr.dt', function(e, settings, data) {
                 // console.log(data);
-                data.checkedProducts = tmpDataProductModifier; // Tambahkan tmpDataProductModifier ke request
+                data.checkedProducts =
+                tmpDataProductModifier; // Tambahkan tmpDataProductModifier ke request
             });
         });
     </script>
