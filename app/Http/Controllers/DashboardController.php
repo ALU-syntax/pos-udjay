@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Outlets;
 use App\Models\Transaction;
+use App\Models\TransactionItem;
 use App\Models\VariantProduct;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -96,19 +98,11 @@ class DashboardController extends Controller
         $outlet = $request->input('outlet');
 
         // dd($outlet);
-        if($outlet == "all"){
-            $dataTransaction = Transaction::with(['itemTransaction'])
+        $dataTransaction = Transaction::with(['itemTransaction'])
                 ->whereBetween('created_at', [$startDate, $endDate])
-                ->get(); // Ambil data sesuai kebutuhan
+                ->whereIn('outlet_id', $outlet)->get(); // Ambil data sesuai kebutuhan
 
-            $outlets = Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get();
-        }else{
-            $dataTransaction = Transaction::with(['itemTransaction'])
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->where('outlet_id', $outlet)->get(); // Ambil data sesuai kebutuhan
-
-            $outlets = Outlets::where('id', $outlet)->get();
-        }
+        $outlets = Outlets::where('id', $outlet)->get();
 
         $grossSales = 0;
         $discount = 0;
@@ -121,9 +115,9 @@ class DashboardController extends Controller
             foreach (json_decode($transaction->total_pajak) as $itemPajak) {
                 $totalTax += $itemPajak->total;
             }
-            $grossSales += $transaction->total + $transaction->total_diskon - $totalTax;
+            $grossSales += $transaction->total;
 
-            $netSales += $transaction->total - $totalTax;
+            $netSales += $transaction->total - $discount;
         }
 
          // Inisialisasi array data per outlet, tiap outlet punya array 24 jam dengan nilai 0
@@ -165,5 +159,80 @@ class DashboardController extends Controller
             "hourlyGrossSalesPerOutlet" => $hourlyGrossSalesPerOutlet,
             "hours" => $hours,
         ]);
+    }
+
+    public function getDataOutletCompare(Request $request){
+        $startDate = Carbon::now()->startOfDay();
+        $endDate = Carbon::now()->endOfDay();
+
+        $dates = explode(' - ', $request->input('date'));
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        } else {
+            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
+
+        $outlet = $request->input('outlet');
+
+        $listData = [];
+        if(count($outlet)){
+            foreach($outlet as $dataOutlet){
+                $getOutlet = Outlets::find($dataOutlet);
+                $dataTransaction = Transaction::with(['itemTransaction'])
+                        ->whereBetween('created_at', [$startDate, $endDate])
+                        ->where('outlet_id', $dataOutlet)->get(); // Ambil data sesuai kebutuhan
+
+                $grossSales = 0;
+                $discount = 0;
+                $netSales = 0;
+
+                foreach ($dataTransaction as $transaction) {
+                    $discount += $transaction->total_diskon;
+
+                    $totalTax = 0;
+                    foreach (json_decode($transaction->total_pajak) as $itemPajak) {
+                        $totalTax += $itemPajak->total;
+                    }
+                    $grossSales += $transaction->total + $transaction->total_diskon;
+
+                    $netSales += $transaction->total;
+                }
+
+                // Query untuk mendapatkan variant_id dan jumlah kemunculan, urut dari yang terbanyak
+                $topVariants = TransactionItem::select('product_id','variant_id', DB::raw('COUNT(*) as total'))
+                ->whereNotNull('variant_id') // pastikan variant_id tidak null
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->groupBy('variant_id','product_id')
+                ->orderByDesc('total')
+                ->with(['variant', 'product', 'transaction' => function($trans) use($dataOutlet){
+                    return $trans->where('outlet_id', $dataOutlet);
+                }]) // eager load data variant agar bisa langsung akses detail variant
+                ->limit(3)
+                ->get();
+
+
+                $averageSalesPerTransaction = count($dataTransaction) ? $grossSales / count($dataTransaction) : 0;
+                // dd($averageSalesPerTransaction);
+                $grossMargin = $grossSales ? ($netSales / $grossSales) * 100 : 0;
+                $tmpData = [
+                    'outlet' => $getOutlet->name,
+                    'grossSales' => $grossSales,
+                    'netSales' => $netSales,
+                    'transactions' => count($dataTransaction),
+                    'averageSales' => round($averageSalesPerTransaction),
+                    'grossMargin' => round($grossMargin),
+                    'topThreeItem' => $topVariants
+                ];
+
+                array_push($listData, $tmpData);
+            }
+
+            return response()->json([
+                'data' => $listData
+            ]);
+        }
     }
 }

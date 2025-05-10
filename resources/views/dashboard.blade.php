@@ -13,17 +13,18 @@
 
     <hr>
 
-
     <div class="card mt-4">
         <div class="card-header ">
             <div class="row">
                 <div class="col-12">
                     <ul class="nav nav-tabs">
                         <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="#">Summary</a>
+                            <a class="nav-link active" data-bs-toggle="pill" role="tab" aria-current="page"
+                                href="#summary-sales">Summary</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" aria-current="page" href="#">Outlet Comparison</a>
+                            <a class="nav-link" data-bs-toggle="pill" role="tab" aria-current="page"
+                                href="#outlet-compare">Outlet Comparison</a>
                         </li>
 
                     </ul>
@@ -31,9 +32,9 @@
             </div>
 
             <div class="row mt-2 d-flex">
-                <div class="col-4 align-self-center d-flex">
-                    <select id="filter-outlet" class="form-control select2">
-                        <option value="all" selected>-- Semua Outlet --</option>
+                <div class="col-8 align-self-center ">
+                    <button id="select-all-option" class="btn btn-primary ">Select All</button>
+                    <select id="filter-outlet" class="form-control select2 w-75" multiple>
                         @foreach ($outlets as $outlet)
                             <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
                         @endforeach
@@ -60,115 +61,158 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-sm-6 col-md-3">
-            <div class="card card-stats card-round">
-                <div class="card-body ">
-                    <div class="row align-items-center">
-                        <div class="col-icon">
-                            <div class="icon-big text-center icon-primary bubble-shadow-small">
-                                <i class="fas fa-shopping-cart"></i>
+    <div class="tab-content" id="v-pills-tabContent">
+        <div class="tab-pane show active" id="summary-sales" role="tabpanel">
+            <div class="row">
+                <div class="col-sm-6 col-md-3">
+                    <div class="card card-stats card-round">
+                        <div class="card-body ">
+                            <div class="row align-items-center">
+                                <div class="col-icon">
+                                    <div class="icon-big text-center icon-primary bubble-shadow-small">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </div>
+                                </div>
+                                <div class="col col-stats ms-3 ms-sm-0">
+                                    <div class="numbers">
+                                        <p class="card-category">Gross Sales</p>
+                                        <h4 id="gross-sales" class="card-title">
+                                            {{ formatRupiah(strval($grossSales), 'Rp. ') }}
+                                        </h4>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col col-stats ms-3 ms-sm-0">
-                            <div class="numbers">
-                                <p class="card-category">Gross Sales</p>
-                                <h4 id="gross-sales" class="card-title">{{ formatRupiah(strval($grossSales), 'Rp. ') }}</h4>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <div class="card card-stats card-round">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-icon">
+                                    <div class="icon-big text-center icon-info bubble-shadow-small">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </div>
+                                </div>
+                                <div class="col col-stats ms-3 ms-sm-0">
+                                    <div class="numbers">
+                                        <p class="card-category">Net Sales</p>
+                                        <h4 id="net-sales" class="card-title">{{ formatRupiah(strval($netSales), 'Rp. ') }}
+                                        </h4>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <div class="card card-stats card-round">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-icon">
+                                    <div class="icon-big text-center icon-success bubble-shadow-small">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                </div>
+                                <div class="col col-stats ms-3 ms-sm-0">
+                                    <div class="numbers">
+                                        <p class="card-category">Gross Profit</p>
+                                        <h4 id="gross-profit" class="card-title">
+                                            {{ formatRupiah(strval($netSales), 'Rp. ') }}
+                                        </h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <div class="card card-stats card-round">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-icon">
+                                    <div class="icon-big text-center icon-secondary bubble-shadow-small">
+                                        <i class="fas fa-file-invoice-dollar"></i>
+                                    </div>
+                                </div>
+                                <div class="col col-stats ms-3 ms-sm-0">
+                                    <div class="numbers">
+                                        <p class="card-category">Transactions</p>
+                                        <h4 id="transactions" class="card-title">{{ $transactions }}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card card-round">
+                        <div class="card-header">
+                            <div class="card-head-row">
+                                <div class="card-title">Hourly Gross Sales Amount</div>
+                                <div class="card-tools">
+                                    {{-- <a href="#" class="btn btn-label-success btn-round btn-sm me-2">
+                                        <span class="btn-label">
+                                            <i class="fa fa-pencil"></i>
+                                        </span>
+                                        Export
+                                    </a>
+                                    <a href="#" class="btn btn-label-info btn-round btn-sm">
+                                        <span class="btn-label">
+                                            <i class="fa fa-print"></i>
+                                        </span>
+                                        Print
+                                    </a> --}}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="min-height: 375px">
+                                <canvas id="statisticsChart"></canvas>
+                            </div>
+                            <div id="myChartLegend"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-md-3">
-            <div class="card card-stats card-round">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-icon">
-                            <div class="icon-big text-center icon-info bubble-shadow-small">
-                                <i class="fas fa-money-bill-wave"></i>
-                            </div>
+
+        <div class="tab-pane" id="outlet-compare" role="tabpanel">
+            <div class="row" id="list-outlet">
+                <h4>TABLE SUMMARY</h4>
+                <hr>
+
+                <div class="col-3">
+                    <div class="card px-0" style="width: 18rem;">
+                        <div class="card-header rounded-top border-bottom border-primary mx-0"
+                            style="background-color: #d2d8fa; border-bottom-color:#0923b6 !important;">
+                            <h5>Sales Summary</h5>
                         </div>
-                        <div class="col col-stats ms-3 ms-sm-0">
-                            <div class="numbers">
-                                <p class="card-category">Net Sales</p>
-                                <h4 id="net-sales" class="card-title">{{ formatRupiah(strval($netSales), 'Rp. ') }}</h4>
-                            </div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item py-3 ">Gross Sales</li>
+                            <li class="list-group-item py-3">Net Sales</li>
+                            <li class="list-group-item py-3">Gross Profit</li>
+                            <li class="list-group-item py-3">Transaction</li>
+                            <li class="list-group-item py-3">Average Sales Per Transaction</li>
+                            <li class="list-group-item py-3">Gross Margin</li>
+                        </ul>
+                        <div class="card-footer  border-bottom border-primary mx-0"
+                            style="background-color: #d2d8fa; border-bottom-color:#0923b6 !important; border-top-color:#0923b6 !important;">
+                            <h5>Items</h5>
                         </div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item py-3">Top Three Item</li>
+                        </ul>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="col-sm-6 col-md-3">
-            <div class="card card-stats card-round">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-icon">
-                            <div class="icon-big text-center icon-success bubble-shadow-small">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                        </div>
-                        <div class="col col-stats ms-3 ms-sm-0">
-                            <div class="numbers">
-                                <p class="card-category">Gross Profit</p>
-                                <h4 id="gross-profit" class="card-title">{{ formatRupiah(strval($netSales), 'Rp. ') }}</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-md-3">
-            <div class="card card-stats card-round">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-icon">
-                            <div class="icon-big text-center icon-secondary bubble-shadow-small">
-                                <i class="fas fa-file-invoice-dollar"></i>
-                            </div>
-                        </div>
-                        <div class="col col-stats ms-3 ms-sm-0">
-                            <div class="numbers">
-                                <p class="card-category">Transactions</p>
-                                <h4 id="transactions" class="card-title">{{ $transactions }}</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
         </div>
     </div>
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card card-round">
-                <div class="card-header">
-                    <div class="card-head-row">
-                        <div class="card-title">Hourly Gross Sales Amount</div>
-                        <div class="card-tools">
-                            {{-- <a href="#" class="btn btn-label-success btn-round btn-sm me-2">
-                                <span class="btn-label">
-                                    <i class="fa fa-pencil"></i>
-                                </span>
-                                Export
-                            </a>
-                            <a href="#" class="btn btn-label-info btn-round btn-sm">
-                                <span class="btn-label">
-                                    <i class="fa fa-print"></i>
-                                </span>
-                                Print
-                            </a> --}}
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container" style="min-height: 375px">
-                        <canvas id="statisticsChart"></canvas>
-                    </div>
-                    <div id="myChartLegend"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+
+
 
     @push('js')
         <script>
@@ -302,10 +346,109 @@
                 });
             }
 
+            function generateOutletCard(data) {
+
+                data.data.forEach(function(dataOutlet){
+                    var cardCol = $('<div>').addClass('col-3');
+                    var card = $('<div>').addClass('card px-0').css('width', '18rem');
+                    var header = $('<div>').addClass('card-header rounded-top border-bottom border-primary mx-0').css({
+                        'background-color': '#d2d8fa',
+                        'border-bottom-color': '#0923b6'
+                    }).append($('<h5>').text(dataOutlet.outlet));
+                    var list1 = $('<ul>').addClass('list-group list-group-flush');
+                    [formatRupiah(dataOutlet.grossSales.toString(), "Rp. "), formatRupiah(dataOutlet.netSales.toString(), "Rp. "), formatRupiah(dataOutlet.netSales.toString(), "Rp. "), dataOutlet.transactions, formatRupiah(dataOutlet.averageSales.toString(), "Rp. "), dataOutlet.grossMargin + "%"]
+                    .forEach(function(text) {
+                        list1.append($('<li>').addClass('list-group-item py-3').text(text));
+                    });
+                    var footer = $('<div>').addClass('card-footer border-bottom border-primary mx-0').css({
+                        'background-color': '#d2d8fa',
+                        'border-bottom-color': '#0923b6',
+                        'border-top-color': '#0923b6'
+                    }).append($('<h5>').text('Items'));
+
+                    let item ='';
+                    dataOutlet.topThreeItem.forEach(function(e){
+                        let result = e.product.name == e.variant.name ? e.variant.name : e.product.name + ' - ' + e.variant.name
+
+                        item += `${result}\n`
+                    })
+                    var list2 = $('<ul>').addClass('list-group list-group-flush').append($('<li>').addClass('list-group-item py-3')
+                        .text(item));
+                    card.append(header, list1, footer, list2);
+                    cardCol.append(card);
+                    $('#list-outlet').append(cardCol);
+                });
+            }
+
+            function checkActiveTab() {
+                var activeTab = $('a.nav-link.active').attr('href');
+
+                // Sembunyikan semua tab-pane
+                $('.tab-pane').removeClass('show active');
+
+                // Tampilkan tab-pane yang sesuai
+                $(activeTab).addClass('show active');
+
+                // Panggil fungsi sesuai tab aktif
+                if (activeTab === '#summary-sales') {
+                    getDataSummary();
+                } else if (activeTab === '#outlet-compare') {
+                    getDataOutletCompare();
+                }
+            }
+
+
+            function getDataOutletCompare() {
+                $.ajax({
+                    url: '{{ route('getDataOutletCompare') }}',
+                    method: 'GET',
+                    data: {
+                        date: date.val(),
+                        outlet: outlet.val()
+                    },
+                    beforeSend: function() {
+                        showLoader();
+                    },
+                    complete: function() {
+                        showLoader(false);
+                    },
+                    success: function(data) {
+                        console.log(data);
+                        $('#list-outlet .col-3:not(:first)').remove();
+                        generateOutletCard(data);
+                    },
+                    error: function(xhr) {
+                        console.error(xhr);
+                    }
+                });
+            }
+
 
             $(document).ready(function() {
+                $('#filter-outlet').select2({
+                    placeholder: "-- Pilih Outlet --",
+                    allowClear: true
+                });
+
+                // Ambil semua nilai option
+                var allValues = $('#filter-outlet option').map(function() {
+                    return $(this).val();
+                }).get();
+
+                // Set semua option terpilih dan update Select2
+                $('#filter-outlet').val(allValues).trigger('change');
+
+                $('#select-all-option').off().on('click', function() {
+                    $("#filter-outlet > option").prop("selected", "selected");
+                    $("#filter-outlet").trigger("change");
+                })
+
                 $('#filter-outlet').on('change', function() {
-                    getDataSummary();
+                    checkActiveTab();
+                });
+
+                $('a[data-bs-toggle="pill"]').off().on('shown.bs.tab', function(e) {
+                    checkActiveTab();
                 });
 
                 // Buat datasets dinamis per outlet
@@ -353,7 +496,7 @@
                     endDate = end;
 
                     // Trigger refresh DataTable setelah memilih rentang tanggal
-                    getDataSummary();
+                    checkActiveTab();
                 });
 
                 // Set initial value for the input field
@@ -370,7 +513,7 @@
                     $('#date_range_transaction').val(startDate.format('YYYY/MM/DD') + ' - ' + endDate.format(
                         'YYYY/MM/DD'));
 
-                    getDataSummary();
+                    checkActiveTab();
                 });
 
                 $('#nextDate').on('click', function() {
@@ -382,7 +525,7 @@
 
                     $('#date_range_transaction').val(startDate.format('YYYY/MM/DD') + ' - ' + endDate.format(
                         'YYYY/MM/DD'));
-                    getDataSummary()
+                    checkActiveTab()
                 });
 
                 $('.ranges li').addClass('btn btn-primary w-75 ms-3 mt-2');
@@ -397,7 +540,7 @@
                 // Event untuk menangani pemilihan rentang yang telah ditentukan
                 $('#date_range_transaction').on('apply.daterangepicker', function(ev, picker) {
                     // Memperbarui DataTable ketika rentang yang telah ditentukan dipilih
-                    getDataSummary();
+                    checkActiveTab();
                 });
 
 
