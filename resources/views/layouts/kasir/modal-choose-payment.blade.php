@@ -28,19 +28,19 @@
                             <div class="row">
                                 @if ($categoryPayment->name == 'Cash')
                                     <div class="col-4 mt-2">
-                                        <button type="button" class="btn w-100 btn-lg btn-choice btn-outline-primary"
+                                        <button type="button" class="btn w-100 btn-lg btn-choice btn-cash-list btn-outline-primary"
                                             data-kategori-payment-id="{{ $categoryPayment->id }}"
                                             data-kategori-payment-name="{{ $categoryPayment->name }}"
                                             data-value="50000">Rp. 50.000</button>
                                     </div>
                                     <div class="col-4 mt-2">
-                                        <button type="button" class="btn w-100 btn-lg btn-choice btn-outline-primary"
+                                        <button type="button" class="btn w-100 btn-lg btn-choice btn-cash-list btn-outline-primary"
                                             data-kategori-payment-id="{{ $categoryPayment->id }}"
                                             data-kategori-payment-name="{{ $categoryPayment->name }}"
                                             data-value="100000">Rp. 100.000</button>
                                     </div>
                                     <div class="col-4 mt-2">
-                                        <button type="button" class="btn w-100 btn-lg btn-choice btn-outline-primary"
+                                        <button type="button" class="btn w-100 btn-lg btn-choice btn-cash-list btn-outline-primary"
                                             data-kategori-payment-id="{{ $categoryPayment->id }}"
                                             data-kategori-payment-name="{{ $categoryPayment->name }}"
                                             data-value="200000">Rp. 200.000</button>
@@ -190,8 +190,34 @@
         }
     }
 
+    function generateBtnCash(){
+        var hargaAkhir = ambilHargaTotal();
+
+        // Hitung nilai tombol
+        var firstButtonValue = hargaAkhir;
+        var secondButtonValue = Math.ceil((hargaAkhir + 1) / 50000) * 50000;
+        var thirdButtonValue = Math.ceil((secondButtonValue + 1) / 100000) * 100000;
+
+
+        // Update tombol berdasarkan urutan (asumsi urutan tombol sesuai HTML)
+        $('.btn-cash-list').each(function(index) {
+            console.log(index)
+            if (index === 0) {
+                $(this).data('value', firstButtonValue);
+                $(this).text(formatRupiah(firstButtonValue.toString(), "Rp. "));
+            } else if (index === 1) {
+                $(this).data('value', secondButtonValue);
+                $(this).text(formatRupiah(secondButtonValue.toString(), "Rp. "));
+            } else if (index === 2) {
+                $(this).data('value', thirdButtonValue);
+                $(this).text(formatRupiah(thirdButtonValue.toString(), "Rp. "));
+            }
+        });
+    }
+
     $(document).ready(function() {
-        updateHargaText()
+        updateHargaText();
+        generateBtnCash();
 
         $('.btn-choice').off().on('click', function() {
             $('.btn-choice').removeClass('active');
