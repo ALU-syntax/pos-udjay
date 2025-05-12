@@ -258,6 +258,7 @@
         amountSplitBill = 0;
         let tmpDataPajak = [];
         let tmpTotalPajak = [];
+        let tmpHargaAkhir = 0;
 
         listItemSplitBill.forEach(function(item) {
             let qty = parseInt(item.quantity);
@@ -267,17 +268,24 @@
             let hargaResultItem = qty * price;
 
             amountSplitBill += hargaResultItem;
+            if (!item.excludeTax) {
+                tmpHargaAkhir += hargaResultItem;
+            }
 
             item.modifier.forEach(function(modifier) {
                 amountSplitBill += modifier.harga * qty;
                 hargaResultItem += modifier.harga * qty;
+                if (!item.excludeTax) {
+                    tmpHargaAkhir += modifier.harga * qty;
+                }
             });
 
             item.diskon.forEach(function(diskon) {
                 amountSplitBill -= (diskon.value * hargaResultItem) / 100;
+                if (!item.excludeTax) {
+                    tmpHargaAkhir += (diskon.value * hargaResultItem) / 100;
+                }
             })
-
-
 
         });
 
@@ -289,7 +297,7 @@
 
             // Hitung pajak berdasarkan satuan
             if (satuan === "%") {
-                pajakValue = (amountSplitBill * amount) / 100; // Hitung jika persentase
+                pajakValue = (tmpHargaAkhir * amount) / 100; // Hitung jika persentase
             } else {
                 pajakValue = amount; // Jika satuan tetap (angka biasa)
             }

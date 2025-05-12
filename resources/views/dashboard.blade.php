@@ -218,7 +218,10 @@
         <script>
             //Chart
             var ctx = document.getElementById('statisticsChart').getContext('2d');
-            // Data dari PHP
+
+            // Flag untuk mencegah loop tak berujung saat meng-set nilai kembali
+            var isRestoring = false;
+
             const hours = @json($hours);
             const hourlyGrossSalesPerOutlet = @json($hourlyGrossSalesPerOutlet);
             const outlets = @json($outlets);
@@ -348,7 +351,7 @@
 
             function generateOutletCard(data) {
 
-                data.data.forEach(function(dataOutlet){
+                data.data.forEach(function(dataOutlet) {
                     var cardCol = $('<div>').addClass('col-3');
                     var card = $('<div>').addClass('card px-0').css('width', '18rem');
                     var header = $('<div>').addClass('card-header rounded-top border-bottom border-primary mx-0').css({
@@ -356,7 +359,11 @@
                         'border-bottom-color': '#0923b6'
                     }).append($('<h5>').text(dataOutlet.outlet));
                     var list1 = $('<ul>').addClass('list-group list-group-flush');
-                    [formatRupiah(dataOutlet.grossSales.toString(), "Rp. "), formatRupiah(dataOutlet.netSales.toString(), "Rp. "), formatRupiah(dataOutlet.netSales.toString(), "Rp. "), dataOutlet.transactions, formatRupiah(dataOutlet.averageSales.toString(), "Rp. "), dataOutlet.grossMargin + "%"]
+                    [formatRupiah(dataOutlet.grossSales.toString(), "Rp. "), formatRupiah(dataOutlet.netSales
+                            .toString(), "Rp. "), formatRupiah(dataOutlet.netSales.toString(), "Rp. "), dataOutlet
+                        .transactions, formatRupiah(dataOutlet.averageSales.toString(), "Rp. "), dataOutlet
+                        .grossMargin + "%"
+                    ]
                     .forEach(function(text) {
                         list1.append($('<li>').addClass('list-group-item py-3').text(text));
                     });
@@ -366,13 +373,15 @@
                         'border-top-color': '#0923b6'
                     }).append($('<h5>').text('Items'));
 
-                    let item ='';
-                    dataOutlet.topThreeItem.forEach(function(e){
-                        let result = e.product.name == e.variant.name ? e.variant.name : e.product.name + ' - ' + e.variant.name
+                    let item = '';
+                    dataOutlet.topThreeItem.forEach(function(e) {
+                        let result = e.product.name == e.variant.name ? e.variant.name : e.product.name +
+                            ' - ' + e.variant.name
 
                         item += `${result}\n`
                     })
-                    var list2 = $('<ul>').addClass('list-group list-group-flush').append($('<li>').addClass('list-group-item py-3')
+                    var list2 = $('<ul>').addClass('list-group list-group-flush').append($('<li>').addClass(
+                            'list-group-item py-3')
                         .text(item));
                     card.append(header, list1, footer, list2);
                     cardCol.append(card);
@@ -393,6 +402,7 @@
                 if (activeTab === '#summary-sales') {
                     getDataSummary();
                 } else if (activeTab === '#outlet-compare') {
+
                     getDataOutletCompare();
                 }
             }
@@ -427,7 +437,8 @@
             $(document).ready(function() {
                 $('#filter-outlet').select2({
                     placeholder: "-- Pilih Outlet --",
-                    allowClear: true
+                    // allowClear: true,
+                    multiple: true
                 });
 
                 // Ambil semua nilai option
@@ -443,7 +454,25 @@
                     $("#filter-outlet").trigger("change");
                 })
 
-                $('#filter-outlet').on('change', function() {
+                $('#filter-outlet').on('change', function(e) {
+                    if (isRestoring) {
+                        // Jika sedang restore, abaikan event ini untuk mencegah loop
+                        return;
+                    }
+
+                    var selected = $(this).val();
+
+                    if (selected === null || selected.length === 0) {
+                        allValues.splice(1);
+                        // Jika tidak ada pilihan (clear all), kembalikan pilihan terakhir
+                        isRestoring = true;
+
+                        $(this).val(lastSelected).trigger('change');
+                        isRestoring = false;
+                    } else {
+                        // Update pilihan terakhir yang valid
+                        lastSelected = selected;
+                    }
                     checkActiveTab();
                 });
 

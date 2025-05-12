@@ -1,11 +1,11 @@
 <x-modal title="{{ $update ? 'Update Product' : 'Tambah Product' }}" addStyle="modal-xl" update="{{ $update }}"
-    description="{{ $update ? 'Update Product berdasarkan Category' : 'Update Product berdasarkan Category' }}"
+    description="{{ $update ? 'Update Product berdasarkan Category' : 'Add Product berdasarkan Category' }}"
     action="{{ $action }}" method="POST">
 
     @if ($data->id)
         @method('put')
     @endif
-    <div class="col-6">
+    <div class="col-4">
         <div class="form-group">
             <label for="category_id">Category <span class="text-danger ">*</span></label>
             <select name="category_id" id="category_id" class="select2InsideModal form-select w-100"
@@ -20,11 +20,19 @@
                     Dahulu</i></small> --}}
         </div>
     </div>
-    <div class="col-6">
+    <div class="col-4">
         <div class="form-group">
             <label>Name <span class="text-danger">*</span></label>
             <input id="name" name="name" value="{{ $data->name }}" type="text" class="form-control"
                 placeholder="nama product.." required>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="form-check mt-5">
+            <input class="form-check-input" type="checkbox" name="exclude_tax" value="1" id="exclude_tax" @if($data->exclude_tax) checked @endif>
+            <label class="form-check-label" for="exclude_tax">
+                Tidak Dikenakan Pajak
+            </label>
         </div>
     </div>
 
@@ -56,7 +64,8 @@
     <div class="col-md-12 mb-3">
         <div class="form-group">
             <label for="description" class="form-label">Deskripsi</label>
-            <textarea class="form-control" name="description" id="description" placeholder="Masukkan deskripsi produk, kosongkan bila tidak ada">{{$data->description}}</textarea>
+            <textarea class="form-control" name="description" id="description"
+                placeholder="Masukkan deskripsi produk, kosongkan bila tidak ada">{{ $data->description }}</textarea>
         </div>
     </div>
 

@@ -44,7 +44,8 @@ class ProductController extends Controller
                 // 'stock' => $validatedData['stock'],
                 'outlet_id' => $outlet,
                 'status' => $validatedData['status'],
-                'description' => $validatedData['description']
+                'description' => $validatedData['description'],
+                'exclude_tax' => $validatedData['exclude_tax'] ?? false
             ];
 
             if ($request->hasFile('photo')) {

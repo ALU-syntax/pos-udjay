@@ -250,6 +250,7 @@
 
     var variantId = '{{ $variants[0]->id }}';
     var variantName = '{{ $variants[0]->name }}';
+    var isProductExcludeTax = '{{$data->exclude_tax}}';
 
     var dataSalesType = @json($salesType);
     if (dataSalesType.length > 0) {
@@ -560,6 +561,7 @@
             modifier: dataModifier,
             pilihan: dataPilihan,
             catatan: catatan,
+            excludeTax: isProductExcludeTax ? true : false,
             resultTotal: totalHargaProduct, //result
             listVariant: @json($variants),
             listPilihan: @json($pilihans),

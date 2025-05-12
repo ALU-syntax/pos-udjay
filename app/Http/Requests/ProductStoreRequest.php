@@ -34,7 +34,8 @@ class ProductStoreRequest extends FormRequest
             'status' => 'required',
             'outlet_id' => 'required',
             'id_variant' => 'nullable|array',
-            'description' => 'nullable'
+            'description' => 'nullable',
+            'exclude_tax' => 'nullable',
         ];
     }
 }
