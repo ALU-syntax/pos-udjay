@@ -87,20 +87,31 @@
     <div class="modal-content">
         <div class="modal-header">
             <button type="button" class="btn btn-outline-secondary btn-xl" data-bs-dismiss="modal"
-                id="btnCancelSplitBill">Batal</button>
+                id="btnCancelRefund">Batal</button>
             <h5 class="modal-title mx-auto text-center" id="productModalLabel">
-                <strong>Pisah Bill</strong><br>
+                <strong>Refund Item</strong><br>
             </h5>
-            <button id="btnSplitBill" type="button" class="btn btn-primary btn-xl">Pisahkan</button>
+            <button id="btnRefund" type="button" class="btn btn-primary btn-xl">Simpan</button>
         </div>
         <div class="modal-body">
             <div class="container">
                 <div class="row">
+                    <div class="container">
+                        <div class="row mb-3">
+                            <p>Refund Method: </p>
+                            <div class="col-6"><button
+                                    class="btn btn-payment-method btn-outline-primary active btn-lg w-100"
+                                    data-value="cash">Cash</button></div>
+                            <div class="col-6"><button class="btn btn-payment-method btn-outline-primary btn-lg w-100"
+                                    data-value="transfer">Transfer</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="col-12">
                         <div style="border: 2px solid black; border-radius: 50px;" class="p-3">
                             <div class="row ">
-                                <div class="col-6">Jumlah yang dipisahkan</div>
-                                <div id="subtotal-split-bill" class="col-6 d-flex justify-content-end pe-4">Rp. 0</div>
+                                <div class="col-6">Jumlah yang direfund</div>
+                                <div id="subtotal-refund" class="col-6 d-flex justify-content-end pe-4">Rp. 0</div>
                             </div>
                         </div>
                     </div>
@@ -108,7 +119,7 @@
 
                 <br>
                 <hr class="mb-0" style="border-width: initial;">
-                <p class="mb-0">Produk yang dipisahkan</p>
+                <p class="mb-0">Produk yang direfund</p>
                 <hr class="mt-0" style="border-width: initial;">
 
                 <hr>
@@ -116,7 +127,7 @@
                 <hr>
                 <br>
 
-                <div class="container" id="list-split-item">
+                <div class="container" id="list-refund-item">
                 </div>
 
             </div>
@@ -125,73 +136,144 @@
 </div>
 
 <script>
-    var amountSplitBill = 0;
-    var amountPajakSplitBill = 0;
-    var jumlahQtyItemSplit = 0;
-    var jumlahQtyItemSplitTerpilih = 0;
+    var amountRefund = 0;
+    var amountPajakRefund = 0;
+    var jumlahQtyItemRefundTerpilih = 0;
+    var transactionData = @json($dataItem);
+    console.log(transactionData);
 
-    $("#btnCancelSplitBill").off().on('click', function(e) {
+    $('.btn-payment-method').off().on('click', function() {
+        $('.btn-payment-method').removeClass('active');
+        $(this).addClass('active');
+
+    });
+
+    $("#btnCancelRefund").off().on('click', function(e) {
         // Tutup modal
         const modal = $('#itemModal');
         modal.modal('hide');
-        amountSplitBill = 0;
-        listItemSplitBill = [];
+        amountRefund = 0;
+        listItemRefund = [];
     });
 
-    $('#btnSplitBill').off().on('click', function(e) {
-        handleAjax("{{ route('kasir/choosePaymentSplitBill') }}").excute();
+    $('#btnRefund').off().on('click', function(e) {
+        let dataFormRefund = new FormData();
+        dataFormRefund.append('transaction_id', transactionData.id);
+
+        let activeButtonPaymentMethod = $('.btn-payment-method.active');
+        let valuePaymentMethod = activeButtonPaymentMethod.attr('data-value');
+        dataFormRefund.append('payment_method', valuePaymentMethod);
+
+        let itemRefund = [];
+        listItemRefund.forEach(function(item) {
+            let tmpDataItemRefund = {
+                harga: item.harga,
+                quantity: item.quantity,
+                variant_id: item.variant_id,
+                discount: item.discount_id,
+                modifier: item.modifier_id,
+                catatan: item.catatan
+            };
+
+            itemRefund.push(tmpDataItemRefund);
+        });
+
+        dataFormRefund.append('list_item', JSON.stringify(itemRefund));
+        dataFormRefund.append('nominal_refund', amountRefund);
+
+        $.ajax({
+            url: "{{ route('kasir/refund') }}",
+            method: "POST",
+            data: dataFormRefund,
+            contentType: false,
+            processData: false,
+            beforeSend: function() {
+                // submitLoader().show()
+            },
+            success: (res) => {
+
+                console.log(res);
+
+            },
+            complete: function() {
+                // submitLoader().hide()
+            },
+            error: function(err) {
+                const errors = err.responseJSON?.errors
+
+                showToast('error', err.responseJSON?.message)
+            }
+        });
     })
 
     function generateListItem() {
-        $('#list-split-item').empty();
-        jumlahQtyBelanja = 0;
-        listItem.forEach(function(item) {
-            console.log(item)
+        $('#list-refund-item').empty();
 
-            const text = item.namaVariant;
-            // Pisahkan kata dan ambil maksimal 2 kata pertama
-            const words = text.split(' ');
-            const initials = words.slice(0, 2).map(word => word[0]).join('');
+        jumlahQtyBelanja = 0;
+        transactionData.item_transaction.forEach(function(item) {
+            let initials = '';
+            let namaProduct = '';
+            let namaVariant = '';
+
+            if (item.product_id) {
+                let text = item.variant.name;
+                // Pisahkan kata dan ambil maksimal 2 kata pertama
+                let words = text.split(' ');
+                initials = words.slice(0, 2).map(word => word[0]).join('');
+
+                namaProduct = item.product.name == item.variant.name ? item.variant.name : item.product.name +
+                    " - " + item.variant.name;
+                namaVariant = item.variant.name;
+            } else {
+                initials = 'C';
+                namaProduct = 'custom';
+                namaVariant = 'custom';
+            }
+
+            let modifierItem = JSON.parse(item.modifier_id);
+            let diskonItem = JSON.parse(item.discount_id);
+            let tmpIdItem = generateRandomID();
+
+            item.tmpId = tmpIdItem;
 
             jumlahQtyBelanja += parseInt(item.quantity);
-            let namaProduct = item.namaProduct == item.namaVariant ? item.namaVariant : item.namaProduct +
-                " - " + item.namaVariant;
+
             let html = `<div class="row">
-                        <div class="col-2 icon-box" data-text="${item.namaVariant}">${initials}</div>
+                        <div class="col-2 icon-box" data-text="${namaVariant}">${initials}</div>
                         <div class="col-4 pt-2">
                             <span>${namaProduct}</span>
                             <br>
                             <span>${formatRupiah(item.harga.toString(), "Rp. ")}</span>
-                            ${item.modifier.map(function(modifier) {
+                            ${modifierItem.map(function(modifier) {
                                 return `<br>
                                         <span style="color: gray">${modifier.nama} - ${modifier.harga}</span>`;})
                             .join('')}
 
-                            ${item.diskon.map(function(diskon) {
+                            ${diskonItem.map(function(diskon) {
                                 return `<br>
                                         <span style="color: red">${diskon.nama} - ${diskon.value}%</span>`;})
                             .join('')}
 
                         </div>
                         <div class="col-6 d-flex justify-content-end">
-                            <div class="quantity ms-auto" data-tmpid="${item.tmpId}" data-harga="${item.harga}" data-maxqty="${item.quantity}">
-                                <button class="quantity__minus d-flex justify-content-center align-items-center" data-fungsi="decrement" onclick="handlerIncrementDecrement(this)" disabled><span>-</span></button>
+                            <div class="quantity ms-auto" data-tmpid="${tmpIdItem}" data-harga="${item.harga}" data-maxqty="${item.quantity}">
+                                <button class="quantity__minus d-flex justify-content-center align-items-center" data-fungsi="decrement" onclick="handlerIncrementDecrementRefund(this)" disabled><span>-</span></button>
                                 <input name="quantity" type="text" class="quantity__input" value="1" min="1" readonly>
-                                <button class="quantity__plus d-flex justify-content-center align-items-center" data-fungsi="increment" onclick="handlerIncrementDecrement(this)" disabled><span>+</span></button>
+                                <button class="quantity__plus d-flex justify-content-center align-items-center" data-fungsi="increment" onclick="handlerIncrementDecrementRefund(this)" disabled><span>+</span></button>
                             </div>
 
                             <div class="form-check d-flex justify-content-center align-items-center ms-5">
-                                <input class="form-check-input" type="checkbox" onchange="handlerCheckItem(this, 'list-item')" data-tmpid="${item.tmpId}" id="flexCheckDefault">
+                                <input class="form-check-input" type="checkbox" onchange="handlerCheckItemRefund(this, 'list-item')" data-tmpid="${tmpIdItem}" id="flexCheckDefault">
                             </div>
                         </div>
 
                     </div>`
-            $('#list-split-item').append(html);
+            $('#list-refund-item').append(html);
         });
 
     }
 
-    function handlerIncrementDecrement(widget) {
+    function handlerIncrementDecrementRefund(widget) {
         let buttonElement = $(widget);
         let fungsiButton = buttonElement.attr('data-fungsi');
 
@@ -206,7 +288,7 @@
         // Ambil value dan konversi ke number (integer)
         let valueInputExist = parseInt(inputElement.val());
 
-        let dataSplitBill = listItemSplitBill.find(item => item.tmpId == dataIdTmp);
+        let dataSplitBill = listItemRefund.find(item => item.tmpId == dataIdTmp);
 
         if (fungsiButton === "increment") {
             if (valueInputExist < maxQty) {
@@ -225,77 +307,90 @@
         inputElement.val(valueInputExist);
 
         validateButtonIncDec(dataIdTmp, maxQty, true);
-        subTotalSplitBill();
+        subTotalRefund();
     }
 
-    function handlerCheckItem(widget) {
+    function handlerCheckItemRefund(widget) {
         let checkBoxElement = $(widget);
         let dataTmpId = checkBoxElement.attr('data-tmpid');
+
 
         // Cari div.quantity yang punya data-tmpid sama
         let quantityDiv = $('.quantity[data-tmpid="' + dataTmpId + '"]');
         let inputElement = quantityDiv.find('input.quantity__input');
 
-        let dataItem = listItem.find(item => item.tmpId == dataTmpId);
+        let dataItem = transactionData.item_transaction.find(item => item.tmpId == dataTmpId);
 
-        let itemSplit = JSON.parse(JSON.stringify(dataItem));
-        itemSplit.quantity = inputElement.val()
+        let itemRefund = JSON.parse(JSON.stringify(dataItem));
+
+        itemRefund.quantity = inputElement.val()
 
         let maxQty = quantityDiv.attr('data-maxqty');
 
         let checked = checkBoxElement.is(':checked');
         if (checked) {
-            listItemSplitBill.push(itemSplit);
+            listItemRefund.push(itemRefund);
         } else {
-            let index = listItemSplitBill.findIndex(item => item.tmpId === dataTmpId);
+            let index = listItemRefund.findIndex(item => item.tmpId === dataTmpId);
             if (index !== -1) {
-                listItemSplitBill.splice(index, 1);
+                listItemRefund.splice(index, 1);
             }
         }
 
         validateButtonIncDec(dataTmpId, maxQty, checked);
-        subTotalSplitBill();
+        subTotalRefund();
 
         validateBtnPisahkan();
     }
 
-    function subTotalSplitBill() {
+    function subTotalRefund() {
         let amountPajak = 0;
-        amountSplitBill = 0;
+        amountRefund = 0;
         let tmpDataPajak = [];
         let tmpTotalPajak = [];
         let tmpHargaAkhir = 0;
 
-        listItemSplitBill.forEach(function(item) {
+        listItemRefund.forEach(function(item) {
             let qty = parseInt(item.quantity);
-            jumlahQtyItemSplitTerpilih += qty;
+            jumlahQtyItemRefundTerpilih += qty;
 
             let price = parseInt(item.harga);
             let hargaResultItem = qty * price;
 
-            amountSplitBill += hargaResultItem;
-            if (!item.excludeTax) {
+            amountRefund += hargaResultItem;
+            if (item.product) {
+                if (!item.product.excludeTax) {
+                    tmpHargaAkhir += hargaResultItem;
+                }
+            }else{
                 tmpHargaAkhir += hargaResultItem;
             }
 
-            item.modifier.forEach(function(modifier) {
-                amountSplitBill += modifier.harga * qty;
+            let itemModifier = JSON.parse(item.modifier_id);
+            itemModifier.forEach(function(modifier) {
+                amountRefund += modifier.harga * qty;
                 hargaResultItem += modifier.harga * qty;
-                if (!item.excludeTax) {
-                    tmpHargaAkhir += modifier.harga * qty;
+                if (item.product) {
+                    if (!item.product.excludeTax) {
+                        tmpHargaAkhir += modifier.harga * qty;
+                    }
                 }
             });
 
-            item.diskon.forEach(function(diskon) {
-                amountSplitBill -= (diskon.value * hargaResultItem) / 100;
-                if (!item.excludeTax) {
-                    tmpHargaAkhir += (diskon.value * hargaResultItem) / 100;
+            let itemDiskon = JSON.parse(item.discount_id);
+            itemDiskon.forEach(function(diskon) {
+                amountRefund -= (diskon.value * hargaResultItem) / 100;
+                if(item.product){
+                    if (!item.product.excludeTax) {
+                        tmpHargaAkhir -= (diskon.value * hargaResultItem) / 100;
+                    }
                 }
             })
 
         });
 
-        listPajak.forEach(function(item) {
+        let dataPajakTransaksi = JSON.parse(transactionData.total_pajak);
+        dataPajakTransaksi.forEach(function(item) {
             let satuan = item.satuan; // Cek karakter terakhir (misalnya % atau lainnya)
             let amount = parseFloat(item.amount); // Ambil angka sebelum satuan
 
@@ -322,19 +417,21 @@
             tmpTotalPajak.push(resultPajak);
 
             amountPajak += resultPajak;
+
         });
 
-        let totalPajakSplitBill = tmpTotalPajak.reduce(function(acc, curr) {
+
+        let totalPajakRefund = tmpTotalPajak.reduce(function(acc, curr) {
             return acc + curr;
         }, 0);
 
-        amountPajakSplitBill = totalPajakSplitBill;
+        amountPajakRefund = totalPajakRefund;
 
-        listPajakSplitBill = tmpDataPajak;
+        listPajakRefund = tmpDataPajak;
 
-        amountSplitBill += amountPajak;
+        amountRefund += amountPajak;
 
-        $('#subtotal-split-bill').text(formatRupiah(amountSplitBill.toString(), "Rp. "));
+        $('#subtotal-refund').text(formatRupiah(amountRefund.toString(), "Rp. "));
     }
 
     function validateButtonIncDec(dataTmpId, maxValue, checked) {
@@ -370,13 +467,13 @@
     }
 
     function validateBtnPisahkan() {
-        if (listItemSplitBill.length) {
-            $('#btnSplitBill').attr('disabled', false);
+        if (listItemRefund.length) {
+            $('#btnRefund').attr('disabled', false);
         } else {
-            $('#btnSplitBill').attr('disabled', true);
+            $('#btnRefund').attr('disabled', true);
         }
     }
 
     generateListItem();
-    $('#btnSplitBill').attr('disabled', true);
+    $('#btnRefund').attr('disabled', true);
 </script>

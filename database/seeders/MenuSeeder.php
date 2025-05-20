@@ -18,11 +18,11 @@ class MenuSeeder extends Seeder
     public function run(): void
     {
         Cache::forget('menus');
-        /** 
+        /**
          * @var Menu $mm
          */
 
-        //  REPORT 
+        //  REPORT
         $mm = Menu::firstOrCreate(['url' => 'report'], ['name' => 'Reports', 'category' => 'REPORTS', 'icon' => 'fa-file']);
         $this->attachMenuPermission($mm, null, ['admin']);
 
@@ -30,6 +30,9 @@ class MenuSeeder extends Seeder
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->create(['name' => 'Transactions', 'url' => $mm->url . '/transactions', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
+        $sm = $mm->subMenus()->create(['name' => 'Open Bill', 'url' => $mm->url . '/openbill', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
         // END REPORT
 
@@ -65,7 +68,7 @@ class MenuSeeder extends Seeder
         // ACCOUNTING
         $mm = Menu::firstOrCreate(['url' => 'accounting'], ['name' => 'Accounting', 'category' => 'ACCOUNTING', 'icon' => 'fa-calculator']);
         $this->attachMenuPermission($mm, null, ['admin']);
-        
+
         $sm = $mm->subMenus()->create(['name' => 'Pengeluaran', 'url' => $mm->url . '/pengeluaran', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
 
@@ -101,7 +104,7 @@ class MenuSeeder extends Seeder
 
         $sm = $mm->subMenus()->create(['name' => 'Community', 'url' => $mm->url . '/community', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
-        
+
         $sm = $mm->subMenus()->create(['name' => 'Level Membership', 'url' => $mm->url . '/level-membership', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
 

@@ -14,6 +14,7 @@ use App\Http\Controllers\LevelMembershipController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ModifiersController;
+use App\Http\Controllers\OpenBillController;
 use App\Http\Controllers\OutletController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PemasukanController;
@@ -288,6 +289,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/choose-payment-split-bill', [KasirController::class, 'choosePaymentSplitBill'])->name('kasir/choosePaymentSplitBill');
         Route::get('/view-open-bill', [KasirController::class, 'viewOpenBill'])->name('kasir/viewOpenBill');
         Route::get('/view-resend-receipt/{id}', [KasirController::class, 'viewResendReceipt'])->name('kasir/viewResendReceipt');
+        Route::get('/view-refund/{idTransaction}', [KasirController::class, 'viewRefund'])->name('kasir/viewRefund');
         Route::get('/history-shifts/{outletid}', [KasirController::class, 'historyShift'])->name('kasir/historyShift');
         Route::get('/detail-history-shifts/{shiftid}', [KasirController::class, 'detailHistoryShift'])->name('kasir/detailHistoryShift');
         Route::get('/choose-bill/{bill}', [KasirController::class, 'chooseBill'])->name('kasir/chooseBill');
@@ -299,6 +301,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/bayar', [KasirController::class, 'bayar'])->name('kasir/bayar');
         Route::post('/open-bill', [KasirController::class, 'openBill'])->name('kasir/openBill');
         Route::post('/update-bill-item', [KasirController::class, 'updateBill'])->name('kasir/updateBill');
+        Route::post('/refund', [KasirController::class, 'refund'])->name('kasir/refund');
     });
 
     Route::group(['prefix' => 'accounting', 'as' => 'accounting/'], function(){
@@ -349,10 +352,19 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [TransactionsController::class, 'index'])->name('transaction');
             Route::get('/getTransactionData', [TransactionsController::class, 'getTransactionData'])->name('transaction/getTransactionData');
             Route::get('/getTransactionDataDetail', [TransactionsController::class, 'getTransactionDataDetail'])->name('transaction/getTransactionDataDetail');
+            Route::get('/getOpenbillData', [TransactionsController::class, 'getOpenbillData'])->name('transaction/getOpenbillData');
             Route::get('/showReceipt/{idTransaction}', [TransactionsController::class, 'showReceipt'])->name('transaction/showReceipt');
             Route::get('/modalResendReceipt/{idTransaction}', [TransactionsController::class, 'modalResendReceipt'])->name('transaction/modalResendReceipt');
             Route::post('/resendReceipt/{idTransaction}', [TransactionsController::class, 'resendReceipt'])->name('transaction/resendReceipt');
             Route::delete('/destroy/{idTransaction}', [TransactionsController::class, 'destroy'])->name('transaction/destroy');
+        });
+
+        Route::prefix('openbill')->group(function () {
+            Route::get('/', [OpenBillController::class, 'index'])->name('openbill');
+            Route::get('/getOpenBillData', [OpenBillController::class, 'getOpenBillData'])->name('openbill/getOpenBillData');
+            Route::get('/getOpenBillDataDetail', [OpenBillController::class, 'getOpenBillDataDetail'])->name('openbill/getOpenBillDataDetail');
+            Route::post('/deleteOpenBill/{idOpenBill}', [OpenBillController::class, 'deleteOpenBill'])->name('openbill/deleteOpenBill');
+
         });
     });
 

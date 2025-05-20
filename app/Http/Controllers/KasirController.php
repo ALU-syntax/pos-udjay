@@ -23,6 +23,7 @@ use App\Models\Outlets;
 use App\Models\PettyCash;
 use App\Models\Product;
 use App\Models\Promo;
+use App\Models\RefundTransaction;
 use App\Models\SalesType;
 use App\Models\Taxes;
 use App\Models\Transaction;
@@ -232,12 +233,15 @@ class KasirController extends Controller
                 if ($match) {
                     $itemQty = (int) $item['quantity'];
                     $mergeQty = (int) $match['qty'];
+                    $itemTerbayar = $item['qty_terbayar'] ? $item['qty_terbayar'] : 0;
 
                     if ($itemQty > $mergeQty) {
                         $newQty = $itemQty - $mergeQty;
+                        $itemTerbayar += $mergeQty;
                         // Kurangi quantity dan update result_total
                         $item['quantity'] = (string) $newQty;
                         $item['result_total'] = $item['harga'] * $newQty;
+                        $item['qty_terbayar'] = $itemTerbayar;
 
                         $item->save();
                     }else{
@@ -702,6 +706,7 @@ class KasirController extends Controller
         $userOutlet = json_decode($userOutletJson);
         $listBill = OpenBill::with(['user', 'outlet'])
             ->where('outlet_id', $userOutlet[0])
+            ->whereNull('delete_permanen')
             ->get()
             ->map(function ($bill) {
                 $bill->created_at_human = Carbon::parse($bill->created_at)->diffForHumans();
@@ -963,6 +968,105 @@ class KasirController extends Controller
         return view('layouts.kasir.modal-bayar-splitbill', [
             'listPayment' => $listCategoryPayment,
             'rounding' => $rounding
+        ]);
+    }
+
+    public function viewRefund($idTransaction){
+        $listItemTransaction = Transaction::where('id', $idTransaction)->with(['itemTransaction' => function($itemTransaction){
+            $itemTransaction->select(
+                'variant_id',
+                DB::raw('COUNT(*) as quantity'),
+                'product_id',
+                'discount_id',
+                'modifier_id',
+                'promo_id',
+                'sales_type_id',
+                'transaction_id',
+                'catatan',
+                'reward_item',
+                'harga'
+            )
+            ->whereNull('refund_at')
+            ->with(['variant', 'product'])
+            ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'reward_item', 'harga');
+        }])->first();
+
+        // $listItemTransaction = TransactionItem::where('transaction_id', '=', $idTransaction)
+        // ->whereNull('refund_at')
+        // ->select(
+        //     'variant_id',
+        //     DB::raw('COUNT(*) as total_count'),
+        //     'product_id',
+        //     'discount_id',
+        //     'modifier_id',
+        //     'promo_id',
+        //     'sales_type_id',
+        //     'transaction_id',
+        //     'catatan',
+        //     'reward_item',
+        //     'harga'
+        // )
+        // ->with(['variant', 'product'])
+        // ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'reward_item', 'harga')
+        // ->get();
+
+
+        // dd($listItemTransaction);
+        return view('layouts.kasir.modal-pilih-refund', [
+            'dataItem' => $listItemTransaction
+        ]);
+    }
+
+    public function refund(Request $request){
+
+        $validatedData = $request->validate([
+            'transaction_id' => 'required',
+            'payment_method' => 'required',
+            'list_item' => 'required',
+            'nominal_refund' =>'required',
+        ]);
+
+        $listItem = json_decode($validatedData['list_item']);
+
+        $dataTransaction = Transaction::where('id', '=', $validatedData['transaction_id'])->with(['itemTransaction' => function($item){
+            $item->where('refund_at', '=', null);
+        }])->first();
+
+        // dd($listItem, $dataTransaction->itemTransaction);
+        $refundTransaction = RefundTransaction::create([
+            'transaction_id' => $validatedData['transaction_id'],
+            'payment_method' => $validatedData['payment_method'],
+            'nominal_refund' => $validatedData['nominal_refund']
+        ]);
+
+        foreach($listItem as $itemRefund){
+            for($x=0; $x < $itemRefund->quantity; $x++){ //kalau quantity nya lebih dari 1 bakal diulang
+                foreach($dataTransaction->itemTransaction as $itemTransaction){
+                    if(isNull($itemTransaction->refund_at)){ //validasi untuk mengeluarkan item transaction yang belum pernah di refund
+                        if(!isNull($itemRefund->variant_id)){ //validasi untuk menampilkan item yang bukan custom
+                            if($itemRefund->variant_id == $itemTransaction->variant_id && $itemRefund->modifier == $itemTransaction->modifier_id && $itemRefund->discount == $itemTransaction->discount_id && $itemRefund->catatan == $itemTransaction->catatan){ // validasi untuk nyocokin item
+                                $itemTransaction->refund_at = Carbon::now();
+                                $itemTransaction->refund_transaction_id = $refundTransaction->id;
+
+                                $itemTransaction->save();
+                            }
+                        }else{
+                            if($itemRefund->variant_id == $itemTransaction->variant_id && $itemRefund->harga == $itemTransaction->harga){
+                                $itemTransaction->refund_at = Carbon::now();
+                                $itemTransaction->refund_transaction_id = $refundTransaction->id;
+
+                                $itemTransaction->save();
+                            }
+                        }
+
+                        continue;
+                    }
+                }
+            }
+        }
+
+        return response()->json([
+            'respose' => "success"
         ]);
     }
 

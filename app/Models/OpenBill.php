@@ -24,6 +24,12 @@ class OpenBill extends Model
         return $this->hasMany(ItemOpenBill::class, 'open_bill_id', 'id');
     }
 
+    public function itemWithTrashed()
+    {
+        return $this->hasMany(ItemOpenBill::class, 'open_bill_id', 'id')->withTrashed();
+    }
+
+
     public function customer(){
         return $this->belongsTo(Customer::class, 'customer_id', 'id');
     }

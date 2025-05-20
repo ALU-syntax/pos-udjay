@@ -1119,6 +1119,11 @@
                             </div>
                         </div>
                         <div class="row mt-2">
+                            <div class="col-12">
+                                <button class="btn btn-primary btn-lg w-100" id="btn-pilih-refund">Pilih Refund</button>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
                             <h3>Detail</h3>
                         </div>
                         <div class="row mb-2">
@@ -1399,6 +1404,8 @@
         var listActivityTransaction = [];
         var listItemSplitBill = [];
         var listPajakSplitBill = [];
+        var listItemRefund = [];
+        var listPajakRefund = [];
         listCategory.forEach(function(category) {
             category.products.forEach(function(product) {
                 listProduct.push(product);
@@ -2755,6 +2762,7 @@
 
             $('#btn-print-history-transaction').removeClass('disabled');
             $('#btn-print-history-transaction').attr('href', 'intent://struk-history-print?id=' + data.id);
+            $('#btn-pilih-refund').attr('data-id', data.id);
 
             $('#btn-resend-receipt').removeClass('disabled');
             $('#btn-resend-receipt').attr('data-id', data.id);
@@ -4362,7 +4370,19 @@
                 hargaAkhirEditItem = 0;
                 const modal = $('#modalEditPesanan');
                 modal.modal('hide');
-            })
+            });
+
+            $('#btn-pilih-refund').off().on('click', function(){
+                iziToast['warning']({
+                    title: "Gagal",
+                    message: "Update ke versi terbaru terlebih dahulu",
+                    position: 'topRight'
+                });
+                // let id = $(this).attr('data-id');
+                // let baseUrlRefund = `{{ route('kasir/viewRefund', [':id']) }}`;
+                // let urlRefund = baseUrlRefund.replace(':id', id);
+                // handleAjax(urlRefund).excute();
+            });
 
         });
     </script>

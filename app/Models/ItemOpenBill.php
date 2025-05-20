@@ -11,4 +11,12 @@ class ItemOpenBill extends Model
     use HasFactory, SoftDeletes;
 
     protected $guarded = ['id'];
+
+    public function product(){
+        return $this->belongsTo(Product::class, 'product_id', 'id');
+    }
+
+    public function variant(){
+        return $this->belongsTo(VariantProduct::class, 'variant_id', 'id');
+    }
 }

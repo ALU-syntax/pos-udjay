@@ -201,7 +201,6 @@
 
         // Update tombol berdasarkan urutan (asumsi urutan tombol sesuai HTML)
         $('.btn-cash-list').each(function(index) {
-            console.log(index)
             if (index === 0) {
                 $(this).data('value', firstButtonValue);
                 $(this).text(formatRupiah(firstButtonValue.toString(), "Rp. "));
