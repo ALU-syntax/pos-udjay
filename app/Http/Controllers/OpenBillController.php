@@ -47,7 +47,10 @@ class OpenBillController extends Controller
 
     public function deleteOpenBill($idOpenBill){
         $openBill = OpenBill::withTrashed()->find($idOpenBill);
-        $openBill->fill(['delete_permanen' => Carbon::now()]);
+        $openBill->fill([
+            'delete_permanen' => Carbon::now(),
+            'id_user_deleted' => auth()->user()->id
+        ]);
 
         $openBill->save();
     }

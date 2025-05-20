@@ -94,7 +94,7 @@ class OpenBillDataTable extends DataTable
             $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
         } else {
             $dataOutletUser = json_decode(auth()->user()->outlet_id);
-            $query->where('outlet_id', $dataOutletUser[0])->whereDate('created_at', Carbon::today());
+            $query->where('outlet_id', $dataOutletUser[0]);
 
         }
 
