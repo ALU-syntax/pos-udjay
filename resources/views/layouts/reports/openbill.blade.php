@@ -97,10 +97,10 @@
                                 <div class="col-6">Served by</div>
                                 <div class="col-6 text-right d-flex" id="served-by"></div>
                             </div>
-                            <div class="row mb-2 d-flex">
+                            {{-- <div class="row mb-2 d-flex">
                                 <div class="col-6">Pax</div>
                                 <div class="col-6 text-right d-flex"></div>
-                            </div>
+                            </div> --}}
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">Duration</div>
                                 <div class="col-6 text-right d-flex"></div>
@@ -110,8 +110,16 @@
                                 <div class="col-6 d-flex justify-content-end" id="collected-by"></div>
                             </div>
                             <div class="row mb-2 d-flex">
-                                <div class="col-6">Total Amount</div>
+                                <div class="col-6">Amount Item</div>
                                 <div class="col-6 d-flex justify-content-end" id="total-amount"></div>
+                            </div>
+                            <div class="row mb-2 d-flex">
+                                <div class="col-6">Tax</div>
+                                <div class="col-6 d-flex justify-content-end" id="tax"></div>
+                            </div>
+                            <div class="row mb-2 d-flex">
+                                <div class="col-6">Total</div>
+                                <div class="col-6 d-flex justify-content-end" id="total"></div>
                             </div>
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">Payment Method</div>
@@ -200,12 +208,13 @@
                 }
             });
 
-            function fetchDetailOpenBill(idOpenBill) {
+            function fetchDetailOpenBill(idOpenBill, idOutlet) {
                 $.ajax({
                     url: `{{ route('report/openbill/getOpenBillDataDetail') }}`,
                     method: 'GET',
                     data: {
                         idOpenBill: idOpenBill,
+                        idOutlet: idOutlet,
                     },
                     beforeSend: function() {
                         showLoader();
@@ -214,8 +223,10 @@
                         showLoader(false);
                     },
                     success: function(res) {
-                        console.log(res);
                         let total = 0;
+                        let pajak = res.pajak.value;
+                        let totalNominalPajak = 0;
+
                         res.data.item.forEach(function(item){
                             let harga = item.harga;
                             let itemTerbayar = item.qty_terbayar ? item.qty_terbayar : 0;
@@ -223,15 +234,22 @@
 
                             let hargaAkhir = harga * qty;
 
-                            total += hargaAkhir;
-                        })
+                            let pajakItem = hargaAkhir * pajak / 100;
 
+                            totalNominalPajak += pajakItem;
+
+                            total += hargaAkhir;
+                        });
+
+                        let totalHarga = total + totalNominalPajak;
                         let status = res.data.deleted_at ? '<span class="badge badge-success">Sudah dibayar</span>' : '<span class="badge badge-danger">Belum dibayar</span>'
                         $('#created-time').text(res.data.create_formated);
                         $('#collected-by').text(res.data.user.name);
                         $('#total-amount').text(formatRupiah(total.toString(), "Rp. "));
                         $('#payment-method').text(res.data.nama_tipe_pembayaran);
                         $('#status-open-bill').html(status);
+                        $('#tax').text(formatRupiah(totalNominalPajak.toString(), "Rp. "));
+                        $('#total').text(formatRupiah(totalHarga.toString(), "Rp. "));
 
                         var urlDestroyOpenBill = "{{ route('report/openbill/deleteOpenBill', ':id') }}".replace(
                             ':id', res.data.id);
@@ -320,6 +338,7 @@
             }
 
             function handleClickRowOpenBill(idOpenBill) {
+                let outletTerpilih = $('#filter-outlet').val();
                 // manipulateIdShowReceipt(idOpenBill);
                 if (tableContainer.hasClass('col-12')) {
                     tableContainer.removeClass('col-12').addClass('col-6');
@@ -336,10 +355,10 @@
                         }, 500);
                     });
 
-                    fetchDetailOpenBill(idOpenBill);
+                    fetchDetailOpenBill(idOpenBill, outletTerpilih);
                 } else {
                     if (stateLastId != idOpenBill) {
-                        fetchDetailOpenBill(idOpenBill)
+                        fetchDetailOpenBill(idOpenBill, outletTerpilih)
                     } else {
                         // Jika ingin mengembalikan ke ukuran asal
                         removeDetailCard(detailCard, tableContainer, openBillTable);

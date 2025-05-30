@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\DataTables\OpenBillDataTable;
 use App\Models\OpenBill;
 use App\Models\Outlets;
+use App\Models\Taxes;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,14 +35,25 @@ class OpenBillController extends Controller
 
     public function getOpenBillDataDetail(Request $request){
         $idOpenBill = $request->input('idOpenBill');
+        $idOutlet = $request->input('idOutlet');
         $openBill = OpenBill::withTrashed()->find($idOpenBill);
         $openBill->load(['user', 'item' => function($itemOpenBill){
             $itemOpenBill->withTrashed()->with(['variant', 'product']);
         }]);
 
+        $tax = Taxes::where('outlet_id', $idOutlet)->get();
+        $totalTax = 0;
+        foreach($tax as $taxItem){
+            $totalTax += intval($taxItem->amount);
+        }
+        $dataPajak = [
+            'value' => $totalTax,
+        ];
+
         $openBill->create_formated = Carbon::parse($openBill->created_at)->format('d-M-Y H:i');
         return response()->json([
-            'data' => $openBill
+            'data' => $openBill,
+            'pajak' => $dataPajak
         ]);
     }
 
