@@ -353,8 +353,8 @@
                             </div>
                             <div class="tab-pane fade" id="item-sales-nobd" role="tabpanel"
                                 aria-labelledby="item-sales-tab-nobd">
-                                <table id="item-sales" class="table display row-border order-column" style="width:100%">
-                                    <thead>
+                                <table id="item-sales" class="table display row-border order-column " style="width:100%">
+                                    <thead id="head-item-sales">
                                         <tr>
                                             <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
                                             <th><b>Category</b></th>
@@ -712,75 +712,31 @@
                                 outlet: outlet
                             },
                         },
-                        columns: [{
-                                data: 'name',
-                                name: 'name'
-                            },
-                            {
-                                data: 'category',
-                                name: 'category'
-                            },
-                            {
-                                data: 'item_sold',
-                                name: 'item_sold',
-                            },
-                            {
-                                data: 'gross_sales',
-                                name: 'gross_sales',
-                            },
-                            {
-                                data: 'discounts',
-                                name: 'discounts',
-                            },
-                            {
-                                data: 'net_sales',
-                                name: 'net_sales',
-                            },
-                            {
-                                data: 'gross_profit',
-                                name: 'gross_profit',
-                            },
-                            {
-                                data: 'gross_margin',
-                                name: 'gross_margin',
-                            }
-
+                        columns: [
+                            { data: 'name', name: 'name'},
+                            { data: 'category', name: 'category'},
+                            { data: 'item_sold', name: 'item_sold',},
+                            { data: 'gross_sales', name: 'gross_sales',},
+                            { data: 'discounts', name: 'discounts',},
+                            { data: 'net_sales', name: 'net_sales',},
+                            { data: 'gross_profit', name: 'gross_profit',},
+                            { data: 'gross_margin', name: 'gross_margin',}
                         ],
                         paging: false, // Menghilangkan pagination
-                        searching: false, // Menghilangkan search bar
+                        searching: true, // Menghilangkan search bar
                         ordering: false,
                         scrollX: true,
                         scrollCollapse: true,
                         scrollY: 500,
-                        fixedColumns: {
-                            start: 1,
-                        },
-                        columnDefs: [{
-                                targets: 0,
-                                width: '200px'
-                            }, // Menetapkan lebar kolom pertama menjadi 200px
-                            {
-                                targets: 3,
-                                width: '150px'
-                            },
-                            {
-                                targets: 4,
-                                width: '150px'
-                            },
-                            {
-                                targets: 5,
-                                width: '150px'
-                            },
-                            {
-                                targets: 6,
-                                width: '150px'
-                            }
+                        info: false,
+                        fixedColumns: { start: 1 },
+                        columnDefs: [
+                            { targets: 0, width: '200px'}, // Menetapkan lebar kolom pertama menjadi 200px
+                            { targets: 3, width: '150px'},
+                            { targets: 4, width: '150px'},
+                            { targets: 5, width: '150px'},
+                            { targets: 6, width: '150px'}
                         ],
-                        initComplete: function(setting, json) {
-                            console.log(json)
-                            $('.dt-scroll-body table thead').remove();
-                            $('.dt-scroll-body table tfoot').remove();
-                        },
                         footerCallback: function(row, data, start, end, display) {
                             var api = this.api();
 
@@ -816,7 +772,11 @@
                             $(api.column(4).footer()).html(formatRupiah(totalDiscounts.toString(), "Rp. "));
                             $(api.column(5).footer()).html(formatRupiah(totalNetSales.toString(), "Rp. "));
                             $(api.column(6).footer()).html(formatRupiah(totalGrossProfit.toString(), "Rp. "));
-                        }
+                        },
+                        initComplete: function(setting, json) {
+                            $('.dt-scroll-body table thead').remove();
+                            $('.dt-scroll-body table tfoot').remove();
+                        },
                     });
 
                     // Pastikan untuk menambahkan elemen <tfoot> di HTML Anda
@@ -831,6 +791,30 @@
                             <th></th>
                         </tr>
                     `);
+
+                    // Event handler untuk menghapus header dan footer setiap kali tabel di redraw
+                    tableSales.on('draw', function() {
+                        // Cek apakah input kosong atau tidak
+                        if ($('.dt-input').val() !== '') {
+                            $('.dt-scroll-head').addClass('d-none');
+                            $('.dt-scroll-foot').addClass('d-none');
+                        }
+                    });
+
+                    // Custom search function hanya untuk kolom name dan category
+                    $.fn.dataTable.ext.search.push(
+                        function(settings, data, dataIndex) {
+                            var searchTerm = $('.dataTables_filter input').val().toLowerCase();
+                            var name = data[0].toLowerCase();      // Kolom name
+                            var category = data[1].toLowerCase();  // Kolom category
+
+                            // Jika search term ada di name atau category, tampilkan baris
+                            if (name.includes(searchTerm) || category.includes(searchTerm)) {
+                                return true;
+                            }
+                            return false;
+                        }
+                    );
 
                 }else if(activeTab === "#category-sales-nobd"){
                     if ($.fn.dataTable.isDataTable('#category-sales')) {
