@@ -18,6 +18,13 @@
             background-color: #f0f0f0;
             /* Opsional: menambahkan efek hover */
         }
+
+        #openbilldeleted-table tbody tr:hover {
+            cursor: pointer;
+            /* Mengubah cursor menjadi pointer */
+            background-color: #f0f0f0;
+            /* Opsional: menambahkan efek hover */
+        }
     </style>
     <div class="main-content">
         <div class="card text-center">
@@ -43,14 +50,41 @@
         </div>
 
         <div class="row">
+
+
+
             <div class="col-12 animated" id="tableContainer">
                 <div class="card">
                     <div class="card-body">
-                        <div class="row">
-                            <div class="table-responsive">
-                                {!! $dataTable->table() !!}
+                        <ul class="nav nav-tabs nav-line nav-color-secondary" id="line-tab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <a class="nav-link active" id="open-bill-tab" data-bs-toggle="pill" href="#open-bill"
+                                    role="tab" aria-controls="pills-home" aria-selected="true">List Bill</a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a class="nav-link" id="open-bill-deleted" data-bs-toggle="pill" href="#openbill-deleted"
+                                    role="tab" aria-controls="pills-profile" aria-selected="false"
+                                    tabindex="-1">Open Bill Deleted</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content mt-3 mb-3" id="line-tabContent">
+                            <div class="tab-pane fade show active" id="open-bill" role="tabpanel"
+                                aria-labelledby="open-bill-tab">
+                                <div class="row">
+                                    <div class="table-responsive ">
+                                        {!! $dataTable->table() !!}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="openbill-deleted" role="tabpanel" aria-labelledby="open-bill-deleted">
+                                <div class="row">
+                                    <div class="table-responsive">
+                                        {!! $openBillDeletedDataTable->table(['class' => 'table table-bordered table-striped w-100'], true) !!}
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -169,6 +203,7 @@
 
     @push('js')
         {!! $dataTable->scripts() !!}
+        {!! $openBillDeletedDataTable->scripts() !!}
         <script>
             var dataTransaksi = @json($data);
             let totalTransaksi = 0;
@@ -223,9 +258,16 @@
                         showLoader(false);
                     },
                     success: function(res) {
+                        console.log(res)
                         let total = 0;
                         let pajak = res.pajak.value;
                         let totalNominalPajak = 0;
+
+                        if(res.data.delete_permanen){
+                            $('#btn-delete-openbill').addClass('d-none')
+                        }else{
+                            $('#btn-delete-openbill').removeClass('d-none')
+                        }
 
                         res.data.item.forEach(function(item){
                             let harga = item.harga;
@@ -264,7 +306,8 @@
                             let qtyTerbayar = item.qty_terbayar ? item.qty_terbayar : 0;
                             let qtyPesanan = parseInt(item.quantity) + qtyTerbayar;
 
-                            let qtyText = qtyTerbayar > 0 && item.deleted_at == null ? `${item.quantity} (Sudah dibayar ${qtyTerbayar})` : qtyPesanan;
+                            let qtyText = qtyTerbayar > 0 && item.deleted_at == null ?
+                                `${item.quantity} (Sudah dibayar ${qtyTerbayar})` : qtyPesanan;
                             console.log(qtyText);
                             if (item.product) {
                                 let namaProduct = item.variant.name == item.product.name ? item

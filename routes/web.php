@@ -361,6 +361,8 @@ Route::middleware('auth')->group(function () {
 
         Route::prefix('openbill')->group(function () {
             Route::get('/', [OpenBillController::class, 'index'])->name('openbill');
+            Route::get('/openbill/data', [OpenBillController::class, 'getOpenBillDataTable'])->name('openbill/data');
+            Route::get('/openbill-deleted/data', [OpenBillController::class, 'getOpenBillDeletedData'])->name('openbill/deleted/data');
             Route::get('/getOpenBillData', [OpenBillController::class, 'getOpenBillData'])->name('openbill/getOpenBillData');
             Route::get('/getOpenBillDataDetail', [OpenBillController::class, 'getOpenBillDataDetail'])->name('openbill/getOpenBillDataDetail');
             Route::post('/deleteOpenBill/{idOpenBill}', [OpenBillController::class, 'deleteOpenBill'])->name('openbill/deleteOpenBill');

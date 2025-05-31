@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\OpenBillDataTable;
+use App\DataTables\OpenBillDeletedDataTable;
 use App\Models\OpenBill;
 use App\Models\Outlets;
 use App\Models\Taxes;
@@ -12,12 +13,18 @@ use Illuminate\Support\Facades\DB;
 
 class OpenBillController extends Controller
 {
-    public function index(OpenBillDataTable $datatable){
+    public function index(OpenBillDataTable $openBillDataTable, OpenBillDeletedDataTable $openBillDeletedDataTable){
         $userOutlet = json_decode(auth()->user()->outlet_id);
         $openBill = OpenBill::with(['outlet'])->where('outlet_id', $userOutlet[0])
         ->get();
 
-        return $datatable->render('layouts.reports.openbill', [
+         // Ambil HtmlBuilder dari kedua DataTable
+        $datatable = $openBillDataTable->html();
+        $openBillDeletedHtml = $openBillDeletedDataTable->html();
+
+        return view('layouts.reports.openbill', [
+            'dataTable' => $datatable,
+            "openBillDeletedDataTable" => $openBillDeletedHtml,
             "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
             "data" => $openBill,
         ]);
@@ -66,4 +73,15 @@ class OpenBillController extends Controller
 
         $openBill->save();
     }
+
+    public function getOpenBillDataTable(OpenBillDataTable $openBillDataTable)
+    {
+        return $openBillDataTable->ajax();
+    }
+
+    public function getOpenBillDeletedData(OpenBillDeletedDataTable $openBillDeletedDataTable)
+    {
+        return $openBillDeletedDataTable->ajax();
+    }
+
 }

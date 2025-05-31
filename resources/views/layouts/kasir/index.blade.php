@@ -2794,7 +2794,7 @@
                 `;
                 $('#row-product').append(htmlListProductTransaction);
 
-                subTotalTransaction += item.harga ? item.harga : (item.variant ? item.variant.harga : 0);
+                subTotalTransaction += item.harga ? parseInt(item.harga) : (item.variant ? parseInt(item.variant.harga) : 0);
 
                 syncIconBoxes();
             });
@@ -2970,7 +2970,7 @@
 
                             soldItemShift += item.transactions.length;
                             item.transactions.forEach(function(cashTransaction) {
-                                sales += cashTransaction.total;
+                                sales += parseInt(cashTransaction.total);
                                 expectedEndingCash += parseInt(cashTransaction.total);
 
                                 totalSeluruhTipe += parseInt(cashTransaction.total);
@@ -3053,8 +3053,8 @@
                                         let total = 0;
                                         soldItemShift += itemPayment.transactions.length;
                                         itemPayment.transactions.forEach(function(transactionPaymentItem){
-                                            total += transactionPaymentItem.total;
-                                            totalPerCategory += transactionPaymentItem.total;
+                                            total += parseInt(transactionPaymentItem.total);
+                                            totalPerCategory += parseInt(transactionPaymentItem.total);
 
                                             totalSeluruhTipe += parseInt(transactionPaymentItem.total);
                                         })
@@ -3687,7 +3687,7 @@
                         let sales = 0;
                         let expectedEndingCash = parseInt(dataPattyCash[0].amount_awal);
                         item.transactions.forEach(function(cashTransaction) {
-                            sales += cashTransaction.total;
+                            sales += parseInt(cashTransaction.total);
                             expectedEndingCash += parseInt(cashTransaction.total);
                         })
 
@@ -3750,8 +3750,8 @@
                                 ${item.payment.map(function(itemPayment) {
                                     let total = 0;
                                     itemPayment.transactions.forEach(function(transactionPaymentItem){
-                                        total += transactionPaymentItem.total;
-                                        totalPerCategory += transactionPaymentItem.total;
+                                        total += parseInt(transactionPaymentItem.total);
+                                        totalPerCategory += parseInt(transactionPaymentItem.total);
                                     })
                                     return `<div class="row" >
                                                 <div class="col-6" >

@@ -128,7 +128,7 @@ class OpenBillDataTable extends DataTable
         return $this->builder()
                     ->setTableId('openbill-table')
                     ->columns($this->getColumns())
-                    ->minifiedAjax()
+                    ->minifiedAjax(route('report/openbill/data'))
                     //->dom('Bfrtip')
                     ->orderBy(1)
                     ->selectStyleSingle()

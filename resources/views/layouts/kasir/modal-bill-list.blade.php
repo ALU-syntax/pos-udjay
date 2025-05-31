@@ -151,7 +151,7 @@
                         modifier: JSON.parse(item.modifier),
                         pilihan: JSON.parse(item.pilihan),
                         catatan: item.catatan ? item.catatan : "",
-                        resultTotal: item.result_total, //result
+                        resultTotal: parseInt(item.result_total), //result
                         openBillId: item.open_bill_id,
                     }
 

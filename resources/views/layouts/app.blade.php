@@ -368,11 +368,10 @@
         function submitLoader(formId = '#form_action') {
             const button = $(formId).find('button[type="submit"]');
 
-
             function show() {
                 button.addClass("btn-load").attr("disabled", true).html(
                     `<span class="d-flex align-items-center">
-        <span class="spinner-border flex-shrink-0"></span><span class="flex-grow-1 ms-2"> Loading...  </span></span>`
+            <span class="spinner-border flex-shrink-0"></span><span class="flex-grow-1 ms-2"> Loading...  </span></span>`
                 );
 
             }
