@@ -346,6 +346,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/discount-sales', [SalesController::class, 'getDiscountSales'])->name('sales/getDiscountSales');
             Route::get('/tax-sales', [SalesController::class, 'getTaxSales'])->name('sales/getTaxSales');
             Route::get('/collected-by-sales', [SalesController::class, 'getCollectedBySales'])->name('sales/getCollectedBySales');
+            Route::get('/getDetailItemCategorySales', [SalesController::class, 'getDetailItemCategorySales'])->name('sales/getDetailItemCategorySales');
         });
 
         Route::prefix('transactions')->group(function () {

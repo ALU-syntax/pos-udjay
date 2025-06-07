@@ -499,6 +499,9 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modal_detail" tabindex="-1" role="dialog" aria-hidden="true">
+    </div>
+
 
     @push('js')
         <script src="https://cdn.datatables.net/2.2.1/js/dataTables.js"></script>
@@ -903,6 +906,35 @@
                             <th></th>
                         </tr>
                     `);
+
+                    $('#category-sales tbody').off().on('click', 'tr', function () {
+                        var data = categorySales.row(this).data();
+                        console.log(data);
+                        $.ajax({
+                            url: '{{ route('report/sales/getDetailItemCategorySales') }}',
+                            method: 'GET',
+                            data: {
+                                date: date,
+                                outlet: outlet,
+                                idCategory: data.id
+                            },
+                            beforeSend: function() {
+                                showLoader();
+                            },
+                            complete: function() {
+                                showLoader(false);
+                            },
+                            success: function(data) {
+                                const modal = $('#modal_detail');
+                                modal.html(data);
+                                modal.modal('show');
+
+                            },
+                            error: function(xhr) {
+                                console.error(xhr);
+                            }
+                        });
+                    });
                 } else if( activeTab === "#modifier-sales-nobd"){
                     if ($.fn.dataTable.isDataTable('#modifier-sales')) {
                         $('#modifier-sales').DataTable().destroy();

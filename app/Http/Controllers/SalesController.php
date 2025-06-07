@@ -17,6 +17,7 @@ use App\Models\VariantProduct;
 use Carbon\Carbon;
 use Yajra\DataTables\DataTables;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Services\DataTable;
 
 class SalesController extends Controller
@@ -392,8 +393,10 @@ class SalesController extends Controller
                     }]);
                 }, 'itemTransaction' => function ($itemTransaction) use ($startDate, $endDate) {
                     $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
-                }]);
-            }])->whereHas('products')->get();
+                }])->orderBy('outlet_id');
+            }])
+            ->whereHas('products')
+            ->get();
         }else{
             $data = Category::with(['products' => function ($product) use ($startDate, $endDate, $outlet) {
                 $product->with(['variants' => function ($variant) use ($startDate, $endDate) {
@@ -411,11 +414,7 @@ class SalesController extends Controller
 
         return DataTables::of($data)
             ->addColumn('category', function ($row) use($outlet) {
-                if($outlet == "all"){
-                    return $row->name . " (" . $row->products[0]->outlet->name . ")";
-                }else{
-                    return $row->name;
-                }
+                return $row->name;
             })
             ->addColumn('item_sold', function ($row) {
                 $itemSold = 0;
@@ -741,5 +740,86 @@ class SalesController extends Controller
         })
         ->setRowId('id')
         ->make(true);
+    }
+
+    public function getDetailItemCategorySales(Request $request){
+        $dates = explode(' - ', $request->date);
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        } else {
+            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
+
+        $outlet = $request->outlet;
+
+        if($outlet == "all"){
+            $product = Product::where('category_id', $request->idCategory)
+            ->whereHas('itemTransaction', function($query) use($startDate, $endDate) {
+                $query->whereBetween('created_at', [$startDate, $endDate]);
+            })
+            ->with(['variants' => function($variant) use($startDate, $endDate) {
+                $variant->whereHas('itemTransaction', function($query) use($startDate, $endDate) {
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                })
+                ->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate) {
+                    $itemTransaction->select(
+                        'variant_id',
+                        DB::raw('COUNT(*) as total_count'),
+                        'product_id',
+                        'discount_id',
+                        'modifier_id',
+                        'promo_id',
+                        'sales_type_id',
+                        'transaction_id',
+                        'catatan',
+                        'reward_item',
+                        'created_at'
+                    )
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'reward_item', 'created_at');
+                }]);
+            }, 'outlet'])
+            ->get();
+        }else{
+         $product = Product::where('category_id', $request->idCategory)
+            ->where('outlet_id', $outlet)
+            ->whereHas('itemTransaction', function($query) use($startDate, $endDate) {
+                $query->whereBetween('created_at', [$startDate, $endDate]);
+            })
+            ->with(['variants' => function($variant) use($startDate, $endDate) {
+                $variant->whereHas('itemTransaction', function($query) use($startDate, $endDate) {
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                })
+                ->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate) {
+                    $itemTransaction->select(
+                        'variant_id',
+                        DB::raw('COUNT(*) as total_count'),
+                        'product_id',
+                        'discount_id',
+                        'modifier_id',
+                        'promo_id',
+                        'sales_type_id',
+                        'transaction_id',
+                        'catatan',
+                        'reward_item',
+                        'created_at'
+                    )
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->whereHas('total_count')
+                    ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'reward_item', 'created_at');
+                }]);
+            }, 'outlet'])
+            ->get();
+        }
+
+        $categoryName = Category::find($request->idCategory)->name;
+
+        return view("layouts.sales.modal-detail-category-sales",[
+            'products' => $product,
+            'categoryName' => $categoryName,
+        ]);
     }
 }
