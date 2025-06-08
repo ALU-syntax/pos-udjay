@@ -46,4 +46,8 @@ class Transaction extends Model
         return $this->belongsTo(Customer::class, 'customer_id', 'id');
     }
 
+    public function refundTransactions(){
+        return $this->hasMany(RefundTransaction::class, 'transaction_id', 'id');
+    }
+
 }

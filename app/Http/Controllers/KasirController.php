@@ -804,7 +804,11 @@ class KasirController extends Controller
         $today = Carbon::today(); // Mendapatkan tanggal hari ini
         $activeShift = PettyCash::find($id);
         $transaction = Transaction::with(['itemTransaction' => function($itemTransaction){
-            $itemTransaction->with(['product', 'variant']);
+            $itemTransaction->where('refund_transaction_id', null)->with(['product', 'variant']);
+        }, 'refundTransactions' => function($refundTransaction){
+            $refundTransaction->with(['itemTransaction' => function($itemTransaction){
+                $itemTransaction->with(['product', 'variant']);
+            }]);
         }])
         ->whereDate('created_at', $today)
         ->where('outlet_id', $activeShift->outlet_id)
@@ -815,6 +819,14 @@ class KasirController extends Controller
         $transaction->map(function($item){
             $item->created_time = Carbon::parse($item->created_at)->format('H:i');
             $item->created_tanggal = Carbon::parse($item->created_at)->format('d-m-Y');
+
+            if($item->refundTransactions->count()){
+                foreach($item->refundTransactions as $refund){
+                    $refund->created_time = Carbon::parse($refund->created_at)->format('H:i');
+                    $refund->created_tanggal = Carbon::parse($refund->created_at)->format('d-m-Y');
+                }
+            }
+
             return $item;
         });
 
@@ -1032,7 +1044,6 @@ class KasirController extends Controller
             $item->where('refund_at', '=', null);
         }])->first();
 
-        // dd($listItem, $dataTransaction->itemTransaction);
         $refundTransaction = RefundTransaction::create([
             'transaction_id' => $validatedData['transaction_id'],
             'payment_method' => $validatedData['payment_method'],
@@ -1040,33 +1051,59 @@ class KasirController extends Controller
         ]);
 
         foreach($listItem as $itemRefund){
-            for($x=0; $x < $itemRefund->quantity; $x++){ //kalau quantity nya lebih dari 1 bakal diulang
+            for($x=0; $x < intval($itemRefund->quantity); $x++){ //kalau quantity nya lebih dari 1 bakal diulang
                 foreach($dataTransaction->itemTransaction as $itemTransaction){
-                    if(isNull($itemTransaction->refund_at)){ //validasi untuk mengeluarkan item transaction yang belum pernah di refund
-                        if(!isNull($itemRefund->variant_id)){ //validasi untuk menampilkan item yang bukan custom
+                    if(is_null($itemTransaction->refund_at)){ //validasi untuk mengeluarkan item transaction yang belum pernah di refund
+                        if(!is_null($itemRefund->variant_id)){ //validasi untuk menampilkan item yang bukan custom
                             if($itemRefund->variant_id == $itemTransaction->variant_id && $itemRefund->modifier == $itemTransaction->modifier_id && $itemRefund->discount == $itemTransaction->discount_id && $itemRefund->catatan == $itemTransaction->catatan){ // validasi untuk nyocokin item
                                 $itemTransaction->refund_at = Carbon::now();
                                 $itemTransaction->refund_transaction_id = $refundTransaction->id;
 
                                 $itemTransaction->save();
+                                break; // keluar dari loop setelah menemukan item yang sesuai
                             }
-                        }else{
-                            if($itemRefund->variant_id == $itemTransaction->variant_id && $itemRefund->harga == $itemTransaction->harga){
+                        }
+                        else{
+                            if($itemRefund->harga == $itemTransaction->harga && $itemRefund->catatan == $itemTransaction->catatan){
                                 $itemTransaction->refund_at = Carbon::now();
                                 $itemTransaction->refund_transaction_id = $refundTransaction->id;
 
                                 $itemTransaction->save();
+                                break; // keluar dari loop setelah menemukan item yang sesuai
                             }
                         }
-
-                        continue;
                     }
+
                 }
             }
         }
 
+        $transaction = Transaction::with(['itemTransaction' => function($itemTransaction){
+            $itemTransaction->where('refund_transaction_id', null)->with(['product', 'variant']);
+        }, 'refundTransactions' => function($refundTransaction){
+            $refundTransaction->with(['itemTransaction' => function($itemTransaction){
+                $itemTransaction->with(['product', 'variant']);
+            }]);
+        }])
+        ->where('id', $validatedData['transaction_id'])
+        ->first();
+
+        if ($transaction) {
+            $transaction->created_time = Carbon::parse($transaction->created_at)->format('H:i');
+            $transaction->created_tanggal = Carbon::parse($transaction->created_at)->format('d-m-Y');
+
+            if ($transaction->refundTransactions->count()) {
+                foreach ($transaction->refundTransactions as $refund) {
+                    $refund->created_time = Carbon::parse($refund->created_at)->format('H:i');
+                    $refund->created_tanggal = Carbon::parse($refund->created_at)->format('d-m-Y');
+                }
+            }
+        }
+
+
         return response()->json([
-            'respose' => "success"
+            'respose' => "success",
+            'transaction' => $transaction,
         ]);
     }
 

@@ -157,6 +157,8 @@
     });
 
     $('#btnRefund').off().on('click', function(e) {
+        submitLoaderByIdBtn(this.id).show();
+
         let dataFormRefund = new FormData();
         dataFormRefund.append('transaction_id', transactionData.id);
 
@@ -191,14 +193,20 @@
                 // submitLoader().show()
             },
             success: (res) => {
-
+                submitLoaderByIdBtn(this.id).hide();
                 console.log(res);
+
+                const modal = $('#itemModal');
+                modal.modal('hide');
+                detailTransactionHandle(res.transaction);
 
             },
             complete: function() {
                 // submitLoader().hide()
+                submitLoaderByIdBtn(this.id).hide();
             },
             error: function(err) {
+                submitLoaderByIdBtn(this.id).hide();
                 const errors = err.responseJSON?.errors
 
                 showToast('error', err.responseJSON?.message)

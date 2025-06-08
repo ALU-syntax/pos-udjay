@@ -1123,6 +1123,9 @@
                                 <button class="btn btn-primary btn-lg w-100" id="btn-pilih-refund">Pilih Refund</button>
                             </div>
                         </div>
+                        <div class="row d-none" id="row-refund-list">
+
+                        </div>
                         <div class="row mt-2">
                             <h3>Detail</h3>
                         </div>
@@ -2683,7 +2686,6 @@
         // Fungsi untuk mendapatkan teks item yang dipotong
         function getTruncatedItemText(itemTransactions) {
             return itemTransactions.map(itemTransaction => {
-                console.log(itemTransaction);
                 if(itemTransaction.product){
                 return itemTransaction.product.name === itemTransaction.variant.name
                     ? itemTransaction.product.name
@@ -2757,6 +2759,77 @@
         }
 
         function detailTransactionHandle(data){
+            $('#row-refund-list').empty();
+            if(data.refund_transactions.length){
+                $('#row-refund-list').removeClass('d-none');
+                data.refund_transactions.forEach(function(transactionRefund){
+                    let hr = $('<hr>');
+                    let elementContainerRefund = $('<div></div>');
+                    elementContainerRefund.addClass('row mt-2');
+
+                    let elementWaktuRefund = $('<p></p>');
+                    elementWaktuRefund.text(`Refund ${transactionRefund.created_tanggal} pada ${transactionRefund.created_time}`);
+                    elementContainerRefund.append(elementWaktuRefund);
+
+                    let catatanContainer = $('<div></div>');
+                    catatanContainer.addClass('row');
+
+                    let isiCatatan = $('<div></div>');
+                    isiCatatan.addClass('col-6');
+                    isiCatatan.append('<p style="font-size: 20px"><i class="fa-solid fa-arrow-circle-left" style="font-size: 20px;"></i> Kelebihan Input</p>');
+                    let nominalRefund = $('<div></div>');
+                    nominalRefund.addClass('col-6 text-end');
+                    nominalRefund.append(`<p class="text-danger" style="font-size: 20px;">(${formatRupiah(transactionRefund.nominal_refund.toString(), "Rp. ")})</p>`);
+
+                    catatanContainer.append(isiCatatan);
+                    catatanContainer.append(nominalRefund);
+
+                    let salesTypeContainer = $('<div></div>');
+                    salesTypeContainer.addClass('row mt-2');
+                    salesTypeContainer.append('<p class="d-flex justify-content-center">Dine In</p>');
+
+                    let itemRefundContainer = $('<div></div>');
+                    itemRefundContainer.addClass('row');
+
+                    transactionRefund.item_transaction.forEach(function(itemRefund){
+                        let nameProductTransaction = itemRefund.product ? (itemRefund.product.name == itemRefund.variant.name ? itemRefund.product.name : itemRefund.product.name + ' - ' + itemRefund.variant.name) : 'custom';
+                        let modifierTransactionJson = JSON.parse(itemRefund.modifier_id);
+                        let inisialNameBox = itemRefund.product ? itemRefund.product.name : 'custom';
+                        let hargaItem = itemRefund.variant ? formatRupiah(itemRefund.variant.harga.toString(), "Rp. ") : (itemRefund.harga ? formatRupiah(itemRefund.harga.toString(), "Rp. ") : "Rp.");
+
+                        let htmlListProductTransaction = `
+                            <div class="col-2 icon-box" data-text="${inisialNameBox}"></div>
+                            <div class="col-5 pt-2">
+                                <span>${nameProductTransaction}</span>
+                                <br>
+                                ${modifierTransactionJson.map(function(modifier) {
+                                    return `<span style="color:gray;">${modifier.nama}</span><br> `;}).join('')}
+                            </div>
+                            <div class="col-5 text-end">
+                                <span>${hargaItem}</span>
+                                <br>
+                                ${modifierTransactionJson.map(function(modifier) {
+                                    return `<span style="color:gray;">${formatRupiah(modifier.harga.toString(), "Rp. ")}</span><br> `;}).join('')}
+                            </div>
+                        `;
+
+                        itemRefundContainer.append(htmlListProductTransaction);
+                    });
+
+                    $('#row-refund-list')
+                    .append(elementContainerRefund)
+                    .append(hr)
+                    .append(catatanContainer)
+                    .append(hr)
+                    .append(salesTypeContainer)
+                    .append(hr)
+                    .append(itemRefundContainer)
+                    .append(hr);
+                });
+            }else{
+                $('#row-refund-list').removeClass('d-none');
+            }
+
             $('#metode-pembayaran').text(data.nama_tipe_pembayaran)
             $('#waktu-pembelian').text(data.created_tanggal +' pada ' + data.created_time);
 
@@ -2770,7 +2843,6 @@
 
             $('#row-product').empty();
             data.item_transaction.forEach(function(item, index){
-                console.log(item);
                 // var nameProductTransaction = item.product.name == item.variant.name ? item.product.name : item.product.name + ' - ' + item.variant.name;
                 var nameProductTransaction = item.product ? (item.product.name == item.variant.name ? item.product.name : item.product.name + ' - ' + item.variant.name) : 'custom';
                 var modifierTransactionJson = JSON.parse(item.modifier_id);
@@ -3655,6 +3727,27 @@
             return totalDiskon;
         }
 
+        function submitLoaderByIdBtn(id){
+            const button = $(`#${id}`);
+
+            function show() {
+                button.addClass("btn-load").attr("disabled", true).html(
+                    `<span class="d-flex align-items-center">
+            <span class="spinner-border flex-shrink-0"></span><span class="flex-grow-1 ms-2"> Loading...  </span></span>`
+                );
+
+            }
+
+            function hide(text = "Save") {
+                button.removeClass("btn-load").removeAttr("disabled").text(text);
+            }
+
+            return {
+                show,
+                hide,
+            };
+        }
+
         $(document).ready(function() {
             showLoader(false);
             generateListDiskon();
@@ -4057,8 +4150,8 @@
                                     const htmlTransaction = createTransactionHTML(transaction, truncateItemText, paymentIcon, index);
 
                                     $('#list-transaction-container').append(htmlTransaction);
-                                    attachTransactionClickEvent();
                                 });
+                                attachTransactionClickEvent();
                             },
                             error: function(err) {
                                 console.log(err);
@@ -4373,15 +4466,16 @@
             });
 
             $('#btn-pilih-refund').off().on('click', function(){
-                iziToast['warning']({
-                    title: "Gagal",
-                    message: "Update ke versi terbaru terlebih dahulu",
-                    position: 'topRight'
-                });
-                // let id = $(this).attr('data-id');
-                // let baseUrlRefund = `{{ route('kasir/viewRefund', [':id']) }}`;
-                // let urlRefund = baseUrlRefund.replace(':id', id);
-                // handleAjax(urlRefund).excute();
+                // iziToast['warning']({
+                //     title: "Gagal",
+                //     message: "Update ke versi terbaru terlebih dahulu",
+                //     position: 'topRight'
+                // });
+
+                let id = $(this).attr('data-id');
+                let baseUrlRefund = `{{ route('kasir/viewRefund', [':id']) }}`;
+                let urlRefund = baseUrlRefund.replace(':id', id);
+                handleAjax(urlRefund).excute();
             });
 
         });
