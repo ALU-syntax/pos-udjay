@@ -2759,6 +2759,9 @@
         }
 
         function detailTransactionHandle(data){
+            console.log(data);
+            var resultJsonPajak = JSON.parse(data.total_pajak);
+
             $('#row-refund-list').empty();
             if(data.refund_transactions.length){
                 $('#row-refund-list').removeClass('d-none');
@@ -2776,7 +2779,8 @@
 
                     let isiCatatan = $('<div></div>');
                     isiCatatan.addClass('col-6');
-                    isiCatatan.append('<p style="font-size: 20px"><i class="fa-solid fa-arrow-circle-left" style="font-size: 20px;"></i> Kelebihan Input</p>');
+                    let catatan = transactionRefund.catatan ? transactionRefund.catatan : 'Kelebihan Input';
+                    isiCatatan.append(`<p style="font-size: 20px"><i class="fa-solid fa-arrow-circle-left" style="font-size: 20px;"></i> ${catatan}</p>`);
                     let nominalRefund = $('<div></div>');
                     nominalRefund.addClass('col-6 text-end');
                     nominalRefund.append(`<p class="text-danger" style="font-size: 20px;">(${formatRupiah(transactionRefund.nominal_refund.toString(), "Rp. ")})</p>`);
@@ -2795,7 +2799,13 @@
                         let nameProductTransaction = itemRefund.product ? (itemRefund.product.name == itemRefund.variant.name ? itemRefund.product.name : itemRefund.product.name + ' - ' + itemRefund.variant.name) : 'custom';
                         let modifierTransactionJson = JSON.parse(itemRefund.modifier_id);
                         let inisialNameBox = itemRefund.product ? itemRefund.product.name : 'custom';
-                        let hargaItem = itemRefund.variant ? formatRupiah(itemRefund.variant.harga.toString(), "Rp. ") : (itemRefund.harga ? formatRupiah(itemRefund.harga.toString(), "Rp. ") : "Rp.");
+                        let nominalItem = itemRefund.variant ? parseInt(itemRefund.variant.harga) : (itemRefund.harga ? parseInt(itemRefund.harga) : 0);
+                        resultJsonPajak.forEach(function(itemPajak){
+                            let presentasePajak = itemPajak.amount;
+                            let nominalPajak = nominalItem * parseInt(presentasePajak) / 100;
+
+                            nominalItem += nominalPajak;
+                        });
 
                         let htmlListProductTransaction = `
                             <div class="col-2 icon-box" data-text="${inisialNameBox}"></div>
@@ -2806,7 +2816,7 @@
                                     return `<span style="color:gray;">${modifier.nama}</span><br> `;}).join('')}
                             </div>
                             <div class="col-5 text-end">
-                                <span>${hargaItem}</span>
+                                <span>${formatRupiah(nominalItem.toString(), "Rp. ")}</span>
                                 <br>
                                 ${modifierTransactionJson.map(function(modifier) {
                                     return `<span style="color:gray;">${formatRupiah(modifier.harga.toString(), "Rp. ")}</span><br> `;}).join('')}
@@ -2871,7 +2881,6 @@
                 syncIconBoxes();
             });
 
-            var resultJsonPajak = JSON.parse(data.total_pajak);
             $('#row-pajak').empty();
             resultJsonPajak.forEach(function(itemPajak){
                 var htmlPajakTranasaction = `

@@ -108,6 +108,12 @@
                         </div>
                     </div>
                     <div class="col-12">
+                        <div class="mb-3">
+                            <label for="catatanRefund" class="form-label"><strong>Catatan</strong></label>
+                            <textarea style="height: 80px;" class="form-control" id="catatanRefund" placeholder="Catatan Wajib diisi" required></textarea>
+                        </div>
+                    </div>
+                    <div class="col-12">
                         <div style="border: 2px solid black; border-radius: 50px;" class="p-3">
                             <div class="row ">
                                 <div class="col-6">Jumlah yang direfund</div>
@@ -182,6 +188,7 @@
 
         dataFormRefund.append('list_item', JSON.stringify(itemRefund));
         dataFormRefund.append('nominal_refund', amountRefund);
+        dataFormRefund.append('catatan', $('#catatanRefund').val());
 
         $.ajax({
             url: "{{ route('kasir/refund') }}",
@@ -213,6 +220,10 @@
             }
         });
     })
+
+    $('#catatanRefund').off().on('input', function() {
+        validateBtnPisahkan();
+    });
 
     function generateListItem() {
         $('#list-refund-item').empty();
@@ -370,7 +381,7 @@
                 if (!item.product.excludeTax) {
                     tmpHargaAkhir += hargaResultItem;
                 }
-            }else{
+            } else {
                 tmpHargaAkhir += hargaResultItem;
             }
 
@@ -388,7 +399,7 @@
             let itemDiskon = JSON.parse(item.discount_id);
             itemDiskon.forEach(function(diskon) {
                 amountRefund -= (diskon.value * hargaResultItem) / 100;
-                if(item.product){
+                if (item.product) {
                     if (!item.product.excludeTax) {
                         tmpHargaAkhir -= (diskon.value * hargaResultItem) / 100;
                     }
@@ -475,10 +486,11 @@
     }
 
     function validateBtnPisahkan() {
-        if (listItemRefund.length) {
-            $('#btnRefund').attr('disabled', false);
-        } else {
+        if (listItemRefund.length && $('#catatanRefund').val().trim() === '') {
+            console.log('masuk');
             $('#btnRefund').attr('disabled', true);
+        } else {
+            $('#btnRefund').attr('disabled', false);
         }
     }
 

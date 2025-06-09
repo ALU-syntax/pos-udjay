@@ -804,7 +804,7 @@ class KasirController extends Controller
         $today = Carbon::today(); // Mendapatkan tanggal hari ini
         $activeShift = PettyCash::find($id);
         $transaction = Transaction::with(['itemTransaction' => function($itemTransaction){
-            $itemTransaction->where('refund_transaction_id', null)->with(['product', 'variant']);
+            $itemTransaction->with(['product', 'variant']);
         }, 'refundTransactions' => function($refundTransaction){
             $refundTransaction->with(['itemTransaction' => function($itemTransaction){
                 $itemTransaction->with(['product', 'variant']);
@@ -1036,6 +1036,7 @@ class KasirController extends Controller
             'payment_method' => 'required',
             'list_item' => 'required',
             'nominal_refund' =>'required',
+            'catatan' => 'required',
         ]);
 
         $listItem = json_decode($validatedData['list_item']);
@@ -1047,7 +1048,8 @@ class KasirController extends Controller
         $refundTransaction = RefundTransaction::create([
             'transaction_id' => $validatedData['transaction_id'],
             'payment_method' => $validatedData['payment_method'],
-            'nominal_refund' => $validatedData['nominal_refund']
+            'nominal_refund' => $validatedData['nominal_refund'],
+            'catatan' => $validatedData['catatan'],
         ]);
 
         foreach($listItem as $itemRefund){
@@ -1079,7 +1081,7 @@ class KasirController extends Controller
         }
 
         $transaction = Transaction::with(['itemTransaction' => function($itemTransaction){
-            $itemTransaction->where('refund_transaction_id', null)->with(['product', 'variant']);
+            $itemTransaction->with(['product', 'variant']);
         }, 'refundTransactions' => function($refundTransaction){
             $refundTransaction->with(['itemTransaction' => function($itemTransaction){
                 $itemTransaction->with(['product', 'variant']);
