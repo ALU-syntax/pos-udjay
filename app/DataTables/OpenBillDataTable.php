@@ -33,6 +33,10 @@ class OpenBillDataTable extends DataTable
             ->addColumn('user_id', function ($row) {
                 return $row->user->name;
             })
+            ->addColumn('outlet', function($row) {
+                $listOutlet = "<span class='badge badge-primary'>{$row->outlet->name} </span>";
+                return $listOutlet; // Menampilkan nama peran dari relasi
+            })
             ->addColumn('items', function ($row) {
                 $items = $row->itemWithTrashed;
                 $itemWithProduct = $items->load(['product']);
@@ -69,7 +73,7 @@ class OpenBillDataTable extends DataTable
 
                 return formatRupiah(intval($total), "Rp. ");
             })
-            ->rawColumns(['items', 'status'])
+            ->rawColumns(['items', 'status', 'outlet'])
             ->setRowId('id')
             ->setRowAttr([
                 'onclick' => function($row){
@@ -94,8 +98,7 @@ class OpenBillDataTable extends DataTable
             $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
         } else {
             $dataOutletUser = json_decode(auth()->user()->outlet_id);
-            $query->where('outlet_id', $dataOutletUser[0]);
-
+            $query->whereIn('outlet_id', $dataOutletUser);
         }
 
         $dataOpenBill = $query->get();
@@ -151,6 +154,7 @@ class OpenBillDataTable extends DataTable
             Column::make('status')->title("Status"),
             Column::make('name')->title("Nama"),
             Column::make('created_at')->title("Time"),
+            Column::make('outlet')->title("Outlet"),
             Column::make('user_id')->title('Collected By'),
             Column::make('items')->title('Items'),
             Column::make('total')->title('Total Price'),

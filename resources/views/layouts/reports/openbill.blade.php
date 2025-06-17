@@ -36,7 +36,7 @@
                 <div class="row mt-2 d-flex">
                     <div class="col-4 align-self-center d-flex">
                         <select id="filter-outlet" class="form-control select2">
-                            {{-- <option value="all" selected>-- Semua Outlet --</option> --}}
+                            <option value="all" selected>-- Semua Outlet --</option>
                             @foreach ($outlets as $outlet)
                                 <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
                             @endforeach
@@ -63,8 +63,8 @@
                             </li>
                             <li class="nav-item" role="presentation">
                                 <a class="nav-link" id="open-bill-deleted" data-bs-toggle="pill" href="#openbill-deleted"
-                                    role="tab" aria-controls="pills-profile" aria-selected="false"
-                                    tabindex="-1">Open Bill Deleted</a>
+                                    role="tab" aria-controls="pills-profile" aria-selected="false" tabindex="-1">Open
+                                    Bill Deleted</a>
                             </li>
                         </ul>
                         <div class="tab-content mt-3 mb-3" id="line-tabContent">
@@ -76,7 +76,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="tab-pane fade" id="openbill-deleted" role="tabpanel" aria-labelledby="open-bill-deleted">
+                            <div class="tab-pane fade" id="openbill-deleted" role="tabpanel"
+                                aria-labelledby="open-bill-deleted">
                                 <div class="row">
                                     <div class="table-responsive">
                                         {!! $openBillDeletedDataTable->table(['class' => 'table table-bordered table-striped w-100'], true) !!}
@@ -187,6 +188,10 @@
                             <div class="col-2">
                                 <button class="btn btn-primary" id="btn-close-detail">Close</button>
                             </div>
+                            <div class="col-10 d-flex justify-content-end">
+                                <button class="btn btn-outline-primary ms-2 d-none" id="btn-restore-openbill">Restore
+                                    Openbill</button>
+                            </div>
                             {{-- <div class="col-10 d-flex justify-content-end">
                                 <a href="{{ route('report/transaction/modalResendReceipt', 1) }}" class="btn btn-outline-primary action"
                                     id="btn-resend-receipt">Resend Receipt</a>
@@ -213,7 +218,12 @@
             var stateLastId = 0;
             const tableContainer = $('#tableContainer');
             const detailCard = $('#container-order-details');
-            const openBillTable = $('#openbill-table');
+
+            const idOpenBillDatatable = 'openbill-table';
+            const idOpenBillDeletedDatatable = 'openbilldeleted-table';
+
+            const openBillTable = $(`#${idOpenBillDatatable}`);
+            const openBillDeletedDatatable = $(`#${idOpenBillDeletedDatatable}`);
 
             function getNewOpenBillData() {
                 let outletTerpilih = $('#filter-outlet').val();
@@ -232,16 +242,6 @@
                     }
                 });
             }
-
-            $('#openbill-table tbody tr').on('click', function() {
-                var tableContainer = $('#tableContainer');
-                console.log(tableContainer.hasClass('col-12'))
-                if (tableContainer.hasClass('col-12')) {
-                    tableContainer.removeClass('col-12').addClass('col-6');
-                } else {
-                    tableContainer.removeClass('col-6').addClass('col-12');
-                }
-            });
 
             function fetchDetailOpenBill(idOpenBill, idOutlet) {
                 $.ajax({
@@ -263,13 +263,15 @@
                         let pajak = res.pajak.value;
                         let totalNominalPajak = 0;
 
-                        if(res.data.delete_permanen){
+                        if (res.data.delete_permanen) {
                             $('#btn-delete-openbill').addClass('d-none')
-                        }else{
+                            $('#btn-restore-openbill').removeClass('d-none');
+                        } else {
+                            $('#btn-restore-openbill').addClass('d-none');
                             $('#btn-delete-openbill').removeClass('d-none')
                         }
 
-                        res.data.item.forEach(function(item){
+                        res.data.item.forEach(function(item) {
                             let harga = item.harga;
                             let itemTerbayar = item.qty_terbayar ? item.qty_terbayar : 0;
                             let qty = parseInt(item.quantity) + itemTerbayar;
@@ -284,7 +286,9 @@
                         });
 
                         let totalHarga = total + totalNominalPajak;
-                        let status = res.data.deleted_at ? '<span class="badge badge-success">Sudah dibayar</span>' : '<span class="badge badge-danger">Belum dibayar</span>'
+                        let status = res.data.deleted_at ?
+                            '<span class="badge badge-success">Sudah dibayar</span>' :
+                            '<span class="badge badge-danger">Belum dibayar</span>'
                         $('#created-time').text(res.data.create_formated);
                         $('#collected-by').text(res.data.user.name);
                         $('#total-amount').text(formatRupiah(total.toString(), "Rp. "));
@@ -337,7 +341,7 @@
                 });
             }
 
-            function removeDetailCard(detailCard, tableContainer, openBillTable) {
+            function removeDetailCard(detailCard, container, openBillTable) {
                 detailCard.hide(1000, function(a) {
                     const cardDetail = $(this);
                     cardDetail.css('display', 'none').animate({
@@ -347,50 +351,20 @@
                         width: '100%'
                     });
 
-                    tableContainer.removeClass('col-6').addClass('col-12');
-                    tableContainer.animate({
+                    container.removeClass('col-6').addClass('col-12');
+                    container.animate({
                         width: '100%'
                     }, 500);
                 });
             }
 
-            function manipulateIdShowReceipt(id) {
-                var $link = $('#btn-show-receipt');
-
-                // Ambil nilai atribut href
-                var currentHref = $link.attr('href');
-
-                // Pecah URL menjadi bagian-bagian
-                // Misalnya, URL adalah /report/transaction/showReceipt/1
-                // Kita akan mengambil bagian terakhir yang merupakan angka 1
-                var urlParts = currentHref.split('/');
-                var lastIndex = urlParts.length - 1;
-                var currentNumber = parseInt(urlParts[lastIndex], 10);
-
-                // Ubah angka tersebut (misalnya tambahkan 1)
-                var newNumber = id;
-
-                // Ganti bagian terakhir dari URL dengan angka baru
-                urlParts[lastIndex] = newNumber.toString();
-
-                // Gabungkan kembali bagian-bagian URL menjadi URL baru
-                var newHref = urlParts.join('/');
-
-                // Ganti atribut href dengan URL baru
-                $link.attr('href', newHref);
-            }
-
             function handleClickRowOpenBill(idOpenBill) {
                 let outletTerpilih = $('#filter-outlet').val();
-                // manipulateIdShowReceipt(idOpenBill);
                 if (tableContainer.hasClass('col-12')) {
                     tableContainer.removeClass('col-12').addClass('col-6');
                     tableContainer.animate({
                         width: '50%'
                     }, 500, function() {
-                        openBillTable.animate({
-                            width: '50%'
-                        });
 
                         // Setelah animasi selesai, tampilkan detail card
                         detailCard.css('display', 'block').animate({
@@ -413,6 +387,58 @@
                 stateLastId = idOpenBill;
             }
 
+            function restoreOpenBill(id) {
+                Swal.fire({
+                    title: 'Kamu yakin?',
+                    text: "ingin mengembalikan Open Bill ini?",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, restore it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `{{ route('report/openbill/restoreOpenBill') }}`,
+                            method: 'POST',
+                            data: {
+                                idOpenBill: id,
+                            },
+                            beforeSend: function() {
+                                // showLoader();
+                            },
+                            complete: function() {
+                                // showLoader(false);
+                            },
+                            success: function(res) {
+                                showToast('success', res.message);
+                                window.LaravelDataTables[idOpenBillDeletedDatatable].ajax.reload(null, false)
+                            },
+                            error: function(xhr) {
+                                console.error(xhr);
+                            }
+                        });
+
+                    }
+
+                })
+            }
+
+            function checkActiveTab() {
+                let activeTab = $('a.nav-link.active').attr('href');
+                let outlet = $('#filter-outlet').val();
+
+                if (activeTab === "#open-bill") { // Use your tab's href id accordingly
+                    window.LaravelDataTables[idOpenBillDatatable].ajax.reload(null, false);
+                    openBillTable.DataTable().ajax.url("{{ route('report/openbill') }}?outlet=" + outlet + "&datatable=openbill").load();
+                    $('#btn-restore-openbill').addClass('d-none');
+                } else if (activeTab === "#openbill-deleted") {
+                    window.LaravelDataTables[idOpenBillDeletedDatatable].ajax.reload(null, false)
+                    openBillDeletedDatatable.DataTable().ajax.url("{{ route('report/openbill') }}?outlet=" + outlet + "&datatable=openbill-deleted").load();
+                    $('#btn-restore-openbill').removeClass('d-none');
+                }
+            }
+
 
             $(document).ready(function() {
                 $('#btn-close-detail').off().on('click', function() {
@@ -423,22 +449,17 @@
 
                 $("#filter-outlet").select2();
                 var success = "{{ session('success') }}";
-                const datatable = 'openbill-table';
+
 
                 $(".select2InsideModal").select2({
                     dropdownParent: $("#modal_action")
                 });
 
-                handleAction(datatable);
+                handleAction(idOpenBillDatatable);
 
                 $('#filter-outlet').on('change', function() {
-                    var table = $('#' + datatable).DataTable();
-
-                    // Refresh tabel
-                    table.ajax.url("{{ route('report/openbill') }}?outlet=" + $('#filter-outlet').val())
-                        .load();
-
-                    getNewOpenBillData()
+                    checkActiveTab();
+                    // getNewOpenBillData()
                 });
 
                 $('#btn-delete-openbill').on('click', function(e) {
@@ -456,7 +477,7 @@
                         if (result.isConfirmed) {
                             handleAjax(this.href, 'post').onSuccess(function(res) {
                                 // showToast(res.status, res.message)
-                                window.LaravelDataTables[datatable].ajax.reload(null, false)
+                                window.LaravelDataTables[idOpenBillDatatable].ajax.reload(null, false)
                             }, false).excute();
 
                             showToast('success', "Data berhasil dihapus");
@@ -466,6 +487,24 @@
 
                 });
 
+                $('#openbill-table tbody tr').on('click', function() {
+                    if (tableContainer.hasClass('col-12')) {
+                        tableContainer.removeClass('col-12').addClass('col-6');
+                    } else {
+                        tableContainer.removeClass('col-6').addClass('col-12');
+                    }
+                });
+
+                // On Bootstrap tab show event, reload table data via AJAX
+                $('a[data-bs-toggle="pill"]').off().on('shown.bs.tab', function(e) {
+                    checkActiveTab();
+                });
+
+                $('#btn-restore-openbill').off().on('click', function(e) {
+                    e.preventDefault();
+                    let idOpenBill = stateLastId;
+                    restoreOpenBill(idOpenBill);
+                });
 
             });
         </script>

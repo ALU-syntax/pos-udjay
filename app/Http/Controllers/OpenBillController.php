@@ -18,6 +18,16 @@ class OpenBillController extends Controller
         $openBill = OpenBill::with(['outlet'])->where('outlet_id', $userOutlet[0])
         ->get();
 
+        // Check if request is Ajax specifically for OpenBillDataTable
+        if (request()->ajax() && request()->has('datatable') && request('datatable') == 'openbill') {
+            return $openBillDataTable->ajax();
+        }
+
+        // Check if request is Ajax specifically for OpenBillDeletedDataTable
+        if (request()->ajax() && request()->has('datatable') && request('datatable') == 'openbill-deleted') {
+            return $openBillDeletedDataTable->ajax();
+        }
+
          // Ambil HtmlBuilder dari kedua DataTable
         $datatable = $openBillDataTable->html();
         $openBillDeletedHtml = $openBillDeletedDataTable->html();
@@ -82,6 +92,17 @@ class OpenBillController extends Controller
     public function getOpenBillDeletedData(OpenBillDeletedDataTable $openBillDeletedDataTable)
     {
         return $openBillDeletedDataTable->ajax();
+    }
+
+    public function restoreOpenBill(Request $request)
+    {
+
+        $openBill = OpenBill::withTrashed()->find($request->idOpenBill);
+        $openBill->delete_permanen = null;
+        $openBill->id_user_deleted = null;
+        $openBill->save();
+
+        return response()->json(['message' => 'Open Bill restored successfully']);
     }
 
 }

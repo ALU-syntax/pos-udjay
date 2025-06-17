@@ -276,7 +276,7 @@
             var dataTransaksi = @json($data);
             let totalTransaksi = 0;
             dataTransaksi.forEach(function(item) {
-                totalTransaksi += item.total;
+                totalTransaksi += parseInt(item.total);
             });
             var stateLastId = 0;
             const tableContainer = $('#tableContainer');
@@ -298,9 +298,10 @@
                         console.log(response)
                         let totalTransaksi = 0;
                         response.data.forEach(function(item) {
-                            totalTransaksi += item.total;
+                            totalTransaksi += parseInt(item.total);
                         });
 
+                        console.log(totalTransaksi);
                         $('#transaction').text(response.data.length);
                         $("#total-collected").text(formatRupiah(totalTransaksi.toString(), "Rp. "));
                         $("#net-sales").text(formatRupiah(totalTransaksi.toString(), "Rp. "));
@@ -510,6 +511,7 @@
                 $('#btn-close-detail').off().on('click', function() {
                     removeDetailCard(detailCard, tableContainer, transactionTable);
                 });
+                console.log(totalTransaksi);
                 $("#total-collected").text(formatRupiah(totalTransaksi.toString(), "Rp. "));
                 $("#net-sales").text(formatRupiah(totalTransaksi.toString(), "Rp. "));
 
