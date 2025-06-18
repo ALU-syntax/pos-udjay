@@ -172,10 +172,12 @@
                                             <tr>
                                                 <th>Item</th>
                                                 <th>Quantity</th>
+                                                <th>Ditambahkan Pada</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr>
+                                                <td></td>
                                                 <td></td>
                                                 <td></td>
                                             </tr>
@@ -312,7 +314,6 @@
 
                             let qtyText = qtyTerbayar > 0 && item.deleted_at == null ?
                                 `${item.quantity} (Sudah dibayar ${qtyTerbayar})` : qtyPesanan;
-                            console.log(qtyText);
                             if (item.product) {
                                 let namaProduct = item.variant.name == item.product.name ? item
                                     .product.name :
@@ -322,6 +323,7 @@
                                                 <tr>
                                                     <td>${namaProduct}</td>
                                                     <td>${qtyText}</td>
+                                                    <td>${item.create_formated}</td>
                                                 </tr>
                                             `);
                             } else {
@@ -329,6 +331,7 @@
                                                 <tr>
                                                     <td>custom</td>
                                                     <td>${qtyText}</td>
+                                                    <td>${item.create_formated}</td>
                                                 </tr>
                                             `);
                             }

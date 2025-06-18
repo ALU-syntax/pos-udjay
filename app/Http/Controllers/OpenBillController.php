@@ -58,6 +58,11 @@ class OpenBillController extends Controller
             $itemOpenBill->withTrashed()->with(['variant', 'product']);
         }]);
 
+        // Add create_formated to each item after loading
+        $openBill->item->map(function($bill) {
+            $bill->create_formated = Carbon::parse($bill->created_at)->format('d-M-Y H:i');
+        });
+
         $tax = Taxes::where('outlet_id', $idOutlet)->get();
         $totalTax = 0;
         foreach($tax as $taxItem){
