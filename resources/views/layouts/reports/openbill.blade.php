@@ -42,6 +42,14 @@
                             @endforeach
                         </select>
                     </div>
+
+                    <div class="col-md-4">
+                        <select id="status-bill" class="w-100" data-style="btn-default">
+                            <option value="" selected disabled>Pilih Status</option>
+                            <option value="1">Sudah Dibayar</option>
+                            <option value="0">Belum Dibayar</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="card-body">
@@ -415,7 +423,8 @@
                             },
                             success: function(res) {
                                 showToast('success', res.message);
-                                window.LaravelDataTables[idOpenBillDeletedDatatable].ajax.reload(null, false)
+                                window.LaravelDataTables[idOpenBillDeletedDatatable].ajax.reload(null,
+                                    false)
                             },
                             error: function(xhr) {
                                 console.error(xhr);
@@ -430,14 +439,18 @@
             function checkActiveTab() {
                 let activeTab = $('a.nav-link.active').attr('href');
                 let outlet = $('#filter-outlet').val();
+                let status = $('#status-bill').val();
+                console.log(status);
 
                 if (activeTab === "#open-bill") { // Use your tab's href id accordingly
                     window.LaravelDataTables[idOpenBillDatatable].ajax.reload(null, false);
-                    openBillTable.DataTable().ajax.url("{{ route('report/openbill') }}?outlet=" + outlet + "&datatable=openbill").load();
+                    openBillTable.DataTable().ajax.url("{{ route('report/openbill') }}?outlet=" + outlet +
+                        "&datatable=openbill" + "&status=" + status).load();
                     $('#btn-restore-openbill').addClass('d-none');
                 } else if (activeTab === "#openbill-deleted") {
                     window.LaravelDataTables[idOpenBillDeletedDatatable].ajax.reload(null, false)
-                    openBillDeletedDatatable.DataTable().ajax.url("{{ route('report/openbill') }}?outlet=" + outlet + "&datatable=openbill-deleted").load();
+                    openBillDeletedDatatable.DataTable().ajax.url("{{ route('report/openbill') }}?outlet=" + outlet +
+                        "&datatable=openbill-deleted"  + "&status=" + status).load();
                     $('#btn-restore-openbill').removeClass('d-none');
                 }
             }
@@ -453,6 +466,11 @@
                 $("#filter-outlet").select2();
                 var success = "{{ session('success') }}";
 
+                $('#status-bill').select2({
+                    placeholder: "Pilih Status Bill ",
+                    allowClear: true
+                });
+
 
                 $(".select2InsideModal").select2({
                     dropdownParent: $("#modal_action")
@@ -464,6 +482,10 @@
                     checkActiveTab();
                     // getNewOpenBillData()
                 });
+
+                $('#status-bill').on('change', function(){
+                    checkActiveTab();
+                })
 
                 $('#btn-delete-openbill').on('click', function(e) {
                     e.preventDefault();
@@ -480,7 +502,8 @@
                         if (result.isConfirmed) {
                             handleAjax(this.href, 'post').onSuccess(function(res) {
                                 // showToast(res.status, res.message)
-                                window.LaravelDataTables[idOpenBillDatatable].ajax.reload(null, false)
+                                window.LaravelDataTables[idOpenBillDatatable].ajax.reload(null,
+                                    false)
                             }, false).excute();
 
                             showToast('success', "Data berhasil dihapus");

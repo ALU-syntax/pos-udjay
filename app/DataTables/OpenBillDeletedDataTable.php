@@ -103,6 +103,14 @@ class OpenBillDeletedDataTable extends DataTable
             $query->whereIn('outlet_id', $dataOutletUser);
         }
 
+        if($this->request()->has('status') && $this->request()->get('status') != null){
+            if($this->request()->get('status') == '1'){
+                $query->whereNotNull('deleted_at');
+            }else{
+                $query->whereNull('deleted_at');
+            }
+        }
+
         $dataOpenBill = $query->get();
         $total = 0;
 
