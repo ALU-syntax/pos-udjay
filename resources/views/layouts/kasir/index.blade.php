@@ -55,6 +55,7 @@
             border: 1px solid #ddd;
             padding: 20px;
             border-radius: 8px;
+            margin-bottom: 50px;
         }
 
         .bottom-nav-li {
@@ -66,7 +67,7 @@
             width: 60px;
             height: 60px;
             margin: 10px;
-            background-color: #d3d3d3;
+            background-color: rgb(220,53,69);
             /* Warna latar belakang */
             display: flex;
             justify-content: center;
@@ -303,6 +304,60 @@
             font-size: 1.25rem;
             border-radius: 0.5rem;
         }
+
+        .btn-primary{
+            background-color: rgb(220,53,69);
+            border-color: rgb(220,53,69);
+        }
+
+        .bg-primary{
+            background-color: rgb(220,53,69) !important;
+        }
+
+        .btn-outline-primary{
+            border-color: rgb(220,53,69);
+
+            color: rgb(220,53,69);
+        }
+
+        .nav-link{
+            color: rgb(220,53,69);
+        }
+
+        .nav-pills .nav-link.active{
+            background-color: rgb(220,53,69);
+        }
+
+        .btn:hover{
+             background-color: rgb(200, 33, 49);
+             border-color: rgb(200, 33, 49);
+        }
+
+        .nav-link:hover{
+            color: rgb(200, 33, 49);
+        }
+
+        .border-uddjaya{
+            border-color: rgb(220,53,69);
+        }
+
+        .color-uddjaya{
+            color: rgb(220,53,69);
+        }
+
+        .bg-uddjaya{
+            background-color: rgb(220,53,69);
+        }
+
+        .btn.disabled{
+            background-color: rgba(220,53,69, 0.65);
+            border-color: rgba(220,53,69, 0.1);
+        }
+
+        .btn.active{
+            background-color: rgb(220,53,69);
+            border-color: rgb(220,53,69);
+        }
     </style>
 </head>
 
@@ -357,7 +412,7 @@
                                                 </div>
                                             </div>
 
-                                            <div class="bg-danger card list-setting mt-2" data-target="logout">
+                                            <div class="bg-warning card list-setting mt-2" data-target="logout">
                                                 <div class="card-body ">
                                                     <h5 class="text-white">Keluar</h5>
                                                 </div>
@@ -822,16 +877,16 @@
                             <div class="col-12 mt-3">
                                 <!-- Search Bar -->
                                 <div class="input-group mb-3 " id="input-search-item">
-                                    <input type="text" id="search-item" class="form-control" placeholder="Cari"
+                                    <input type="text" id="search-item" class="form-control border-uddjaya" placeholder="Cari"
                                         aria-label="Search">
-                                    <button class="btn btn-outline-secondary" id="clear-search"
+                                    <button class="btn btn-outline-secondary  border-uddjaya" id="clear-search"
                                         type="button">Clear</button>
                                 </div>
 
                                 <!-- Content Section -->
                                 <div id="content-section" class="mt-2">
 
-                                    <div class="card d-flex align-items-center">
+                                    <div class="card d-flex align-items-center border-uddjaya">
                                         <div class="row w-100" style="height: 80px">
                                             <div class="col-auto d-flex align-items-center">
                                                 <button id="back-btn" class="btn btn-primary my-3 back-btn"
@@ -844,7 +899,7 @@
                                     </div>
 
                                     <!-- Initial Library View -->
-                                    <div id="library-view" class="card child-section"
+                                    <div id="library-view" class="card child-section border-uddjaya"
                                         style="overflow-y: auto; height: calc(100vh - 240px);">
                                         <div class="list-group">
                                             <div class="list-group-item list-category d-flex align-items-center"
@@ -878,7 +933,7 @@
                                     <!-- Product View -->
                                     @foreach ($categorys as $item)
                                         <div id="kategori-{{ $item->id }}"
-                                            class="card d-none child-section list-product-category"
+                                            class="card d-none child-section list-product-category border-uddjaya"
                                             style="overflow-y: auto; height: calc(100vh - 240px);">
                                             @foreach ($item->products as $data)
                                                 <div class="list-group-item list-item d-flex align-items-center"
@@ -892,13 +947,13 @@
                                     @endforeach
 
                                     {{-- Menu Diskon --}}
-                                    <div id="Diskon" class="card d-none child-section"
+                                    <div id="Diskon" class="card d-none child-section border-uddjaya"
                                         style="overflow-y: auto; height: calc(100vh - 240px);">
 
                                     </div>
 
                                     {{-- Menu All Item --}}
-                                    <div id="all-item" class="card d-none child-section"
+                                    <div id="all-item" class="card d-none child-section border-uddjaya"
                                         style="overflow-y: auto; height: calc(100vh - 240px);">
                                         @foreach ($categorys as $item)
                                             @foreach ($item->products as $data)
@@ -977,13 +1032,13 @@
 
                 <!-- Order Section -->
                 <div class="col-5 p-3">
-                    <div class="order-section">
+                    <div class="order-section border-uddjaya">
                         <div class="row mb-1">
                             <div class="col-12 d-flex">
                                 <button class="btn btn-primary-outline w-25 btn-lg my-0 ms-0 me-1 px-0 pb-0 rounded"
-                                    style="border-style:solid; border-radius: 2px; border-color: #3b5998;"
+                                    style="border-style:solid; border-radius: 2px; border-color: rgb(220,53,69);"
                                     id="bill-list">
-                                    <img src="{{ asset('img/billing.png') }}" alt="" width="40">
+                                    <img src="{{ asset('img/billing-list-new.png') }}" alt="" width="40">
                                     <p class="m-0" style="font-size: 12px;">Billing list</p>
                                 </button>
                                 <button class="btn btn-primary me-1 w-50 btn-lg rounded" id="pilih-pelanggan">Pilih
@@ -992,8 +1047,8 @@
                                     Pelanggan</button>
                             </div>
                         </div>
-                        <div class="card">
-                            <div class="card-body ">
+                        <div class="card border-uddjaya">
+                            <div class="card-body">
 
                                 <!-- Dine In Section -->
                                 <p class="text-muted text-center mb-2">All Sales Type</p>
