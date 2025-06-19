@@ -117,6 +117,10 @@
                             </div>
                             <hr>
                             <div class="row mb-2 d-flex">
+                                <div class="col-6">Nama Bill</div>
+                                <div class="col-6 justify-content-end d-flex" id="nama-open-bill"></div>
+                            </div>
+                            <div class="row mb-2 d-flex">
                                 <div class="col-6">Status</div>
                                 <div class="col-6 text-right d-flex" id="status-open-bill"></div>
                             </div>
@@ -272,6 +276,7 @@
                         let total = 0;
                         let pajak = res.pajak.value;
                         let totalNominalPajak = 0;
+                        let totalTerbayar = 0;
 
                         if (res.data.delete_permanen) {
                             $('#btn-delete-openbill').addClass('d-none')
@@ -280,6 +285,10 @@
                             $('#btn-restore-openbill').addClass('d-none');
                             $('#btn-delete-openbill').removeClass('d-none')
                         }
+
+                        res.data.transactions.forEach(function(transaction){
+                            totalTerbayar += parseInt(transaction.total);
+                        });
 
                         res.data.item.forEach(function(item) {
                             let harga = item.harga;
@@ -298,14 +307,16 @@
                         let totalHarga = total + totalNominalPajak;
                         let status = res.data.deleted_at ?
                             '<span class="badge badge-success">Sudah dibayar</span>' :
-                            '<span class="badge badge-danger">Belum dibayar</span>'
+                            '<span class="badge badge-danger">Belum dibayar</span>';
+                        $('#nama-open-bill').text(res.data.name);
                         $('#created-time').text(res.data.create_formated);
                         $('#collected-by').text(res.data.user.name);
                         $('#total-amount').text(formatRupiah(total.toString(), "Rp. "));
                         $('#payment-method').text(res.data.nama_tipe_pembayaran);
                         $('#status-open-bill').html(status);
                         $('#tax').text(formatRupiah(totalNominalPajak.toString(), "Rp. "));
-                        $('#total').text(formatRupiah(totalHarga.toString(), "Rp. "));
+                        $('#total').text(`${formatRupiah(totalHarga.toString(), "Rp. ")} (${formatRupiah(totalTerbayar.toString(), "Rp. ")})`);
+                        // $('#total').html(`<span>${formatRupiah(totalHarga.toString(), "Rp. ")}</span> (<span class="badge badge-success">${formatRupiah(totalTerbayar.toString(), "Rp. ")}</span>)`);
 
                         var urlDestroyOpenBill = "{{ route('report/openbill/deleteOpenBill', ':id') }}".replace(
                             ':id', res.data.id);
@@ -321,7 +332,7 @@
                             let qtyPesanan = parseInt(item.quantity) + qtyTerbayar;
 
                             let qtyText = qtyTerbayar > 0 && item.deleted_at == null ?
-                                `${item.quantity} (Sudah dibayar ${qtyTerbayar})` : qtyPesanan;
+                                `${qtyPesanan} <span class="badge rounded-pill badge-success">Paid ${qtyTerbayar}</span>` : (item.deleted_at == null ? qtyPesanan : `${qtyPesanan} <span class="badge rounded-pill badge-success">Paid ${qtyPesanan}</span>`);
                             if (item.product) {
                                 let namaProduct = item.variant.name == item.product.name ? item
                                     .product.name :

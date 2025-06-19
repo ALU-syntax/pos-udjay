@@ -19,4 +19,8 @@ class ItemOpenBill extends Model
     public function variant(){
         return $this->belongsTo(VariantProduct::class, 'variant_id', 'id');
     }
+
+    public function itemTransactions(){
+        return $this->hasMany(TransactionItem::class, 'item_open_bill_id', 'id');
+    }
 }

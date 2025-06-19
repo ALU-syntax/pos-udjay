@@ -53,9 +53,10 @@ class OpenBillController extends Controller
     public function getOpenBillDataDetail(Request $request){
         $idOpenBill = $request->input('idOpenBill');
         $idOutlet = $request->input('idOutlet');
+
         $openBill = OpenBill::withTrashed()->find($idOpenBill);
-        $openBill->load(['user', 'item' => function($itemOpenBill){
-            $itemOpenBill->withTrashed()->with(['variant', 'product']);
+        $openBill->load(['user', 'transactions', 'item' => function($itemOpenBill){
+            $itemOpenBill->withTrashed()->with(['variant', 'product', 'itemTransactions']);
         }]);
 
         // Add create_formated to each item after loading
@@ -63,7 +64,7 @@ class OpenBillController extends Controller
             $bill->create_formated = Carbon::parse($bill->created_at)->format('d-M-Y H:i');
         });
 
-        $tax = Taxes::where('outlet_id', $idOutlet)->get();
+        $tax = Taxes::where('outlet_id', $openBill->outlet_id)->get();
         $totalTax = 0;
         foreach($tax as $taxItem){
             $totalTax += intval($taxItem->amount);

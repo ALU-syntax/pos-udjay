@@ -202,6 +202,10 @@ class KasirController extends Controller
     {
         $outletUser = auth()->user()->outlet_id;
         $dataOutletUser = json_decode($outletUser);
+        $listIdItemOpenBill = [];
+
+        $billId = ($request->bill_id == "0" || $request->bill_id == 0) ? null : intval($request->bill_id);
+
 
         //jika split bill dari open bill
         if(($request->bill_id != "0" || $request->bill_id != 0) && $request->split_bill == true){
@@ -226,6 +230,10 @@ class KasirController extends Controller
                 foreach ($resultCountItem as $data) {
                     if ($data['tmpId'] === $item['tmp_id']) {
                         $match = $data;
+
+                        for($x=0; $x < $data['qty']; $x++){
+                            array_push($listIdItemOpenBill, $item->id);
+                        }
                         break;
                     }
                 }
@@ -253,6 +261,12 @@ class KasirController extends Controller
 
         if (($request->bill_id != "0" || $request->bill_id != 0) && $request->split_bill == false) {
             $bill = OpenBill::with(['item'])->where('id', $request->bill_id)->first();
+            foreach($bill->item as $itemBill){
+                for($i=0; $i < intval($itemBill->quantity); $i++){
+                    array_push($listIdItemOpenBill, $itemBill->id);
+                }
+            }
+
             $bill->item()->delete();
             $bill->delete();
         }
@@ -406,6 +420,7 @@ class KasirController extends Controller
             'potongan_point' => intval($request->potongan_point),
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
+            'open_bill_id' => $billId
         ];
 
         $transaction = Transaction::create($dataTransaction);
@@ -426,6 +441,10 @@ class KasirController extends Controller
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ];
+
+            if($billId && count($listIdItemOpenBill)){
+                $dataProduct['item_open_bill_id'] = $listIdItemOpenBill[$x];
+            }
 
             TransactionItem::insert($dataProduct);
         }

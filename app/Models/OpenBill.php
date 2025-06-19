@@ -33,4 +33,8 @@ class OpenBill extends Model
     public function customer(){
         return $this->belongsTo(Customer::class, 'customer_id', 'id');
     }
+
+    public function transactions(){
+        return $this->hasMany(Transaction::class, 'open_bill_id', 'id');
+    }
 }

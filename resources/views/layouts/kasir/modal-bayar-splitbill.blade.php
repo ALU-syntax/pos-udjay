@@ -14,7 +14,7 @@
                 <strong id="totalHargaSplitBill">Rp 80.000</strong><br>
                 <span>Split Bill</span>
             </h5>
-            <button id="paySplitBill" type="button" class="btn btn-primary btn-lg" disabled>Simpan</button>
+            <button id="paySplitBill" type="button" class="btn btn-primary btn-lg disabled" disabled>Simpan</button>
         </div>
         <div class="modal-body">
             <!-- Payment Options -->
@@ -115,8 +115,10 @@
         if (this.value == '' || convertHargaToInt < totalHarga || this.value == 'Rp. ' || isNaN(
                 convertHargaToInt)) {
             $("#paySplitBill").attr('disabled', true);
+            $("#paySplitBill").addClass('disabled');
         } else {
             $("#paySplitBill").removeAttr('disabled');
+            $("#paySplitBill").removeClass('disabled');
         }
 
         this.value = formatRupiah(this.value, "Rp. ");
@@ -215,6 +217,7 @@
             $(this).addClass('active');
 
             $("#paySplitBill").attr('disabled', true);
+            $("#paySplitBill").addClass('disabled');
             let value = $(this).data('value');
             console.log(value)
 
@@ -223,11 +226,14 @@
 
                 if (value < totalHarga) {
                     $("#paySplitBill").attr('disabled', true);
+                    $("#paySplitBill").addClass('disabled');
                 } else {
                     $("#paySplitBill").removeAttr('disabled');
+                    $("#paySplitBill").removeClass('disabled');
                 }
             } else {
                 $("#paySplitBill").removeAttr('disabled');
+                $("#paySplitBill").removeClass('disabled');
             }
         });
 

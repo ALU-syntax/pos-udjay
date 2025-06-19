@@ -13,7 +13,7 @@
             <h5 class="modal-title mx-auto text-center" id="productModalLabel">
                 <strong id="totalHarga">Rp 80.000</strong><br>
             </h5>
-            <button id="pay" type="button" class="btn btn-primary btn-lg" disabled>Simpan</button>
+            <button id="pay" type="button" class="btn btn-primary btn-lg disabled" disabled>Simpan</button>
         </div>
         <div class="modal-body">
             <!-- Payment Options -->
@@ -143,8 +143,10 @@
         if (this.value == '' || convertHargaToInt < totalHarga || this.value == 'Rp. ' || isNaN(
                 convertHargaToInt)) {
             $("#pay").attr('disabled', true);
+            $("#pay").addClass('disabled');
         } else {
             $("#pay").removeAttr('disabled');
+            $("#pay").removeClass('disabled');
         }
 
         this.value = formatRupiah(this.value, "Rp. ");
@@ -223,6 +225,7 @@
             $(this).addClass('active');
 
             $("#pay").attr('disabled', true);
+            $("#pay").addClass('disabled');
             let value = $(this).data('value');
             console.log(value)
 
@@ -233,11 +236,14 @@
 
                 if (value < totalHarga) {
                     $("#pay").attr('disabled', true);
+                    $("#pay").addClass('disabled');
                 } else {
                     $("#pay").removeAttr('disabled');
+                    $("#pay").removeClass('disabled');
                 }
             } else {
                 $("#pay").removeAttr('disabled');
+                $("#pay").removeClass('disabled');
             }
         });
 

@@ -64,9 +64,9 @@
     }
 
     .form-check-input[type="checkbox"]:checked {
-        background-color: #0d6efd;
+        background-color: rgb(220,53,69);
         /* Warna saat dicentang */
-        border-color: #0d6efd;
+        border-color: rgb(220,53,69);
         /* Warna border saat dicentang */
     }
 
@@ -91,7 +91,7 @@
             <h5 class="modal-title mx-auto text-center" id="productModalLabel">
                 <strong>Pisah Bill</strong><br>
             </h5>
-            <button id="btnSplitBill" type="button" class="btn btn-primary btn-xl">Pisahkan</button>
+            <button id="btnSplitBill" type="button" class="btn btn-primary btn-xl disabled">Pisahkan</button>
         </div>
         <div class="modal-body">
             <div class="container">
@@ -348,18 +348,18 @@
         let valInputElement = inputElement.val();
 
         if (checked) {
-            inputElement.css('border-color', '#0d6efd');
+            inputElement.css('border-color', 'rgb(220,53,69)');
 
             if (valInputElement == maxValue) {
                 btnQuantityPlus.css('background-color', '#dee0ee').css('color', '#8184a1').attr('disabled', true);
             } else {
-                btnQuantityPlus.css('background-color', '#0d6efd').css('color', 'white').attr('disabled', false);
+                btnQuantityPlus.css('background-color', 'rgb(220,53,69)').css('color', 'white').attr('disabled', false);
             }
 
             if (valInputElement == 1) {
                 btnQuantityMinus.css('background-color', '#dee0ee').css('color', '#8184a1').attr('disabled', true);
             } else {
-                btnQuantityMinus.css('background-color', '#0d6efd').css('color', 'white').attr('disabled', false);
+                btnQuantityMinus.css('background-color', 'rgb(220,53,69)').css('color', 'white').attr('disabled', false);
             }
         } else {
             inputElement.css('border-color', '#dee0ee');
@@ -372,8 +372,10 @@
     function validateBtnPisahkan() {
         if (listItemSplitBill.length) {
             $('#btnSplitBill').attr('disabled', false);
+            $('#btnSplitBill').removeClass('disabled');
         } else {
             $('#btnSplitBill').attr('disabled', true);
+            $('#btnSplitBill').addClass('disabled');
         }
     }
 
