@@ -12,19 +12,28 @@
                                 <label class="col-6">Enable Rounding</label>
                                 <div class="col-6 text-end">
                                     <label class="switch">
-                                        <input type="checkbox" id="roundingSwitch" name="rounded" @if($data) @if($data->rounded == "true") checked @endif @endif >
+                                        <input type="checkbox" id="roundingSwitch" name="rounded"
+                                            @if ($data) @if ($data->rounded == 'true') checked @endif
+                                            @endif >
                                         <span class="slider round"></span>
                                     </label>
                                 </div>
                             </div>
 
-                            <div id="rounding-enable" style="@if($data) @if(!$data->rounded == "true") display: none; @endif @else display: none; @endif">
+                            <div id="rounding-enable"
+                                style="@if ($data) @if (!$data->rounded == 'true') display: none; @endif
+@else
+display: none; @endif">
                                 <div class="row mb-3">
                                     <label class="col-6">Rounding Digits :</label>
                                     <div class="col-6">
                                         <select class="form-select" id="roundingDigits" name="rounded_type">
-                                            <option value="1000" @if($data) @if($data->rounded_type == "1000") selected @endif @endif >000 - Thousands</option>
-                                            <option value="100" @if($data) @if($data->rounded_type == "100") selected @endif @endif >00 - Hundreds</option>
+                                            <option value="1000"
+                                                @if ($data) @if ($data->rounded_type == '1000') selected @endif
+                                                @endif >000 - Thousands</option>
+                                            <option value="100"
+                                                @if ($data) @if ($data->rounded_type == '100') selected @endif
+                                                @endif >00 - Hundreds</option>
                                         </select>
                                     </div>
                                 </div>
@@ -32,11 +41,13 @@
                                 <div class="row mb-3">
                                     <label class="col-6">Rounding Down below :</label>
                                     <div class="col-6">
-                                        <input type="number" value="{{$data->rounded_benchmark ?? 1}}" name="rounded_benchmark" class="form-control" id="roundingDown" value="1">
+                                        <input type="number" value="{{ $data->rounded_benchmark ?? 1 }}"
+                                            name="rounded_benchmark" class="form-control" id="roundingDown" value="1">
                                     </div>
                                 </div>
 
-                                <p class="text-muted">Saat ini Benchmark Tidak Berfungsi, diset berapapun nilainya akan menjadi seperti ini. 0 - 499 itu ke 0 , 500 - 999 itu ke 500</p>
+                                <p class="text-muted">Saat ini Benchmark Tidak Berfungsi, diset berapapun nilainya akan
+                                    menjadi seperti ini. 0 - 499 itu ke 0 , 500 - 999 itu ke 500</p>
                                 <p id="exampleText">10001 is 10000; 10002 is 11000</p>
                             </div>
 
@@ -45,6 +56,15 @@
                             </div>
                         </form>
 
+                    </div>
+
+                    <div class="col-6">
+                        <form method="POST" action="{{ route('konfigurasi/email/sendTest') }}">
+                            @csrf
+                            <label for="email">Masukkan Email:</label><br>
+                            <input type="email" name="email" id="email" required>
+                            <button type="submit">Kirim Email Test</button>
+                        </form>
                     </div>
                 </div>
             </div>

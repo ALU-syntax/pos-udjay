@@ -13,6 +13,7 @@ class RegistrasiMembershipKomunitas extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public $data;
     /**
      * Create a new message instance.
      */
@@ -38,6 +39,9 @@ class RegistrasiMembershipKomunitas extends Mailable
     {
         return new Content(
             view: 'email.registrasi-membership-komunitas',
+            with: [
+                'data' => $this->data,
+            ],
         );
     }
 
@@ -51,12 +55,12 @@ class RegistrasiMembershipKomunitas extends Mailable
         return [];
     }
 
-    public function build()
-    {
-        return $this->view('email.registrasi-membership-komunitas')
-            ->from('admin@udjaya.com')
-            ->subject('REGISTRASI MEMBERSHIP KOMUNITAS')
-            ->with('data', $this->data);
+    // public function build()
+    // {
+    //     return $this->view('email.registrasi-membership-komunitas')
+    //         ->from('admin@udjaya.com')
+    //         ->subject('REGISTRASI MEMBERSHIP KOMUNITAS')
+    //         ->with('data', $this->data);
 
-    }
+    // }
 }

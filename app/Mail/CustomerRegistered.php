@@ -13,6 +13,7 @@ class CustomerRegistered extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public $data;
     /**
      * Create a new message instance.
      */
@@ -27,7 +28,7 @@ class CustomerRegistered extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Customer Registered',
+            subject: 'Registrasi Membership',
         );
     }
 
@@ -38,6 +39,9 @@ class CustomerRegistered extends Mailable
     {
         return new Content(
             view: 'email.registrasi-membership',
+            with: [
+                'data' => $this->data,
+            ],
         );
     }
 
@@ -51,12 +55,12 @@ class CustomerRegistered extends Mailable
         return [];
     }
 
-    public function build()
-    {
-        return $this->view('email.registrasi-membership')
-            ->from('admin@udjaya.com')
-            ->subject('REGISTRASI MEMBERSHIP')
-            ->with('data', $this->data);
+    // public function build()
+    // {
+    //     return $this->view('email.registrasi-membership')
+    //         ->from('admin@udjaya.com')
+    //         ->subject('REGISTRASI MEMBERSHIP')
+    //         ->with('data', $this->data);
 
-    }
+    // }
 }

@@ -126,6 +126,9 @@ class ProductController extends Controller
 
             $product->photo = $request->file('photo')->store('product');
         }
+        $excludeTax = $request->exclude_tax ?? false;
+
+        $product->exclude_tax = $excludeTax;
 
         $product->save();
 

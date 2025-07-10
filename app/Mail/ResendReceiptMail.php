@@ -13,6 +13,7 @@ class ResendReceiptMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public $data;
     /**
      * Create a new message instance.
      */
@@ -38,6 +39,9 @@ class ResendReceiptMail extends Mailable
     {
         return new Content(
             view: 'email.resend-receipt',
+            with: [
+                'data' => $this->data,
+            ],
         );
     }
 
@@ -51,11 +55,11 @@ class ResendReceiptMail extends Mailable
         return [];
     }
 
-    public function build()
-    {
-        return $this->view('email.resend-receipt')
-            ->from('no-reply@udjaya.com')
-            ->subject('Receipt Transaction')
-            ->with('data', $this->data);
-    }
+    // public function build()
+    // {
+    //     return $this->view('email.resend-receipt')
+    //         ->from('no-reply@udjaya.com')
+    //         ->subject('Receipt Transaction')
+    //         ->with('data', $this->data);
+    // }
 }

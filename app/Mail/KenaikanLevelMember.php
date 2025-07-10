@@ -13,6 +13,7 @@ class KenaikanLevelMember extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public $data;
     /**
      * Create a new message instance.
      */
@@ -38,6 +39,9 @@ class KenaikanLevelMember extends Mailable
     {
         return new Content(
             view: 'email.kenaikan-level-membership',
+            with: [
+                'data' => $this->data,
+            ],
         );
     }
 
@@ -51,12 +55,12 @@ class KenaikanLevelMember extends Mailable
         return [];
     }
 
-    public function build()
-    {
-        return $this->view('email.kenaikan-level-membership')
-            ->from('admin@udjaya.com')
-            ->subject('KENAIKAN LEVEL MEMBERSHIP')
-            ->with('data', $this->data);
+    // public function build()
+    // {
+    //     return $this->view('email.kenaikan-level-membership')
+    //         ->from('admin@udjaya.com')
+    //         ->subject('KENAIKAN LEVEL MEMBERSHIP')
+    //         ->with('data', $this->data);
 
-    }
+    // }
 }

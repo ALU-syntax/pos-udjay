@@ -97,6 +97,10 @@ Route::middleware('auth')->group(function () {
         Route::prefix('checkout')->group(function(){
             Route::get('/', [CheckoutController::class, 'index'])->name('checkout');
             Route::post('/store', [CheckoutController::class, 'store'])->name('checkout/store');
+
+            Route::get('/email-test', [CheckoutController::class, 'showForm']);
+            Route::post('/email-test', [CheckoutController::class, 'sendTestEmail'])->name('email/sendTest');
+
         });
 
         Route::prefix('category-payment')->group(function(){

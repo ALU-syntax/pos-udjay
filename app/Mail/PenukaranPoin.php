@@ -13,6 +13,7 @@ class PenukaranPoin extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public $data;
     /**
      * Create a new message instance.
      */
@@ -38,6 +39,9 @@ class PenukaranPoin extends Mailable
     {
         return new Content(
             view: 'email.penukaran-poin',
+            with: [
+                'data' => $this->data,
+            ],
         );
     }
 
@@ -51,11 +55,11 @@ class PenukaranPoin extends Mailable
         return [];
     }
 
-    public function build()
-    {
-        return $this->view('email.penukaran-poin')
-            ->from('admin@udjaya.com')
-            ->subject('Penukaran Point Membership')
-            ->with('data', $this->data);
-    }
+    // public function build()
+    // {
+    //     return $this->view('email.penukaran-poin')
+    //         ->from('admin@udjaya.com')
+    //         ->subject('Penukaran Point Membership')
+    //         ->with('data', $this->data);
+    // }
 }

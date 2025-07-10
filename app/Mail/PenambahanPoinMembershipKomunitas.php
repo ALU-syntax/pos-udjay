@@ -13,6 +13,7 @@ class PenambahanPoinMembershipKomunitas extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public $data;
     /**
      * Create a new message instance.
      */
@@ -38,6 +39,9 @@ class PenambahanPoinMembershipKomunitas extends Mailable
     {
         return new Content(
             view: 'email.penambahan-point-membership-komunitas',
+            with: [
+                'data' => $this->data,
+            ],
         );
     }
 
@@ -51,12 +55,12 @@ class PenambahanPoinMembershipKomunitas extends Mailable
         return [];
     }
 
-    public function build()
-    {
-        return $this->view('email.penambahan-point-membership-komunitas')
-            ->from('admin@udjaya.com')
-            ->subject('PENAMBAHAN POIN MEMBERSHIP KOMUNITAS')
-            ->with('data', $this->data);
+    // public function build()
+    // {
+    //     return $this->view('email.penambahan-point-membership-komunitas')
+    //         ->from('admin@udjaya.com')
+    //         ->subject('PENAMBAHAN POIN MEMBERSHIP KOMUNITAS')
+    //         ->with('data', $this->data);
 
-    }
+    // }
 }
