@@ -55,22 +55,22 @@
             <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal"
                 id="btnBatal">Batal</button>
             <h5 class="modal-title mx-auto text-center" id="productModalLabel">
-                <strong id="namaProduct">{{ $data->name }}</strong><br>
+                <strong id="namaProduct">{{ $dataProduct->name }}</strong><br>
                 <span id="totalHargaItem">{{ formatRupiah($variants[0]->harga, 'Rp. ') }}</span>
             </h5>
             <button id="saveItemToCart" type="button" class="btn btn-primary btn-lg">Simpan</button>
         </div>
         <div class="modal-body">
-            <input type="text" value="{{ $data->id }}" name="idProduct" id="idProduct" hidden>
+            <input type="text" value="{{ $dataProduct->id }}" name="idProduct" id="idProduct" hidden>
 
-            @if($data->description)
+            @if($dataProduct->description)
                 <div class="callout callout-info ">
                     <div class="container">
                         <div class="row">
                             <div class="col-1"><i class="d-flex justify-content-center align-items-center fa-solid fa-circle-info" style="color: #5bc0de; font-size: 30px;"></i></div>
                             <div class="col-11">
                                 <h4>Deskripsi Produk</h4>
-                                {{$data->description}}
+                                {{$dataProduct->description}}
                             </div>
                         </div>
                     </div>
@@ -250,7 +250,8 @@
 
     var variantId = '{{ $variants[0]->id }}';
     var variantName = '{{ $variants[0]->name }}';
-    var isProductExcludeTax = '{{$data->exclude_tax}}';
+    var isProductExcludeTax = @json($dataProduct->exclude_tax);
+
 
     var dataSalesType = @json($salesType);
     if (dataSalesType.length > 0) {
@@ -547,6 +548,7 @@
         // console.log(totalHargaProduct)
         // console.log(resultModifierTotal);
 
+        console.log(isProductExcludeTax);
         let data = {
             tmpId: tmpRandomId,
             idProduct: dataIdProduct,

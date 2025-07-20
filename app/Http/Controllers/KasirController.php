@@ -137,7 +137,7 @@ class KasirController extends Controller
 
         $discounts = Discount::where('type_input', 'fixed')->where('outlet_id', $dataOutletUser[0])->where('satuan', 'percent')->get();
         return view('layouts.kasir.kasir-modal-product', [
-            'data' => $dataProduct,
+            'dataProduct' => $dataProduct,
             'variants' => $dataVariants,
             'discounts' => $discounts,
             'modifiers' => $modifiers,
@@ -442,8 +442,10 @@ class KasirController extends Controller
                 'updated_at' => Carbon::now(),
             ];
 
+            // dd($billId, $listIdItemOpenBill, $request->idProduct);
             if($billId && count($listIdItemOpenBill)){
-                $dataProduct['item_open_bill_id'] = $listIdItemOpenBill[$x];
+                // $dataProduct['item_open_bill_id'] = $listIdItemOpenBill[$x];
+                $dataProduct['item_open_bill_id'] = $billId;
             }
 
             TransactionItem::insert($dataProduct);

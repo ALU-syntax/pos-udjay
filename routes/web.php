@@ -382,7 +382,9 @@ Route::get('/api-struk/{id}', [KasirController::class, 'apiStruk'])->name('kasir
 Route::get('/api-open-bill/{bill_id}', [KasirController::class, 'printOpenBillOrder']);
 Route::get('/api-print-shift-detail/{petty_cash_id}', [KasirController::class, 'printShiftDetail']);
 Route::get('/get-akun/{outlet_id}', [OutletController::class, 'getAkun']);
+Route::get('/get-all-category', [CategoryController::class, 'getAllCategory']);
 Route::post('/log-error-android', [LogController::class, 'logErrorAndroid'])->name('log/logErrorAndroid');
 Route::post('/log-error-android', [LogController::class, 'logErrorAndroid'])->name('log/logErrorAndroid');
+
 
 require __DIR__.'/auth.php';

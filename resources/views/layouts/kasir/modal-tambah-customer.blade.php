@@ -152,9 +152,13 @@
         dropdownParent: $("#itemModal"), // Pastikan parent diatur untuk modal
         // Callback setelah dropdown dibuka
         closeOnSelect: true,
-        display: "block"
+        display: "block",
+        // ropdownAutoWidth: true,
+        // width: 'resolve',
 
     }).on("select2:open", function() {
+        // Tutup semua dropdown Select2 kecuali yang baru akan dibuka
+        $(".select2InsideModal").not(this).select2('close');
         const selectElement = $(this);
         const dropdown = $(".select2-container--open");
 
@@ -171,7 +175,8 @@
             position: "fixed",
             top: offset.top + height - $(window).scrollTop(), // Hitung posisi relatif terhadap layar
             left: offset.left,
-            width: selectElement.outerWidth() - 785,
+            width: selectElement.outerWidth() - 558 , // Sesuaikan lebar dropdown berdasarkan pov web
+            // width: selectElement.outerWidth() - 775  , // Sesuaikan lebar dropdown berdasarkan pov web
             zIndex: 9999, // Pastikan lebih tinggi dari modal
         });
     }).on("select2:close", function() {

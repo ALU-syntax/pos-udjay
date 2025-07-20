@@ -46,4 +46,10 @@ class CategoryController extends Controller
 
         return responseSuccessDelete();
     }
+
+    public function getAllCategory(){
+        return response()->json([
+            'data' => Category::all()
+        ]);
+    }
 }

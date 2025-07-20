@@ -412,6 +412,13 @@
                                                 </div>
                                             </div>
 
+                                            <div class="card list-setting bg-primary mt-2" id="detail-setting"
+                                                data-target="detail-setting" data-name-section="detail-setting">
+                                                <div class="card-body">
+                                                    <h5 class="text-white">Detail Setting</h5>
+                                                </div>
+                                            </div>
+
                                             <div class="bg-warning card list-setting mt-2" data-target="logout">
                                                 <div class="card-body ">
                                                     <h5 class="text-white">Keluar</h5>
@@ -4076,7 +4083,15 @@
 
             // Handle charge button
             $('#bayar').on('click', function() {
-                if (listItem.length > 0 || listItemPromo.length > 0) {
+                let adaItemTanpaOpenBillId = listItem.some(item => !item.hasOwnProperty('openBillId'));
+
+                if((billId != 0 || billId != "0") && adaItemTanpaOpenBillId){
+                    iziToast['warning']({
+                        title: "Update",
+                        message: "Simpan Item baru terlebih dahulu",
+                        position: 'topRight'
+                    });
+                }else if (listItem.length > 0 || listItemPromo.length > 0){
                     handleAjax("{{ route('kasir/choosePayment') }}").excute();
                 } else {
                     iziToast['error']({
@@ -4251,6 +4266,18 @@
                     $('#text-title-setting').text(`${titleSectionSetting}`)
 
                     loadHistoryShifts();
+                }else if(targetView == "detail-setting"){
+                    if (window.Android) {
+                        if(window.Android.handleMenuDetailSetting){
+                            window.Android.handleMenuDetailSetting();
+                        }else{
+                         iziToast['warning']({
+                                title: "Oopss",
+                                message: "Update ke versi terbaru terlebih dahulu",
+                                position: 'topRight'
+                            });
+                        }
+                    }
                 }
             });
 
