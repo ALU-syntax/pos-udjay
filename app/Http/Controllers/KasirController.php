@@ -545,7 +545,21 @@ class KasirController extends Controller
 
         $transactionPajak = $transaction->pajak();
 
-        $transaction['tax'] = $transactionPajak;
+        // jika seluruh item tidak terkena pajak maka kosongkan bagian pajak di bill
+        $checkTotalPajak = json_decode($transaction->total_pajak);
+        $totalPajak = 0;
+
+        if(count($checkTotalPajak)){
+            foreach($checkTotalPajak as $pajak){
+                $totalPajak += $pajak->total;
+            }
+        }
+
+        if($totalPajak > 0){
+            $transaction['tax'] = $transactionPajak;
+        }else{
+            $transaction['tax'] = [];
+        }
 
         // $transactionItems = TransactionItem::with(['product', 'variant'])->where('transaction_id', $id)->get();
 
