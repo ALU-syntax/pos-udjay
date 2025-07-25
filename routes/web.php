@@ -14,6 +14,7 @@ use App\Http\Controllers\LevelMembershipController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ModifiersController;
+use App\Http\Controllers\NoteReceiptSchedulingController;
 use App\Http\Controllers\OpenBillController;
 use App\Http\Controllers\OutletController;
 use App\Http\Controllers\PaymentController;
@@ -235,6 +236,15 @@ Route::middleware('auth')->group(function () {
             Route::put('/update/{pilihan}', [PilihanController::class, 'update'])->name('pilihan/update');
             Route::put('/update/product/{pilihan}', [PilihanController::class, 'updateProductPilihan'])->name('pilihan/update-product');
             Route::delete('/destroy/{pilihan}', [PilihanController::class, 'destroy'])->name('pilihan/destroy');
+        });
+
+        Route::prefix('note-receipt-scheduling')->group(function(){
+            Route::get('/', [NoteReceiptSchedulingController::class, 'index'])->name('note-receipt-scheduling');
+            Route::get('/create', [NoteReceiptSchedulingController::class, 'create'])->name('note-receipt-scheduling/create');
+            Route::get('/edit/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'edit'])->name('note-receipt-scheduling/edit');
+            Route::post('/store', [NoteReceiptSchedulingController::class, 'store'])->name("note-receipt-scheduling/store");
+            Route::put('/update/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'update'])->name('note-receipt-scheduling/update');
+            Route::delete('/destroy/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'destroy'])->name('note-receipt-scheduling/destroy');
         });
     });
 
