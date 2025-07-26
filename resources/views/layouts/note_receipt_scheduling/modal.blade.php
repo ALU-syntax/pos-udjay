@@ -24,7 +24,7 @@
             <label for="schedule_promo">Jadwal Dari - Sampai</label>
             <div class="col-5">
                 <div class="input-group date" id="timePicker">
-                    <input type="time" class="form-control timePicker" value="00:00" name="start_hour"
+                    <input type="time" class="form-control timePicker" value="{{$data->start}}" name="start_hour"
                         id="start_hour" required="">
                     <span class="input-group-addon"><i class="fa fa-clock-o" aria-hidden="true"></i></span>
                 </div>
@@ -36,7 +36,7 @@
 
             <div class="col-5">
                 <div class="input-group date" id="timePicker">
-                    <input type="time" class="form-control timePicker" value="23:59" name="end_hour" id="end_hour"
+                    <input type="time" class="form-control timePicker" value="{{$data->end}}" name="end_hour" id="end_hour"
                         required="">
                     <span class="input-group-addon"><i class="fa fa-clock-o" aria-hidden="true"></i></span>
                 </div>

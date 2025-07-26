@@ -18,6 +18,7 @@ use App\Models\ItemOpenBill;
 use App\Models\LevelMembership;
 use App\Models\ModifierGroup;
 use App\Models\Modifiers;
+use App\Models\NoteReceiptScheduling;
 use App\Models\OpenBill;
 use App\Models\Outlets;
 use App\Models\PettyCash;
@@ -604,12 +605,23 @@ class KasirController extends Controller
         $agent = new Agent();
         $device = $agent->device();
 
+        $idOutlet = $transaction->outlet->id;
+        $now = Carbon::now();
+        $dataNoteReceipt = NoteReceiptScheduling::where('status', true)
+            ->whereTime('start', '<=', $now)
+            ->whereTime('end', '>=', $now)
+            ->where(function ($query) use ($idOutlet) {
+                $query->orWhereJsonContains('list_outlet_id', (string) $idOutlet);
+            })
+            ->get();
+
         return response()->json([
             'status' => true,
             'transaction' => $transaction,
             'transactionItems' => $transactionItems,
             'user' => $user,
             'device' => $device,
+            'noteReceiptScheduler' => $dataNoteReceipt
         ]);
     }
 
