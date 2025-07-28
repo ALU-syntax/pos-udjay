@@ -26,20 +26,23 @@ class NoteReceiptSchedulingDataTable extends DataTable
     {
         return (new EloquentDataTable($query))
         ->addColumn('action', function ($row) {
-                $actions = $this->basicActions($row);
-                return view('action', ['actions' => $actions]);
-            })
+            return view('layouts.note_receipt_scheduling.action', [
+                'edit' => route('library/note-receipt-scheduling/edit', $row->id),
+                'aturProduk' =>route('library/note-receipt-scheduling/getRequirementProduct', $row->id),
+                'routeDelete' =>route('library/note-receipt-scheduling/destroy', $row->id)
+            ]);
+        })
         ->addColumn('outlets', function ($row) {
-            $outletIds = json_decode($row->list_outlet_id, true) ?: [];
-            $listOutlet = "";
-            foreach($outletIds as $outlet){
-                $outlet = Outlets::find($outlet);
-                $listOutlet = $listOutlet . "<span class='badge badge-primary'>{$outlet->name} </span></br>";
-            }
+            // $outletIds = json_decode($row->list_outlet_id, true) ?: [];
+            // $listOutlet = "";
+            // foreach($outletIds as $outlet){
+            //     $outlet = Outlets::find($outlet);
+            //     $listOutlet = $listOutlet . "<span class='badge badge-primary'>{$outlet->name} </span></br>";
+            // }
             // Misal ambil nama outlet dari model Outlet, atau panggil relasi jika ada
             // Contoh sementara join gunakan Outlet::whereIn('id', $outletIds)->pluck('name')->join(', ');
             // Anda perlu sesuaikan dengan model Outlet Anda
-            return $listOutlet;
+            return "<span class='badge badge-primary'>{$row->outlet->name} </span></br>";
         })
         ->addColumn('message_preview', function ($row) {
             return \Illuminate\Support\Str::limit($row->message, 50);
@@ -56,7 +59,7 @@ class NoteReceiptSchedulingDataTable extends DataTable
      */
     public function query(NoteReceiptScheduling $model): QueryBuilder
     {
-         return $model->newQuery()->select('id', 'name', 'message', 'start', 'end', 'list_outlet_id', 'status', 'created_at', 'updated_at');
+         return $model->newQuery()->with(['outlet']);
     }
 
     /**

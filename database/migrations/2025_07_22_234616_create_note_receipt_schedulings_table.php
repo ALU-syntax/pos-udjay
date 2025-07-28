@@ -17,10 +17,13 @@ return new class extends Migration
             $table->text('message');
             $table->time('start');
             $table->time('end');
-            $table->json('list_outlet_id');
+            $table->unsignedBigInteger('outlet_id');
+            $table->json('product_id')->nullable();
             $table->boolean('status')->default(true);
             $table->softDeletes();
             $table->timestamps();
+
+            $table->foreign('outlet_id')->references('id')->on('outlets')->onDelete('CASCADE');
         });
     }
 

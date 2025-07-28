@@ -165,6 +165,7 @@
         })
 
         var tmpDataProductModifier = [];
+        var tmpDataProductRequirement = [];
         $('.dropdown-custom').select2();
         $(".select2InsideModal").select2({
             dropdownParent: $("#modal_action")
@@ -278,9 +279,14 @@
                     let data = new FormData(_form);
                     let dataForm;
                     let dataCustom = false;
+                    let dataCustomNoteReceipt = false;
                     data.forEach(function(item, index) {
                         if (index == "input-modifier-product") {
                             dataCustom = true;
+                        }
+
+                        if(index == "input-requirement-product"){
+                            dataCustomNoteReceipt = true;
                         }
                     });
 
@@ -292,7 +298,15 @@
                         tmpDataProductModifier.forEach(function(item) {
                             dataForm.append("products[]", item);
                         });
-                    } else {
+                    } else if(dataCustomNoteReceipt){
+                        const token = document.querySelector('meta[name="csrf_token"]').getAttribute('content');
+                        dataForm = new FormData();
+                        dataForm.append("_token", token);
+                        dataForm.append("_method", 'put');
+                        tmpDataProductRequirement.forEach(function(item) {
+                            dataForm.append("products[]", item);
+                        });
+                    }else{
                         dataForm = data;
                     }
 

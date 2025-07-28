@@ -33,6 +33,7 @@ use App\Http\Controllers\TaxController;
 use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\UserController;
 use App\Models\ModifierGroup;
+use App\Models\NoteReceiptScheduling;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -242,8 +243,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [NoteReceiptSchedulingController::class, 'index'])->name('note-receipt-scheduling');
             Route::get('/create', [NoteReceiptSchedulingController::class, 'create'])->name('note-receipt-scheduling/create');
             Route::get('/edit/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'edit'])->name('note-receipt-scheduling/edit');
+            Route::get('/getProduct/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'getRequirementProduct'])->name('note-receipt-scheduling/getRequirementProduct');
             Route::post('/store', [NoteReceiptSchedulingController::class, 'store'])->name("note-receipt-scheduling/store");
             Route::put('/update/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'update'])->name('note-receipt-scheduling/update');
+            Route::put('/update/product/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'setProductRequirement'])->name('note-receipt-scheduling/setProductRequirement');
             Route::delete('/destroy/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'destroy'])->name('note-receipt-scheduling/destroy');
         });
     });

@@ -605,15 +605,33 @@ class KasirController extends Controller
         $agent = new Agent();
         $device = $agent->device();
 
-        $idOutlet = $transaction->outlet->id;
+        // Ambil semua product_id dari transaksi sebagai array sederhana
+        $transactionProductIds = $transactionItems->pluck('product_id')->unique()->filter()->values()->all();
+
         $now = Carbon::now();
+        $idOutlet = $transaction->outlet->id;
+
         $dataNoteReceipt = NoteReceiptScheduling::where('status', true)
             ->whereTime('start', '<=', $now)
             ->whereTime('end', '>=', $now)
-            ->where(function ($query) use ($idOutlet) {
-                $query->orWhereJsonContains('list_outlet_id', (string) $idOutlet);
+            ->where('outlet_id', $idOutlet)
+            ->where(function ($query) use ($transactionProductIds) {
+                // Kondisi untuk product_id null atau array kosong di database
+                $query->whereNull('product_id')
+                    ->orWhere('product_id', '[]'); // Jika disimpan sebagai json array kosong string '[]'
+
+                // Jika product_id tidak kosong, cek ada intersection dengan product_id dari transaction
+                if (!empty($transactionProductIds)) {
+                    $query->orWhere(function ($q) use ($transactionProductIds) {
+                        foreach ($transactionProductIds as $productId) {
+                            // JSON_CONTAINS untuk mysql, cek apakah json array product_id mengandung productId
+                            $q->orWhereRaw("JSON_CONTAINS(product_id, '\"{$productId}\"')");
+                        }
+                    });
+                }
             })
             ->get();
+
 
         return response()->json([
             'status' => true,

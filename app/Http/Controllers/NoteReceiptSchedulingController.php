@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\NoteReceiptSchedulingDataTable;
+use App\DataTables\NoteReceiptSchedulingRequirementProductDataTable;
 use App\Http\Requests\NoteReceiptSchedulingRequest;
 use App\Models\NoteReceiptScheduling;
 use App\Models\Outlets;
+use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class NoteReceiptSchedulingController extends Controller
 {
@@ -33,16 +37,41 @@ class NoteReceiptSchedulingController extends Controller
         $start = $validated['start_hour']; // sudah format 'H:i'
         $end = $validated['end_hour'];
 
-        $note = new NoteReceiptScheduling();
-        $note->name = $validated['name'];
-        $note->message = $validated['message'] ?? null;
-        $note->start = $start;
-        $note->end = $end;
-        $note->list_outlet_id = json_encode($validated['outlet_id']);
-        $note->status = $validated['status'] ?? true; // default true jika null
-        $note->save();
+        // Gunakan transaksi untuk menjamin atomicity: semua data berhasil disimpan atau rollback jika error
+        DB::beginTransaction();
 
-        return responseSuccess(false);
+        try {
+            foreach ($validated['outlet_id'] as $outlet) {
+                $note = new NoteReceiptScheduling();
+                $note->name = $validated['name'];
+                $note->message = $validated['message'] ?? null;
+                $note->start = $start;
+                $note->end = $end;
+                $note->outlet_id = $outlet;
+                $note->status = $validated['status'] ?? true; // default true jika null
+                $note->save();
+            }
+
+            DB::commit();
+
+            // Response sukses dengan pesan dan data, jika perlu
+            return responseSuccess(false);
+
+        } catch (\Exception $e) {
+            // Rollback jika ada error saat penyimpanan data
+            DB::rollBack();
+
+            // Log error jika perlu
+            Log::error('Gagal menyimpan NoteReceiptScheduling: ' . $e->getMessage());
+
+            // Response error dengan pesan dan status internal server error
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan Note Receipt Scheduling.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+
     }
 
 
@@ -83,8 +112,8 @@ class NoteReceiptSchedulingController extends Controller
         $noteReceiptScheduling->start = $validatedData['start_hour']; // sesuaikan jika format perlu lengkap datetime
         $noteReceiptScheduling->end = $validatedData['end_hour'];     // sesuaikan jika format perlu lengkap datetime
 
-        // Simpan list outlet dalam bentuk JSON string
-        $noteReceiptScheduling->list_outlet_id = json_encode($validatedData['outlet_id']);
+        // // Simpan list outlet dalam bentuk JSON string
+        // $noteReceiptScheduling->list_outlet_id = json_encode($validatedData['outlet_id']);
 
         // Simpan status boolean
         $noteReceiptScheduling->status = $validatedData['status'];
@@ -102,6 +131,26 @@ class NoteReceiptSchedulingController extends Controller
         return responseSuccessDelete();
     }
 
+    public function getRequirementProduct(NoteReceiptSchedulingRequirementProductDataTable $datatable, NoteReceiptScheduling $noteReceiptScheduling)
+    {
+        $dataProduct = Product::select('id')->where('outlet_id', $noteReceiptScheduling->outlet_id)->get()->pluck('id');
+        return $datatable->with('noteReceiptScheduling', $noteReceiptScheduling)->render('layouts.note_receipt_scheduling.modal-requirement-note-receipt-scheduling', [
+            "data" => $noteReceiptScheduling,
+            "dataProduct" => $dataProduct,
+            "action" => route("library/note-receipt-scheduling/setProductRequirement", $noteReceiptScheduling->id),
+        ]);
+    }
 
+    public function setProductRequirement(Request $request, NoteReceiptScheduling $noteReceiptScheduling)
+    {
+        // dd($request);
+        $data = [
+            'product_id' => json_encode($request->products)
+        ];
+
+        $noteReceiptScheduling->update($data);
+
+        return responseSuccess(true, "Requirement Product Berhasil diupdate");
+    }
 
 }

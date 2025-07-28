@@ -1,4 +1,4 @@
-<x-modal title="Tambah Note Receipt Scheduling" action="{{ $action }}" method="POST">
+<x-modal title="Tambah Note Receipt Scheduling" action="{{ $action }}" method="POST" update="true">
     @if ($data->id)
         @method('put')
     @endif
@@ -24,7 +24,7 @@
             <label for="schedule_promo">Jadwal Dari - Sampai</label>
             <div class="col-5">
                 <div class="input-group date" id="timePicker">
-                    <input type="time" class="form-control timePicker" value="{{$data->start}}" name="start_hour"
+                    <input type="time" class="form-control timePicker" value="{{ \Carbon\Carbon::parse($data->start)->format('H:i') }}" name="start_hour"
                         id="start_hour" required="">
                     <span class="input-group-addon"><i class="fa fa-clock-o" aria-hidden="true"></i></span>
                 </div>
@@ -36,7 +36,7 @@
 
             <div class="col-5">
                 <div class="input-group date" id="timePicker">
-                    <input type="time" class="form-control timePicker" value="{{$data->end}}" name="end_hour" id="end_hour"
+                    <input type="time" class="form-control timePicker" value="{{\Carbon\Carbon::parse($data->end)->format('H:i')}}" name="end_hour" id="end_hour"
                         required="">
                     <span class="input-group-addon"><i class="fa fa-clock-o" aria-hidden="true"></i></span>
                 </div>
@@ -46,28 +46,22 @@
     </div>
 
 
-    <div class="col-md-12">
-        <div class="form-group">
-            <label for="outlet_id">Outlet <span class="text-danger">*</span></label>
-            <select name="outlet_id[]" class="select2InsideModal form-select w-100" style="width: 100% !important;"
-                required multiple>
-                <option disabled>Pilih Outlet</option>
-
-                @php
-                    // Decode JSON dari controller, pastikan $outlets adalah json_encode dari semua outlet
-                    $allOutlets = json_decode($outlets);
-                    $selectedOutlets = $selectedOutlets ?? []; // yg dikirim dari controller
-                @endphp
-
-                @foreach ($allOutlets as $outlet)
-                    <option value="{{ $outlet->id }}" @if (in_array($outlet->id, $selectedOutlets)) selected @endif>
-                        {{ $outlet->name }}
-                    </option>
-                @endforeach
-            </select>
-
+    @if (!$data->id)
+        <div class="col-md-12" @if ($data->id) hidden @endif>
+            <div class="form-group">
+                <label for="outlet_id">Outlet <span class="text-danger ">*</span></label>
+                <select @if ($data->id) name="outlet_id" @else name="outlet_id[]" @endif
+                    class="select2InsideModal form-select w-100" style="width: 100% !important;" required multiple
+                    @if ($data->id) hidden @endif>
+                    <option disabled>Pilih Category</option>
+                    @foreach (json_decode($outlets) as $outlet)
+                        <option value="{{ $outlet->id }}" @if ($data->outlet_id == $outlet->id) selected @endif>
+                            {{ $outlet->name }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
-    </div>
+    @endif
 
 
     <div class="col-md-12">
