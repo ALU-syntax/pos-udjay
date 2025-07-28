@@ -44,45 +44,73 @@ class NoteReceiptSchedulingRequirementProductDataTable extends DataTable
                 }
                 return '<input type="checkbox" class="product-checkbox" name="products[]" value="' . $row->id . '" ' . $checked . '>';
             })
-            // ->addColumn('price', function ($row) {
-            //     return formatRupiah(intval($row->harga_jual), "Rp. ");
-            // })
+            ->filterColumn('category', function ($query, $keyword) {
+                $query->whereRaw("LOWER(categories.name) REGEXP ?", [strtolower($keyword)]);
+            })
+            ->editColumn('category', function ($row) {
+                return $row->category;
+            })
             ->rawColumns(['checkbox']);
     }
 
     /**
      * Get the query source of dataTable.
      */
+    // public function query(Product $model): QueryBuilder
+    // {
+    //     // Ambil data 'noteReceiptScheduling' dari request
+    //     $noteReceiptScheduling = $this->noteReceiptScheduling;
+
+    //     // Ambil data dari request
+    //     $checkedProducts = $this->request->get('checkedProducts', []);
+
+    //     $productIds = $noteReceiptScheduling ? ($noteReceiptScheduling->product_id != null ? json_decode($noteReceiptScheduling->product_id, true) : []) : [];
+
+    //     // Query dasar
+    //     $query = $model->newQuery()
+    //         ->select('id', 'name', 'category_id')->with(['category'])->where('outlet_id', $noteReceiptScheduling->outlet_id);
+
+    //     // $query = $model->newQuery()
+    //     //     ->select('id', 'name');
+
+    //     if (!empty($checkedProducts)) {
+    //         // Jika ada produk yang dicentang, urutkan berdasarkan `checkedProducts`
+    //         $query->orderByRaw("FIELD(id, " . implode(',', $checkedProducts) . ") DESC");
+    //     } elseif (!empty($productIds)) {
+    //         // Jika tidak ada `checkedProducts`, urutkan berdasarkan `productIds` dari noteReceiptScheduling
+    //         $query->orderByRaw("FIELD(id, " . implode(',', $productIds) . ") DESC");
+    //     }
+
+    //     // Tambahkan order by name sebagai default
+    //     $query->orderBy('name', 'asc');
+
+    //     return $query;
+    // }
     public function query(Product $model): QueryBuilder
     {
-        // Ambil data 'noteReceiptScheduling' dari request
         $noteReceiptScheduling = $this->noteReceiptScheduling;
-
-        // Ambil data dari request
         $checkedProducts = $this->request->get('checkedProducts', []);
-
         $productIds = $noteReceiptScheduling ? ($noteReceiptScheduling->product_id != null ? json_decode($noteReceiptScheduling->product_id, true) : []) : [];
 
-        // Query dasar
+        // Query join dengan categories, ambil kolom yang diperlukan
         $query = $model->newQuery()
-            ->select('id', 'name')->where('outlet_id', $noteReceiptScheduling->outlet_id);
+            ->select('products.id', 'products.name', 'categories.name as category')
+            ->join('categories', 'categories.id', '=', 'products.category_id')
+            ->where('products.outlet_id', $noteReceiptScheduling->outlet_id);
 
-        // $query = $model->newQuery()
-        //     ->select('id', 'name');
 
         if (!empty($checkedProducts)) {
-            // Jika ada produk yang dicentang, urutkan berdasarkan `checkedProducts`
-            $query->orderByRaw("FIELD(id, " . implode(',', $checkedProducts) . ") DESC");
+            $query->orderByRaw("FIELD(products.id, " . implode(',', $checkedProducts) . ") DESC");
         } elseif (!empty($productIds)) {
-            // Jika tidak ada `checkedProducts`, urutkan berdasarkan `productIds` dari noteReceiptScheduling
-            $query->orderByRaw("FIELD(id, " . implode(',', $productIds) . ") DESC");
+            $query->orderByRaw("FIELD(products.id, " . implode(',', $productIds) . ") DESC");
         }
 
-        // Tambahkan order by name sebagai default
-        $query->orderBy('name', 'asc');
+        $query->orderBy('products.name', 'asc');
 
+        // dd($query);
         return $query;
     }
+
 
     /**
      * Optional method if you want to use the html builder.
@@ -112,8 +140,9 @@ class NoteReceiptSchedulingRequirementProductDataTable extends DataTable
     public function getColumns(): array
     {
         return [
-            ['data' => 'checkbox', 'name' => 'checkbox', 'orderable' => false, 'searchable' => false, 'title' => '<input type="checkbox" id="checkAll">', 'exportable' => false, 'printable' => false, 'width' => '10px', 'class' => 'text-center'],
+            ['data' => 'checkbox', 'name' => 'checkbox', 'orderable' => false, 'searchable' => false, 'title' => '<input type="checkbox" id="checkAllRequirement">', 'exportable' => false, 'printable' => false, 'width' => '10px', 'class' => 'text-center'],
             ['data' => 'name', 'name' => 'name', 'title' => 'Nama Produk'],
+            ['data' => 'category', 'name' => 'category', 'title' => 'Nama Kategori'],
         ];
     }
 

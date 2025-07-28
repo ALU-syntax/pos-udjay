@@ -6,19 +6,14 @@
     {!! $dataTable->table(['class' => 'table table-bordered table-striped table-responsive'], true) !!}
 
     {!! $dataTable->scripts() !!}
-    <script src="https://cdn.datatables.net/2.2.1/js/dataTables.js"></script>
-    <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.js"></script>
-    <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/fixedColumns.dataTables.js"></script>
 
     <script>
         $(document).ready(function() {
-
-            console.log(tmpDataProductRequirement);
             tmpDataProductRequirement = []; //kosongkan array terlebih dahulu
 
             // ambil data product_id dari database jika ada
-            let dataModifierGroup = @json($data);
-            let dataProduct = JSON.parse(dataModifierGroup.product_id);
+            let dataNoteBilling = @json($data);
+            let dataProduct = JSON.parse(dataNoteBilling.product_id);
             let allIdProduct = @json($dataProduct);
 
             if (dataProduct) tmpDataProductRequirement.push(...dataProduct);
@@ -29,7 +24,7 @@
             });
 
             // Checkbox "Select All"
-            $('#checkAll').on('change', function() {
+            $('#checkAllRequirement').on('change', function() {
                 $('.product-checkbox').prop('checked', this.checked);
 
                 if (this.checked) {
@@ -41,16 +36,13 @@
 
             });
 
-            // $(document).on('change', '#checkAll', function() {
-            //     $('.product-checkbox').prop('checked', this.checked);
-            // });
 
             $(document).on('change', '.product-checkbox', function() {
                 const totalCheckboxes = $('.product-checkbox').length; // Total checkbox yang ada
                 const checkedCheckboxes = $('.product-checkbox:checked').length; // Checkbox yang tercentang
 
                 // Jika semua checkbox tercentang, centang #checkAll, jika tidak, hilangkan centang
-                $('#checkAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+                $('#checkAllRequirement').prop('checked', totalCheckboxes === checkedCheckboxes);
             });
 
             // Simpan Pilihan
@@ -68,9 +60,7 @@
             function updateCheckAll() {
                 const totalCheckboxes = allIdProduct.length; // Total checkbox di halaman saat ini
                 const checkedCheckboxes = tmpDataProductRequirement.length; // Checkbox yang dicentang
-                console.log(totalCheckboxes);
-                console.log(checkedCheckboxes);
-                $('#checkAll').prop('checked', totalCheckboxes > 0 && totalCheckboxes ===
+                $('#checkAllRequirement').prop('checked', totalCheckboxes > 0 && totalCheckboxes ===
                     checkedCheckboxes); // Update status
             }
 
@@ -85,13 +75,10 @@
                 });
 
                 // Event listener untuk #checkAll
-                $('#checkAll').on('change', function() {
+                $('#checkAllRequirement').on('change', function() {
                     $('.product-checkbox').prop('checked', this.checked);
                 });
             });
-
-
-
 
             // Event listener untuk checkbox
             $(document).on('change', '.product-checkbox', function() {
@@ -104,7 +91,6 @@
                     }
                 } else {
                     // Hapus ID dari tmpDataProductRequirement jika tidak dicentang
-                    console.log("masuk ke hapus")
                     tmpDataProductRequirement = tmpDataProductRequirement.filter(id => id != productId);
                 }
 
@@ -113,37 +99,44 @@
 
             // Kirim daftar tmpDataProductRequirement saat DataTable melakukan request AJAX
             $('#notereceiptschedulingrequirementproduct-table').on('preXhr.dt', function(e, settings, data) {
-                // console.log(data);
+                console.log("masuk ajax")
                 data.checkedProducts =
                     tmpDataProductRequirement; // Tambahkan tmpDataProductRequirement ke request
             });
+
+            var table = window.LaravelDataTables["notereceiptschedulingrequirementproduct-table"];
+
+            // Gunakan initComplete dari laravel-datatables event
+            table.on('init.dt', function() {
+                var columnIdx = 2;
+                var column = table.column(columnIdx);
+                var footerCell = $(column.footer());
+
+                console.log('Footer kolom 2:', footerCell); // cek elemen footer
+
+                if (footerCell.length === 0) {
+                    console.error('Footer kolom 2 tidak tersedia!');
+                    return;
+                }
+
+                if (footerCell.find('select').length === 0) {
+                    var select = $('<select><option value="">All</option></select>')
+                        .appendTo(footerCell.empty())
+                        .on('change', function() {
+                            var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                            column.search(val ? '^' + val + '$' : '', true, false).draw();
+                        });
+
+                    column.data().unique().sort().each(function(d) {
+                        if (d) select.append('<option value="' + d + '">' + d + '</option>');
+                    });
+                    console.log('Dropdown dipasang untuk kolom 2');
+                }
+
+            });
+
+
         });
-
-        // var tableTest = $('#notereceiptschedulingrequirementproduct-table').DataTable();
-        // // Misal untuk kolom index 1 (kolom yang akan difilter)
-        // var columnIdx = 1;
-
-        // // Ambil kolom yang diinginkan dari instance DataTable
-        // var column = tableTest.column(columnIdx);
-
-        // // Ambil selector footer <th> dari kolom tersebut, misal:
-        // var footerCell = $(column.footer());
-
-        // // Buat dropdown select dan tambahkan ke footer
-        // var select = $('<select><option value="">All</option></select>')
-        //     .appendTo(footerCell.empty())
-        //     .on('change', function() {
-        //         var val = $.fn.dataTable.util.escapeRegex($(this).val());
-
-        //         // Cari sesuai pilihan dropdown, regex exact match
-        //         column.search(val ? '^' + val + '$' : '', true, false).draw();
-        //     });
-
-        // // Isi opsi dropdown dengan data unik kolom
-        // column.data().unique().sort().each(function(d) {
-        //     select.append('<option value="' + d + '">' + d + '</option>');
-        //     console.log("masuk kah")
-        // });
     </script>
 
 </x-modal>
