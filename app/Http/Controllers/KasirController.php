@@ -34,6 +34,7 @@ use App\Models\User;
 use App\Models\VariantProduct;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Jenssegers\Agent\Agent;
 use function PHPUnit\Framework\isNull;
@@ -202,6 +203,20 @@ class KasirController extends Controller
 
     public function bayar(Request $request)
     {
+        $clientIp = $request->ip();
+        $transactionHash = md5($clientIp . json_encode($request->all()));
+        $cacheKey = 'anti_double_payment_' . $transactionHash;
+
+        if (Cache::has($cacheKey)) {
+            return response()->json([
+                'status' => 'warning',
+                'message' => 'Transaksi sedang diproses atau sudah dilakukan.'
+            ]);
+        }
+
+        // Simpan hash ke cache selama 10 detik
+        Cache::put($cacheKey, true, now()->addSeconds(20));
+
         $outletUser = auth()->user()->outlet_id;
         $dataOutletUser = json_decode($outletUser);
         $listIdItemOpenBill = [];
