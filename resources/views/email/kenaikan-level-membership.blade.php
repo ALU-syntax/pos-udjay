@@ -149,7 +149,7 @@
                         </td>
                         <!-- Kolom kanan: Logo Red -->
                         <td style="text-align: right; vertical-align: middle; border-bottom-right-radius: 12px;">
-                            <img width="140" src="{{ asset('img/Logo Red.png') }}" alt="Logo Red" />
+                            <img width="140" src="https://backoffice.uddjaya.com/img/Logo%20Red.png" alt="Logo Red" />
                         </td>
                     </tr>
 
