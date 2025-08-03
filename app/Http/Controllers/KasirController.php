@@ -210,12 +210,12 @@ class KasirController extends Controller
         if (Cache::has($cacheKey)) {
             return response()->json([
                 'status' => 'warning',
-                'message' => 'Transaksi sedang diproses atau sudah dilakukan.'
+                'message' => 'Transaksi dengan item sama. tunggu 45 detik'
             ]);
         }
 
         // Simpan hash ke cache selama 10 detik
-        Cache::put($cacheKey, true, now()->addSeconds(20));
+        Cache::put($cacheKey, true, now()->addSeconds(45));
 
         $outletUser = auth()->user()->outlet_id;
         $dataOutletUser = json_decode($outletUser);
