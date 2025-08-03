@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\PilihPelangganDataTable;
+use App\Mail\BerandaMember;
 use App\Mail\KenaikanLevelMember;
 use App\Mail\PenambahanPoinMembershipKomunitas;
 use App\Mail\PenambahanPointExpMembership;
@@ -308,9 +309,11 @@ class KasirController extends Controller
             if(intval($request->potongan_point) > 0){
                 $customer->point -= $request->potongan_point;
 
+                $potonganPointCustomer = $request->potongan_point;
+                $formatPotongan = formatRupiah(strval($potonganPointCustomer), "");
                 $dataEmailPointUse = [
                     'name' => $customer->name,
-                    'pointDigunakan'=> $request->potongan_point,
+                    'pointDigunakan'=> $formatPotongan,
                     'point' => floor($customer->point),
                     'exp' => floor($customer->exp),
                     'potongan' => formatRupiah(strval($request->potongan_point), "Rp. "),
@@ -320,18 +323,33 @@ class KasirController extends Controller
                 Mail::to($customer->email)->send(new PenukaranPoin($dataEmailPointUse));
             }
 
-            $customer->point += intval($request->total) / 100;
-            $customer->exp += intval($request->total) / 100;
+            $pointExp = intval($request->total) / 100;
+            $pointExpDidapat = floor($pointExp);
+
+            $customer->point += $pointExp;
+            $customer->exp += $pointExp;
+
+            $pointCustomer = floor($customer->point);
+            $formatRupiahPoint = formatRupiah(strval($pointCustomer), "");
+
+            $expCustomer = floor($customer->exp);
+            $formatExp = formatRupiah(strval($expCustomer), "");
+
+            $formatPointDidapat = formatRupiah(strval($pointExpDidapat), "");
 
             $dataEmail = [
                 'name' => $customer->name,
-                'exp' => floor($customer->exp),
-                'point' => floor($customer->point),
+                'exp' => $formatExp,
+                'nominalExp' => floor($customer->exp),
+                'point' => $formatRupiahPoint,
+                'pointDidapat' => $formatPointDidapat,
                 'levelMembership' => $customer->levelMembership->name,
                 'expired' => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y')
             ];
 
             Mail::to($customer->email)->send(new PenambahanPointExpMembership($dataEmail));
+
+            $levelNameMember = $customer->levelMembership->name;
 
             if(isset($customer->community_id)){
                 $community = Community::find($customer->community_id);
@@ -360,16 +378,19 @@ class KasirController extends Controller
 
                 // dd($exists, !$exists);
                 if(!$exists){
-                    if(intval($customer->exp) > $level->benchmark){
+                    if(intval($customer->exp) >= $level->benchmark){
                         if($customer->level_memberships_id != $level->id){
                             $dataEmailLevelUp = [
                                 'name' => $customer->name,
-                                'exp' => floor($customer->exp),
+                                'exp' => $formatExp,
+                                'nominalExp' => floor($customer->exp),
                                 'reward' => $level->rewards()->get(),
                                 'levelMembership' => $customer->levelMembership->name,
                                 'levelMembershipNow' => $level->name,
                                 'expired' => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y'),
                             ];
+
+                            $levelNameMember = $level->name;
 
                             if(($index+1) >= count($listLevelMembership)){
                                 $dataEmailLevelUp['nextMember'] = "-";
@@ -394,6 +415,17 @@ class KasirController extends Controller
                     }
                 }
             }
+
+            $dataEmailBeranda = [
+                'name' => $customer->name,
+                'exp' => $formatExp,
+                'nominalExp' => floor($customer->exp),
+                'point' => $formatRupiahPoint,
+                'pointDidapat' => $formatPointDidapat,
+                'levelMembership' => $levelNameMember,
+                'expired' => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y')
+            ];
+            Mail::to($customer->email)->send(new BerandaMember($dataEmailBeranda));
 
             $customer->save();
         } else {

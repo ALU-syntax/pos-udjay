@@ -62,15 +62,14 @@
                     </tr>
                     <tr>
                         <td colspan="2" style="font-size:44px; font-weight:400; padding-bottom:10px;">
-                            <i>Terima kasih telah menjadi</i> <br>
-                            <i>bagian dari Warga UD. Djaya!</i>
+                            <i>Jumlah Poin &amp; EXP Warga</i> <br>
+                            <i> telah diperbarui!</i>
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="2" style="font-size:24px; line-height:1.4; padding-bottom:20px;">
+                        <td style="font-size:24px; line-height:1.4; padding-bottom:20px;">
                             <i><strong style="font-weight: 400"> Hai Kak {{$data['name']}}</strong></i>,<br />
-                            <i>Kamu sekarang sudah terdaftar jadi bagian dari</i> <br>
-                            <i>Warga UD. Djaya.</i>
+                            <i>Poin & EXP Warga telah diperbarui!</i>
                         </td>
                     </tr>
 
@@ -113,12 +112,12 @@
                                                         <tr>
                                                             <td style="padding-bottom:15px; width:50%;">
                                                                 <strong>Total Poin</strong><br />
-                                                                <span style="font-size:18px; font-weight:bold;">0
+                                                                <span style="font-size:18px; font-weight:bold;">{{$data['point']}}
                                                                     poin</span>
                                                             </td>
                                                             <td style="padding-bottom:15px; width:50%;">
                                                                 <strong>Total EXP</strong><br />
-                                                                <span style="font-size:18px; font-weight:bold;">0 /
+                                                                <span style="font-size:18px; font-weight:bold;">{{$data['exp']}} /
                                                                     45.000
                                                                     EXP</span><br />
                                                                 <small>Dapatkan gratis 1 Kopi Susu setiap kelipatan
@@ -133,7 +132,7 @@
                                                             </td>
                                                             <td style="padding-bottom:15px;">
                                                                 <strong>Level Warga</strong><br />
-                                                                <span style="font-weight:bold;">WARGA</span>
+                                                                <span style="font-weight:bold;">{{$data['levelMembership']}}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
@@ -151,16 +150,16 @@
                                                                     style="text-align:center; font-weight:bold; font-size:13px;">
                                                                     <tr>
                                                                         <td
-                                                                            style="border:1px solid #b83b3a; padding:10px; background-color:#b83b3a; color:#f4eee3;">
+                                                                            style="border:1px solid #b83b3a; padding:10px; @if($data['nominalExp'] < 6000) background-color:#b83b3a; color:#f4eee3; @endif">
                                                                             <b style="font-weight: 1000">WARGA</b><br />0 - 6.000 EXP</td>
                                                                         <td
-                                                                            style="border:1px solid #b83b3a; padding:10px;">
+                                                                            style="border:1px solid #b83b3a; padding:10px; @if($data['nominalExp'] >= 6000 && $data['nominalExp'] < 15000) background-color:#b83b3a; color:#f4eee3; @endif">
                                                                             <b style="font-weight: 1000">DUTA</b><br />6.000 - 15.000 EXP</td>
                                                                         <td
-                                                                            style="border:1px solid #b83b3a; padding:10px;">
+                                                                            style="border:1px solid #b83b3a; padding:10px; @if($data['nominalExp'] >= 15000 && $data['nominalExp'] < 45000) background-color:#b83b3a; color:#f4eee3; @endif">
                                                                             <b style="font-weight: 1000">OWNER</b><br />15.000 - 45.000 EXP</td>
                                                                         <td
-                                                                            style="border:1px solid #b83b3a; padding:10px;">
+                                                                            style="border:1px solid #b83b3a; padding:10px; @if($data['nominalExp'] >= 45000) background-color:#b83b3a; color:#f4eee3; @endif">
                                                                             <b style="font-weight: 1000">KOMISARIS</b><br />45.000 EXP</td>
                                                                     </tr>
                                                                 </table>
@@ -187,12 +186,14 @@
 
                     <!-- Footer -->
                     <tr>
-                        <td colspan="2" style="font-size:24px; line-height:1.4; padding-top:20px; color:#f4eee3;">
-                            <i>Segala kebaruan informasi yang berkaitan dengan member akan kami</i><br />
-                            <i>informasikan melalui email.</i>
-                            <br />
-                            <br />
-                            <i>Terima kasih telah menjadi bagian dari Warga UD. Djaya.</i>
+                        <td colspan="2" style="font-size:12px; line-height:1.4; padding-top:20px; color:#f4eee3;">
+                            Pengertian Poin, Exp, Level :<br />
+                            <strong>Poin</strong> : Nilai dari tiap transaksi dan jumlah bisa berkurang jika
+                            ditukarkan.<br />
+                            <strong>EXP</strong> : Akumulasi nilai dari seluruh transaksi dan tidak akan
+                            berkurang.<br />
+                            <strong>Level</strong> : Kenaikan status membership saat EXP sudah mencapai nominal
+                            tertentu.
                         </td>
                     </tr>
                     <tr style="background-color: #f4eee3;">

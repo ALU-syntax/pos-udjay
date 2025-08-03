@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\TestEmail;
 use App\Models\Checkout;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -33,7 +34,8 @@ class CheckoutController extends Controller
 
     public function showForm()
     {
-        return view('email_test');
+        // Mail::to("test@gmail.com")->send(new TestEmail());
+        // return view('email_test');
     }
 
     public function sendTestEmail(Request $request)
@@ -44,10 +46,11 @@ class CheckoutController extends Controller
 
         $toEmail = $request->input('email');
 
-        Mail::raw('Ini adalah email uji coba dari Laravel.', function ($message) use ($toEmail) {
-            $message->to($toEmail)
-                    ->subject('Test Email Laravel');
-        });
+        Mail::to($toEmail)->send(new TestEmail());
+        // Mail::raw('Ini adalah email uji coba dari Laravel.', function ($message) use ($toEmail) {
+        //     $message->to($toEmail)
+        //             ->subject('Test Email Laravel');
+        // });
 
         return back()->with('success', 'Email test berhasil dikirim ke ' . $toEmail);
     }

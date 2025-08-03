@@ -56,6 +56,9 @@ Route::get('/login', [AuthController::class, 'login'])->name('login')->middlewar
 // Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 Route::get('/', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/test', function(){
+    return view('email.testing-email');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/getDataSummary', [DashboardController::class, 'getDataSummary'])->name('getDataSummary');
