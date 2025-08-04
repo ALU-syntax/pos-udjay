@@ -887,6 +887,7 @@ class KasirController extends Controller
         if ($openBill) {
             $openBill->load(['item' => function ($query) use ($openBill) {
                 // Ambil queue_order dari objek $openBill
+                $query->with(['product']);
                 $query->where('queue_order', $openBill->queue_order);
             },
              'user']);
