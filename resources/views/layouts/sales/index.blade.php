@@ -56,6 +56,23 @@
             /* Warna abu */
         }
 
+        /* Pastikan kolom Name boleh membungkus dan punya lebar minimal */
+        #item-sales td:nth-child(1),
+        #item-sales th:nth-child(1) {
+            white-space: normal;
+            /* hapus kalau sebelumnya pakai text-nowrap */
+            min-width: 200px;
+            /* match dengan JS columnDefs width */
+        }
+
+        /* Kalau kamu sebelumnya menaruh text-truncate/nowrap di semua sel, netralkan khusus Name */
+        #item-sales td:nth-child(1) .text-truncate {
+            overflow: visible;
+            text-overflow: unset;
+            white-space: normal;
+        }
+
+
         /* Menambahkan border vertikal di kanan kolom category sales */
         #category-sales td:first-child {
             border-right: 1px solid #ccc;
@@ -125,6 +142,10 @@
             text-align: right;
         }
     </style>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.bootstrap5.min.css">
+
+
     <div class="main-content">
         <div class="card text-center">
             <h5 class="card-header">Sales</h5>
@@ -185,8 +206,9 @@
                                 role="tab" aria-controls="discount-nobd" aria-selected="false">Discounts</a>
                             <a class="nav-link" id="taxes-tab-nobd" data-bs-toggle="pill" href="#taxes-nobd" role="tab"
                                 aria-controls="taxes-nobd" aria-selected="false">Taxes</a>
-                            <a class="nav-link" id="collected-by-tab-nobd" data-bs-toggle="pill" href="#collected-by-nobd"
-                                role="tab" aria-controls="collected-by-nobd" aria-selected="false">Collected By</a>
+                            <a class="nav-link" id="collected-by-tab-nobd" data-bs-toggle="pill"
+                                href="#collected-by-nobd" role="tab" aria-controls="collected-by-nobd"
+                                aria-selected="false">Collected By</a>
                         </div>
                     </div>
                     <div class="col-9">
@@ -508,8 +530,14 @@
 
     @push('js')
         <script src="https://cdn.datatables.net/2.2.1/js/dataTables.js"></script>
-        <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.js"></script>
-        <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/fixedColumns.dataTables.js"></script>
+        <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+
+        <!-- FixedColumns 4.x (untuk DT 1.x) -->
+        <script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
+
+        {{-- <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.js"></script>
+        <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/fixedColumns.dataTables.js"></script> --}}
         <script>
             function checkActiveTab() {
                 var activeTab = $('a.nav-link.active').attr('href');
@@ -705,6 +733,10 @@
                 } else if (activeTab === "#item-sales-nobd") {
                     if ($.fn.dataTable.isDataTable('#item-sales')) {
                         $('#item-sales').DataTable().destroy();
+
+                        // kalau sebelumnya kamu pernah menambah baris header tambahan, bersihkan:
+                        $('#item-sales').find('thead tr:gt(0)').remove(); // sisakan hanya baris header pertama
+                        $('#item-sales').columns.adjust();
                     }
 
                     var tableSales = $('#item-sales').DataTable({
@@ -753,35 +785,35 @@
                         ],
                         paging: false, // Menghilangkan pagination
                         searching: true, // Menghilangkan search bar
-                        ordering: false,
-                        scrollX: true,
+                        ordering: true,
+                        orderMulti: true,
                         scrollCollapse: true,
+                        scrollX: true,
                         scrollY: 500,
-                        info: false,
+                        autoWidth: false,
+                        info: true,
+                        fixedHeader: false,
                         fixedColumns: {
-                            start: 1
+                            start: 1,
+                            end: 0
                         },
-                        columnDefs: [{
+                        columnDefs: [
+                            // Kolom Name (index 0): buat lebih lebar
+                            {
                                 targets: 0,
-                                width: '200px'
-                            }, // Menetapkan lebar kolom pertama menjadi 200px
+                                width: 320
+                            }, // atau '320px'
+                            // Kolom angka: width tetap agar Name bisa “mencuri” ruang
                             {
-                                targets: 3,
-                                width: '150px'
-                            },
-                            {
-                                targets: 4,
-                                width: '150px'
-                            },
-                            {
-                                targets: 5,
-                                width: '150px'
-                            },
-                            {
-                                targets: 6,
-                                width: '150px'
+                                targets: [3, 4, 5, 6],
+                                width: 120,
+                                className: 'text-end'
                             }
                         ],
+                        colResize: {
+                            saveState: true,
+                            hasBoundCheck: true
+                        },
                         footerCallback: function(row, data, start, end, display) {
                             var api = this.api();
 
@@ -844,6 +876,11 @@
                             $('.dt-scroll-head').addClass('d-none');
                             $('.dt-scroll-foot').addClass('d-none');
                         }
+                    });
+
+                    // setiap kali tabel redraw / re-size / re-order, hide lagi header body
+                    tableSales.on('draw.dt order.dt column-sizing.dt', function() {
+                        $('.dt-scroll-body table thead').remove();
                     });
 
                     // Custom search function hanya untuk kolom name dan category
