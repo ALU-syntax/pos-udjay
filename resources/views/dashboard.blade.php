@@ -204,6 +204,7 @@
                         </div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item py-3">Top Three Item</li>
+                            <li class="list-group-item py-3">Down Three Item</li>
                         </ul>
                     </div>
                 </div>
@@ -350,7 +351,6 @@
             }
 
             function generateOutletCard(data) {
-
                 data.data.forEach(function(dataOutlet) {
                     var cardCol = $('<div>').addClass('col-3');
                     var card = $('<div>').addClass('card px-0').css('width', '18rem');
@@ -373,17 +373,99 @@
                         'border-top-color': '#0923b6'
                     }).append($('<h5>').text('Items'));
 
-                    let item = '';
-                    dataOutlet.topThreeItem.forEach(function(e) {
-                        let result = e.product.name == e.variant.name ? e.variant.name : e.product.name +
-                            ' - ' + e.variant.name
+                    // TOP THREE ITEM
+                    var itemsOuterUl = $('<ul>').addClass('list-group list-group-flush');
+                    var itemsOuterLi = $('<li>').addClass(
+                        'list-group-item py-3 pe-2 d-block'); // pe-0 opsional agar badge mepet kanan
+                    var innerList = $('<ul>').addClass('list-unstyled mb-0'); // daftar di dalam tanpa border
 
-                        item += `${result}\n`
-                    })
-                    var list2 = $('<ul>').addClass('list-group list-group-flush').append($('<li>').addClass(
-                            'list-group-item py-3')
-                        .text(item));
-                    card.append(header, list1, footer, list2);
+                    if (Array.isArray(dataOutlet.topThreeItem) && dataOutlet.topThreeItem.length) {
+                        dataOutlet.topThreeItem.forEach(function(e) {
+                            // nama item
+                            var name;
+                            if (!e.variant) {
+                                name = e.product || 'Tanpa nama';
+                            } else if (e.product === e.variant) {
+                                name = e.variant;
+                            } else {
+                                name = e.product + ' - ' + e.variant;
+                            }
+
+                            // === BARIS ITEM: badge di ujung kanan ===
+                            var row = $('<li>').addClass('d-flex align-items-center w-100 py-1');
+
+                            var nameEl = $('<span>').addClass('flex-grow-1 text-truncate').text(
+                                name); // kiri, melebar
+                            var badgeEl = $('<span>').addClass(
+                                'badge rounded-pill ms-auto'); // kanan, nempel ujung
+                            // pilih warna badge (opsional)
+                            badgeEl.addClass('bg-primary');
+
+                            if (e.qty != null) {
+                                badgeEl.text(e.qty);
+                            } else {
+                                // kalau tidak ada qty, bisa kosong atau sembunyikan:
+                                // badgeEl.remove(); // kalau mau disembunyikan
+                                badgeEl.text('0');
+                            }
+
+                            row.append(nameEl, badgeEl);
+                            innerList.append(row);
+                        });
+                    } else {
+                        innerList.append($('<li>').addClass('py-1 text-muted').text('Tidak ada item'));
+                    }
+
+                    itemsOuterLi.append(innerList);
+                    itemsOuterUl.append(itemsOuterLi);
+
+                    // DOWN THREE ITEM
+                    var itemsOuterUlDown = $('<ul>').addClass('list-group list-group-flush');
+                    var itemsOuterLiDown = $('<li>').addClass(
+                        'list-group-item py-3 pe-2 d-block'); // pe-0 opsional agar badge mepet kanan
+                    var innerListDown = $('<ul>').addClass('list-unstyled mb-0'); // daftar di dalam tanpa border
+
+                    if (Array.isArray(dataOutlet.downThreeItem) && dataOutlet.downThreeItem.length) {
+                        dataOutlet.downThreeItem.forEach(function(e) {
+                            // nama item
+                            var name;
+                            if (!e.variant) {
+                                name = e.product || 'Tanpa nama';
+                            } else if (e.product === e.variant) {
+                                name = e.variant;
+                            } else {
+                                name = e.product + ' - ' + e.variant;
+                            }
+
+                            // === BARIS ITEM: badge di ujung kanan ===
+                            var row = $('<li>').addClass('d-flex align-items-center w-100 py-1');
+
+                            var nameEl = $('<span>').addClass('flex-grow-1 text-truncate').text(
+                                name); // kiri, melebar
+                            var badgeEl = $('<span>').addClass(
+                                'badge rounded-pill ms-auto'); // kanan, nempel ujung
+                            // pilih warna badge (opsional)
+                            badgeEl.addClass('bg-primary');
+
+                            if (e.qty != null) {
+                                badgeEl.text(e.qty);
+                            } else {
+                                // kalau tidak ada qty, bisa kosong atau sembunyikan:
+                                // badgeEl.remove(); // kalau mau disembunyikan
+                                badgeEl.text('0');
+                            }
+
+                            row.append(nameEl, badgeEl);
+                            innerListDown.append(row);
+                        });
+                    } else {
+                        innerListDown.append($('<li>').addClass('py-1 text-muted').text('Tidak ada item'));
+                    }
+
+                    itemsOuterLiDown.append(innerListDown);
+                    itemsOuterUlDown.append(itemsOuterLiDown);
+
+                    card.append(header, list1, footer, itemsOuterUl, itemsOuterUlDown);
                     cardCol.append(card);
                     $('#list-outlet').append(cardCol);
                 });

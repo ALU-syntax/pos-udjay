@@ -161,33 +161,107 @@ class DashboardController extends Controller
         ]);
     }
 
+    // public function getDataOutletCompare(Request $request){
+    //     $startDate = Carbon::now()->startOfDay();
+    //     $endDate = Carbon::now()->endOfDay();
+
+    //     $dates = explode(' - ', $request->input('date'));
+    //     if (count($dates) == 2) {
+    //         $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+    //         $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+    //     } else {
+    //         // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+    //         $startDate = Carbon::now()->startOfDay();
+    //         $endDate = Carbon::now()->endOfDay();
+    //     }
+
+    //     $outlet = $request->input('outlet');
+
+    //     $listData = [];
+    //     if(count($outlet)){
+    //         foreach($outlet as $dataOutlet){
+    //             $getOutlet = Outlets::find($dataOutlet);
+    //             $dataTransaction = Transaction::with(['itemTransaction'])
+    //                     ->whereBetween('created_at', [$startDate, $endDate])
+    //                     ->where('outlet_id', $dataOutlet)->get(); // Ambil data sesuai kebutuhan
+
+    //             $grossSales = 0;
+    //             $discount = 0;
+    //             $netSales = 0;
+
+    //             foreach ($dataTransaction as $transaction) {
+    //                 $discount += $transaction->total_diskon;
+
+    //                 $totalTax = 0;
+    //                 foreach (json_decode($transaction->total_pajak) as $itemPajak) {
+    //                     $totalTax += $itemPajak->total;
+    //                 }
+    //                 $grossSales += $transaction->total + $transaction->total_diskon;
+
+    //                 $netSales += $transaction->total;
+    //             }
+
+    //             // Query untuk mendapatkan variant_id dan jumlah kemunculan, urut dari yang terbanyak
+    //             $topVariants = TransactionItem::select('product_id','variant_id', DB::raw('COUNT(*) as total'))
+    //             ->whereNotNull('variant_id') // pastikan variant_id tidak null
+    //             ->whereBetween('created_at', [$startDate, $endDate])
+    //             ->groupBy('variant_id','product_id')
+    //             ->orderByDesc('total')
+    //             ->with(['variant', 'product', 'transaction' => function($trans) use($dataOutlet){
+    //                 return $trans->where('outlet_id', $dataOutlet);
+    //             }]) // eager load data variant agar bisa langsung akses detail variant
+    //             ->limit(3)
+    //             ->get();
+
+
+    //             $averageSalesPerTransaction = count($dataTransaction) ? $grossSales / count($dataTransaction) : 0;
+    //             // dd($averageSalesPerTransaction);
+    //             $grossMargin = $grossSales ? ($netSales / $grossSales) * 100 : 0;
+    //             $tmpData = [
+    //                 'outlet' => $getOutlet->name,
+    //                 'grossSales' => $grossSales,
+    //                 'netSales' => $netSales,
+    //                 'transactions' => count($dataTransaction),
+    //                 'averageSales' => round($averageSalesPerTransaction),
+    //                 'grossMargin' => round($grossMargin),
+    //                 'topThreeItem' => $topVariants
+    //             ];
+
+    //             array_push($listData, $tmpData);
+    //         }
+
+    //         return response()->json([
+    //             'data' => $listData
+    //         ]);
+    //     }
+    // }
+
     public function getDataOutletCompare(Request $request){
         $startDate = Carbon::now()->startOfDay();
-        $endDate = Carbon::now()->endOfDay();
+        $endDate   = Carbon::now()->endOfDay();
 
         $dates = explode(' - ', $request->input('date'));
         if (count($dates) == 2) {
             $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
-            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
-        } else {
-            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
-            $startDate = Carbon::now()->startOfDay();
-            $endDate = Carbon::now()->endOfDay();
+            $endDate   = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
         }
 
-        $outlet = $request->input('outlet');
+        $outletIds = (array) $request->input('outlet', []);
 
         $listData = [];
-        if(count($outlet)){
-            foreach($outlet as $dataOutlet){
-                $getOutlet = Outlets::find($dataOutlet);
+        if (count($outletIds)) {
+            foreach ($outletIds as $outletId) {
+                $getOutlet = Outlets::find($outletId);
+
+                // Ambil transaksi per outlet & rentang tanggal
                 $dataTransaction = Transaction::with(['itemTransaction'])
-                        ->whereBetween('created_at', [$startDate, $endDate])
-                        ->where('outlet_id', $dataOutlet)->get(); // Ambil data sesuai kebutuhan
+                    ->where('outlet_id', $outletId)
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->get();
 
                 $grossSales = 0;
-                $discount = 0;
-                $netSales = 0;
+                $discount   = 0;
+                $netSales   = 0;
 
                 foreach ($dataTransaction as $transaction) {
                     $discount += $transaction->total_diskon;
@@ -196,43 +270,83 @@ class DashboardController extends Controller
                     foreach (json_decode($transaction->total_pajak) as $itemPajak) {
                         $totalTax += $itemPajak->total;
                     }
-                    $grossSales += $transaction->total + $transaction->total_diskon;
 
-                    $netSales += $transaction->total;
+                    // asumsi total = net + diskon (tanpa pajak)
+                    $grossSales += $transaction->total + $transaction->total_diskon;
+                    $netSales   += $transaction->total;
                 }
 
-                // Query untuk mendapatkan variant_id dan jumlah kemunculan, urut dari yang terbanyak
-                $topVariants = TransactionItem::select('product_id','variant_id', DB::raw('COUNT(*) as total'))
-                ->whereNotNull('variant_id') // pastikan variant_id tidak null
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->groupBy('variant_id','product_id')
-                ->orderByDesc('total')
-                ->with(['variant', 'product', 'transaction' => function($trans) use($dataOutlet){
-                    return $trans->where('outlet_id', $dataOutlet);
-                }]) // eager load data variant agar bisa langsung akses detail variant
-                ->limit(3)
-                ->get();
+                // --- AGREGASI ITEM: TOP 3 & DOWN 3 ---
+                // Catatan: filter outlet & tanggalnya lewat whereHas('transaction', ...)
+                $baseVariantQuery = TransactionItem::query()
+                    ->select([
+                        'product_id',
+                        'variant_id',
+                        DB::raw('COUNT(*) as qty')
+                    ])
+                    ->whereNotNull('variant_id') // kalau mau gabungkan yang tanpa variant, lihat catatan di bawah
+                    ->whereHas('transaction', function($q) use ($outletId, $startDate, $endDate) {
+                        $q->where('outlet_id', $outletId)
+                        ->whereBetween('created_at', [$startDate, $endDate]);
+                    })
+                    ->groupBy('product_id', 'variant_id');
 
+                // 3 terbanyak
+                $topThreeItem = (clone $baseVariantQuery)
+                    ->orderByDesc('qty')
+                    ->with(['variant:id,name', 'product:id,name'])
+                    ->limit(3)
+                    ->get()
+                    ->map(function($row){
+                        return [
+                            'product_id' => $row->product_id,
+                            'product'    => $row->product->name ?? null,
+                            'variant_id' => $row->variant_id,
+                            'variant'    => $row->variant->name ?? null,
+                            'qty'        => (int) $row->qty,
+                        ];
+                    });
 
-                $averageSalesPerTransaction = count($dataTransaction) ? $grossSales / count($dataTransaction) : 0;
-                // dd($averageSalesPerTransaction);
-                $grossMargin = $grossSales ? ($netSales / $grossSales) * 100 : 0;
-                $tmpData = [
-                    'outlet' => $getOutlet->name,
-                    'grossSales' => $grossSales,
-                    'netSales' => $netSales,
-                    'transactions' => count($dataTransaction),
-                    'averageSales' => round($averageSalesPerTransaction),
-                    'grossMargin' => round($grossMargin),
-                    'topThreeItem' => $topVariants
+                // 3 tersedikit (di antara yang terjual pada periode tsb)
+                $downThreeItem = (clone $baseVariantQuery)
+                    ->orderBy('qty', 'asc')
+                    ->with(['variant:id,name', 'product:id,name'])
+                    ->limit(3)
+                    ->get()
+                    ->map(function($row){
+                        return [
+                            'product_id' => $row->product_id,
+                            'product'    => $row->product->name ?? null,
+                            'variant_id' => $row->variant_id,
+                            'variant'    => $row->variant->name ?? null,
+                            'qty'        => (int) $row->qty,
+                        ];
+                    });
+
+                // Ringkasan outlet
+                $averageSalesPerTransaction = $dataTransaction->count()
+                    ? $grossSales / $dataTransaction->count()
+                    : 0;
+
+                $grossMargin = $grossSales
+                    ? ($netSales / $grossSales) * 100
+                    : 0;
+
+                $listData[] = [
+                    'outlet'        => $getOutlet->name ?? ('Outlet #'.$outletId),
+                    'grossSales'    => $grossSales,
+                    'netSales'      => $netSales,
+                    'transactions'  => $dataTransaction->count(),
+                    'averageSales'  => round($averageSalesPerTransaction),
+                    'grossMargin'   => round($grossMargin),
+                    'topThreeItem'  => $topThreeItem,
+                    'downThreeItem' => $downThreeItem,
                 ];
-
-                array_push($listData, $tmpData);
             }
 
-            return response()->json([
-                'data' => $listData
-            ]);
+            return response()->json(['data' => $listData]);
         }
+
+        return response()->json(['data' => []]);
     }
 }

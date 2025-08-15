@@ -185,9 +185,8 @@
                                 role="tab" aria-controls="discount-nobd" aria-selected="false">Discounts</a>
                             <a class="nav-link" id="taxes-tab-nobd" data-bs-toggle="pill" href="#taxes-nobd" role="tab"
                                 aria-controls="taxes-nobd" aria-selected="false">Taxes</a>
-                            <a class="nav-link" id="collected-by-tab-nobd" data-bs-toggle="pill"
-                                href="#collected-by-nobd" role="tab" aria-controls="collected-by-nobd"
-                                aria-selected="false">Collected By</a>
+                            <a class="nav-link" id="collected-by-tab-nobd" data-bs-toggle="pill" href="#collected-by-nobd"
+                                role="tab" aria-controls="collected-by-nobd" aria-selected="false">Collected By</a>
                         </div>
                     </div>
                     <div class="col-9">
@@ -387,7 +386,8 @@
                                     Profit Accurately, please make sure all items have a COGS
                                 </div>
 
-                                <table id="category-sales" class="table display row-border order-column" style="width:100%">
+                                <table id="category-sales" class="table display row-border order-column"
+                                    style="width:100%">
                                     <thead>
                                         <tr>
                                             <th style="border-right: #000; border-radius: 2px"><b>Category</b></th>
@@ -408,7 +408,8 @@
                             </div>
                             <div class="tab-pane fade" id="modifier-sales-nobd" role="tabpanel"
                                 aria-labelledby="modifier-sales-tab-nobd">
-                                <table id="modifier-sales" class="table display row-border order-column" style="width:100%">
+                                <table id="modifier-sales" class="table display row-border order-column"
+                                    style="width:100%">
                                     <thead>
                                         <tr>
                                             <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
@@ -431,7 +432,8 @@
                             </div>
                             <div class="tab-pane fade" id="discount-nobd" role="tabpanel"
                                 aria-labelledby="discount-tab-nobd">
-                                <table id="discount-sales" class="table display row-border order-column" style="width:100%">
+                                <table id="discount-sales" class="table display row-border order-column"
+                                    style="width:100%">
                                     <thead>
                                         <tr>
                                             <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
@@ -472,7 +474,8 @@
                             </div>
                             <div class="tab-pane fade" id="collected-by-nobd" role="tabpanel"
                                 aria-labelledby="collected-by-tab-nobd">
-                                <table id="collected-by-sales" class="table display row-border order-column" style="width:100%">
+                                <table id="collected-by-sales" class="table display row-border order-column"
+                                    style="width:100%">
                                     <thead>
                                         <tr>
                                             <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
@@ -715,15 +718,38 @@
                                 outlet: outlet
                             },
                         },
-                        columns: [
-                            { data: 'name', name: 'name'},
-                            { data: 'category', name: 'category'},
-                            { data: 'item_sold', name: 'item_sold',},
-                            { data: 'gross_sales', name: 'gross_sales',},
-                            { data: 'discounts', name: 'discounts',},
-                            { data: 'net_sales', name: 'net_sales',},
-                            { data: 'gross_profit', name: 'gross_profit',},
-                            { data: 'gross_margin', name: 'gross_margin',}
+                        columns: [{
+                                data: 'name',
+                                name: 'name'
+                            },
+                            {
+                                data: 'category',
+                                name: 'category'
+                            },
+                            {
+                                data: 'item_sold',
+                                name: 'item_sold',
+                            },
+                            {
+                                data: 'gross_sales',
+                                name: 'gross_sales',
+                            },
+                            {
+                                data: 'discounts',
+                                name: 'discounts',
+                            },
+                            {
+                                data: 'net_sales',
+                                name: 'net_sales',
+                            },
+                            {
+                                data: 'gross_profit',
+                                name: 'gross_profit',
+                            },
+                            {
+                                data: 'gross_margin',
+                                name: 'gross_margin',
+                            }
                         ],
                         paging: false, // Menghilangkan pagination
                         searching: true, // Menghilangkan search bar
@@ -732,13 +758,29 @@
                         scrollCollapse: true,
                         scrollY: 500,
                         info: false,
-                        fixedColumns: { start: 1 },
-                        columnDefs: [
-                            { targets: 0, width: '200px'}, // Menetapkan lebar kolom pertama menjadi 200px
-                            { targets: 3, width: '150px'},
-                            { targets: 4, width: '150px'},
-                            { targets: 5, width: '150px'},
-                            { targets: 6, width: '150px'}
+                        fixedColumns: {
+                            start: 1
+                        },
+                        columnDefs: [{
+                                targets: 0,
+                                width: '200px'
+                            }, // Menetapkan lebar kolom pertama menjadi 200px
+                            {
+                                targets: 3,
+                                width: '150px'
+                            },
+                            {
+                                targets: 4,
+                                width: '150px'
+                            },
+                            {
+                                targets: 5,
+                                width: '150px'
+                            },
+                            {
+                                targets: 6,
+                                width: '150px'
+                            }
                         ],
                         footerCallback: function(row, data, start, end, display) {
                             var api = this.api();
@@ -808,8 +850,8 @@
                     $.fn.dataTable.ext.search.push(
                         function(settings, data, dataIndex) {
                             var searchTerm = $('.dataTables_filter input').val().toLowerCase();
-                            var name = data[0].toLowerCase();      // Kolom name
-                            var category = data[1].toLowerCase();  // Kolom category
+                            var name = data[0].toLowerCase(); // Kolom name
+                            var category = data[1].toLowerCase(); // Kolom category
 
                             // Jika search term ada di name atau category, tampilkan baris
                             if (name.includes(searchTerm) || category.includes(searchTerm)) {
@@ -819,7 +861,7 @@
                         }
                     );
 
-                }else if(activeTab === "#category-sales-nobd"){
+                } else if (activeTab === "#category-sales-nobd") {
                     if ($.fn.dataTable.isDataTable('#category-sales')) {
                         $('#category-sales').DataTable().destroy();
                     }
@@ -907,7 +949,7 @@
                         </tr>
                     `);
 
-                    $('#category-sales tbody').off().on('click', 'tr', function () {
+                    $('#category-sales tbody').off().on('click', 'tr', function() {
                         var data = categorySales.row(this).data();
                         console.log(data);
                         $.ajax({
@@ -935,7 +977,7 @@
                             }
                         });
                     });
-                } else if( activeTab === "#modifier-sales-nobd"){
+                } else if (activeTab === "#modifier-sales-nobd") {
                     if ($.fn.dataTable.isDataTable('#modifier-sales')) {
                         $('#modifier-sales').DataTable().destroy();
                     }
@@ -997,9 +1039,9 @@
                             var totalGrossSales = 0;
                             var totalDiscounts = 0;
                             var totalNetSales = 0;
-                            data.forEach(function(item, index){
+                            data.forEach(function(item, index) {
                                 console.log(item)
-                                if(data[index][6]){
+                                if (data[index][6]) {
                                     totalItemSold += item[2];
                                     totalGrossSales += item[3];
                                     totalDiscounts += item[4];
@@ -1010,7 +1052,7 @@
                             // Menampilkan total di footer
                             $(api.column(1).footer()).html(totalItemSold);
                             $(api.column(2).footer()).html(formatRupiah(totalGrossSales.toString(), "Rp. "));
-                            $(api.column(3).footer()).html(formatRupiah(totalDiscounts.toString(), "RP. "));
+                            $(api.column(3).footer()).html(formatRupiah(totalDiscounts.toString(), "Rp. "));
                             $(api.column(4).footer()).html(formatRupiah(totalNetSales.toString(), "Rp. "));
                         }
                     });
@@ -1026,7 +1068,7 @@
                             <th></th>
                         </tr>
                     `);
-                }else if(activeTab === "#discount-nobd"){
+                } else if (activeTab === "#discount-nobd") {
                     if ($.fn.dataTable.isDataTable('#discount-sales')) {
                         $('#discount-sales').DataTable().destroy();
                     }
@@ -1082,7 +1124,7 @@
 
                             var count = 0;
                             var totalDiscounts = 0;
-                            data.forEach(function(item, index){
+                            data.forEach(function(item, index) {
                                 count += item.count;
                                 totalDiscounts += item.total_discount;
                             });
@@ -1102,7 +1144,7 @@
                             <th></th>
                         </tr>
                     `);
-                }else if(activeTab === "#taxes-nobd"){
+                } else if (activeTab === "#taxes-nobd") {
                     if ($.fn.dataTable.isDataTable('#tax-sales')) {
                         $('#tax-sales').DataTable().destroy();
                     }
@@ -1159,7 +1201,7 @@
                             var totalTaxableAmount = 0;
                             var totalTaxCollected = 0;
                             console.log(data);
-                            data.forEach(function(item, index){
+                            data.forEach(function(item, index) {
                                 totalTaxableAmount += getAmount(item.taxable_amount);
                                 totalTaxCollected += getAmount(item.tax_collected);
                             });
@@ -1179,7 +1221,7 @@
                         </tr>
                     `);
 
-                }else if(activeTab === "#collected-by-nobd"){
+                } else if (activeTab === "#collected-by-nobd") {
                     if ($.fn.dataTable.isDataTable('#collected-by-sales')) {
                         $('#collected-by-sales').DataTable().destroy();
                     }
@@ -1235,7 +1277,7 @@
 
                             var totalNumberTranasction = 0;
                             var totalCollected = 0;
-                            data.forEach(function(item, index){
+                            data.forEach(function(item, index) {
                                 totalNumberTranasction += item.number_of_transaction;
                                 totalCollected += getAmount(item.total_collected);
                             });
@@ -1260,6 +1302,10 @@
             }
 
             $(document).ready(function() {
+                $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function() {
+                    checkActiveTab();
+                });
+
                 checkActiveTab();
                 var startDate = moment().startOf('day');
                 var endDate = moment().endOf('day');
