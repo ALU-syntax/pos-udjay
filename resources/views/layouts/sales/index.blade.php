@@ -933,7 +933,7 @@
                         ],
                         paging: false, // Menghilangkan pagination
                         searching: false, // Menghilangkan search bar
-                        ordering: false,
+                        ordering: true,
                         scrollX: true,
                         scrollCollapse: true,
                         scrollY: 500,
@@ -1053,7 +1053,7 @@
                         ],
                         paging: false, // Menghilangkan pagination
                         searching: false, // Menghilangkan search bar
-                        ordering: false,
+                        ordering: true,
                         scrollX: true,
                         scrollCollapse: true,
                         scrollY: 500,
