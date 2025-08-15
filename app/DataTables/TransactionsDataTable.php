@@ -24,16 +24,16 @@ class TransactionsDataTable extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
-            ->addColumn('outlet_id', function ($row) {
+            ->editColumn('outlet_id', function ($row) {
                 return $row->outlet->name;
             })
-            ->addColumn('created_at', function ($row) {
+            ->editColumn('created_at', function ($row) {
                 return Carbon::parse($row->created_at)->format('H:i');
             })
-            ->addColumn('user_id', function ($row) {
+            ->editColumn('user_id', function ($row) {
                 return $row->user->name;
             })
-            ->addColumn('items', function ($row) {
+            ->editColumn('items', function ($row) {
                 $items = $row->itemTransaction;
                 $itemWithProduct = $items->load(['product']);
                 $itemText = '';
@@ -53,7 +53,7 @@ class TransactionsDataTable extends DataTable
 
                 return $result;
             })
-            ->addColumn('total', function ($row) {
+            ->editColumn('total', function ($row) {
                 return formatRupiah(intval($row->total), "Rp. ");
             })
             ->rawColumns(['items'])
@@ -168,7 +168,7 @@ class TransactionsDataTable extends DataTable
             Column::make('outlet_id')->title("Outlet"),
             Column::make('created_at')->title("Time"),
             Column::make('user_id')->title('Collected By'),
-            Column::make('items')->title('Items'),
+            Column::make('items')->title('Items')->orderable(false),
             Column::make('total')->title('Total Price'),
         ];
     }
