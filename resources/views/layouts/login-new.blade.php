@@ -8,7 +8,7 @@
     <title>Document</title>
 
     <link rel="stylesheet" href="{{ asset('css/login.css') }}">
-
+    <link rel="stylesheet" href="{{ asset('css/iziToast.min.css') }}">
 </head>
 
 <body>
@@ -24,7 +24,9 @@
             <div class="modal-left">
                 <h1 class="modal-title">Welcome!</h1>
                 <p class="modal-desc">POS UDJAYA</p>
-                <form method="POST" action="{{ route('login') }}">
+                {{-- Alert global untuk pesan gagal --}}
+                <div id="login-alert" class="alert alert-danger d-none" role="alert"></div>
+                {{-- <form method="POST" action="{{ route('login') }}" id="login-form">
                     @csrf
                     <div class="input-block">
                         <label for="email" :value="__('Email')" class="input-label">Email</label>
@@ -36,11 +38,35 @@
                     </div>
                     @if (Route::has('password.request'))
                         <div class="modal-buttons">
-                            {{-- <a href="" class="">Forgot your password?</a> --}}
+                            <a href="" class="">Forgot your password?</a>
                             <button type="submit" class="input-button">Login</button>
                         </div>
-                        {{-- <p class="sign-up">Don't have an account? <a href="#">Sign up now</a></p> --}}
+                        <p class="sign-up">Don't have an account? <a href="#">Sign up now</a></p>
                     @endif
+                </form> --}}
+                <form id="login-form" action="{{ route('login') }}" method="POST" autocomplete="on">
+                    @csrf
+                    <div class="input-block">
+                        <label for="email" class="form-label">Email</label>
+                        <input id="email" name="email" type="email" class="form-control"
+                            value="{{ old('email') }}" required>
+                        <div class="invalid-feedback" id="email-error"></div>
+                    </div>
+
+                    <div class="input-block">
+                        <label for="password" class="form-label">Password</label>
+                        <input id="password" name="password" type="password" class="form-control" required>
+                        <div class="invalid-feedback" id="password-error"></div>
+                    </div>
+
+                    {{-- <div class="form-check input-block">
+                        <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">Remember me</label>
+                    </div> --}}
+
+                    <button id="btn-login" type="submit" class="btn btn-primary w-100 input-button">
+                        Masuk
+                    </button>
                 </form>
             </div>
             <div class="modal-right">
@@ -59,6 +85,10 @@
         <button class="modal-button">Click here to login</button>
     </div>
 
+
+    <script src="{{ asset('js/core/jquery-3.7.1.min.js') }}"></script>
+    {{-- IZI TOAST --}}
+    <script src="{{ asset('js/plugin/izitoast/iziToast.min.js') }}"></script>
 
     <script>
         const body = document.querySelector("body");
@@ -94,6 +124,120 @@
             evt = evt || window.event;
             evt.keyCode === 27 ? closeModal() : false;
         };
+
+        $(function() {
+            // setup CSRF untuk semua request jQuery
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'Accept': 'application/json'
+                }
+            });
+
+            const $form = $('#login-form');
+            const $btn = $('#btn-login');
+            const $alert = $('#login-alert');
+            const $email = $('#email');
+            const $password = $('#password');
+
+            function clearErrors() {
+                $alert.addClass('d-none').text('');
+                [$email, $password].forEach($el => $el.removeClass('is-invalid'));
+                $('#email-error').text('');
+                $('#password-error').text('');
+            }
+
+            function setLoading(state) {
+                if (state) {
+                    $btn.prop('disabled', true).data('orig', $btn.html()).html('Memproses...');
+                } else {
+                    $btn.prop('disabled', false).html($btn.data('orig') || 'Masuk');
+                }
+            }
+
+            // Validasi ringan di client
+            function clientValidate() {
+                let ok = true;
+                clearErrors();
+
+                const emailVal = ($email.val() || '').trim();
+                const passVal = ($password.val() || '').trim();
+
+                if (!emailVal) {
+                    $email.addClass('is-invalid');
+                    $('#email-error').text('Email wajib diisi.');
+                    ok = false;
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+                    $email.addClass('is-invalid');
+                    $('#email-error').text('Format email tidak valid.');
+                    ok = false;
+                }
+
+                if (!passVal) {
+                    $password.addClass('is-invalid');
+                    $('#password-error').text('Password wajib diisi.');
+                    ok = false;
+                }
+
+                return ok;
+            }
+
+            $form.on('submit', function(e) {
+                e.preventDefault(); // <-- mencegah reload
+                if (!clientValidate()) return;
+
+                setLoading(true);
+
+                $.post($form.attr('action'), $form.serialize())
+                    .done(function(res) {
+                        // sukses → redirect (pakai URL dari server atau fallback)
+                        window.location.href = res.redirect;
+                    })
+                    .fail(function(xhr) {
+                        // 422: validasi Laravel
+                        if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                            const errors = xhr.responseJSON.errors;
+                            if (errors.email) {
+                                $email.addClass('is-invalid');
+                                $('#email-error').text(errors.email[0]);
+                            }
+                            if (errors.password) {
+                                $password.addClass('is-invalid');
+                                $('#password-error').text(errors.password[0]);
+                            }
+                            // tampilkan error pertama ke alert juga (opsional)
+                            const first = Object.values(errors)[0][0];
+                            $alert.removeClass('d-none').text(first);
+                        }
+                        // 401: kredensial salah
+                        else if (xhr.status === 401) {
+                            // $alert.removeClass('d-none').text(xhr.responseJSON?.message ||
+                            //     'Email atau password salah.');
+
+                            iziToast["error"]({
+                                title: "Gagal",
+                                message: "Email atau password salah",
+                                position: 'topRight'
+                            });
+
+                            // (opsional) highlight password saja:
+                            // $password.addClass('is-invalid');
+                            // $('#password-error').text('Password salah.');
+                        }
+                        // 419: CSRF mismatch / session timeout
+                        else if (xhr.status === 419) {
+                            $alert.removeClass('d-none').text(
+                                'Sesi kedaluwarsa. Silakan muat ulang halaman dan coba lagi.');
+                        } else {
+                            $alert.removeClass('d-none').text(
+                                'Terjadi kesalahan. Coba lagi beberapa saat.');
+                        }
+                    })
+                    .always(function() {
+                        setLoading(false);
+                    });
+            });
+        });
     </script>
 </body>
 

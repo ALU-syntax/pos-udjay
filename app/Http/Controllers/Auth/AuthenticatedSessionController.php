@@ -9,6 +9,7 @@ use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -24,13 +25,54 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    // public function store(LoginRequest $request): RedirectResponse
+    // {
+    //     $request->authenticate();
+
+    //     $request->session()->regenerate();
+
+    //     return redirect()->intended(RouteServiceProvider::HOME);
+    // }
+
+    public function store(Request $request)
     {
-        $request->authenticate();
+        // validasi dasar
+        $validated = $request->validate([
+            'email'    => ['required', 'email'],
+            'password' => ['required'],
+        ]);
 
-        $request->session()->regenerate();
+        $remember = $request->boolean('remember');
 
-        return redirect()->intended(RouteServiceProvider::HOME);
+        if (Auth::attempt($validated, $remember)) {
+            $request->session()->regenerate();
+
+            // Jika AJAX -> balas JSON
+            if ($request->expectsJson()) {
+                // bisa kirimkan intended url kalau ada
+                return response()->json([
+                    'ok'       => true,
+                    'redirect' => url()->previous() === route('login') ? url('/') : url()->previous()
+                ]);
+
+                // return redirect()->intended(RouteServiceProvider::HOME);
+            }
+
+            return redirect()->intended('/dashboard');
+        }
+
+        // Gagal login
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Email atau password salah'
+            ], 401);
+        }
+
+        // Fallback non-AJAX
+        throw ValidationException::withMessages([
+            'email' => 'Email atau password salah',
+        ]);
     }
 
     public function storeKasir(LoginKasirRequest $request)
@@ -40,19 +82,19 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        // Mendapatkan pengguna yang sedang login  
+        // Mendapatkan pengguna yang sedang login
         // $user = $request->user();
 
-        // // Memeriksa role ID  
+        // // Memeriksa role ID
         // if ($user->role == 3) {
         //     // dd($user);
-        //     // Jika role ID adalah 3, arahkan ke '/kasir'  
+        //     // Jika role ID adalah 3, arahkan ke '/kasir'
         //     return redirect()->intended('/kasir');
         // }
 
         return redirect()->intended('/kasir');
 
-        // Jika bukan, arahkan ke '/'  
+        // Jika bukan, arahkan ke '/'
         // return redirect()->intended(RouteServiceProvider::HOME);
     }
 
