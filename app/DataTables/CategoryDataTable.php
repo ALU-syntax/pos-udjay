@@ -30,10 +30,10 @@ class CategoryDataTable extends DataTable
                 $actions = $this->basicActions($row);
                 return view('action', ['actions' => $actions]);
             })
-            ->addColumn('status',function($row){
+            ->editColumn('status',function($row){
                 return view('components.badge', ['data' => $row]);
             })
-            ->addColumn('created_at', function($row){
+            ->editColumn('created_at', function($row){
                 return Carbon::parse($row->created_at)->diffForHumans();
             })
             ->addIndexColumn();

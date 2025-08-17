@@ -36,10 +36,10 @@ class PromoDatatables extends DataTable
                     return ' - ';
                 }
             })
-            ->addColumn('outlet_id', function ($row) {
+            ->editColumn('outlet_id', function ($row) {
                 return "<span class='badge badge-primary'>{$row->outlet->name} </span></br>";
             })
-            ->addColumn('status', function ($row) {
+            ->editColumn('status', function ($row) {
                 if ($row->status) {
                     return "<span class='badge badge-success'>Aktif</span></br>";
                 } else {
@@ -100,7 +100,7 @@ class PromoDatatables extends DataTable
     {
         return [
             Column::make('name')->title('Promo Name'),
-            Column::make('time_periode'),
+            Column::make('time_periode')->orderable(false),
             Column::make('outlet_id'),
             Column::make('status'),
             Column::computed('action')

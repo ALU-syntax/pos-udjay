@@ -29,7 +29,7 @@ class DiscountDatatables extends DataTable
                 $actions = $this->basicActions($row);
                 return view('action', ['actions' => $actions]);
             })
-            ->addColumn('outlet_id', function ($row) {
+            ->editColumn('outlet_id', function ($row) {
                 return "<span class='badge badge-primary'>{$row->outlet->name} </span></br>";
             })
             ->rawColumns(['outlet_id'])

@@ -30,9 +30,9 @@ class TaxDatatables extends DataTable
                 $actions = $this->basicActions($row);
                 return view('action', ['actions' => $actions]);
             })
-            ->addColumn('outlet_id',function($row){
+            ->editColumn('outlet_id',function($row){
                 $outlet = Outlets::find($row->outlet_id);
-                return $outlet->name; 
+                return $outlet->name;
             })
             ->setRowId('id');
     }

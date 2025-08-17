@@ -27,7 +27,7 @@ class ModifiersDatatables extends DataTable
     {
         return datatables()
             ->eloquent($query)
-            ->addColumn('option_name', function($row){
+            ->editColumn('option_name', function($row){
                 $modifiers = $row->modifier;
                 $tag = '';
                 foreach($modifiers as $modifier){
@@ -63,7 +63,7 @@ class ModifiersDatatables extends DataTable
             }else{
                 $query->where('outlet_id', $this->request()->get('outlet'));
             }
-        } elseif($this->request()->has('outlet') && $this->request()->get('outlet') == ''){   
+        } elseif($this->request()->has('outlet') && $this->request()->get('outlet') == ''){
             $query->whereIn('outlet_id', json_decode(auth()->user()->outlet_id));
         }
 
@@ -99,8 +99,8 @@ class ModifiersDatatables extends DataTable
     {
         return [
             Column::make('name'),
-            Column::make('option_name'),
-            Column::make('outlet'),
+            Column::make('option_name')->orderable(false),
+            Column::make('outlet')->orderable(false),
             Column::computed('action')
                   ->exportable(false)
                   ->printable(false)

@@ -29,35 +29,35 @@ class ProductDataTable extends DataTable
                 $actions = $this->basicActions($row);
                 return view('action', ['actions' => $actions]);
             })
-            ->addColumn('status',function($row){
+            ->editColumn('status',function($row){
                 return view('components.badge', ['data' => $row]);
             })
-            ->addColumn('description',function($row){
+            ->editColumn('description',function($row){
                 return $row->description ? $row->description : '-';
             })
-            ->addColumn('created_at', function($row){
+            ->editColumn('created_at', function($row){
                 return Carbon::parse($row->created_at)->diffForHumans();
             })
-            ->addColumn('updated_at', function($row){
+            ->editColumn('updated_at', function($row){
                 return Carbon::parse($row->updated_at)->diffForHumans();
             })
-            ->addColumn('category_id', function($row){
+            ->editColumn('category_id', function($row){
                 return $row->category ? $row->category->name : '-';
             })
-            ->addColumn('harga_jual', function($row){
+            ->editColumn('harga_jual', function($row){
                 if(count($row->variants) > 1){
                     return "<span class='badge badge-primary'>" . count($row->variants) ." Price</span></br>";
                 }else{
                     return formatRupiah(intval($row->variants[0]->harga), "Rp. ");
                 }
             })
-            ->addColumn('harga_modal', function($row){
+            ->editColumn('harga_modal', function($row){
                 return formatRupiah(intval($row->harga_modal), "Rp. ");
             })
-            ->addColumn('outlet_id', function($row){
+            ->editColumn('outlet_id', function($row){
                 return "<span class='badge badge-primary'>{$row->outlet->name} </span></br>";
             })
-            ->addColumn('photo', function($row){
+            ->editColumn('photo', function($row){
                 if($row->photo != null && file_exists(public_path($row->photo))){
                     return '<img src="' . asset($row->photo) . '" width="80" style="border-radius: 20%;">';
                 }else{
@@ -125,7 +125,7 @@ class ProductDataTable extends DataTable
             Column::make('harga_jual'),
             Column::make('harga_modal'),
             // Column::make('stock'),
-            Column::make('outlet_id')->title('OUTLET'),
+            Column::make('outlet_id')->title('OUTLET')->orderable(false),
             Column::computed('action')
                   ->exportable(false)
                   ->printable(false)
