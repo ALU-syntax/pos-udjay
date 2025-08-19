@@ -141,10 +141,50 @@
         .text-col-right {
             text-align: right;
         }
+
+        /* basis tombol modern */
+        .btn-modern {
+            border: none !important;
+            border-radius: 10px !important;
+            padding: 10px 14px !important;
+            font-weight: 600 !important;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, .08);
+            transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+            color: #fff !important;
+            background-color: #d03c3c !important;
+        }
+
+        .btn-modern:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 18px rgba(0, 0, 0, .12);
+        }
+
+        /* varian warna */
+        .btn-excel {
+            background: #22c55e;
+            color: #fff;
+        }
+
+        .btn-csv {
+            background: #3b82f6;
+            color: #fff;
+        }
+
+        .btn-print {
+            background: #111827;
+            color: #fff;
+        }
+
+        /* icon optional (pakai Material Design Icons / FontAwesome kalau ada) */
+        .btn-modern .mdi {
+            margin-right: 6px;
+            font-size: 18px;
+            vertical-align: -2px;
+        }
     </style>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.bootstrap5.min.css">
-
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
 
     <div class="main-content">
         <div class="card text-center">
@@ -538,6 +578,12 @@
 
         {{-- <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.js"></script>
         <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/fixedColumns.dataTables.js"></script> --}}
+
+
+        <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+        <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+        <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
         <script>
             function checkActiveTab() {
                 var activeTab = $('a.nav-link.active').attr('href');
@@ -736,7 +782,6 @@
 
                         // kalau sebelumnya kamu pernah menambah baris header tambahan, bersihkan:
                         $('#item-sales').find('thead tr:gt(0)').remove(); // sisakan hanya baris header pertama
-                        $('#item-sales').columns.adjust();
                     }
 
                     var tableSales = $('#item-sales').DataTable({
@@ -792,6 +837,27 @@
                         scrollY: 500,
                         autoWidth: false,
                         info: true,
+                        dom: 'Bfrtip',
+                        buttons: [
+                            {
+                                extend: 'excelHtml5',
+                                text: '<span class="mdi mdi-file-excel"></span> Export Excel',
+                                className: 'btn btn-modern btn-excel',
+                                title: 'Item Sales Report', // judul di file
+                                filename: 'item_sales_report', // nama file
+                                sheetName: 'Item Sales', // nama sheet (Excel)
+                                exportOptions: {
+                                    columns: [0, 1, 2, 3, 4, 5, 6]
+                                } // misal kolom ke 0,1,3,5
+                            },
+                            // {
+                            //     extend: 'csvHtml5',
+                            //     title: 'Item Sales Report',
+                            //     exportOptions: {
+                            //         columns: ':visible'
+                            //     }
+                            // }
+                        ],
                         fixedHeader: false,
                         fixedColumns: {
                             start: 1,
