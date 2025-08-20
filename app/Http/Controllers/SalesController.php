@@ -808,11 +808,11 @@ class SalesController extends Controller
                         'created_at'
                     )
                     ->whereBetween('created_at', [$startDate, $endDate])
-                    ->whereHas('total_count')
                     ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'reward_item', 'created_at');
                 }]);
             }, 'outlet'])
             ->get();
+
         }
 
         $categoryName = Category::find($request->idCategory)->name;
