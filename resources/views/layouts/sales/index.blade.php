@@ -181,6 +181,12 @@
             font-size: 18px;
             vertical-align: -2px;
         }
+
+        /* pastikan tombol berada “di atas” header scroll */
+        .dataTables_wrapper .dt-buttons {
+            position: relative;
+            z-index: 5;
+        }
     </style>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.bootstrap5.min.css">
@@ -838,8 +844,7 @@
                         autoWidth: false,
                         info: true,
                         dom: 'Bfrtip',
-                        buttons: [
-                            {
+                        buttons: [{
                                 extend: 'excelHtml5',
                                 text: '<span class="mdi mdi-file-excel"></span> Export Excel',
                                 className: 'btn btn-modern btn-excel',
@@ -1006,6 +1011,19 @@
                         fixedColumns: {
                             start: 1,
                         },
+                        dom: 'Bfrtip',
+                        buttons: [{
+                                extend: 'excelHtml5',
+                                text: '<span class="mdi mdi-file-excel"></span> Export Excel',
+                                className: 'btn btn-modern btn-excel',
+                                title: 'Category Sales Report', // judul di file
+                                filename: 'category_sales_report', // nama file
+                                sheetName: 'Category Sales', // nama sheet (Excel)
+                                exportOptions: {
+                                    columns: ':visible'
+                                } // misal kolom ke 0,1,3,5
+                            },
+                        ],
                         columnDefs: [{
                                 targets: 0,
                                 width: '200px'
