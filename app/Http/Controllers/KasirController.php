@@ -42,82 +42,118 @@ use Illuminate\Support\Facades\Mail;
 
 class KasirController extends Controller
 {
+    // public function index(Request $request)
+    // {
+    //     $outletUser = auth()->user()->outlet_id;
+    //     $dataOutletUser = json_decode($outletUser);
+
+    //     $userOutletJson = auth()->user()->outlet_id;
+    //     $userOutlet = json_decode($userOutletJson);
+
+    //     $outlet = Outlets::find($userOutlet[0]);
+
+    //     $diskon = Discount::where('outlet_id', '=', $userOutlet[0])->get();
+
+    //     $rounding = Checkout::find(1);
+    //     // dd($rounding);
+
+    //     $pajak = Taxes::where('outlet_id', $dataOutletUser[0])->get();
+    //     $outletUser = json_decode(auth()->user()->outlet_id);
+
+    //     $promos = Promo::where('outlet_id', $userOutlet[0])->whereNull('deleted_at')->where('status', true)->get();
+
+    //     $pettyCash = PettyCash::with(['userStarted', 'outlet'])->where('outlet_id', $outletUser[0])->where('close', null)->get();
+
+    //     $soldItem = [];
+
+    //     if (count($pettyCash)) {
+    //         // $pettyCash[0]['user_data_started'] = auth()->user();
+    //         $pettyCash[0]['outlet_data'] = $outlet;
+
+    //         $soldItem = VariantProduct::with(['itemTransaction' => function($itemTransaction) use($pettyCash) {
+    //             $itemTransaction->whereHas('transaction', function($transaction) use($pettyCash)  {
+    //                 $transaction->where('patty_cash_id', $pettyCash[0]->id);
+    //             });
+    //         }, 'product.category'])
+    //         ->whereHas('itemTransaction.transaction', function($transaction) use($pettyCash) {
+    //             $transaction->where('patty_cash_id', $pettyCash[0]->id);
+    //         })
+    //         ->whereHas('itemTransaction', function($itemTransaction) {
+    //             $itemTransaction->whereHas('transaction');
+    //         })
+    //         ->whereHas('product') // Memastikan ada relasi product
+    //         ->get()->map(function($item) {
+    //             $item->total_transaction = count($item->itemTransaction);
+
+    //             // $totalHarga = $item->harga * count($item->itemTransaction);
+    //             // $item->total_transaction_amount = formatRupiah(strval($totalHarga), "Rp. ");
+    //             return $item;
+    //         })
+    //         ->select(['harga', 'product', 'name', 'total_transaction']);
+
+    //     }
+
+    //     $listCategoryPayment = CategoryPayment::with(['transactions' => function ($transaction) use ($pettyCash) {
+    //         if (count($pettyCash)) {
+    //             $transaction->with(['payments'])->where('patty_cash_id', $pettyCash[0]->id);
+    //         }
+    //     }, 'payment' => function ($payment) use ($pettyCash) {
+    //         $payment->with(['transactions' => function ($transaction) use ($pettyCash) {
+    //             if (count($pettyCash)) {
+    //                 $transaction->where('patty_cash_id', $pettyCash[0]->id);
+    //             }
+    //         }]);
+    //     }])->get();
+
+    //     // dd($listCategoryPayment);
+    //     return view('layouts.kasir.index', [
+    //         'categorys' => Category::with(['products' => function ($product) use ($outletUser) {
+    //             $product->with(['variants'])->where('outlet_id', $outletUser[0])->orderBy('name', 'asc');
+    //         }])->get(),
+    //         'pajak' => $pajak,
+    //         'rounding' => $rounding,
+    //         'promos' => $promos,
+    //         'discounts' => $diskon,
+    //         'pettyCash' => $pettyCash,
+    //         'listCategoryPayment' => $listCategoryPayment,
+    //         'soldItem' => $soldItem
+    //     ]);
+    // }
+
     public function index(Request $request)
     {
-        $outletUser = auth()->user()->outlet_id;
-        $dataOutletUser = json_decode($outletUser);
+        $outletIds = json_decode(auth()->user()->outlet_id);
+        $outletId  = $outletIds[0];
 
-        $userOutletJson = auth()->user()->outlet_id;
-        $userOutlet = json_decode($userOutletJson);
+        $ttl = now()->addSeconds(45); // atau 60
 
-        $outlet = Outlets::find($userOutlet[0]);
+        $outlet  = Cache::remember("outlet:$outletId", $ttl, fn() => Outlets::find($outletId));
+        $diskon  = Cache::remember("discounts:$outletId", $ttl, fn() => Discount::where('outlet_id', $outletId)->get());
+        $pajak   = Cache::remember("taxes:$outletId", $ttl, fn() => Taxes::where('outlet_id', $outletId)->get());
+        $promos  = Cache::remember("promos:$outletId", $ttl, fn() => Promo::where('outlet_id', $outletId)
+                                    ->whereNull('deleted_at')->where('status', true)->get());
 
-        $diskon = Discount::where('outlet_id', '=', $userOutlet[0])->get();
+        $rounding = Cache::remember("rounding", $ttl, fn() => Checkout::find(1));
 
-        $rounding = Checkout::find(1);
-        // dd($rounding);
+        // Data berat lain juga bisa di-cache per konteks:
+        $listCategoryPayment = Cache::remember("catpay:$outletId", $ttl, function() use ($outletId) {
+            return CategoryPayment::with(['transactions' => function ($q) use ($outletId) {
+                        $q->with('payments')->whereHas('outlet', fn($qq) => $qq->where('id', $outletId));
+                    }, 'payment.transactions'])
+                    ->get();
+        });
 
-        $pajak = Taxes::where('outlet_id', $dataOutletUser[0])->get();
-        $outletUser = json_decode(auth()->user()->outlet_id);
+        $categorys = Cache::remember("categories-with-products:$outletId", $ttl, function() use ($outletId) {
+            return Category::with(['products' => function ($product) use ($outletId) {
+                        $product->with('variants')->where('outlet_id', $outletId)->orderBy('name', 'asc');
+                }])->get();
+        });
 
-        $promos = Promo::where('outlet_id', $userOutlet[0])->whereNull('deleted_at')->where('status', true)->get();
+        // ... soldItem/pettyCash kalau mau di-cache juga, pastikan key-nya mengandung konteks (outlet/user/pettyCashId)
 
-        $pettyCash = PettyCash::with(['userStarted', 'outlet'])->where('outlet_id', $outletUser[0])->where('close', null)->get();
-
-        $soldItem = [];
-
-        if (count($pettyCash)) {
-            // $pettyCash[0]['user_data_started'] = auth()->user();
-            $pettyCash[0]['outlet_data'] = $outlet;
-
-            $soldItem = VariantProduct::with(['itemTransaction' => function($itemTransaction) use($pettyCash) {
-                $itemTransaction->whereHas('transaction', function($transaction) use($pettyCash)  {
-                    $transaction->where('patty_cash_id', $pettyCash[0]->id);
-                });
-            }, 'product.category'])
-            ->whereHas('itemTransaction.transaction', function($transaction) use($pettyCash) {
-                $transaction->where('patty_cash_id', $pettyCash[0]->id);
-            })
-            ->whereHas('itemTransaction', function($itemTransaction) {
-                $itemTransaction->whereHas('transaction');
-            })
-            ->whereHas('product') // Memastikan ada relasi product
-            ->get()->map(function($item) {
-                $item->total_transaction = count($item->itemTransaction);
-
-                // $totalHarga = $item->harga * count($item->itemTransaction);
-                // $item->total_transaction_amount = formatRupiah(strval($totalHarga), "Rp. ");
-                return $item;
-            })
-            ->select(['harga', 'product', 'name', 'total_transaction']);
-
-        }
-
-        $listCategoryPayment = CategoryPayment::with(['transactions' => function ($transaction) use ($pettyCash) {
-            if (count($pettyCash)) {
-                $transaction->with(['payments'])->where('patty_cash_id', $pettyCash[0]->id);
-            }
-        }, 'payment' => function ($payment) use ($pettyCash) {
-            $payment->with(['transactions' => function ($transaction) use ($pettyCash) {
-                if (count($pettyCash)) {
-                    $transaction->where('patty_cash_id', $pettyCash[0]->id);
-                }
-            }]);
-        }])->get();
-
-        // dd($listCategoryPayment);
-        return view('layouts.kasir.index', [
-            'categorys' => Category::with(['products' => function ($product) use ($outletUser) {
-                $product->with(['variants'])->where('outlet_id', $outletUser[0])->orderBy('name', 'asc');
-            }])->get(),
-            'pajak' => $pajak,
-            'rounding' => $rounding,
-            'promos' => $promos,
-            'discounts' => $diskon,
-            'pettyCash' => $pettyCash,
-            'listCategoryPayment' => $listCategoryPayment,
-            'soldItem' => $soldItem
-        ]);
+        return view('layouts.kasir.index', compact(
+            'categorys','pajak','rounding','promos','diskon','listCategoryPayment' // + variabel lain
+        ));
     }
 
     public function findProduct(Product $product)
@@ -589,7 +625,7 @@ class KasirController extends Controller
 
     public function apiStruk($id)
     {
-        $transaction = Transaction::with(['outlet', 'user'])->find($id);
+        $transaction = Transaction::with(['outlet', 'user', 'customer'])->find($id);
 
         $transactionPajak = $transaction->pajak();
 

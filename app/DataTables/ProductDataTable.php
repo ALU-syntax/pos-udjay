@@ -122,7 +122,7 @@ class ProductDataTable extends DataTable
             Column::make('status'),
             Column::make('description'),
             Column::make('photo'),
-            Column::make('harga_jual'),
+            Column::make('harga_jual')->orderable(false),
             Column::make('harga_modal'),
             // Column::make('stock'),
             Column::make('outlet_id')->title('OUTLET')->orderable(false),
