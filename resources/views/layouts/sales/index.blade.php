@@ -1141,6 +1141,19 @@
                         scrollX: true,
                         scrollCollapse: true,
                         scrollY: 500,
+                        dom: 'Bfrtip',
+                        buttons: [{
+                                extend: 'excelHtml5',
+                                text: '<span class="mdi mdi-file-excel"></span> Export Excel',
+                                className: 'btn btn-modern btn-excel',
+                                title: 'Category Sales Report', // judul di file
+                                filename: 'category_sales_report', // nama file
+                                sheetName: 'Category Sales', // nama sheet (Excel)
+                                exportOptions: {
+                                    columns: ':visible'
+                                } // misal kolom ke 0,1,3,5
+                            },
+                        ],
                         fixedColumns: {
                             start: 1,
                         },
@@ -1194,7 +1207,7 @@
                         $('#discount-sales').DataTable().destroy();
                     }
 
-                    var modifierSales = $('#discount-sales').DataTable({
+                    var discountSales = $('#discount-sales').DataTable({
                         processing: true,
                         serverSide: true,
                         ajax: {
@@ -1223,14 +1236,27 @@
                             },
                         ],
                         paging: false, // Menghilangkan pagination
-                        searching: false, // Menghilangkan search bar
-                        ordering: false,
+                        searching: true, // Menghilangkan search bar
+                        ordering: true,
                         scrollX: true,
                         scrollCollapse: true,
                         scrollY: 500,
                         fixedColumns: {
                             start: 1,
                         },
+                        dom: 'Bfrtip',
+                        buttons: [{
+                                extend: 'excelHtml5',
+                                text: '<span class="mdi mdi-file-excel"></span> Export Excel',
+                                className: 'btn btn-modern btn-excel',
+                                title: 'Category Sales Report', // judul di file
+                                filename: 'category_sales_report', // nama file
+                                sheetName: 'Category Sales', // nama sheet (Excel)
+                                exportOptions: {
+                                    columns: ':visible'
+                                } // misal kolom ke 0,1,3,5
+                            },
+                        ],
                         columnDefs: [{
                                 targets: 0,
                                 width: '200px'
@@ -1300,13 +1326,26 @@
                         ],
                         paging: false, // Menghilangkan pagination
                         searching: false, // Menghilangkan search bar
-                        ordering: false,
+                        ordering: true,
                         scrollX: true,
                         scrollCollapse: true,
                         scrollY: 500,
                         fixedColumns: {
                             start: 1,
                         },
+                        dom: 'Bfrtip',
+                        buttons: [{
+                                extend: 'excelHtml5',
+                                text: '<span class="mdi mdi-file-excel"></span> Export Excel',
+                                className: 'btn btn-modern btn-excel',
+                                title: 'Category Sales Report', // judul di file
+                                filename: 'category_sales_report', // nama file
+                                sheetName: 'Category Sales', // nama sheet (Excel)
+                                exportOptions: {
+                                    columns: ':visible'
+                                } // misal kolom ke 0,1,3,5
+                            },
+                        ],
                         columnDefs: [{
                                 targets: 0,
                                 width: '200px'
@@ -1377,13 +1416,26 @@
                         ],
                         paging: false, // Menghilangkan pagination
                         searching: false, // Menghilangkan search bar
-                        ordering: false,
+                        ordering: true,
                         scrollX: true,
                         scrollCollapse: true,
                         scrollY: 500,
                         fixedColumns: {
                             start: 1,
                         },
+                        dom: 'Bfrtip',
+                        buttons: [{
+                                extend: 'excelHtml5',
+                                text: '<span class="mdi mdi-file-excel"></span> Export Excel',
+                                className: 'btn btn-modern btn-excel',
+                                title: 'Category Sales Report', // judul di file
+                                filename: 'category_sales_report', // nama file
+                                sheetName: 'Category Sales', // nama sheet (Excel)
+                                exportOptions: {
+                                    columns: ':visible'
+                                } // misal kolom ke 0,1,3,5
+                            },
+                        ],
                         columnDefs: [{
                                 targets: 0,
                                 width: '200px'
