@@ -36,7 +36,6 @@ trait HasPermission{
             }
         }
 
-        dd($action, $staticPath);
         if(in_array($staticPath, $urlMenu)){
             $this->authorize("$action $staticPath");
         }

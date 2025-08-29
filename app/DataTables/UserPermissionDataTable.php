@@ -43,7 +43,7 @@ class UserPermissionDataTable extends DataTable
      */
     public function query(User $model): QueryBuilder
     {
-        return $model->where('role', '!=', 1)->newQuery();
+        return $model->where('role', '!=', 1)->where('deleted', '!=', 1)->newQuery();
     }
 
     /**
