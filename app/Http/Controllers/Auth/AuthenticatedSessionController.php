@@ -44,7 +44,14 @@ class AuthenticatedSessionController extends Controller
 
         $remember = $request->boolean('remember');
 
-        if (Auth::attempt($validated, $remember)) {
+        // tambahkan filter deleted = 0
+        $credentials = [
+            'email'    => $validated['email'],
+            'password' => $validated['password'],
+            'deleted'  => 0,               // <— kuncinya di sini
+        ];
+
+        if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
 
             // Jika AJAX -> balas JSON
