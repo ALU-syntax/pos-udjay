@@ -65,7 +65,8 @@
                             id="parent{{ $mm->id . $sm->id }}" label="{{ $sm->name }}"
                             class="parent" /></td>
                     <td> --}}
-                                            <td class="text-nowrap fw-medium ps-4">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; • {{ $sm->name }}</td>
+                                            <td class="text-nowrap fw-medium ps-4">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; •
+                                                {{ $sm->name }}</td>
                                             <td>
                                                 <div class="d-flex">
                                                     @foreach ($sm->permissions as $permission)
@@ -103,6 +104,13 @@
     @push('js')
         <script>
             $(document).ready(function() {
+
+                // init pertama check setelah buka halaman pertama kali
+                if ($('.checkbox-item:checked').length == $('.checkbox-item').length) {
+                    // Jika semua checkbox telah di-check, check checkbox "check all"
+                    $('#selectAll').prop('checked', true);
+                }
+
                 // Ketika checkbox "check all" diubah statusnya
                 $('#selectAll').change(function() {
                     // Jika checkbox "check all" di-check

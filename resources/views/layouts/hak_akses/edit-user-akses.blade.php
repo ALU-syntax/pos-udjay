@@ -40,7 +40,8 @@
                                 </tr>
                                 @foreach ($menus as $mm)
                                     <tr>
-                                        <td class="text-nowrap fw-medium">{{ $mm->name }}</td>
+                                        <td class="text-nowrap fw-medium">{{ $mm->name }} <br> <small>(Parent)</small>
+                                        </td>
                                         <td>
                                             <div class="d-flex">
                                                 @foreach ($mm->permissions as $permission)
@@ -64,7 +65,8 @@
                             id="parent{{ $mm->id . $sm->id }}" label="{{ $sm->name }}"
                             class="parent" /></td>
                     <td> --}}
-                                            <td class="text-nowrap fw-medium ps-4">- {{ $sm->name }}</td>
+                                            <td class="text-nowrap fw-medium ps-4">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; •
+                                                {{ $sm->name }}</td>
                                             <td>
                                                 <div class="d-flex">
                                                     @foreach ($sm->permissions as $permission)
@@ -99,35 +101,43 @@
         </div>
     </div>
 
-    <script>
-        $(document).ready(function() {
-            // Ketika checkbox "check all" diubah statusnya
-            $('#selectAll').change(function() {
-                // Jika checkbox "check all" di-check
-                if (this.checked) {
-                    // Set semua checkbox dengan kelas .checkbox-item menjadi checked
-                    $('.checkbox-item').each(function() {
-                        this.checked = true;
-                    });
-                } else { // Jika checkbox "check all" tidak di-check
-                    // Set semua checkbox dengan kelas .checkbox-item menjadi unchecked
-                    $('.checkbox-item').each(function() {
-                        this.checked = false;
-                    });
-                }
-            });
-
-            // Ketika salah satu checkbox dengan kelas .checkbox-item diubah statusnya
-            $('.checkbox-item').change(function() {
-                // Cek apakah semua checkbox dengan kelas .checkbox-item telah di-check
+    @push('js')
+        <script>
+            $(document).ready(function() {
+                // init pertama check setelah buka halaman pertama kali
                 if ($('.checkbox-item:checked').length == $('.checkbox-item').length) {
                     // Jika semua checkbox telah di-check, check checkbox "check all"
                     $('#selectAll').prop('checked', true);
-                } else {
-                    // Jika tidak semua checkbox di-check, uncheck checkbox "check all"
-                    $('#selectAll').prop('checked', false);
                 }
+
+                // Ketika checkbox "check all" diubah statusnya
+                $('#selectAll').change(function() {
+                    // Jika checkbox "check all" di-check
+                    if (this.checked) {
+                        // Set semua checkbox dengan kelas .checkbox-item menjadi checked
+                        $('.checkbox-item').each(function() {
+                            this.checked = true;
+                        });
+                    } else { // Jika checkbox "check all" tidak di-check
+                        // Set semua checkbox dengan kelas .checkbox-item menjadi unchecked
+                        $('.checkbox-item').each(function() {
+                            this.checked = false;
+                        });
+                    }
+                });
+
+                // Ketika salah satu checkbox dengan kelas .checkbox-item diubah statusnya
+                $('.checkbox-item').change(function() {
+                    // Cek apakah semua checkbox dengan kelas .checkbox-item telah di-check
+                    if ($('.checkbox-item:checked').length == $('.checkbox-item').length) {
+                        // Jika semua checkbox telah di-check, check checkbox "check all"
+                        $('#selectAll').prop('checked', true);
+                    } else {
+                        // Jika tidak semua checkbox di-check, uncheck checkbox "check all"
+                        $('#selectAll').prop('checked', false);
+                    }
+                });
             });
-        });
-    </script>
+        </script>
+    @endpush
 @endsection
