@@ -261,6 +261,12 @@
                         <div class="tab-content" id="v-pills-tabContent">
                             <div class="tab-pane fade show active" id="sales-summary-nobd" role="tabpanel"
                                 aria-labelledby="sales-summary-tab-nobd">
+                                <!-- contoh tombol -->
+                                <button id="btn-export-sales-summary" class="btn btn-sm btn-success btn-modern"
+                                    style="margin-left: -5px; margin-bottom: 10px;">
+                                    Export Excel
+                                </button>
+
                                 <div class="container">
                                     <div class="row" style="background-color: #ccc; height: 50px; margin-bottom: 5px;">
                                     </div>
@@ -591,12 +597,16 @@
         <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
         <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
         <script>
+            var outlet = $('#filter-outlet').val();
+            var date = $('#date_range_transaction').val();
             function checkActiveTab() {
                 var activeTab = $('a.nav-link.active').attr('href');
                 console.log('Active Tab:', activeTab);
 
-                var outlet = $('#filter-outlet').val();
-                var date = $('#date_range_transaction').val();
+                outlet = $('#filter-outlet').val();
+                date = $('#date_range_transaction').val();
+
+                console.log(date)
 
                 if (activeTab === '#sales-summary-nobd') {
                     // Logika untuk Sales Summary
@@ -1013,17 +1023,16 @@
                         },
                         dom: 'Bfrtip',
                         buttons: [{
-                                extend: 'excelHtml5',
-                                text: '<span class="mdi mdi-file-excel"></span> Export Excel',
-                                className: 'btn btn-modern btn-excel',
-                                title: 'Category Sales Report', // judul di file
-                                filename: 'category_sales_report', // nama file
-                                sheetName: 'Category Sales', // nama sheet (Excel)
-                                exportOptions: {
-                                    columns: ':visible'
-                                } // misal kolom ke 0,1,3,5
-                            },
-                        ],
+                            extend: 'excelHtml5',
+                            text: '<span class="mdi mdi-file-excel"></span> Export Excel',
+                            className: 'btn btn-modern btn-excel',
+                            title: 'Category Sales Report', // judul di file
+                            filename: 'category_sales_report', // nama file
+                            sheetName: 'Category Sales', // nama sheet (Excel)
+                            exportOptions: {
+                                columns: ':visible'
+                            } // misal kolom ke 0,1,3,5
+                        }, ],
                         columnDefs: [{
                                 targets: 0,
                                 width: '200px'
@@ -1143,17 +1152,16 @@
                         scrollY: 500,
                         dom: 'Bfrtip',
                         buttons: [{
-                                extend: 'excelHtml5',
-                                text: '<span class="mdi mdi-file-excel"></span> Export Excel',
-                                className: 'btn btn-modern btn-excel',
-                                title: 'Category Sales Report', // judul di file
-                                filename: 'category_sales_report', // nama file
-                                sheetName: 'Category Sales', // nama sheet (Excel)
-                                exportOptions: {
-                                    columns: ':visible'
-                                } // misal kolom ke 0,1,3,5
-                            },
-                        ],
+                            extend: 'excelHtml5',
+                            text: '<span class="mdi mdi-file-excel"></span> Export Excel',
+                            className: 'btn btn-modern btn-excel',
+                            title: 'Category Sales Report', // judul di file
+                            filename: 'category_sales_report', // nama file
+                            sheetName: 'Category Sales', // nama sheet (Excel)
+                            exportOptions: {
+                                columns: ':visible'
+                            } // misal kolom ke 0,1,3,5
+                        }, ],
                         fixedColumns: {
                             start: 1,
                         },
@@ -1246,17 +1254,16 @@
                         },
                         dom: 'Bfrtip',
                         buttons: [{
-                                extend: 'excelHtml5',
-                                text: '<span class="mdi mdi-file-excel"></span> Export Excel',
-                                className: 'btn btn-modern btn-excel',
-                                title: 'Category Sales Report', // judul di file
-                                filename: 'category_sales_report', // nama file
-                                sheetName: 'Category Sales', // nama sheet (Excel)
-                                exportOptions: {
-                                    columns: ':visible'
-                                } // misal kolom ke 0,1,3,5
-                            },
-                        ],
+                            extend: 'excelHtml5',
+                            text: '<span class="mdi mdi-file-excel"></span> Export Excel',
+                            className: 'btn btn-modern btn-excel',
+                            title: 'Category Sales Report', // judul di file
+                            filename: 'category_sales_report', // nama file
+                            sheetName: 'Category Sales', // nama sheet (Excel)
+                            exportOptions: {
+                                columns: ':visible'
+                            } // misal kolom ke 0,1,3,5
+                        }, ],
                         columnDefs: [{
                                 targets: 0,
                                 width: '200px'
@@ -1335,17 +1342,16 @@
                         },
                         dom: 'Bfrtip',
                         buttons: [{
-                                extend: 'excelHtml5',
-                                text: '<span class="mdi mdi-file-excel"></span> Export Excel',
-                                className: 'btn btn-modern btn-excel',
-                                title: 'Category Sales Report', // judul di file
-                                filename: 'category_sales_report', // nama file
-                                sheetName: 'Category Sales', // nama sheet (Excel)
-                                exportOptions: {
-                                    columns: ':visible'
-                                } // misal kolom ke 0,1,3,5
-                            },
-                        ],
+                            extend: 'excelHtml5',
+                            text: '<span class="mdi mdi-file-excel"></span> Export Excel',
+                            className: 'btn btn-modern btn-excel',
+                            title: 'Category Sales Report', // judul di file
+                            filename: 'category_sales_report', // nama file
+                            sheetName: 'Category Sales', // nama sheet (Excel)
+                            exportOptions: {
+                                columns: ':visible'
+                            } // misal kolom ke 0,1,3,5
+                        }, ],
                         columnDefs: [{
                                 targets: 0,
                                 width: '200px'
@@ -1425,17 +1431,16 @@
                         },
                         dom: 'Bfrtip',
                         buttons: [{
-                                extend: 'excelHtml5',
-                                text: '<span class="mdi mdi-file-excel"></span> Export Excel',
-                                className: 'btn btn-modern btn-excel',
-                                title: 'Category Sales Report', // judul di file
-                                filename: 'category_sales_report', // nama file
-                                sheetName: 'Category Sales', // nama sheet (Excel)
-                                exportOptions: {
-                                    columns: ':visible'
-                                } // misal kolom ke 0,1,3,5
-                            },
-                        ],
+                            extend: 'excelHtml5',
+                            text: '<span class="mdi mdi-file-excel"></span> Export Excel',
+                            className: 'btn btn-modern btn-excel',
+                            title: 'Category Sales Report', // judul di file
+                            filename: 'category_sales_report', // nama file
+                            sheetName: 'Category Sales', // nama sheet (Excel)
+                            exportOptions: {
+                                columns: ':visible'
+                            } // misal kolom ke 0,1,3,5
+                        }, ],
                         columnDefs: [{
                                 targets: 0,
                                 width: '200px'
@@ -1519,6 +1524,9 @@
                 // Set initial value for the input field
                 $('#date_range_transaction').val(startDate.format('YYYY/MM/DD') + ' - ' + endDate.format('YYYY/MM/DD'));
 
+                outlet = $('#filter-outlet').val();
+                date = $('#date_range_transaction').val();
+
                 // Fungsi untuk mengubah tanggal
                 $('#prevDate').on('click', function() {
                     startDate.subtract(1, 'days');
@@ -1572,7 +1580,17 @@
                     checkActiveTab();
                 });
 
-            })
+                $(document).on('click', '#btn-export-sales-summary', function() {
+                    // cukup redirect GET agar memicu download
+                    const url = "{{ route('report/sales/exportSalesSummary') }}";
+                    const params = new URLSearchParams({
+                        outlet: outlet,
+                        date: date
+                    });
+                    window.location = url + '?' + params.toString();
+                });
+
+            });
         </script>
     @endpush
 @endsection

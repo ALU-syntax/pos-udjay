@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\SalesSummaryExport;
 use App\Models\Category;
 use App\Models\CategoryPayment;
 use App\Models\Discount;
@@ -18,6 +19,7 @@ use Carbon\Carbon;
 use Yajra\DataTables\DataTables;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Services\DataTable;
 
 class SalesController extends Controller
@@ -821,5 +823,62 @@ class SalesController extends Controller
             'products' => $product,
             'categoryName' => $categoryName,
         ]);
+    }
+
+     public function exportSalesSummary(Request $request)
+    {
+        $date   = $request->get('date');   // sama seperti di UI
+        $outlet = $request->get('outlet'); // 'all' atau id tertentu
+
+        // tentukan daftar outlet yang akan diringkas
+        if ($outlet === 'all') {
+            // gunakan daftar outlet user atau semua outlet sesuai kebutuhanmu
+            $outlets = Outlets::whereIn('id', json_decode(auth()->user()->outlet_id ?? '[]') ?: [])
+                        ->get(['id','name']);
+        } else {
+            $o = Outlets::find($outlet);
+            $outlets = collect($o ? [$o] : []);
+        }
+
+        $rows = [];
+        foreach ($outlets as $o) {
+            // Panggil service/perhitungan yang juga dipakai AJAX Summary
+            // Pastikan function ini mengembalikan keys: gross, discount, refund, net, gratuity, tax, rounding, total_collected
+            $summary = $this->computeOutletSummary($date, $o->id); // <- implementasikan sama dengan logic tab Summary
+            $rows[] = [
+                'outlet'          => $o->name,
+                'gross'           => $summary['gross'] ?? 0,
+                'discount'        => $summary['discount'] ?? 0,
+                'refund'          => $summary['refund'] ?? 0,
+                'net'             => $summary['net'] ?? 0,
+                'gratuity'        => $summary['gratuity'] ?? 0,
+                'tax'             => $summary['tax'] ?? 0,
+                'rounding'        => $summary['rounding'] ?? 0,
+                'total_collected' => $summary['total_collected'] ?? 0,
+            ];
+        }
+
+        $export = new SalesSummaryExport($rows, withTotals: true);
+        $filename = 'Sales Summary Report '.now()->format('Ymd_His').'.xlsx';
+        return Excel::download($export, $filename);
+    }
+
+    // TODO: Samakan isi function ini dengan logika yang dipakai oleh AJAX Sales Summary kamu
+    private function computeOutletSummary(string $dateRange, int $outletId): array
+    {
+        // Implementasikan sesuai logic-mu:
+        // - parse $dateRange (single date / range)
+        // - filter transactions by outlet & date range
+        // - hitung gross, discount, refund, net, gratuity, tax, rounding, total_collected
+        return [
+            'gross' => 0,
+            'discount' => 0,
+            'refund' => 0,
+            'net' => 0,
+            'gratuity' => 0,
+            'tax' => 0,
+            'rounding' => 0,
+            'total_collected' => 0,
+        ];
     }
 }
