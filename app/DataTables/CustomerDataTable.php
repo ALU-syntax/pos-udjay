@@ -33,19 +33,33 @@ class CustomerDataTable extends DataTable
                     'listReferee' =>route('membership/customer/listReferee', $row->id),
                 ]);
             })
-            ->addColumn('community_id', function($row){
+            ->editColumn('community_id', function($row){
                 return $row->community_id ? $row->community->name : '-';
             })
-            ->addColumn('level_membership_id', function($row){
+            ->editColumn('level_membership_id', function($row){
                 return "<a class='action' href=" . route('membership/customer/checkRewardConfirmation', $row->id) . " type='button'>". $row->levelMembership->name ."</a>";
             })
-            ->addColumn('created_at', function($row){
+
+            // ->addColumn('community_id', fn($row) => optional($row->community)->name ?? '-')
+            // ->addColumn('level_membership_id', fn($row) => optional($row->levelMembership)->name ?? '-')
+
+            // // Petakan order ke kolom tabel relasi
+            // ->orderColumn('community_id', function ($q, $order) {
+            //     $q->leftJoin('communities', 'communities.id', '=', 'customers.community_id')
+            //     ->orderBy('communities.name', $order);
+            // })
+            // ->orderColumn('level_membership_id', function ($q, $order) {
+            //     $q->leftJoin('level_memberships', 'level_memberships.id', '=', 'customers.level_memberships_id')
+            //     ->orderBy('level_memberships.name', $order);
+            // })
+
+            ->editColumn('created_at', function($row){
                 return Carbon::parse($row->created_at)->diffForHumans();
             })
-            ->addColumn('name', function ($row) {
+            ->editColumn('name', function ($row) {
                 return "<a href=" . route('membership/customer/detail', $row->id) . " type='button'>". $row->name ."</a>";
             })
-            ->addColumn('point', function ($row) {
+            ->editColumn('point', function ($row) {
                 return "<a class='action' href=" . route('membership/customer/historyPointUse', $row->id) . " type='button'>". $row->point ."</a>";
             })
             ->rawColumns(['created_at', 'name', 'level_membership_id', 'point'])
@@ -92,9 +106,9 @@ class CustomerDataTable extends DataTable
             Column::make('telfon'),
             Column::make('point'),
             Column::make('exp'),
-            Column::make('level_membership_id')->title('Level Membership'),
+            Column::make('level_membership_id')->title('Level Membership')->orderable(false),
             Column::make('created_at')->title("Created Date"),
-            Column::make('community_id')->title("Community"),
+            Column::make('community_id')->title("Community")->orderable(false),
             Column::computed('action')
                 ->exportable(false)
                 ->printable(false)
