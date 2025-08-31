@@ -34,7 +34,8 @@ class CustomerController extends Controller
             'data' => new Customer(),
             'action' => route('membership/customer/store'),
             'communities' => Community::all(),
-            'customer' => Customer::all()
+            'customer' => Customer::all(),
+            'update' => false
         ]);
     }
 
@@ -114,6 +115,7 @@ class CustomerController extends Controller
         return view('layouts.customer.customer-modal',[
             'data' => $customer,
             'action' => route('membership/customer/update', $customer->id),
+            'update' => true,
             'communities' => Community::all(),
             'customer' => Customer::all()
         ]);

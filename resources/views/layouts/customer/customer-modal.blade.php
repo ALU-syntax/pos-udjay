@@ -1,4 +1,4 @@
-<x-modal title="Tambah Customer" action="{{ $action }}" method="POST">
+<x-modal title="Tambah Customer" action="{{ $action }}" method="POST" update="{{$update}}" >
     @if ($data->id)
         @method('put')
     @endif

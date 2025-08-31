@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class CustomerRequest extends FormRequest
 {
@@ -21,16 +22,28 @@ class CustomerRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Ambil ID dari route model binding: Route::resource('customers', ...)
+        // Akan null saat store, terisi saat update
+        $customerId = $this->route('customer')?->id;
+
+        // Jika pakai soft delete di tabel customers, Anda bisa tambahkan ->whereNull('deleted_at')
+        $uniqueTelfon = Rule::unique('customers', 'telfon')
+            ->ignore($customerId); // abaikan baris yg sedang diedit
+
+        // Jika ingin field tidak wajib saat PATCH (update sebagian),
+        // pakai 'sometimes' di method PATCH. Kalau mau tetap wajib, biarkan 'required'.
+        $required = $this->isMethod('PATCH') ? 'sometimes' : 'required';
+
         return [
-            'name' => 'required',
-            'umur' => 'required',
-            'telfon' => 'required|string|max:20|regex:/^\+?[0-9\-]+$/|unique:customers,telfon',
-            'email' => 'required',
-            'tanggal_lahir' => 'required',
-            'domisili' => 'required',
-            'gender' => 'required',
-            'community_id' => 'nullable',
-            'referral_id' => 'nullable',
+            'name'           => 'required',
+            'umur'           => 'required',
+            'telfon'         => [$required, 'string', 'max:20', 'regex:/^\+?[0-9\-]+$/', $uniqueTelfon],
+            'email'          => 'required',
+            'tanggal_lahir'  => 'required',
+            'domisili'       => 'required',
+            'gender'         => 'required',
+            'community_id'   => 'nullable',
+            'referral_id'    => 'nullable',
         ];
     }
 }
