@@ -107,7 +107,7 @@
                                     <h5>Order Details</h5>
                                 </div>
 
-                                @can('delete report/open-bill')
+                                @can('delete report/openbill')
                                     <div class="col-6 d-flex align-self-end justify-content-end">
                                         {{-- <button class="btn btn-danger">Hapus Transaksi</button> --}}
                                         <a id="btn-delete-openbill" class="btn btn-danger" href="">Hapus
