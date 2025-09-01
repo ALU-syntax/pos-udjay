@@ -57,7 +57,11 @@ class TransactionsController extends Controller
                 'catatan',
                 'reward_item'
             )
-            ->with(['variant', 'product'])
+            // ->with(['variant', 'product'])
+            ->with([
+                'variant' => fn ($v) => $v->withTrashed(),
+                'product' => fn ($p) => $p->withTrashed(),
+            ])
             ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'deleted_at', 'created_at', 'updated_at', 'reward_item');
         }]);
 

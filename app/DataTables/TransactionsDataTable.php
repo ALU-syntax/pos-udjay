@@ -35,7 +35,7 @@ class TransactionsDataTable extends DataTable
             })
             ->editColumn('items', function ($row) {
                 $items = $row->itemTransaction;
-                $itemWithProduct = $items->load(['product']);
+                $itemWithProduct = $items->load(['product' => fn($p) => $p->withTrashed()]);
                 $itemText = '';
                 foreach ($itemWithProduct as $item) {
                     if($item->product){
