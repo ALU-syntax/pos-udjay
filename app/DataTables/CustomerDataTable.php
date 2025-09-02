@@ -36,7 +36,7 @@ class CustomerDataTable extends DataTable
             ->editColumn('community_id', function($row){
                 return $row->community_id ? $row->community->name : '-';
             })
-            ->editColumn('level_membership_id', function($row){
+            ->editColumn('level_memberships_id', function($row){
                 return "<a class='action' href=" . route('membership/customer/checkRewardConfirmation', $row->id) . " type='button'>". $row->levelMembership->name ."</a>";
             })
 
@@ -62,7 +62,7 @@ class CustomerDataTable extends DataTable
             ->editColumn('point', function ($row) {
                 return "<a class='action' href=" . route('membership/customer/historyPointUse', $row->id) . " type='button'>". $row->point ."</a>";
             })
-            ->rawColumns(['created_at', 'name', 'level_membership_id', 'point'])
+            ->rawColumns(['created_at', 'name', 'level_memberships_id', 'point'])
             ->setRowId('id');
     }
 
@@ -106,7 +106,7 @@ class CustomerDataTable extends DataTable
             Column::make('telfon'),
             Column::make('point'),
             Column::make('exp'),
-            Column::make('level_membership_id')->title('Level Membership')->orderable(false),
+            Column::make('level_memberships_id')->title('Level Membership')->orderable(false),
             Column::make('created_at')->title("Created Date"),
             Column::make('community_id')->title("Community")->orderable(false),
             Column::computed('action')
