@@ -16,6 +16,10 @@ class Transaction extends Model
         return $this->hasMany(TransactionItem::class, 'transaction_id', 'id');
     }
 
+    public function itemTransactionWithTrash(){
+        return $this->hasMany(TransactionItem::class, 'transaction_id', 'id')->withTrashed();
+    }
+
     public function payments(){
         return $this->belongsTo(Payment::class, 'tipe_pembayaran', 'id');
     }

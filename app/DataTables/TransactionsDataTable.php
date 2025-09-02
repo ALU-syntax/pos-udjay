@@ -33,25 +33,61 @@ class TransactionsDataTable extends DataTable
             ->editColumn('user_id', function ($row) {
                 return $row->user->name;
             })
-            ->editColumn('items', function ($row) {
-                $items = $row->itemTransaction;
-                $itemWithProduct = $items->load(['product' => fn($p) => $p->withTrashed()]);
-                $itemText = '';
-                foreach ($itemWithProduct as $item) {
-                    if($item->product){
-                        $itemText .= "<span>{$item->product->name}, </span>";
-                    }else{
-                        $itemText .= "<span>custom, </span>";
-                    }
-                }
+            // ->editColumn('items', function ($row) {
+            //     $items = $row->itemTransaction;
+            //     $itemWithProduct = $items->load(['product' => fn($p) => $p->withTrashed()]);
+            //     $itemText = '';
+            //     foreach ($itemWithProduct as $item) {
+            //         if($item->product){
+            //             $itemText .= "<span>{$item->product->name}, </span>";
+            //         }else{
+            //             $itemText .= "<span>custom, </span>";
+            //         }
+            //     }
 
-                if(count($itemWithProduct)){
-                    $result = substr($itemText, 0, -9);
-                }else{
-                    $result = '-';
-                }
+            //     if(count($itemWithProduct)){
+            //         $result = substr($itemText, 0, -9);
+            //     }else{
+            //         $result = '-';
+            //     }
 
-                return $result;
+            //     return $result;
+            // })
+            // Tampilkan teks items (gabungan nama produk/variant)
+            ->addColumn('items', function (Transaction $t) {
+                // sesuaikan dengan relasi milikmu
+                $names = $t->itemTransaction()
+                    ->with(['product' => fn($p) => $p->withTrashed()])
+                    ->get()
+                    ->map(function ($it) {
+                        // pakai product->name atau variant->name sesuai datamu
+                        return $it->product?->name ?? $it->variant?->name ?? '[item]';
+                    });
+
+                return $names->unique()->implode(', ');
+            })
+            // >>> KUNCI: custom filter untuk kolom 'items'
+            ->filterColumn('items', function ($q, $keyword) {
+                $kw = '%' . strtolower($keyword) . '%';
+
+                $q->where(function ($qq) use ($kw) {
+                    // cari di NAMA PRODUK
+                    $qq->whereExists(function ($sub) use ($kw) {
+                        $sub->selectRaw(1)
+                            ->from('transaction_items as ti')
+                            ->join('products as p', 'p.id', '=', 'ti.product_id')
+                            ->whereColumn('ti.transaction_id', 'transactions.id')
+                            ->whereRaw('LOWER(p.name) LIKE ?', [$kw]);
+                    })
+                    // atau di NAMA VARIANT (kalau ada)
+                    ->orWhereExists(function ($sub) use ($kw) {
+                        $sub->selectRaw(1)
+                            ->from('transaction_items as ti2')
+                            ->join('variant_products as v', 'v.id', '=', 'ti2.variant_id')
+                            ->whereColumn('ti2.transaction_id', 'transactions.id')
+                            ->whereRaw('LOWER(v.name) LIKE ?', [$kw]);
+                    });
+                });
             })
             ->editColumn('total', function ($row) {
                 return formatRupiah(intval($row->total), "Rp. ");
