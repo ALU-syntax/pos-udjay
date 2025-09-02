@@ -18,6 +18,22 @@
             background-color: #f0f0f0;
             /* Opsional: menambahkan efek hover */
         }
+
+        .btn-modern {
+            border: none !important;
+            border-radius: 10px !important;
+            padding: 10px 14px !important;
+            font-weight: 600 !important;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, .08);
+            transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+            color: #fff !important;
+            background-color: #d03c3c !important;
+        }
+
+        .btn-modern:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 18px rgba(0, 0, 0, .12);
+        }
     </style>
     <div class="main-content">
         <div class="card text-center">
@@ -78,13 +94,9 @@
                         </div>
                     </div>
 
-                    {{-- <div class="col-3 offset-5 text-right justify-content-end d-flex">
-                        @can('create library/tax')
-                            <a href="{{ route('library/tax/create') }}" type="button"
-                                class="btn btn-md btn-primary btn-round ms-auto action"><i class="fa fa-plus"></i> Tambah
-                                Tax</a>
-                        @endcan
-                    </div> --}}
+                    <div class="col-4 mt-0 mb-2 pe-4 d-flex align-items-center justify-content-end">
+                        <button id="btnExport" class="btn btn-primary btn-modern">Export Transaksi</button>
+                    </div>
 
                 </div>
 
@@ -257,10 +269,10 @@
                                 <button class="btn btn-primary" id="btn-close-detail">Close</button>
                             </div>
                             <div class="col-10 d-flex justify-content-end">
-                                <a href="{{ route('report/transaction/modalResendReceipt', 1) }}" class="btn btn-outline-primary action"
-                                    id="btn-resend-receipt">Resend Receipt</a>
-                                <a href="{{ route('report/transaction/showReceipt', 1) }}" class="btn btn-outline-primary ms-2"
-                                id="btn-show-receipt">Show Receipt</a>
+                                <a href="{{ route('report/transaction/modalResendReceipt', 1) }}"
+                                    class="btn btn-outline-primary action" id="btn-resend-receipt">Resend Receipt</a>
+                                <a href="{{ route('report/transaction/showReceipt', 1) }}"
+                                    class="btn btn-outline-primary ms-2" id="btn-show-receipt">Show Receipt</a>
                             </div>
                         </div>
                     </div>
@@ -282,6 +294,11 @@
             const tableContainer = $('#tableContainer');
             const detailCard = $('#container-order-details');
             const transactionTable = $('#transactions-table');
+
+            const $outlet = $('#filter-outlet');
+            const $date = $('#date_range_transaction');
+            const $btn = $('#btnExport');
+            const $status = $('#exportStatus');
 
             function getNewData() {
                 let outletTerpilih = $('#filter-outlet').val();
@@ -506,6 +523,152 @@
                 });
             }
 
+            function triggerDownload(url, filename = 'export.xlsx') {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }
+
+            function fmtElapsed(sec) {
+                const m = String(Math.floor(sec / 60)).padStart(2, '0');
+                const s = String(sec % 60).padStart(2, '0');
+                return `${m}:${s}`;
+            }
+
+            function waitUntilReadyWithIziToast(downloadUrl, filename, opts = {}) {
+                const intervalMs = opts.intervalMs ?? 3000;
+                const timeoutMs = opts.timeoutMs ?? 10 * 60 * 1000; // 10 menit
+
+                const toastId = 'export-progress-' + Date.now();
+                let toastEl = null;
+                let elapsedSec = 0;
+                let uiTimer = null;
+                let pollTimer = null;
+                let stopped = false;
+
+                // Render toast dengan konten yang bisa di-update
+                iziToast.show({
+                    id: toastId,
+                    timeout: false,
+                    close: false,
+                    progressBar: false,
+                    position: 'topRight',
+                    theme: 'light',
+                    title: 'Menyiapkan Export…',
+                    message: `<div id="${toastId}-wrap" style="min-width:260px">
+         <div class="mb-1">File sedang diproses di background.</div>
+         <div class="text-muted">Elapsed: <b id="${toastId}-elapsed">00:00</b></div>
+         <div class="text-muted small mt-1">Cek setiap ${(intervalMs/1000)} detik…</div>
+       </div>`,
+                    buttons: [
+                        ['<button>Batalkan</button>', function(instance, toast) {
+                            stopped = true;
+                            clearInterval(uiTimer);
+                            clearInterval(pollTimer);
+                            iziToast.hide({
+                                transitionOut: 'fadeOut'
+                            }, toast);
+                            iziToast.info({
+                                title: 'Dibatalkan',
+                                message: 'Polling export dihentikan.'
+                            });
+                        }]
+                    ],
+                    onOpening: function(instance, toast) {
+                        toastEl = toast;
+                    },
+                    onClosing: function() {
+                        clearInterval(uiTimer);
+                        clearInterval(pollTimer);
+                    }
+                });
+
+                // Timer UI: update elapsed tiap 1s
+                uiTimer = setInterval(function() {
+                    elapsedSec++;
+                    const el = document.getElementById(`${toastId}-elapsed`);
+                    if (el) el.textContent = fmtElapsed(elapsedSec);
+                }, 1000);
+
+                const startedAt = Date.now();
+
+                // Timer Polling: HEAD ke downloadUrl
+                pollTimer = setInterval(function() {
+                    if (stopped) return;
+
+                    // timeout guard
+                    if (Date.now() - startedAt > timeoutMs) {
+                        clearInterval(uiTimer);
+                        clearInterval(pollTimer);
+                        iziToast.hide({}, toastEl);
+                        iziToast.warning({
+                            title: 'Timeout',
+                            message: 'Menunggu file terlalu lama. Coba lagi nanti atau periksa antrian export.'
+                        });
+                        return;
+                    }
+
+                    $.ajax({
+                            url: downloadUrl,
+                            type: 'HEAD',
+                            cache: false
+                        })
+                        .done(function() {
+                            if (stopped) return;
+                            clearInterval(uiTimer);
+                            clearInterval(pollTimer);
+                            iziToast.hide({
+                                transitionOut: 'fadeOut'
+                            }, toastEl);
+                            iziToast.success({
+                                title: 'Siap',
+                                message: 'File siap diunduh. Mengunduh…',
+                                timeout: 2000
+                            });
+                            triggerDownload(downloadUrl, filename || 'export.xlsx');
+                        })
+                        .fail(function() {
+                            // belum siap → diam saja; toast tetap menampilkan timer
+                        });
+                }, intervalMs);
+            }
+
+            function fmt(dt) {
+                const y = dt.getFullYear();
+                const m = String(dt.getMonth() + 1).padStart(2, '0');
+                const d = String(dt.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+
+            function toIsoYmd(str) {
+                if (!str) return null;
+                str = str.trim();
+                // dd/mm/yyyy
+                if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
+                    const [d, m, y] = str.split('/');
+                    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+                }
+                // yyyy-mm-dd
+                if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(str)) return str;
+                const dt = new Date(str);
+                return isNaN(dt) ? null : fmt(dt);
+            }
+
+            function parseDateRange(val) {
+                if (!val) return null;
+                const parts = String(val).split(' - ');
+                const from = toIsoYmd(parts[0]);
+                const to = toIsoYmd(parts[1] || parts[0]);
+                if (!from || !to) return null;
+                return {
+                    from,
+                    to
+                };
+            }
+
 
             $(document).ready(function() {
                 $('#btn-close-detail').off().on('click', function() {
@@ -673,6 +836,67 @@
                 });
 
 
+                $('#btnExport').on('click', function(e) {
+                    e.preventDefault();
+
+                    const range = parseDateRange($('#date_range_transaction').val());
+                    if (!range) {
+                        iziToast.error({
+                            title: 'Gagal',
+                            message: "Isi tanggal dengan format <b>YYYY-MM-DD - YYYY-MM-DD</b>."
+                        });
+                        return;
+                    }
+
+                    const payload = {
+                        from: range.from,
+                        to: range.to
+                    };
+                    const ov = $outlet.val();
+                    if (Array.isArray(ov)) ov.forEach(id => (payload['outlet_id[]'] = (payload['outlet_id[]'] ||
+                        []), payload['outlet_id[]'].push(id)));
+                    else if (ov) payload['outlet_id[]'] = ov;
+
+                    $btn.prop('disabled', true).html(
+                        '<span class="spinner-border spinner-border-sm mr-1"></span>Memproses…');
+
+                    $.ajax({
+                            url: "{{ route('report/transaction/exportPosFormat') }}", // POST ke controller ->queue()
+                            method: 'POST',
+                            data: payload,
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                            }
+                        })
+                        .done(function(resp) {
+                            if (resp && resp.ok && resp.download_url) {
+                                const filename = (resp.path || 'transactions.xlsx').split('/').pop();
+                                waitUntilReadyWithIziToast(resp.download_url, filename, {
+                                    intervalMs: 3000, // cek tiap 3 detik
+                                    timeoutMs: 10 * 60 * 1000 // maksimal 10 menit
+                                });
+                            } else {
+                                iziToast.error({
+                                    title: 'Gagal',
+                                    message: (resp && resp.message) || 'Export gagal dimulai.'
+                                });
+                            }
+                        })
+                        .fail(function(xhr) {
+                            let msg = 'Export gagal.';
+                            try {
+                                msg = (JSON.parse(xhr.responseText)).message || msg;
+                            } catch (_) {}
+
+                            iziToast.warning({
+                                title: 'Timeout',
+                                message: msg
+                            });
+                        })
+                        .always(function() {
+                            $btn.prop('disabled', false).text('Export Transaksi');
+                        });
+                });
             });
         </script>
     @endpush

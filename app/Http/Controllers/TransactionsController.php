@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\TransactionsDataTable;
+use App\Exports\TransactionsPosFormatExport;
 use App\Mail\ResendReceiptMail;
 use App\Models\Outlets;
 use App\Models\Transaction;
@@ -10,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class TransactionsController extends Controller
 {
@@ -214,6 +216,28 @@ class TransactionsController extends Controller
         Mail::to($email)->send(new ResendReceiptMail($idTransaction));
 
         return responseSuccess(false, "Receipt berhasil dikirim");
+    }
+
+    public function exportPosFormat(Request $r)
+    {
+        $outlet = Outlets::whereIn('id', $r->outlet_id)->first();
+
+        $filename = 'transactions_'. $outlet->name. '_' .now()->format('Ymd_His').'.xlsx';
+        $path = "exports/{$filename}";
+
+        (new TransactionsPosFormatExport(
+            from: $r->input('from'),
+            to:   $r->input('to'),
+            outletIds: (array) $r->input('outlet_id', [])
+        ))->queue($path, 'public');
+
+        // URL ini baru valid setelah job selesai. Simpan/ingatkan user saja dulu.
+        return response()->json([
+            'ok'           => true,
+            'message'      => 'Export dimulai di background. Anda akan dapat file ketika proses selesai.',
+            'path'         => $path,
+            'download_url' => Storage::disk('public')->url($path),
+        ]);
     }
 
 }
