@@ -61,7 +61,7 @@ class TransactionsDataTable extends DataTable
                     ->get()
                     ->map(function ($it) {
                         // pakai product->name atau variant->name sesuai datamu
-                        return $it->product?->name ?? $it->variant?->name ?? '[item]';
+                        return $it->product?->name ?? $it->variant?->name ?? 'Custom';
                     });
 
                 return $names->unique()->implode(', ');
