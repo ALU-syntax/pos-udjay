@@ -489,7 +489,7 @@ class KasirController extends Controller
             'customer_id' => $customerId,
             'total' => $request->total,
             'nominal_bayar' => $request->nominal_bayar,
-            'category_payment_id' => $request->category_payment_id,
+            'category_payment_id' => $request->category_payment_id == 'undefined' ? 1 : $request->category_payment_id,
             'nama_tipe_pembayaran' => $request->nama_tipe_pembayaran,
             'change' => $request->change,
             'tipe_pembayaran' => $request->tipe_pembayaran == 'null' ? null : $request->tipe_pembayaran,
