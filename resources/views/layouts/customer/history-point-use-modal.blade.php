@@ -22,7 +22,7 @@
                         @foreach ($transactions as $transaction)
                             <tr>
                                 <td>{{$transaction->id}}</td>
-                                <td>{{$transaction->point}}</td>
+                                <td>{{$transaction->potongan_point}}</td>
                                 <td>{{$transaction->date_formated}}</td>
                             </tr>
                         @endforeach
