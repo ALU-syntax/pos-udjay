@@ -54,7 +54,7 @@ class CustomerDataTable extends DataTable
             // })
 
             ->editColumn('created_at', function($row){
-                return Carbon::parse($row->created_at)->diffForHumans();
+                return Carbon::parse($row->created_at)->format('d-m-Y H:i');
             })
             ->editColumn('name', function ($row) {
                 return "<a href=" . route('membership/customer/detail', $row->id) . " type='button'>". $row->name ."</a>";

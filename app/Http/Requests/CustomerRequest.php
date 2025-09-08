@@ -30,6 +30,10 @@ class CustomerRequest extends FormRequest
         $uniqueTelfon = Rule::unique('customers', 'telfon')
             ->ignore($customerId); // abaikan baris yg sedang diedit
 
+
+        $uniqueEmail = Rule::unique('customers', 'email')
+            ->ignore($customerId);
+
         // Jika ingin field tidak wajib saat PATCH (update sebagian),
         // pakai 'sometimes' di method PATCH. Kalau mau tetap wajib, biarkan 'required'.
         $required = $this->isMethod('PATCH') ? 'sometimes' : 'required';
@@ -38,7 +42,15 @@ class CustomerRequest extends FormRequest
             'name'           => 'required',
             'umur'           => 'required',
             'telfon'         => [$required, 'string', 'max:20', 'regex:/^\+?[0-9\-]+$/', $uniqueTelfon],
-            'email'          => 'required',
+            'email'          => [
+                // kalau opsional:
+                // 'nullable',
+                'required',
+                'string',
+                'max:254',
+                'email:rfc',      // atau 'email:rfc,dns' jika perlu cek DNS
+                $uniqueEmail,
+            ],
             'tanggal_lahir'  => 'required',
             'domisili'       => 'required',
             'gender'         => 'required',

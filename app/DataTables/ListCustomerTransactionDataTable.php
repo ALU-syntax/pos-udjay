@@ -30,14 +30,18 @@ class ListCustomerTransactionDataTable extends DataTable
             ->addColumn('exp', function($row){
                 return $row->total/100;
             })
-            ->addColumn('created_at', function($row){
-                return Carbon::parse($row->created_at)->diffForHumans();
+            ->editColumn('created_at', function($row){
+                return Carbon::parse($row->created_at)->format('d-m-Y H:i');
             })
             ->addColumn('action', function($row){
                 return view('layouts.customer.action-transaction', [
                     'detail' => route('membership/customer/detailTransaction', $row->id)
                 ]);
             })
+            ->addColumn("ordered_at", function($row) {
+                return "<span class='badge badge-primary'>{$row->outlet->name} </span></br>";
+            })
+            ->rawColumns(['ordered_at'])
             ->setRowId('id');
     }
 
@@ -46,7 +50,7 @@ class ListCustomerTransactionDataTable extends DataTable
      */
     public function query(Transaction $model): QueryBuilder
     {
-        return $model->where('customer_id', $this->customerId)->newQuery();
+        return $model->with(['customer'])->where('customer_id', $this->customerId)->orderBy('id', 'desc')->newQuery();
     }
 
     /**
@@ -81,6 +85,7 @@ class ListCustomerTransactionDataTable extends DataTable
             Column::make('point'),
             Column::make('exp'),
             Column::make('created_at'),
+            Column::make('ordered_at')->title("Outlet Transaksi"),
             Column::make('action'),
         ];
     }
