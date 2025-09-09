@@ -24,16 +24,16 @@ class PilihPelangganDataTable extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
+            ->editColumn('created_at', function($row){
+                return Carbon::parse($row->created_at)->diffForHumans();
+            })
             ->addColumn('action', function ($row) {
                 // Ganti $row->id dan $row->name dengan nama kolom yang sesuai
                 return view('layouts.kasir.button-pilih-pelanggan', [
                     'data' => $row
                 ]);
             })
-            ->addColumn('created_at', function($row){
-                return Carbon::parse($row->created_at)->diffForHumans();
-            })
-            ->rawColumns(['created_at'])
+            // ->rawColumns(['created_at'])
             ->setRowId('id');
     }
 
@@ -42,7 +42,8 @@ class PilihPelangganDataTable extends DataTable
      */
     public function query(Customer $model): QueryBuilder
     {
-        return $model->orderBy('name', 'asc')->newQuery();
+        return $model->newQuery()->orderBy('name', 'asc');
+
     }
 
     /**
@@ -73,11 +74,11 @@ class PilihPelangganDataTable extends DataTable
     public function getColumns(): array
     {
         return [
-            Column::make('name'),
-            Column::make('telfon'),
-            Column::make('point'),
-            Column::make('exp'),
-            Column::make('created_at'),
+            Column::make('name')->orderable(false),
+            Column::make('telfon')->orderable(false),
+            Column::make('point')->orderable(false),
+            Column::make('exp')->orderable(false),
+            Column::make('created_at')->orderable(false),
             Column::computed('action')
                 ->exportable(false)
                 ->printable(false)
