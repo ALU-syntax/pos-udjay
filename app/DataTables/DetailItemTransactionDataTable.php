@@ -24,17 +24,20 @@ class DetailItemTransactionDataTable extends DataTable
     {
         return (new EloquentDataTable($query))
             ->addColumn('name', function($row){
-                $name = $row->product->name == $row->variant->name ? $row->product->name : $row->product->name . '-' . $row->variant->name;
-                return $name;
+                if($row->product && $row->variant){
+                    return $row->product->name == $row->variant->name ? $row->product->name : $row->product->name . '-' . $row->variant->name;
+                }else{
+                    return "custom";
+                }
             })
             ->addColumn('qty', function($row){
                 return 1;
             })
             ->addColumn('harga', function($row){
-                return $row->variant->harga;
+                return $row->harga;
             })
             ->addColumn('total_harga', function($row){
-                return $row->variant->harga;
+                return $row->harga;
             })
             ->setRowId('id');
     }
