@@ -5,5 +5,6 @@
     </button>
     <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1">
         <li><a class="dropdown-item action" href="{{$detail}}">Detail Item</a></li>
+        <li><a class="dropdown-item delete"  href="{{$delete}}" style="color: red;">Lepas Transaksi</a></li>
     </ul>
 </div>

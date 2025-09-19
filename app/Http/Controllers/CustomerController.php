@@ -263,4 +263,31 @@ class CustomerController extends Controller
         ]);
     }
 
+    public function lepasTransaction(Transaction $transaction){
+        $idCustomer = $transaction->customer->id;
+        $transaction->customer()->dissociate(); // set customer_id = null
+        $transaction->save();
+
+        $customer = Customer::with(['transactions'])->where('id', $idCustomer)->first();
+
+        $pointExp = $transaction->nominal_bayar / 100;
+        $pointExpDidapat = floor($pointExp);
+        $customer->exp -= $pointExpDidapat;
+        $customer->point -= $pointExpDidapat;
+
+        $customer->save();
+
+        $transactionNominal = 0;
+        foreach($customer->transactions as $transaction){
+            $transactionNominal += $transaction->total;
+        }
+
+        return response()->json([
+                'status' => 'success',
+                'message' => 'Delete data Successfully',
+                'data' => $customer,
+                'transactionNominal' => $transactionNominal
+            ]);;
+    }
+
 }

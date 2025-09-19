@@ -269,6 +269,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/{customer}', [CustomerController::class, 'edit'])->name('customer/edit');
             Route::get('/list-referee/{customer}', [CustomerController::class, 'listReferee'])->name('customer/listReferee');
             Route::put('/update/{customer}', [CustomerController::class, 'update'])->name('customer/update');
+            Route::delete('/lepasTransaction/{transaction}', [CustomerController::class, 'lepasTransaction'])->name('customer/lepasTransaction');
         });
 
         Route::prefix('community')->group(function(){

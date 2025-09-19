@@ -25,17 +25,18 @@ class ListCustomerTransactionDataTable extends DataTable
     {
         return (new EloquentDataTable($query))
             ->addColumn('point', function($row){
-                return $row->total/100;
+                return floor($row->total/100);
             })
             ->addColumn('exp', function($row){
-                return $row->total/100;
+                return floor($row->total/100);
             })
             ->editColumn('created_at', function($row){
                 return Carbon::parse($row->created_at)->format('d-m-Y H:i');
             })
             ->addColumn('action', function($row){
                 return view('layouts.customer.action-transaction', [
-                    'detail' => route('membership/customer/detailTransaction', $row->id)
+                    'detail' => route('membership/customer/detailTransaction', $row->id),
+                    'delete' => route('membership/customer/lepasTransaction', $row->id)
                 ]);
             })
             ->addColumn("ordered_at", function($row) {

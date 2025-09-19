@@ -20,7 +20,7 @@
                                     <div class="col-7 col-stats">
                                         <div class="numbers">
                                             <p class="card-category">Total Point</p>
-                                            <h4 class="card-title" id="exp-community">{{ $data->point }}</h4>
+                                            <h4 class="card-title" id="point">{{ $data->point }}</h4>
                                         </div>
                                     </div>
                                 </div>
@@ -39,7 +39,7 @@
                                     <div class="col-7 col-stats">
                                         <div class="numbers">
                                             <p class="card-category">Total Exp</p>
-                                            <h4 class="card-title" id="exp-community">{{ $data->exp }}</h4>
+                                            <h4 class="card-title" id="exp">{{ $data->exp }}</h4>
                                         </div>
                                     </div>
                                 </div>
@@ -122,10 +122,17 @@
 
         <script>
             var success = "{{ session('success') }}";
-            var datatable = 'detailcommunity-table';
+            var datatable = 'listcustomertransaction-table';
 
             handleAction(datatable);
-            // handleDelete(datatable);
+            handleDelete(datatable, false, function(res){
+                console.log(res);
+
+                $('#point').text(res.data.point);
+                $('#exp').text(res.data.exp);
+                $('#count-transaction').text(res.data.transactions.length + 1);
+                $('#transaction-nominal').text(formatRupiah(res.transactionNominal.toString(), "Rp. "));
+            });
 
             $('#btnHistoryUseExp').on('click', function(e) {
                 e.preventDefault();
