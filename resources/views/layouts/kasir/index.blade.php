@@ -4432,7 +4432,7 @@
                             });
                             totalDiskon += (hargaBarang * parseInt($('#quantity-edit').val()) * amount) / 100;
                         } else {
-                            totalDiskon += (dataHarga * parseInt($('#quantity-edit').val()) * amount) / 100;
+                            totalDiskon += (hargaAkhirEditItem * parseInt($('#quantity-edit').val()) * amount) / 100;
                         }
                     }
 
