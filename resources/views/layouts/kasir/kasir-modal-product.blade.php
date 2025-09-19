@@ -467,7 +467,7 @@
         modal.modal('hide');
     });
 
-    $('#saveItemToCart').on('click', function(e) {
+    $('#saveItemToCart').off().on('click', function(e) {
         let tmpRandomId = generateRandomID();
 
         let dataNama = document.getElementById("namaProduct").textContent;

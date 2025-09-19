@@ -90,4 +90,11 @@ class SalesTypeController extends Controller
 
         return response()->json($salesType);
     }
+
+    public function apiGetSalesTypeByOutlet($idOutlet)
+    {
+        $convertIdOutlet = json_decode($idOutlet);
+        $salesType = SalesType::where('outlet_id', $convertIdOutlet[0])->where('status', true)->get();
+        return response()->json($salesType);
+    }
 }

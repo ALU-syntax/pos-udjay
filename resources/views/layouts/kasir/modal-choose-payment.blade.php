@@ -697,7 +697,10 @@
 
                         if (window.Android) {
                             // Panggil metode JavaScript Interface dengan ID transaksi
-                            window.Android.handlePaymentSuccess(res.id);
+                            // window.Android.handlePaymentSuccess(res.id);
+                            // console.log(res);
+                            // console.log(JSON.stringify(res));
+                            window.Android.handlePaymentSuccess(JSON.stringify(res));
                         }
 
                         // if (res.pelanggan) {

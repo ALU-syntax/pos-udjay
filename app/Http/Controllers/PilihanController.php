@@ -38,16 +38,16 @@ class PilihanController extends Controller
             'outlet_id' => 'required|array'
         ]);
 
-        DB::transaction(function () use ($validatedData) {  
+        DB::transaction(function () use ($validatedData) {
             foreach ($validatedData['outlet_id'] as $outlet) {
                 $dataPilihanGroup = [
                     "name" => $validatedData['name'],
                     'outlet_id' => $outlet
                 ];
-    
+
                 // Simpan PilihanGroup
                 $pilihanGroup = PilihanGroup::create($dataPilihanGroup); // `create()` lebih ringkas daripada `new` + `save()`
-    
+
                 // Buat data Pilihans
                 $dataPilihan = [];
                 for ($x = 0; $x < count($validatedData['option_name']); $x++) {
@@ -60,12 +60,12 @@ class PilihanController extends Controller
                         'updated_at' => now()
                     ];
                 }
-    
+
                 // Simpan semua Piilhans secara bulk
                 Pilihan::insert($dataPilihan); // Bulk insert lebih efisien
             }
         });
-        
+
         return responseSuccess(false);
     }
 
@@ -167,5 +167,12 @@ class PilihanController extends Controller
         $pilihan->update($data);
 
         return responseSuccess(true, "Pilihan berhasil ditambahkan kedalam product");
+    }
+
+    public function getPilihansByOutlet($idOutlet)
+    {
+        $convertIdOutlet = json_decode($idOutlet);
+        $pilihans = PilihanGroup::where('outlet_id', $convertIdOutlet[0])->with('pilihans')->orderBy('name', 'asc')->get();
+        return response()->json($pilihans);
     }
 }

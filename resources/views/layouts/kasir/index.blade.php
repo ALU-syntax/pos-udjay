@@ -53,7 +53,7 @@
 
         .order-section {
             border: 1px solid #ddd;
-            padding: 20px;
+            padding: 10px 20px;
             border-radius: 8px;
             margin-bottom: 50px;
         }
@@ -358,6 +358,65 @@
             background-color: rgb(220,53,69);
             border-color: rgb(220,53,69);
         }
+
+        .badge {
+            display: inline-block;
+            background: #eef6ff;
+            color: #0e60e9;
+            border-radius: 999px;
+            padding: 2px 10px;
+            font-size: 12px
+        }
+
+        .custom-card {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px 15px;
+            display: flex;
+            height: 100px;
+            font-size: 12px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .custom-card .form-check-input {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+
+        .btn-variant {
+            height: 100px;
+            font-size: 12px;
+            color: black;
+        }
+
+        .btn-sales-type {
+            height: 100px;
+            font-size: 12px;
+            color: black;
+        }
+
+        .callout {
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #5bc0de;
+            border-left-width: 5px;
+            border-radius: 3px;
+            h4 {
+                margin-top: 0;
+                margin-bottom: 5px;
+            }
+            p:last-child {
+                margin-bottom: 0;
+            }
+            code {
+                border-radius: 3px;
+            }
+            & + .bs-callout {
+                margin-top: -5px;
+            }
+        }
+
     </style>
 </head>
 
@@ -923,7 +982,7 @@
                                                 <span class="ms-auto">&gt;</span>
                                             </div>
 
-                                            @foreach ($categorys as $category)
+                                            {{-- @foreach ($categorys as $category)
                                                 @if (count($category->products))
                                                     <div class="list-group-item list-category d-flex align-items-center"
                                                         data-target="kategori-{{ $category->id }}"
@@ -933,12 +992,12 @@
                                                         <span class="ms-auto">&gt;</span>
                                                     </div>
                                                 @endif
-                                            @endforeach
+                                            @endforeach --}}
                                         </div>
                                     </div>
 
                                     <!-- Product View -->
-                                    @foreach ($categorys as $item)
+                                    {{-- @foreach ($categorys as $item)
                                         <div id="kategori-{{ $item->id }}"
                                             class="card d-none child-section list-product-category border-uddjaya"
                                             style="overflow-y: auto; height: calc(100vh - 240px);">
@@ -951,7 +1010,7 @@
                                                 </div>
                                             @endforeach
                                         </div>
-                                    @endforeach
+                                    @endforeach --}}
 
                                     {{-- Menu Diskon --}}
                                     <div id="Diskon" class="card d-none child-section border-uddjaya"
@@ -962,7 +1021,7 @@
                                     {{-- Menu All Item --}}
                                     <div id="all-item" class="card d-none child-section border-uddjaya"
                                         style="overflow-y: auto; height: calc(100vh - 240px);">
-                                        @foreach ($categorys as $item)
+                                        {{-- @foreach ($categorys as $item)
                                             @foreach ($item->products as $data)
                                                 <div class="list-group-item list-item list-all-item d-flex align-items-center"
                                                     data-harga="{{ $data->harga_jual }}"
@@ -971,7 +1030,7 @@
                                                     <span class="ms-3">{{ $data->name }}</span>
                                                 </div>
                                             @endforeach
-                                        @endforeach
+                                        @endforeach --}}
 
                                     </div>
                                 </div>
@@ -1040,6 +1099,12 @@
                 <!-- Order Section -->
                 <div class="col-5 p-3">
                     <div class="order-section border-uddjaya">
+                        <div class="row d-flex">
+                            <div class="col-12">
+                                <span id="status" class="badge">Checking…</span>
+                                <span id="queued" class="badge">Queued: 0</span>
+                            </div>
+                        </div>
                         <div class="row mb-1">
                             <div class="col-12 d-flex">
                                 <button class="btn btn-primary-outline w-25 btn-lg my-0 ms-0 me-1 px-0 pb-0 rounded"
@@ -1425,6 +1490,62 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalOffline" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" id="pesananOfflineModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal"
+                        id="btnBatalOffline">Batal</button>
+                    <h5 class="modal-title mx-auto text-center" id="productOfflineModalLabel">
+                        <strong id="namaProductOffline"></strong><br>
+                        <span id="totalHargaItemOffline"></span>
+                    </h5>
+                    <button id="saveItemToCartOffline" type="button" class="btn btn-primary btn-lg">Simpan</button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="listVariantOffline"></div>
+
+                    <div id="listPilihanOffline"></div>
+
+                    <!-- Jumlah -->
+                    <div class="mb-4">
+                        <label for="quantity" class="form-label"><strong>Jumlah</strong></label>
+                        <div class="row">
+                            <div class="col-6">
+                                <input type="number" class="form-control text-center form-control-lg" id="quantity-offline"
+                                    style="height: 75px; font-size: 17px;" value="1" min="1" readonly>
+                            </div>
+                            <div class="col-3">
+                                <button
+                                    class="text-center align-items-center justify-content-center btn btn-lg btn-outline-primary w-100 d-flex"
+                                    id="decrement-offline" style="height: 75px; font-size:25px;"><span
+                                        class="text-center"></span>-</button>
+                            </div>
+                            <div class="col-3">
+                                <button
+                                    class="text-center btn btn-lg align-items-center justify-content-center btn-outline-primary w-100 d-flex"
+                                    id="increment-offline" style="height: 75px; font-size:25px;"><span
+                                        class="text-center">+</span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="salesTypeOffline"></div>
+
+                    <div id="listModifierOffline"></div>
+
+                    <div id="listDiskonOffline"></div>
+
+                    <div class="mb-4 mt-2">
+                        <label for="note" class="form-label"><strong>Catatan</strong></label>
+                        <textarea style="height: 220px;" class="form-control" id="catatanOffline" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- JS Dependencies -->
     {{-- <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script> --}}
@@ -1464,18 +1585,18 @@
         var listPajak = [];
         var tandaRounding = '';
         var amountRounding = 0;
-        var listCategory = @json($categorys);
+
+        var listCategory = [];
         var listProduct = [];
+        var listModifier = [];
+        var listPilihan = [];
+        var listSalesType = [];
+
         var listActivityTransaction = [];
         var listItemSplitBill = [];
         var listPajakSplitBill = [];
         var listItemRefund = [];
         var listPajakRefund = [];
-        listCategory.forEach(function(category) {
-            category.products.forEach(function(product) {
-                listProduct.push(product);
-            });
-        });
 
         var listPromo = @json($promos);
         var promoTerpasang = [];
@@ -1512,10 +1633,34 @@
         var listDiskonAmountEdit = [];
 
         var hargaAkhirEditItem = 0;
+        var hargaAkhirOfflineItem = 0;
         var variantIdEdit = '';
         var variantNameEdit = '';
 
+        var variantIdOffline = '';
+        var variantNameOffline = '';
+
         var salesTypeIdEdit = '';
+        var salesTypeIdOffline = '';
+
+        // properties offline
+        var listModifierIdOffline = [];
+        var listModifierNameOffline = [];
+        var listModifierHargaOffline = [];
+
+        var listPilihanIdOffline = [];
+        var listPilihanNameOffline = [];
+        var listPilihanHargaOffline = [];
+
+        var listDiskonIdOffline = [];
+        var listDiskonNameOffline = [];
+        var listDiskonTypeOffline = [];
+        var listDiskonValueOffline = [];
+        var listDiskonAmountOffline = [];
+
+        var dataHarga = 0;
+
+        var backBtn = document.getElementById('back-btn');
 
         function showLoader(show = true) {
             const preloader = $("#preloader");
@@ -2405,13 +2550,13 @@
                 tmpSubTotal.push(-item.value);
             });
 
-            console.log(tmpSubTotal);
+            // console.log(tmpSubTotal);
 
             var subTotal = tmpSubTotal.reduce(function(acc, curr) {
                 return acc + curr;
             }, 0);
 
-            console.log(subTotal);
+            // console.log(subTotal);
             let tmpTotalPajak = [];
             let tmpDataPajak = [];
 
@@ -3307,6 +3452,514 @@
             $('#container-sold-item').append(html)
         });
 
+        function handlerOfflineItem(id){
+            let tmpRandomId = generateRandomID();
+            let quantity = document.getElementById('quantity-offline');
+
+            $('#listVariantOffline').empty();
+            $('#listPilihanOffline').empty();
+            $('#salesTypeOffline').empty();
+            $('#listModifierOffline').empty();
+            $('#listDiskonOffline').empty();
+            $('#quantity-offline').val(1);
+            $('#catatanOffline').val('');
+
+            // let item = $(widget);
+            // let itemTmpId = item.attr('data-tmpid');
+
+
+            let dataItem = listProduct.find(item => item.id == id);
+            let modifierItem = getDataRelationProductFromJsonStringify(listModifier, id);
+            let pilihanItem = getDataRelationProductFromJsonStringify(listPilihan, id);
+            let diskonItem = [];
+            listDiskon.forEach(function(discount){
+               if(discount.type_input == "fixed" && discount.satuan == "percent"){
+                diskonItem.push(discount)
+               }
+            });
+
+            dataHarga = dataItem.variants[0].harga;
+            // console.log(pilihanItem)
+            // hargaAkhirOfflineItem = dataItem.harga;
+
+            variantIdOffline = dataItem.variants[0].id;
+            variantNameOffline = dataItem.variants[0].name;
+
+            // console.log(dataItem)
+            $('#namaProductOffline').html(dataItem.name);
+            $('#totalHargaItemOffline').html(formatRupiah(dataItem.variants[0].harga.toString(), "Rp. "));
+
+
+            // Render Variant (Single Choose)
+            if(dataItem.variants && dataItem.variants.length > 1){
+                // Membuat container utama seperti div mb-4 dengan label dan small
+               let containerVariant = $(`
+                   <div class="mb-4">
+                       <label for="quantity" class="form-label"><strong>Variants</strong></label> |
+                       <small>Single Choose</small>
+                       <div class="row mt-1"></div>
+                   </div>
+               `);
+
+               // Ambil div row di dalam container untuk append tombol variant
+                let rowDiv = containerVariant.find('div.row');
+
+                dataItem.variants.forEach(function(variant, index){
+                    let variantHtml = $(`
+                        <div class="form-group col-6 mt-2">
+                            <button class="btn w-100 btn-xl btn-outline-primary btn-variant-offline"
+                                data-variantid="${variant.id}" data-harga="${variant.harga}" data-name="${variant.name}">
+                                <div class="row">
+                                    <div class="col-6 me-auto">
+                                        ${variant.name} (${variant.stok})
+                                    </div>
+                                    <div class="col-4 ms-auto pe-0">
+                                        ${formatRupiah(variant.harga.toString(), 'Rp. ')}
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    `);
+
+                    if(index == 0){
+                        variantHtml.find('button.btn-variant-offline').addClass('active');
+                    }
+                    rowDiv.append(variantHtml);
+                });
+
+                // Append container ke elemen dengan id listVariantEdit
+                $('#listVariantOffline').append(containerVariant);
+
+            }
+
+            // Render Pilihan (Choose Many)
+            if(pilihanItem && pilihanItem.length > 0){
+
+                // Render Pilihan (Choose Many)
+                pilihanItem.forEach(function(pilihan){
+                    let containerPilihan = $(`
+                        <div class="mb-4">
+                            <label for="quantity" class="form-label"><strong>${pilihan.name}</strong></label> |
+                            <small>Choose Many</small>
+                            <div class="row mt-1"></div>
+                        </div>
+                    `);
+
+                    let rowDivPilihan = containerPilihan.find('div.row');
+
+                    // Asumsi pilihan.pilihans adalah array pilihan di dalam listPilihan
+                    pilihanItem.pilihans.forEach(function(data){
+                        let pilihanHtml = $(`
+                            <div class="col-6 mt-2">
+                                <div class="custom-card">
+                                    <span>${data.name} <small>(${formatRupiah(data.harga.toString(), 'Rp. ')})</small></span>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input form-pilihan-offline form-switch"
+                                            value="${data.harga}" type="checkbox" data-id="${data.id}" data-name="${data.name}">
+                                    </div>
+                                </div>
+                            </div>
+                        `);
+
+                        rowDivPilihan.append(pilihanHtml);
+                    });
+
+                    $('#listPilihanOffline').append(containerPilihan);
+                });
+            }
+
+            // Render Sales Type (Single Choose)
+            if(listSalesType && listSalesType.length > 0){
+                let containerSalesType = $(`
+                    <div class="mb-4">
+                        <label for="quantity" class="form-label"><strong>Sales Type</strong></label> |
+                        <small>Single Choose</small>
+                        <div class="row mt-1"></div>
+                    </div>
+                `);
+
+                let rowDivSalesType = containerSalesType.find('div.row');
+
+                listSalesType.forEach(function(salesType, index){
+                    let salesTypeHtml = $(`
+                        <div class="form-group col-md-6 mt-2">
+                            <button class="btn w-100 btn-xl btn-outline-primary btn-sales-type-offline"
+                                data-salestypeid="${salesType.id}" data-salestypename="${salesType.name}">
+                                <div class="row">
+                                    <div class="col-6 me-auto">
+                                        ${salesType.name}
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    `);
+
+                    if(index == 0){
+                        salesTypeHtml.find('button.btn-sales-type-offline').addClass('active');
+                    }
+                    rowDivSalesType.append(salesTypeHtml);
+                });
+
+                $('#salesTypeOffline').append(containerSalesType);
+            }
+
+            // Render Modifier (Choose Many)
+            modifierItem.forEach(function(dataModifier){
+                let containerModifier = $(`
+                    <div class="mb-4">
+                        <label for="quantity" class="form-label"><strong>${dataModifier.name}</strong></label> |
+                        <small>Choose Many</small>
+                        <div class="row mt-1"></div>
+                    </div>
+                `);
+
+                let rowDivModifier = containerModifier.find('div.row');
+
+                dataModifier.modifier.forEach(function(data){
+                    let modifierHtml = $(`
+                        <div class="col-md-6 mt-2">
+                            <div class="custom-card">
+                                <span>${data.name} <small>(${formatRupiah(data.harga.toString(), 'Rp. ')})</small></span>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input form-modifier-offline form-switch"
+                                        value="${data.harga}" type="checkbox" data-id="${data.id}" data-name="${data.name}">
+                                </div>
+                            </div>
+                        </div>
+                    `);
+
+                    rowDivModifier.append(modifierHtml);
+                });
+
+
+                $('#listModifierOffline').append(containerModifier);
+            });
+
+            // Render Diskon (Discount)
+            if(diskonItem && diskonItem.length > 0){
+                let containerDiskon = $(`
+                    <div class="mb-4">
+                        <label class="form-label"><strong>Diskon</strong></label>
+                        <div class="row mt-1"></div>
+                    </div>
+                `);
+
+                let rowDivDiskon = containerDiskon.find('div.row');
+
+                diskonItem.forEach(function(discount){
+                    let discountLabel = `(%${discount.amount})`;
+                    let diskonHtml = $(`
+                        <div class="col-md-6 mt-2">
+                            <div class="custom-card">
+                                <span>${discount.name} ${discountLabel}</span>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input form-diskon-offline form-switch"
+                                        value="${discount.amount}" data-type="${discount.satuan}"
+                                        data-name="${discount.name}" type="checkbox"
+                                        data-id="${discount.id}" id="discount-${discount.id}">
+                                </div>
+                            </div>
+                        </div>
+                    `);
+
+                    rowDivDiskon.append(diskonHtml);
+                });
+
+                $('#listDiskonOffline').append(containerDiskon);
+            }
+
+            updateHargaAkhirOffline();
+
+            // seluruh fungsi button offline disini
+            $('.btn-variant-offline').off().on('click', function() {
+                $('.btn-variant-offline').removeClass('active');
+                $(this).addClass('active')
+
+                let id = $(this).data('variantid');
+                let harga = $(this).data('harga');
+                let name = $(this).data('name');
+
+                variantIdOffline = id;
+                dataHarga = harga;
+                variantNameOffline= name;
+
+                updateHargaAkhirOffline();
+            });
+
+            // Event listener untuk tombol decrement
+            $('#decrement-offline').off().on('click', function(){
+                const value = parseInt($('#quantity-offline').val());
+                if (value > 1) {
+                    $('#quantity-offline').val(value - 1);
+                    updateHargaAkhirOffline();
+                }
+            });
+
+            // Event listener untuk tombol increment
+            $('#increment-offline').off().on('click', function(){
+                const value = parseInt($('#quantity-offline').val());
+                $('#quantity-offline').val(value + 1);
+                updateHargaAkhirOffline();
+            });
+
+            $('.btn-sales-type-offline').off().on('click', function() {
+                $('.btn-sales-type-offline').removeClass('active');
+                $(this).addClass('active')
+
+                let id = $(this).attr('data-salestypeid');
+                let name = $(this).attr('data-salestypename');
+
+                salesTypeIdOffline = id;
+
+                updateHargaAkhirOffline();
+            });
+
+            $('.form-modifier-offline').off().on('change', function() {
+                updateHargaAkhirOffline();
+            });
+
+            $('.form-diskon-offline').off().on('change', function(){
+                updateHargaAkhirOffline();
+            });
+
+            $('#saveItemToCartOffline').off().on('click', function(){
+                let dataNama = dataItem.name;
+                let dataIdProduct = dataItem.id;
+                let dataHargaProduct = dataHarga;
+                let quantityProduct = parseInt($('#quantity-offline').val());
+                let totalHargaProduct = dataHargaProduct * quantityProduct;
+                var isProductExcludeTax = dataItem.excludeTax;
+
+                var dataSalesOffline = listSalesType;
+                if (dataSalesOffline.length > 0) {
+                    var salesTypeId = dataSalesOffline[0].id;
+                    var salesTypeName = dataSalesOffline[0].name;
+                } else {
+                    var salesTypeId = null;
+                    var salesTypeName = null;
+                }
+
+                // MODIFIER
+                let dataModifierId = listModifierIdOffline;
+                let dataModifierNama = listModifierNameOffline;
+                let dataModifierHarga = listModifierHargaOffline;
+
+                let dataModifier = [];
+                for (let x = 0; x < dataModifierId.length; x++) {
+                    let tmpDataModifier = {
+                        tmpIdProduct: tmpRandomId,
+                        id: dataModifierId[x],
+                        nama: dataModifierNama[x],
+                        harga: dataModifierHarga[x],
+                    }
+
+                    dataModifier.push(tmpDataModifier);
+                }
+
+                // Pilihan
+                let dataPilihanId = listPilihanIdOffline;
+                let dataPilihanNama = listPilihanNameOffline;
+                let dataPilihanHarga = listPilihanHargaOffline;
+
+                let dataPilihan = [];
+                for(let i = 0; i < dataPilihanId.length; i++){
+                    let tmpDataPilihan = {
+                        tmpIdProduct: tmpRandomId,
+                        id: dataPilihanId[i],
+                        nama: dataPilihanNama[i],
+                        harga: dataPilihanHarga[i],
+                    }
+
+                    dataPilihan.push(tmpDataPilihan);
+                }
+
+                // DISKON
+                let dataDiskonId = listDiskonIdOffline;
+                let dataDiskonNama = listDiskonNameOffline;
+                let dataDiskonHarga = listDiskonAmountOffline;
+                let dataDiskonValue = listDiskonValueOffline;
+                let dataDiskonType = listDiskonTypeOffline;
+
+                let dataDiskon = [];
+
+                // console.log(dataDiskonNama);
+                for (let i = 0; i < dataDiskonId.length; i++) {
+                    let tmpDataDiskon = {
+                        tmpIdProduct: tmpRandomId,
+                        id: dataDiskonId[i],
+                        nama: dataDiskonNama[i],
+                        satuan: dataDiskonType[i],
+                        value: dataDiskonValue[i],
+                        result: dataDiskonHarga[i],
+                    };
+
+                    dataDiskon.push(tmpDataDiskon);
+                }
+
+                let catatan = $('#catatanOffline').val()
+
+                subTotal.push(totalHargaProduct);
+
+                let resultModifierTotal = dataModifierHarga.reduce(function(acc, curr) {
+                    return acc + curr;
+                }, 0);
+
+                subTotal.push(resultModifierTotal);
+
+                let data = {
+                    tmpId: tmpRandomId,
+                    idProduct: dataIdProduct,
+                    namaProduct: dataNama,
+                    harga: dataHargaProduct,
+                    quantity: quantityProduct,
+                    diskon: dataDiskon,
+                    salesType: salesTypeId,
+                    promo: [],
+                    idVariant: variantIdOffline,
+                    namaVariant: variantNameOffline,
+                    modifier: dataModifier,
+                    pilihan: dataPilihan,
+                    catatan: catatan,
+                    excludeTax: (isProductExcludeTax || isProductExcludeTax == 1) ? true : false,
+                    resultTotal: totalHargaProduct, //result
+                    listVariant: dataItem.variants,
+                    listPilihan: pilihanItem,
+                    listSalesType: listSalesType,
+                    listModifier: modifierItem,
+                    listDiskon: diskonItem
+                }
+
+                listItem.push(data);
+
+                let html = ''
+                if (dataModifierId.length > 0 && dataDiskonId.length > 0) {
+                    // HTML baru yang akan ditambahkan ke dalam form
+                    // console.log("masok modifier diskon")
+                    totalDiskon.push(...dataDiskonHarga);
+                    html = `
+                    <div class="row mb-0 mt-2">
+                        <div class="col-6">${dataNama}</div>
+                        <input type="text" name="nama[]" value="${dataNama}" hidden>
+                        <div class="col-5 text-end">${formatRupiah(totalHargaProduct.toString(), "Rp. ")}</div>
+                        <input type="text" name="harga[]" value="${totalHargaProduct}" hidden>
+                        <input type="text" name="quantity[]" value="${quantityProduct}" hidden>
+                        <input type="text" name="idProduct[]" value="${dataIdProduct}" hidden>
+                        <div class="col-1 text-end text-danger">
+                            <button type="button" onclick="deleteItem(this)" data-tmpId="${tmpRandomId}" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
+                        </div>
+                    </div>
+                    `;
+
+                    for (let x = 0; x < dataModifierId.length; x++) {
+                        html += `
+                        <div class="row mb-0 modifier" data-tmpId="${tmpRandomId}">
+                            <div class="col-7"><small style="color:gray;">${dataModifierNama[x]}</small></div>
+                            <input type="text" name="namaModifier[]" value="${dataModifierNama[x]}" hidden>
+                            <div class="col-4 text-end" style="color:gray;">${formatRupiah(dataModifierHarga[x].toString(), "Rp. ")}</div>
+                            <input type="text" name="hargaModifier[]" value="${dataModifierHarga[x]}" hidden>
+                            <input type="text" name="idModifier[]" value="${dataModifierId[x]}" hidden>
+                        </div>
+                        `;
+                    }
+                    for (let x = 0; x < dataDiskonId.length; x++) {
+                        html += `
+                        <div class="row mb-0 diskon" data-tmpId="${tmpRandomId}">
+                            <input type="text" name="idDiskon[]" value="${dataDiskonId[x]}" hidden>
+                            <input type="text" name="nominalDiskon[]" value="${dataDiskonHarga[x]}" hidden>
+                        </div>
+                        `;
+                    }
+                } else if (dataModifierId.length > 0) {
+                    // console.log("masok modifier")
+                    html = `
+                    <div class="row mb-0 mt-2">
+                        <div class="col-6">${dataNama}</div>
+                        <input type="text" name="nama[]" value="${dataNama}" hidden>
+                        <div class="col-5 text-end">${formatRupiah(totalHargaProduct.toString(), "Rp. ")}</div>
+                        <input type="text" name="harga[]" value="${totalHargaProduct}" hidden>
+                        <input type="text" name="quantity[]" value="${quantityProduct}" hidden>
+                        <input type="text" name="idProduct[]" value="${dataIdProduct}" hidden>
+                        <div class="col-1 text-end text-danger">
+                            <button type="button" onclick="deleteItem(this)" data-tmpId="${tmpRandomId}" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
+                        </div>
+                    </div>
+                    `;
+                    for (let x = 0; x < dataModifierId.length; x++) {
+                        html += `
+                        <div class="row mb-0 modifier" data-tmpId="${tmpRandomId}">
+                            <div class="col-7"><small style="color:gray;">${dataModifierNama[x]}</small></div>
+                            <input type="text" name="namaModifier[]" value="${dataModifierNama[x]}" hidden>
+                            <div class="col-4 text-end" style="color:gray;">${formatRupiah(dataModifierHarga[x].toString(), "Rp. ")}</div>
+                            <input type="text" name="hargaModifier[]" value="${dataModifierHarga[x]}" hidden>
+                            <input type="text" name="idModifier[]" value="${dataModifierId[x]}" hidden>
+                        </div>
+                        `;
+                    }
+                } else if (dataDiskonId.length > 0) {
+                    // console.log("masok diskon")
+                    totalDiskon.push(...dataDiskonHarga);
+                    html = `
+                    <div class="row mb-0 mt-2" data-tmpId="${tmpRandomId}">
+                        <div class="col-6">${dataNama}</div>
+                        <input type="text" name="nama[]" value="${dataNama}" hidden>
+                        <div class="col-5 text-end">${formatRupiah(totalHargaProduct.toString(), "Rp. ")}</div>
+                        <input type="text" name="harga[]" value="${totalHargaProduct}" hidden>
+                        <input type="text" name="quantity[]" value="${quantityProduct}" hidden>
+                        <input type="text" name="idProduct[]" value="${dataIdProduct}" hidden>
+                        <div class="col-1 text-end text-danger">
+                            <button type="button" onclick="deleteItem(this)" data-tmpId="${tmpRandomId}" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
+                        </div>
+                    </div>
+                    `;
+
+                    for (let x = 0; x < dataDiskonId.length; x++) {
+                        html += `
+                        <div class="row mb-0 modifier" data-tmpId="${tmpRandomId}">
+                            <input type="text" name="idDiskon[]" value="${dataDiskonId[x]}" hidden>
+                            <input type="text" name="nominalDiskon[]" value="${dataDiskonHarga[x]}" hidden>
+                        </div>
+                        `;
+                    }
+                } else {
+                    // console.log("masok")
+                    html = `
+                    <div class="row mb-0 mt-2">
+                        <div class="col-7">${dataNama}</div>
+                        <input type="text" name="nama[]" value="${dataNama}" hidden>
+                        <div class="col-4 text-end">${formatRupiah(totalHargaProduct.toString(), "Rp. ")}</div>
+                        <input type="text" name="harga[]" value="${totalHargaProduct}" hidden>
+                        <input type="text" name="quantity[]" value="${quantityProduct}" hidden>
+                        <input type="text" name="idProduct[]" value="${dataIdProduct}" hidden>
+                        <div class="col-1 text-end text-danger">
+                            <button type="button" onclick="deleteItem(this)" data-tmpId="${tmpRandomId}" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
+                        </div>
+                    </div>
+                    `;
+                }
+
+                syncItemCart()
+
+                // Tutup modal
+                hargaAkhirOfflineItem = 0;
+                const modal = $('#modalOffline');
+                modal.modal('hide');
+            })
+
+            $('#btnBatalOffline').off().on('click', function(){
+                hargaAkhirOfflineItem = 0;
+                const modal = $('#modalOffline');
+                modal.modal('hide');
+            });
+
+            const modalOffline = $('#modalOffline');
+            modalOffline.modal({
+                backdrop: 'static',
+                keyboard: true
+            });
+            modalOffline.modal('show');
+
+        }
+
         function handlerEditItem(widget){
             let quantity = document.getElementById('quantity-edit');
 
@@ -3322,6 +3975,8 @@
             let dataItem = listItem.find(item => item.tmpId == itemTmpId);
 
             console.log(dataItem);
+            if(!dataItem.idProduct) return;
+
             hargaAkhirEditItem = dataItem.harga;
 
             variantIdEdit = dataItem.idVariant;
@@ -3535,7 +4190,6 @@
 
             // seluruh fungsi button edit disini
             $('.btn-variant-edit').off().on('click', function() {
-                console.log("masuk variant edit")
                 $('.btn-variant-edit').removeClass('active');
                 $(this).addClass('active')
 
@@ -3575,7 +4229,7 @@
 
                 salesTypeIdEdit = id;
 
-                updateHargaAkhir();
+                updateHargaAkhirEditItem();
             });
 
             $('.form-modifier-edit').off().on('change', function() {
@@ -3819,7 +4473,404 @@
             };
         }
 
+
+
+        async function loadProducts() {
+            try {
+                let baseUrl = `{{ route('getCategoryProductByOutlet', ':idOutlet') }}`;
+                let url = baseUrl.replace(':idOutlet', dataLogin.outlet_id); // Ganti ':id' dengan nilai dataId
+
+                // const res = await handleAjax(url).excute();
+                const res = await fetch(url);
+                const items = await res.json();
+
+                listProduct = [];
+
+                listCategory = items;
+                listCategory.forEach(function(category) {
+                    category.products.forEach(function(product) {
+                        listProduct.push(product);
+                    });
+                });
+
+                const collator = new Intl.Collator('id', { sensitivity: 'base', numeric: true });
+                const byNameAsc = (a, b) => collator.compare((a?.name ?? '').trim(), (b?.name ?? '').trim());
+
+                listProduct.sort(byNameAsc);
+
+                await Promise.all(items.map(p => idbPut('categories', p)));
+
+                await Promise.all((items || []).map(cat => {
+                    cat.products.forEach(prod => {
+                        idbPut('products', prod);
+                    });
+                }));
+
+                renderProducts(items);
+            } catch {
+                const cachedCat = await idbAll('categories');
+                const cachedProd = await idbAll('products');
+
+                const collator = new Intl.Collator('id', { sensitivity: 'base', numeric: true });
+                const byNameAsc = (a, b) => collator.compare((a?.name ?? '').trim(), (b?.name ?? '').trim());
+
+                cachedCat.sort(byNameAsc);
+                cachedProd.sort(byNameAsc);
+
+                listCategory = cachedCat;
+                listProduct = cachedProd;
+
+                renderProducts(cachedCat);
+            }
+        }
+
+        async function loadModifier(){
+            try {
+                let baseUrl = `{{ route('getModifierByOutlet', ':idOutlet') }}`;
+                let url = baseUrl.replace(':idOutlet', dataLogin.outlet_id); // Ganti ':id' dengan nilai dataId
+
+                const res = await fetch(url);
+                const items = await res.json();
+                // console.log(items);
+
+                await Promise.all(items.map(p => idbPut('modifiers', p)));
+
+                listModifier = items;
+            } catch {
+                const cachedModifier = await idbAll('modifiers');
+                // listModifier = cachedModifier;
+            }
+        }
+
+        async function loadDiskon(){
+            try {
+                let baseUrl = `{{ route('getDiscountByOutlet', ':idOutlet') }}`;
+                let url = baseUrl.replace(':idOutlet', dataLogin.outlet_id); // Ganti ':id' dengan nilai dataId
+
+                const res = await fetch(url);
+                const items = await res.json();
+                // console.log(items);
+                await Promise.all(items.map(p => idbPut('discounts', p)));
+
+                listDiskon = items;
+            } catch {
+                const cachedDiskon = await idbAll('discounts');
+                listDiskon = cachedDiskon;
+            }
+        }
+
+        async function loadSalesType(){
+            try {
+                let baseUrl = `{{ route('apiGetSalesTypeByOutlet', ':idOutlet') }}`;
+                let url = baseUrl.replace(':idOutlet', dataLogin.outlet_id); // Ganti ':id' dengan nilai dataId
+
+                const res = await fetch(url);
+                const items = await res.json();
+                // console.log(items);
+                await Promise.all(items.map(p => idbPut('sales_types', p)));
+
+                listSalesType = items;
+            } catch {
+                const cachedSalesType = await idbAll('sales_types');
+                listSalesType = cachedSalesType;
+            }
+        }
+
+        async function loadPilihans(){
+            try {
+                let baseUrl = `{{ route('getPilihansByOutlet', ':idOutlet') }}`;
+                let url = baseUrl.replace(':idOutlet', dataLogin.outlet_id); // Ganti ':id' dengan nilai dataId
+
+                const res = await fetch(url);
+                const items = await res.json();
+                // console.log(items);
+                await Promise.all(items.map(p => idbPut('pilihans', p)));
+
+                listPilihan = items;
+            } catch {
+                const cachedPilihan = await idbAll('pilihans');
+                listPilihan = cachedPilihan;
+            }
+        }
+
+        function syncDatabase(){
+            idbClear('categories');
+            idbClear('products');
+            idbClear('modifiers');
+            idbClear('discounts');
+            idbClear('sales_types');
+            idbClear('pilihans');
+            loadProducts();
+            loadModifier();
+            loadDiskon();
+            loadSalesType();
+            loadPilihans();
+        }
+
+        function renderProducts(categories, $container = $('.list-group')) {
+            if ($container.length === 0) return;
+            $('.category-product').remove();
+            $('.list-product-category').remove();
+
+            const $containerAllItem = $('#all-item');
+            $containerAllItem.empty();
+
+            const $frag = $(document.createDocumentFragment());
+            const $fragItem = $(document.createDocumentFragment());
+            const $fragAllItem = $(document.createDocumentFragment());
+
+            (categories || []).forEach(cat => {
+                if (!cat || !Array.isArray(cat.products) || cat.products.length === 0) return;
+
+                const $category = $('<div>')
+                .addClass('list-group-item list-category category-product d-flex align-items-center')
+                .attr('data-target', `kategori-${cat.id}`)
+                .attr('data-name', cat.name);
+
+                const $icon = $('<div>').addClass('icon-box').attr('data-text', cat.name);
+                const $name = $('<span>').addClass('ms-3').text(cat.name);
+                const $arrow = $('<span>').addClass('ms-auto').text('>');
+
+                $category.append($icon, $name, $arrow);
+                $frag.append($category);
+
+                const $item = $('<div>')
+                .attr('id', `kategori-${cat.id}`)
+                .addClass('card d-none child-section list-product-category border-uddjaya')
+                .css({
+                    'overflow-y': 'auto',
+                    'height': 'calc(100vh - 240px)'
+                });
+
+                (cat.products || []).forEach(prod => {
+
+                    const $itemDetail = $('<div>')
+                    .addClass('list-group-item list-item d-flex align-items-center')
+                    .attr('data-nama', prod.name)
+                    .attr('data-id', prod.id);
+
+                    const $itemIcon = $('<div>').addClass('icon-box').attr('data-text', prod.name);
+                    const $itemName = $('<span>').addClass('ms-3').text(prod.name);
+
+                    $itemDetail.append($itemIcon, $itemName);
+                    $item.append($itemDetail);
+                    $fragItem.append($item);
+
+                    const $allItem = $('<div>')
+                    .addClass('list-group-item list-item list-all-item d-flex align-items-center')
+                    .attr('data-harga', prod.harga_jual)
+                    .attr('data-nama', prod.name)
+                    .attr('data-id', prod.id);
+
+                    const $allItemIcon = $('<div>').addClass('icon-box').attr('data-text', prod.name);
+                    const $allItemName = $('<span>').addClass('ms-3').text(prod.name);
+                    $allItem.append($allItemIcon, $allItemName)
+                    $('#all-item').append($allItem);
+                });
+            });
+
+            const items  = $containerAllItem.children('.list-item').get();
+
+            const collator = new Intl.Collator('id', { sensitivity: 'base', numeric: true });
+            // ambil dari attribute agar tidak kena cache jQuery .data()
+            items.sort((a, b) => collator.compare(
+            a.getAttribute('data-nama') || '',
+            b.getAttribute('data-nama') || ''
+            ));
+
+            // re-append urutannya ke container
+            $containerAllItem.append(items);
+
+            $container.append($frag);
+            $('#content-section').append($fragItem);
+
+            syncIconBoxes();
+            clickListCategory();
+            clickItemProduct();
+        }
+
+        function clickListCategory(){
+            $('.list-category').off().on('click', function() {
+
+                // backBtn.style.display = 'block !important;';
+                backBtn.style.setProperty('display', 'flex', 'important');
+                const targetView = $(this).data('target');
+                const namaKategori = $(this).data('name');
+                if (targetView == "Diskon") {
+                    checkDiskonUsage();
+                }
+
+                $('#input-search-item').addClass('d-none');
+                $('#search-item').val('');
+                $('#content-section > .child-section').addClass('d-none'); // Hide all views
+                $(`#${targetView}`).removeClass('d-none'); // Show selected view
+                $('#text-judul').text(`${namaKategori}`)
+            });
+        }
+
+        function clickItemProduct(){
+            $('.list-item').off().on('click', function(e) {
+                const dataId = $(this).data('id');
+
+                e.preventDefault();
+
+                handlerOfflineItem(dataId);
+                // Ambil URL dasar dari Blade tanpa parameter
+                // let baseUrl = `{{ route('kasir/findProduct', ':id') }}`; // Placeholder ':id'
+                // let url = baseUrl.replace(':id', dataId); // Ganti ':id' dengan nilai dataId
+
+                // handleAjax(url).excute();
+            });
+
+        }
+
+        function updateNetBadge() {
+            const el = document.getElementById('status');
+            el.textContent = navigator.onLine ? 'Online' : 'Offline';
+            el.style.background = navigator.onLine ? '#e7fee8' : '#ffefef';
+            el.style.color = navigator.onLine ? '#087f23' : '#b71c1c';
+        }
+
+        function safeIds(jsonish) {
+            try {
+                const arr = Array.isArray(jsonish) ? jsonish : JSON.parse(jsonish || '[]');
+                return arr.map(n => Number(n)).filter(Number.isFinite);
+            } catch { return []; }
+        }
+
+        function getDataRelationProductFromJsonStringify(list, productId){
+            const pid = Number(productId);
+            const groups = list.filter(g => safeIds(g.product_id).includes(pid));
+            return (groups || []);
+        }
+
+        function hitungModifierOffline(){
+            let modifierCheckboxes = document.querySelectorAll('.form-modifier-offline');
+            let totalModifier = 0;
+            let totalModifierId = [];
+            let totalModifierName = [];
+            let totalModifierHarga = [];
+
+            modifierCheckboxes.forEach((checkbox) => {
+                if (checkbox.checked) {
+                    const amount = parseFloat(checkbox.value);
+                    const id = checkbox.dataset.id;
+                    const name = checkbox.dataset.name;
+                    totalModifier += parseInt($('#quantity-offline').val()) * amount;
+
+                    totalModifierId.push(id);
+                    totalModifierHarga.push(amount);
+                    totalModifierName.push(name);
+                }
+            });
+
+            listModifierIdOffline = totalModifierId;
+            listModifierHargaOffline = totalModifierHarga;
+            listModifierNameOffline = totalModifierName;
+            return totalModifier;
+        }
+
+        function hitungPilihanOffline(){
+            let pilihanCheckboxes = document.querySelectorAll('.form-pilihan-offline');
+
+            let totalPilihan = 0;
+            let totalPilihanId = [];
+            let totalPilihanName = [];
+            let totalPilihanHarga = [];
+
+            pilihanCheckboxes.forEach((pilihan) => {
+                if(pilihan.checked){
+                    const amount = parseFloat(pilihan.value);
+                    const id = pilihan.dataset.id;
+                    const name = pilihan.dataset.name;
+                    totalPilihan += parseInt($('#quantity-offline').val()) * amount;
+
+                    totalPilihanId.push(id);
+                    totalPilihanHarga.push(amount);
+                    totalPilihanName.push(name);
+                }
+            });
+
+            listPilihanIdOffline = totalPilihanId;
+            listPilihanHargaOffline = totalPilihanHarga;
+            listPilihanNameOffline = totalPilihanName;
+            return totalPilihan;
+
+        }
+
+        function hitungDiskonOffline() {
+            var diskonCheckboxes = document.querySelectorAll('.form-diskon-offline');
+            let totalDiskon = 0;
+            let totalDiskonId = [];
+            let totalDiskonNama = [];
+            let totalDiskonHarga = [];
+            let totalDiskonValue = [];
+            let totalDiskonType = [];
+
+            diskonCheckboxes.forEach((checkbox) => {
+                if (checkbox.checked) {
+                    const amount = parseFloat(checkbox.value);
+                    const type = checkbox.dataset.type;
+                    const id = checkbox.dataset.id;
+                    const name = checkbox.dataset.name;
+
+                    if (type === "rupiah") {
+                        totalDiskon += amount;
+                    } else if (type === "percent") {
+                        if (listModifierHargaOffline.length > 0) {
+                            let hargaBarang = dataHarga
+                            listModifierHargaOffline.forEach(function(itemModifier) {
+                                hargaBarang += itemModifier;
+                            });
+                            totalDiskon += (hargaBarang * parseInt($('#quantity-offline').val()) * amount) / 100;
+                        } else {
+                            totalDiskon += (dataHarga * parseInt($('#quantity-offline').val()) * amount) / 100;
+                        }
+                    }
+
+                    totalDiskonId.push(id);
+                    totalDiskonValue.push(amount);
+                    totalDiskonHarga.push(totalDiskon);
+                    totalDiskonType.push(type);
+                    totalDiskonNama.push(name);
+                }
+            });
+
+            listDiskonAmountOffline = totalDiskonHarga;
+            listDiskonIdOffline = totalDiskonId;
+            listDiskonNameOffline = totalDiskonNama;
+            listDiskonValueOffline = totalDiskonValue;
+            listDiskonTypeOffline = totalDiskonType;
+            return totalDiskon;
+        }
+
+        function updateHargaAkhirOffline(){
+            const quantityValue = parseInt($('#quantity-offline').val());
+            const totalModifier = hitungModifierOffline();
+            const totalPilihan = hitungPilihanOffline();
+            const totalDiskon = hitungDiskonOffline();
+
+            // Hitung harga akhir setelah diskon
+            const hargaSebelumDiskon = dataHarga * quantityValue;
+            hargaAkhirOfflineItem = hargaSebelumDiskon - totalDiskon + totalModifier + totalPilihan;
+
+            // Pastikan harga tidak negatif
+
+            if (hargaAkhirOfflineItem < 0) {
+                hargaAkhirOfflineItem = 0;
+            }
+
+            let resultHargaAkhir = Math.round(hargaAkhirOfflineItem);
+
+            // Update harga pada elemen HTML
+            $('#totalHargaItemOffline').text(formatRupiah(resultHargaAkhir.toString(), "Rp. "));
+        }
+
         $(document).ready(function() {
+            window.addEventListener('online', updateNetBadge);
+            window.addEventListener('offline', updateNetBadge);
+            updateNetBadge();
+            syncDatabase();
             showLoader(false);
             generateListDiskon();
             attachTransactionClickEvent();
@@ -3967,39 +5018,9 @@
                 $(this).addClass('active');
             });
 
-            var backBtn = document.getElementById('back-btn');
+
             // Handle click on list items to show specific views
-            $('.list-category').on('click', function() {
-
-                // backBtn.style.display = 'block !important;';
-                backBtn.style.setProperty('display', 'flex', 'important');
-                const targetView = $(this).data('target');
-                const namaKategori = $(this).data('name');
-                console.log(targetView);
-                console.log(namaKategori);
-                if (targetView == "Diskon") {
-                    checkDiskonUsage();
-                }
-
-                $('#input-search-item').addClass('d-none');
-                $('#search-item').val('');
-                $('#content-section > .child-section').addClass('d-none'); // Hide all views
-                $(`#${targetView}`).removeClass('d-none'); // Show selected view
-                $('#text-judul').text(`${namaKategori}`)
-            });
-
-
-
-            $('.list-item').on('click', function(e) {
-                const dataId = $(this).data('id');
-
-                e.preventDefault();
-                // Ambil URL dasar dari Blade tanpa parameter
-                let baseUrl = `{{ route('kasir/findProduct', ':id') }}`; // Placeholder ':id'
-                let url = baseUrl.replace(':id', dataId); // Ganti ':id' dengan nilai dataId
-
-                handleAjax(url).excute();
-            });
+            clickListCategory();
 
             $('.list-diskon').on('click', function(e) {
                 let satuan = $(this).data('satuan');
@@ -4569,8 +5590,15 @@
                 handleAjax(urlRefund).excute();
             });
 
+            // kalau balik online & tidak ada SyncManager → coba sync manual sebisanya
+            window.addEventListener('online', () => {
+                // manualSync().catch(() => {});
+                updateNetBadge();
+            });
         });
     </script>
+
+    <script src="{{asset('js/indexedDB.js')}}"></script>
 </body>
 
 </html>

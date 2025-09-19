@@ -20,7 +20,7 @@ class DiscountController extends Controller
             "data" => new Discount(),
             "action" => route("library/discount/store"),
             "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
-        ]);   
+        ]);
     }
 
     public function store(Request $request){
@@ -106,5 +106,12 @@ class DiscountController extends Controller
         $discount->delete();
 
         return responseSuccessDelete();
+    }
+
+    public function getDiscountByOutlet($idOutlet)
+    {
+        $convertIdOutlet = json_decode($idOutlet);
+        $discounts = Discount::where('outlet_id', $convertIdOutlet[0])->orderBy('name', 'asc')->get();
+        return response()->json($discounts);
     }
 }

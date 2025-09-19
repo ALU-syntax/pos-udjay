@@ -241,4 +241,12 @@ class ModifiersController extends Controller
 
         return responseSuccessDelete();
     }
+
+    public function getModifierByOutlet($idOutlet)
+    {
+        $convertIdOutlet = json_decode($idOutlet);
+
+        $modifiers = ModifierGroup::with(['modifier'])->where('outlet_id', $convertIdOutlet[0])->orderBy('name', 'asc')->get();
+        return response()->json($modifiers);
+    }
 }
