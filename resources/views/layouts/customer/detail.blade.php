@@ -130,7 +130,7 @@
 
                 $('#point').text(res.data.point);
                 $('#exp').text(res.data.exp);
-                $('#count-transaction').text(res.data.transactions.length + 1);
+                $('#count-transaction').text(res.data.transactions.length);
                 $('#transaction-nominal').text(formatRupiah(res.transactionNominal.toString(), "Rp. "));
             });
 

@@ -270,7 +270,7 @@ class CustomerController extends Controller
 
         $customer = Customer::with(['transactions'])->where('id', $idCustomer)->first();
 
-        $pointExp = $transaction->nominal_bayar / 100;
+        $pointExp = $transaction->total / 100;
         $pointExpDidapat = floor($pointExp);
         $customer->exp -= $pointExpDidapat;
         $customer->point -= $pointExpDidapat;

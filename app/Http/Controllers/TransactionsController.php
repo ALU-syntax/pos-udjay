@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\DataTables\TransactionsDataTable;
 use App\Exports\TransactionsPosFormatExport;
 use App\Mail\ResendReceiptMail;
+use App\Models\Customer;
 use App\Models\Outlets;
 use App\Models\Transaction;
 use Carbon\Carbon;
@@ -20,9 +21,11 @@ class TransactionsController extends Controller
         $transaction = Transaction::with(['outlet'])->where('outlet_id', $userOutlet[0])->whereDate('created_at', Carbon::today()) // Menggunakan Carbon untuk mendapatkan tanggal hari ini
         ->get();
 
+        $customer = Customer::all();
         return $datatable->render('layouts.reports.transaction', [
             "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
             "data" => $transaction,
+            "customer" => $customer
         ]);
     }
 
@@ -46,7 +49,7 @@ class TransactionsController extends Controller
     public function getTransactionDataDetail(Request $request){
         $idTransaction = $request->input('idTransaction');
         $transaction = Transaction::find($idTransaction);
-        $transaction->load(['user', 'itemTransaction' => function($itemTransaction){
+        $transaction->load(['user', 'customer', 'itemTransaction' => function($itemTransaction){
             $itemTransaction->select(
                 'variant_id',
                 DB::raw('COUNT(*) as total_count'),
@@ -238,6 +241,38 @@ class TransactionsController extends Controller
             'path'         => $path,
             'download_url' => Storage::disk('public')->url($path),
         ]);
+    }
+
+    public function kaitkanCustomer(Request $request){
+         $idTransaction = $request->id_transaction;
+         $idCustomer = $request->customer;
+
+         $transaction = Transaction::find($idTransaction);
+         $transaction->customer()->associate($idCustomer);
+         $transaction->save();
+
+         $pointExp = intval($transaction->total) / 100;
+         $pointExpDidapat = floor($pointExp);
+
+
+         $idCustomerLama =  ($request->oldCustomer == 'undefined' || $request->oldCustomer == 'null') ? null : $request->oldCustomer;
+         if($idCustomerLama){
+            $customerLama = Customer::findOrFail($idCustomerLama);
+            $customerLama->point -= $pointExpDidapat;
+            $customerLama->exp -= $pointExpDidapat;
+            $customerLama->save();
+         }
+
+         $customer = Customer::find($idCustomer);
+         $customer->point += $pointExpDidapat;
+         $customer->exp += $pointExpDidapat;
+         $customer->save();
+
+         return response()->json([
+            'status' => 'success',
+            'message' => "Customer berhasil dikaitkan",
+            'customer' => $customer,
+         ]);
     }
 
 }

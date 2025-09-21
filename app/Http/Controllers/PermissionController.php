@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\PermissionDataTable;
+use App\Models\Menu;
 use App\Models\Permission;
 use Illuminate\Http\Request;
 
@@ -34,8 +35,13 @@ class PermissionController extends Controller
             'guard_name' => 'required'
         ]);
 
-        $permission = new Permission($requestValidate);
-        $permission->save();
+        $parts = explode(" ",$request->name);
+        $namaMenu = explode("/", $parts[1]);
+
+        $checkMenu = Menu::where('name', $namaMenu[1])->firstOrFail();
+
+        $permission = Permission::create($requestValidate);
+        $permission->menus()->attach($checkMenu);
 
         return redirect()->route('konfigurasi/permissions')->with('success','Permission Berhasil dibuat!');
     }

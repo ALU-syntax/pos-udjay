@@ -3728,7 +3728,7 @@
                 let dataHargaProduct = dataHarga;
                 let quantityProduct = parseInt($('#quantity-offline').val());
                 let totalHargaProduct = dataHargaProduct * quantityProduct;
-                var isProductExcludeTax = dataItem.excludeTax;
+                var isProductExcludeTax = dataItem.exclude_tax;
 
                 var dataSalesOffline = listSalesType;
                 if (dataSalesOffline.length > 0) {
@@ -3820,7 +3820,7 @@
                     modifier: dataModifier,
                     pilihan: dataPilihan,
                     catatan: catatan,
-                    excludeTax: (isProductExcludeTax || isProductExcludeTax == 1) ? true : false,
+                    excludeTax: (isProductExcludeTax && isProductExcludeTax == 1) ? true : false,
                     resultTotal: totalHargaProduct, //result
                     listVariant: dataItem.variants,
                     listPilihan: pilihanItem,

@@ -183,17 +183,37 @@
                     <div class="card-body">
                         <div class="container">
                             <div class="row">
-                                <div class="col-6">
+                                <div class="col-4">
                                     <h5>Order Details</h5>
                                 </div>
 
-                                @can('delete report/transactions')
-                                    <div class="col-6 d-flex align-self-end justify-content-end">
+
+                                    <div class="col-8 d-flex align-self-end justify-content-end">
                                         {{-- <button class="btn btn-danger">Hapus Transaksi</button> --}}
-                                        <a id="btn-delete-transaction" class="btn btn-danger" href="">Hapus
-                                            Transaksi</a>
+                                        @can('delete report/transactions')
+                                            <a id="btn-delete-transaction" class="btn btn-danger btn-sm me-1" href="">Hapus
+                                                Transaksi</a>
+                                        @endcan
+
+                                        @can('edit-customer report/transactions')
+                                        <button id="btn-kaitkan-customer" class="btn btn-primary btn-sm"
+                                        >Kaitkan Customer</button>
+                                        @endcan
+
+                                        <button id="btn-batal-kaitkan-customer" class="btn btn-danger btn-sm d-none"
+                                        >Batal</button>
+
+                                        <form action="{{ route('report/transaction/kaitkanCustomer') }}" id="submit-customer" method="PUT" class="d-none" enctype="multipart/form-data">
+                                            @csrf
+
+                                            <input type="text" name="id_transaction" id="id_transaction" hidden>
+                                            <button id="btn-confirm-kaitkan-customer" class="btn btn-success btn-sm ms-1" type="submit">Confirm</button>
+                                        </form>
+
+
                                     </div>
-                                @endcan
+
+
                             </div>
                             <hr>
                             <div class="row mb-2 d-flex">
@@ -211,6 +231,10 @@
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">Complete Time</div>
                                 <div class="col-6 d-flex justify-content-end"><span id="complete-time"></span></div>
+                            </div>
+                            <div class="row mb-2 d-flex">
+                                <div class="col-4">Customer</div>
+                                <div id="container-customer" class="col-8 d-flex justify-content-end"><span id="customer">-</span></div>
                             </div>
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">Table</div>
@@ -407,10 +431,30 @@
                     success: function(res) {
                         console.log(res);
 
+                        $('#id_transaction').val(res.data.id);
                         $('#complete-time').text(res.data.create_formated);
                         $('#collected-by').text(res.data.user.name);
                         $('#total-amount').text(formatRupiah(res.data.total.toString(), "Rp. "));
                         $('#payment-method').text(res.data.nama_tipe_pembayaran)
+
+                        $('#submit-customer').addClass('d-none');
+                        $('#btn-delete-transaction, #btn-close-detail, #btn-resend-receipt, #btn-show-receipt, #btn-kaitkan-customer').removeClass('d-none');
+                        $('#btn-batal-kaitkan-customer').addClass('d-none');
+                        $('#container-customer').addClass('d-flex');
+
+                        $('#customer').empty();
+                        $('#customer').text(res.customer?.name);
+
+                        let customer = res.data.customer ? res.data.customer.name : '-'
+                        let idCustomer = res.data.customer ? res.data.customer.id : null;
+
+                        $('#customer').text(customer);
+                        $('#btn-batal-kaitkan-customer').data('customer', customer);
+                        $('#btn-kaitkan-customer').data('customer-id', idCustomer);
+
+                        if(!$('#container-customer').hasClass('d-flex')){
+                            $('#container-customer').addClass('d-flex');
+                        }
 
                         var urlDestroyTransaction = "{{ route('report/transaction/destroy', ':id') }}".replace(
                             ':id', res.data.id);
@@ -897,6 +941,130 @@
                             $btn.prop('disabled', false).text('Export Transaksi');
                         });
                 });
+
+                $('#btn-kaitkan-customer').on('click', function() {
+                    $('#btn-kaitkan-customer').addClass('d-none');
+                    $('#btn-batal-kaitkan-customer').removeClass('d-none');
+                    // kosongkan container
+                    $('#customer').empty();
+                    $('#btn-delete-transaction, #btn-close-detail, #btn-resend-receipt, #btn-show-receipt').addClass('d-none');
+
+                    $('#container-customer').removeClass('d-flex')
+                    $('#submit-customer').removeClass('d-none');
+
+                    let idCustomerTerpasang = $('#btn-kaitkan-customer').data('customer-id');
+
+                    // ambil data dari server (sudah jadi array JS)
+                    const dataCustomer = @json($customer);
+
+                    // buat elemen select (STRING atau DOM, bebas; di sini DOM biar gampang)
+                    const $select = $(`
+                        <select id="select-customer" class="form-control select2" style="width:100%">
+                        <option value="" selected disabled>— Pilih Customer —</option>
+                        </select>
+                    `);
+
+                    // generate <option> dari dataCustomer
+                    // pastikan aman dari null phone, dsb.
+                    dataCustomer.forEach(c => {
+                        const label = [c.name, c.telfon].filter(Boolean).join(' — ');
+                        const isSelected = String(c.id) === String(idCustomerTerpasang); // <- kunci: samakan tipe
+                        $select.append(new Option(label, c.id, isSelected, isSelected));
+                    });
+
+                    // sisipkan ke DOM
+                    $('#customer').append($select);
+
+                    // PRESELECT fallback (kalau belum terset dari loop)
+                    if (idCustomerTerpasang != null && idCustomerTerpasang !== '') {
+                        $select.val(String(idCustomerTerpasang));
+                    }
+
+                    // init Select2
+                    if ($select.data('select2')) $select.select2('destroy');
+                    $select.select2({
+                        placeholder: 'Ketik nama/telepon…',
+                        width: '100%',
+                    });
+
+                    // pastikan Select2 UI ikut ter-update
+                    if (idCustomerTerpasang != null && idCustomerTerpasang !== '') {
+                        $select.trigger('change.select2');
+                    }
+                });
+
+                $('#btn-batal-kaitkan-customer').on('click', function(){
+                    $(this).addClass('d-none');
+                    $('#submit-customer').addClass('d-none');
+                    $('#btn-delete-transaction, #btn-close-detail, #btn-resend-receipt, #btn-show-receipt, #btn-kaitkan-customer').removeClass('d-none');
+                    $('#container-customer').addClass('d-flex')
+                    const customer = $(this).data('customer');
+
+                    $('#customer').empty();
+                    $('#customer').text(customer);
+                });
+
+                $("#submit-customer").on('submit', function(e) {
+                    e.preventDefault();
+                    const _form = this
+                    let dataForm = new FormData(_form);
+                    const customerIdLama = $('#btn-kaitkan-customer').data('customer-id');
+                    const customerId = $('#select-customer').val();
+
+                    dataForm.append('customer', customerId);
+                    dataForm.append('oldCustomer', customerIdLama);
+
+
+                    if(customerIdLama == customerId){
+                        showToast("error", "Customer tidak boleh sama");
+                        return
+                    };
+
+                    $.ajax({
+                        url: this.action,
+                        method: 'POST',
+                        data: dataForm,
+                        contentType: false,
+                        processData: false,
+                        beforeSend: function() {
+                            submitLoader().show()
+                        },
+                        success: (res) => {
+                            $('#submit-customer').addClass('d-none');
+                            $('#btn-delete-transaction, #btn-close-detail, #btn-resend-receipt, #btn-show-receipt, #btn-kaitkan-customer').removeClass('d-none');
+                            $('#btn-batal-kaitkan-customer').addClass('d-none');
+                            $('#container-customer').addClass('d-flex');
+
+                            $('#customer').empty();
+                            $('#customer').text(res.customer?.name);
+
+                            $('#btn-kaitkan-customer').data('customer-id', res.customer?.id);
+                            showToast(res.status, res.message)
+                        },
+                        complete: function() {
+                            submitLoader().hide()
+                        },
+                        error: function(err) {
+                            const errors = err.responseJSON?.errors;
+
+                            console.log(err);
+                            console.log(err.responseJSON);
+                            console.log(err.responseJSON?.errors);
+                            if (errors) {
+                                for (let [key, message] of Object.entries(errors)) {
+                                    console.log(message);
+                                    $(`[name=${key}]`).addClass('is-invalid')
+                                        .parent()
+                                        .append(
+                                            `<div class="invalid-feedback">${message}</div>`
+                                        )
+                                }
+                            }
+
+                            showToast('error', err.responseJSON?.message)
+                        }
+                    })
+                })
             });
         </script>
     @endpush

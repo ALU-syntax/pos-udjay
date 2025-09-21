@@ -380,6 +380,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/modalResendReceipt/{idTransaction}', [TransactionsController::class, 'modalResendReceipt'])->name('transaction/modalResendReceipt');
             Route::post('/resendReceipt/{idTransaction}', [TransactionsController::class, 'resendReceipt'])->name('transaction/resendReceipt');
             Route::post('/exportTransction', [TransactionsController::class, 'exportPosFormat'])->name('transaction/exportPosFormat');
+            Route::post('/kaitkanCustomer', [TransactionsController::class, 'kaitkanCustomer'])->name('transaction/kaitkanCustomer');
             Route::delete('/destroy/{idTransaction}', [TransactionsController::class, 'destroy'])->name('transaction/destroy');
         });
 
