@@ -295,11 +295,15 @@ class SalesController extends Controller
         if($outlet == "all"){
             $data = VariantProduct::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate) {
                 $transaction->whereBetween('created_at', [$startDate, $endDate]);
-            }, 'product.category', 'product.outlet'])->get();
+            }, 'product.category' => function($category){
+                $category->withTrashed();
+            }, 'product.outlet'])->get();
         }else{
             $data = VariantProduct::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate) {
                 $transaction->whereBetween('created_at', [$startDate, $endDate]);
-            }, 'product.category', 'product.outlet'])->whereHas('product', function ($query) use ($outlet) {
+            }, 'product.category' => function($category){
+                $category->withTrashed();
+            }, 'product.outlet'])->whereHas('product', function ($query) use ($outlet) {
                 $query->where('outlet_id', $outlet);
             })->get();
         }
