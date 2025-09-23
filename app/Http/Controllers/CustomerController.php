@@ -47,7 +47,7 @@ class CustomerController extends Controller
         $lowestBenchmarkRecords = LevelMembership::where('benchmark', $lowestBenchmarkValue)->first();
 
         $customer->level_memberships_id = $lowestBenchmarkRecords->id;
-        $customer->created_by = auth()->user()->id;
+        $customer->user_id = auth()->user()->id;
 
         $customer->save();
 

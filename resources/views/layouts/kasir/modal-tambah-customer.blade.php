@@ -69,7 +69,7 @@
                             <label>Gender<span class="text-danger">*</span></label>
                             <select id="gender" name="gender" class="form-select w-100" style="color:black;"
                                 data-style="btn-default" required>
-                                <option selected disabled class="text-gray">Pilih Gender</option>
+                                <option disabled class="text-gray">Pilih Gender</option>
                                 <option value="laki-laki">Laki-Laki</option>
                                 <option value="perempuan">Perempuan</option>
                             </select>
