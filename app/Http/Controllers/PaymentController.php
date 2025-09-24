@@ -49,4 +49,12 @@ class PaymentController extends Controller
 
         return responseSuccessDelete();
     }
+
+    public function getListPayment(){
+        $listCategoryPayment = CategoryPayment::with(['payment' => function ($payment) {
+            $payment->where('status', true);
+        }])->where('status', true)->orderBy('name', 'asc')->get();
+
+        return response()->json($listCategoryPayment);
+    }
 }

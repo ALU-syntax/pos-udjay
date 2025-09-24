@@ -695,6 +695,7 @@
                             'intent://list-bluetooth-device');
                         console.log("intent://cetak-struk?id=" + res.id)
 
+                        console.log(JSON.stringify(res))
                         if (window.Android) {
                             // Panggil metode JavaScript Interface dengan ID transaksi
                             // window.Android.handlePaymentSuccess(res.id);

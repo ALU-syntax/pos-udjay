@@ -64,6 +64,18 @@ function dbReady() {
                 });
             }
 
+            if(!db.objectStoreNames.contains('list_payment')){
+                db.createObjectStore('list_payment', {
+                    keyPath: 'id'
+                });
+            }
+
+            if(!db.objectStoreNames.contains('pending_transactions')){
+                db.createObjectStore('pending_transactions', {
+                    keyPath:'client_uuid'
+                });
+            }
+
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);

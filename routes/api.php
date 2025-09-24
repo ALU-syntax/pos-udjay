@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\DiscountController;
+use App\Http\Controllers\KasirController;
 use App\Http\Controllers\ModifiersController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PilihanController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SalesTypeController;
@@ -28,3 +30,7 @@ Route::get('/getModifierByOutlet/{idOutlet}', [ModifiersController::class,'getMo
 Route::get('/getDiscountByOutlet/{idOutlet}', [DiscountController::class,'getDiscountByOutlet'])->name('getDiscountByOutlet');
 Route::get('/apiGetSalesTypeByOutlet/{idOutlet}', [SalesTypeController::class,'apiGetSalesTypeByOutlet'])->name('apiGetSalesTypeByOutlet');
 Route::get('/getPilihansByOutlet/{idOutlet}', [PilihanController::class,'getPilihansByOutlet'])->name('getPilihansByOutlet');
+Route::get('/getListPayment', [PaymentController::class, 'getListPayment'])->name('getListPayment');
+Route::get('/healthcheck', function () {
+    return response('', 204)->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+})->name('healthcheck');

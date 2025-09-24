@@ -417,6 +417,13 @@
             }
         }
 
+        .btn-choice {
+            height: 125px;
+        }
+
+        .hr-payment{
+            margin: 10px;
+        }
     </style>
 </head>
 
@@ -1397,7 +1404,8 @@
                     </center>
                 </div>
                 <div class="d-flex justify-content-center mb-4">
-                    <a type="submit" class="btn btn-primary w-50" href="{{ route('kasir') }}">Buat Pesanan Baru</a>
+                    {{-- <a type="submit" class="btn btn-primary w-50" href="{{ route('kasir') }}">Buat Pesanan Baru</a> --}}
+                    <button id="btnBuatPesananBaru" class="btn btn-primary w-50" >Buat Pesanan Baru</button>
                 </div>
             </div>
         </div>
@@ -1547,6 +1555,37 @@
         </div>
     </div>
 
+    <div class="modal fade" id="choosePaymentOffline" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl" id="">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn btn-outline-secondary btn-lg" data-bs-dismiss="modal"
+                        id="cancelPayment">Batal</button>
+                    <h5 class="modal-title mx-auto text-center" id="productModalLabel">
+                        <strong id="totalHargaOffline">Rp 80.000</strong><br>
+                    </h5>
+                    <button id="payOffline" type="button" class="btn btn-primary btn-lg disabled" disabled>Simpan</button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- Payment Options -->
+                    <div class="row" id="listPaymentContainer"></div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-4 mt-2">
+                                <label for="note" class="form-label"><strong>Catatan</strong></label>
+                                <textarea style="height: 150px;" class="form-control" id="catatanTransaksiOffline" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- JS Dependencies -->
     {{-- <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script> --}}
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
@@ -1657,6 +1696,12 @@
         var listDiskonTypeOffline = [];
         var listDiskonValueOffline = [];
         var listDiskonAmountOffline = [];
+
+        var listPayment = [];
+        var selectedPayment;
+
+        var potonganPoint = 0;
+        var pointCustomer = 0;
 
         var dataHarga = 0;
 
@@ -4605,6 +4650,7 @@
             loadDiskon();
             loadSalesType();
             loadPilihans();
+            loadListPayment();
         }
 
         function renderProducts(categories, $container = $('.list-group')) {
@@ -4866,8 +4912,743 @@
             $('#totalHargaItemOffline').text(formatRupiah(resultHargaAkhir.toString(), "Rp. "));
         }
 
+        async function loadListPayment(){
+            try {
+                let baseUrl = `{{ route('getListPayment') }}`;
+
+                const res = await fetch(baseUrl);
+                const items = await res.json();
+                console.log(items);
+                await Promise.all(items.map(p => idbPut('list_payment', p)));
+
+                listPayment = items;
+            } catch {
+                const cachedPayment = await idbAll('list_payment');
+                listPayment = cachedPayment;
+            }
+        }
+
+        function renderListPayment(data){
+            const $c = $('#listPaymentContainer');
+            if(!$c.length) return;
+
+            if(!Array.isArray(data) || data.length === 0){
+                $c.html('<p>Tambahkan Tipe Pembayaran Terlebih Dahulu</p>');
+                return;
+            }
+
+            console.log(data);
+            let html = '';
+            data.forEach(cat => {
+                const isCash = (String(cat?.name || '')).toLowerCase() === 'cash';
+
+                const buttons = isCash
+                ? `
+                    <div class="col-4 mt-2">
+                    <button type="button" class="btn w-100 btn-lg btn-choice btn-cash-list btn-outline-primary"
+                        data-kategori-payment-id="${cat.id}" data-kategori-payment-name="${cat.name}" data-value="50000">Rp. 50.000</button>
+                    </div>
+                    <div class="col-4 mt-2">
+                    <button type="button" class="btn w-100 btn-lg btn-choice btn-cash-list btn-outline-primary"
+                        data-kategori-payment-id="${cat.id}" data-kategori-payment-name="${cat.name}" data-value="100000">Rp. 100.000</button>
+                    </div>
+                    <div class="col-4 mt-2">
+                    <button type="button" class="btn w-100 btn-lg btn-choice btn-cash-list btn-outline-primary"
+                        data-kategori-payment-id="${cat.id}" data-kategori-payment-name="${cat.name}" data-value="200000">Rp. 200.000</button>
+                    </div>
+                `
+                : (cat?.payment || []).map(p => `
+                    <div class="col-4 mt-2">
+                    <button type="button" class="btn w-100 btn-lg btn-choice btn-outline-primary"
+                        data-kategori-payment-id="${cat.id}" data-kategori-payment-name="${cat.name}"
+                        data-payment-id="${p.id}" data-value="${p.name}">${p.name}</button>
+                    </div>
+                `).join('');
+
+                const cashInput = isCash
+                ? `<input style="height:70px;font-size:20px;" type="numeric" id="inputMoney"
+                    class="form-control input-xl mt-2 cash-input"
+                    data-kategori-payment-id="${cat.id}" placeholder="Cash Amount">`
+                : '';
+
+                html += `
+                <div class="row payment-row" data-kategori-payment-id="${cat.id}" data-kategori-payment-name="${cat.name}">
+                    <div class="col-3">
+                    <h6 class="d-flex text-center">${cat.name || ''}</h6>
+                    </div>
+                    <div class="col-9 ${isCash ? 'cash-row' : ''}">
+                    <div class="row">${buttons}</div>
+                    ${cashInput}
+                    </div>
+                </div>
+                <hr class="hr-payment">
+                `;
+            });
+
+            $c.html(html);
+
+            if (idPelanggan != '') {
+                $('.cash-row').append(`
+                    <div class="form-check form-switch">
+                        <label class="mt-1 ms-2">${formatRupiah(pointPelanggan.toString(), "Rp. ")}</label>
+                        <input class="form-check-input form-point form-switch" style="height: 25px;"
+                            value="${pointPelanggan}" type="checkbox">
+                    </div>`);
+
+                    console.log("masuk pelangan")
+                $('.form-point').change(function() {
+                    if ($(this).is(':checked')) {
+                        pointCustomer = parseInt($(this).val());
+                    } else {
+                        pointCustomer = 0;
+                    }
+
+                    updateHargaText();
+                })
+            }else{
+                pointCustomer = 0;
+                updateHargaText();
+            }
+
+            // reset tombol simpan setiap kali render
+            setPayEnabled(false);
+            selectedPayment = null;
+
+        }
+
+        function setPayEnabled(ok){
+            $('#payOffline').prop('disabled', !ok).toggleClass('disabled', !ok);
+        }
+
+        function handlerPaymentOffline(){
+            updateHargaText();
+            renderListPayment(listPayment || []);
+            generateBtnCash();
+
+            $('.btn-choice').off().on('click', function() {
+                $('.btn-choice').removeClass('active');
+                $(this).addClass('active');
+
+                setPayEnabled(false);
+                let value = $(this).data('value');
+
+                if (typeof value == "number") {
+                    let textHarga = document.getElementById("total").textContent;
+                    let harga = textHarga.trim();
+                    let totalHarga = parseInt(harga.replace(/[^\d]/g, ""));
+
+                    if (value < totalHarga) {
+                        setPayEnabled(false);
+                    } else {
+                        setPayEnabled(true);
+                    }
+                } else {
+                    setPayEnabled(true);
+                }
+            });
+
+            const moneyInput = document.getElementById("inputMoney");
+            moneyInput.addEventListener("keyup", function(e) {
+
+                let textHarga = document.getElementById("total").textContent;
+                let harga = textHarga.trim();
+                let totalHarga = parseInt(harga.replace(/[^\d]/g, ""));
+
+                let convertHargaToInt = parseInt(this.value.replace('Rp. ', '').replace(/\./g, ''));
+                $('.btn-choice').removeClass('active');
+
+                if (this.value == '' || convertHargaToInt < totalHarga || this.value == 'Rp. ' || isNaN(
+                        convertHargaToInt)) {
+                    $("#payOffline").attr('disabled', true);
+                    $("#payOffline").addClass('disabled');
+                } else {
+                    $("#payOffline").removeAttr('disabled');
+                    $("#payOffline").removeClass('disabled');
+                }
+
+                this.value = formatRupiah(this.value, "Rp. ");
+            });
+
+            const modalPaymentOffline = $('#choosePaymentOffline');
+            modalPaymentOffline.modal({
+                backdrop: 'static',
+                keyboard: true
+            });
+            modalPaymentOffline.modal('show');
+
+            // tombol Batal
+            $('#cancelPayment').off('click.cancel').on('click.cancel', function(){
+                selectedPayment = null;
+                setPayEnabled(false);
+                $('.btn-choice').removeClass('active');
+                $('.cash-input').val('');
+
+                const modal = $('#choosePaymentOffline');
+                modal.modal('hide');
+            });
+
+            payOffline();
+        }
+
+        function updateHargaText() {
+            let total = ambilHargaTotal();
+            console.log(total);
+            $('#totalHargaOffline').text(formatRupiah(total.toString(), "Rp. "));
+        }
+
+        function ambilHargaTotal() {
+            let total = document.getElementById("total").textContent;
+            let textTotal = total.trim();
+            let angkaTotal = parseInt(textTotal.replace(/[^\d]/g, ""));
+
+            let rounding = document.getElementById("rounding").textContent;
+            let hargaFinal = angkaTotal;
+
+            if (rounding) {
+                let textRounding = rounding.trim();
+                let angkaRounding = parseInt(textRounding.replace(/[^\d]/g, ""));
+
+                let symbol = textRounding.charAt(0);
+
+                hargaFinal = symbol == "-" ? angkaTotal - angkaRounding : angkaTotal + angkaRounding;
+
+                if (hargaFinal <= pointCustomer) {
+                    potonganPoint = hargaFinal;
+                    return 0;
+                } else {
+                    potonganPoint = pointCustomer;
+                    return hargaFinal - pointCustomer;
+                }
+            } else {
+                if (angkaTotal <= pointCustomer) {
+                    potonganPoint = hargaFinal;
+                    return 0;
+                } else {
+                    potonganPoint = pointCustomer;
+                    return angkaTotal - pointCustomer;
+                }
+            }
+        }
+
+        function generateBtnCash(){
+            var hargaAkhir = ambilHargaTotal();
+
+            // Hitung nilai tombol
+            var firstButtonValue = hargaAkhir;
+            var secondButtonValue = Math.ceil((hargaAkhir + 1) / 50000) * 50000;
+            var thirdButtonValue = Math.ceil((secondButtonValue + 1) / 100000) * 100000;
+
+
+            console.log("generateBtnCash duluan")
+            // Update tombol berdasarkan urutan (asumsi urutan tombol sesuai HTML)
+            $('.btn-cash-list').each(function(index) {
+                if (index === 0) {
+                    $(this).data('value', firstButtonValue);
+                    $(this).text(formatRupiah(firstButtonValue.toString(), "Rp. "));
+                } else if (index === 1) {
+                    $(this).data('value', secondButtonValue);
+                    $(this).text(formatRupiah(secondButtonValue.toString(), "Rp. "));
+                } else if (index === 2) {
+                    $(this).data('value', thirdButtonValue);
+                    $(this).text(formatRupiah(thirdButtonValue.toString(), "Rp. "));
+                }
+            });
+        }
+
+        async function isServerReachable(timeoutMs = 4000){
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), timeoutMs);
+            try {
+                // pakai route ringan yang kamu punya (ping/healthcheck) → 200 OK
+                const res = await fetch(`{{ route('healthcheck') }}`, { signal: ctrl.signal, cache:'no-store' });
+                clearTimeout(t);
+                return res.ok;
+            } catch { clearTimeout(t); return false; }
+        }
+
+        function uuidv4(){
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8);
+                return v.toString(16);
+            });
+        }
+
+        function payOffline(){
+            $('#payOffline').off().on('click', async function () {
+                const $btn = $(this).prop('disabled', true).addClass('disabled').text('Menyimpan...');
+                try {
+                    // ====== AMBIL PILIHAN PAYMENT (tetap pakai logika kamu) ======
+                    let checkTypeButton = $('.btn-choice.active');
+                    let categoryPaymentId = checkTypeButton.data('kategori-payment-id');
+                    let categoryPaymentName = checkTypeButton.data('kategori-payment-name');
+                    let paymentValue = checkTypeButton.data('value');     // untuk cash tombol cepat → angka
+                    let paymentId = checkTypeButton.data('payment-id');   // null/undefined untuk cash
+
+                    let valueCatatan = $('#catatanTransaksiOffline').val() || '';
+                    let cashInput = $("#inputMoney").val() || '';
+                    let cashInputAngka = parseInt(cashInput.trim().replace(/[^\d]/g, "")) || 0;
+
+                    let hargaTotal = ambilHargaTotal(); // punyamu
+                    let category_payment_id = '';
+                    let nama_tipe_pembayaran = '';
+                    let tipePembayaran = '';
+                    let nominalBayar = 0;
+                    let change = 0;
+
+                    if (checkTypeButton.length > 0) {
+                        if (categoryPaymentName == "Cash") {
+                            category_payment_id = categoryPaymentId;
+                            nama_tipe_pembayaran = "Cash";
+                            tipePembayaran = null;
+                            nominalBayar = Number(paymentValue || 0);
+                            change = nominalBayar - hargaTotal; // uang diterima - total
+                        } else {
+                            category_payment_id = categoryPaymentId;
+                            nama_tipe_pembayaran = paymentValue; // nama payment non-cash
+                            tipePembayaran = paymentId;
+                            nominalBayar = hargaTotal;
+                            change = 0;
+                        }
+                    } else {
+                        // tidak ada tombol aktif → anggap cash manual
+                        tipePembayaran = null;
+                        category_payment_id = idCash; // variabelmu untuk ID kategori "Cash"
+                        nama_tipe_pembayaran = "Cash";
+                        nominalBayar = cashInputAngka;
+                        change = nominalBayar - hargaTotal;
+                    }
+                        // VALIDASI minimal
+                        const isCash = (tipePembayaran == null);
+                        if (isCash && nominalBayar <= 0) {
+                        alert('Nominal cash belum diisi.');
+                        $btn.text('Simpan').prop('disabled', false).removeClass('disabled');
+                        return;
+                    }
+
+                    // ====== BANGUN FormData seperti ONLINE (pakai kode kamu apa adanya) ======
+                    var dataForm = new FormData();
+
+                    // --- potongan aslinya: listItem
+                    listItem.forEach(function(item) {
+                        if (item.quantity > 1) {
+                            for (let x = 0; x < item.quantity; x++) {
+                                dataForm.append('idProduct[]', item.idProduct);
+                                dataForm.append('idVariant[]', item.idVariant);
+                                dataForm.append('harga[]', item.harga);
+
+                                let tmpDiscountData = [];
+                                item.diskon.forEach(function(discountItem) {
+                                    let discount = {
+                                        id: discountItem.id,
+                                        nama: discountItem.nama,
+                                        result: parseInt(discountItem.result) / item.quantity,
+                                        satuan: discountItem.satuan,
+                                        value: discountItem.value
+                                    };
+                                    tmpDiscountData.push(discount);
+                                });
+                                dataForm.append('discount_id[]', JSON.stringify(tmpDiscountData));
+
+                                let tmpModifierData = [];
+                                item.modifier.forEach(function(itemModifier) {
+                                    let modifier = {
+                                        id: itemModifier.id,
+                                        nama: itemModifier.nama,
+                                        harga: itemModifier.harga
+                                    };
+                                    tmpModifierData.push(modifier);
+                                });
+                                dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
+
+                                let tmpPromoData = [];
+                                item.promo.forEach(function(itemPromo) {
+                                    let promo = { id: itemPromo.id, nama: itemPromo.name, purchaseRequirement: itemPromo.purchase_requirement, type: itemPromo.type };
+                                    tmpPromoData.push(promo);
+                                });
+                                dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
+
+                                dataForm.append('sales_type[]', item.salesType);
+
+                                let resultCatatan = item.catatan == '' ? '' : item.catatan;
+                                let checkProductCustom = item.idProduct ? resultCatatan : 'custom';
+                                dataForm.append('catatan[]', checkProductCustom);
+                                dataForm.append('reward[]', false);
+                            }
+                        } else {
+                            dataForm.append('idProduct[]', item.idProduct);
+                            dataForm.append('idVariant[]', item.idVariant);
+                            dataForm.append('harga[]', item.harga);
+
+                            let tmpDiscountData = [];
+                            item.diskon.forEach(function(discountItem) {
+                                let discount = {
+                                    id: discountItem.id,
+                                    nama: discountItem.nama,
+                                    result: discountItem.result,
+                                    satuan: discountItem.satuan,
+                                    value: discountItem.value
+                                };
+                                tmpDiscountData.push(discount);
+                            });
+                            dataForm.append('discount_id[]', JSON.stringify(tmpDiscountData));
+
+                            let tmpModifierData = [];
+                            item.modifier.forEach(function(itemModifier) {
+                                let modifier = { id: itemModifier.id,
+                                    nama: itemModifier.nama,
+                                    harga: itemModifier.harga
+                                };
+                                tmpModifierData.push(modifier);
+                            });
+                            dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
+
+                            let tmpPromoData = [];
+                            item.promo.forEach(function(itemPromo) {
+                                let promo = { id: itemPromo.id,
+                                    nama: itemPromo.name,
+                                    purchaseRequirement: itemPromo.purchase_requirement,
+                                    type: itemPromo.type
+                                };
+                                tmpPromoData.push(promo);
+                            });
+                            dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
+
+                            dataForm.append('sales_type[]', item.salesType);
+
+                            let resultCatatan = item.catatan == '' ? '' : item.catatan;
+                            let checkProductCustom = item.idProduct ? resultCatatan : 'custom';
+                            dataForm.append('catatan[]', checkProductCustom);
+                            dataForm.append('reward[]', false);
+                        }
+                    });
+
+                    // --- potongan aslinya: listItemPromo
+                    listItemPromo.forEach(function(item) {
+                    if (item.quantity > 1) {
+                        for (let x = 0; x < item.quantity; x++) {
+                            dataForm.append('idProduct[]', item.idProduct);
+                            dataForm.append('idVariant[]', item.idVariant);
+                            dataForm.append('harga[]', item.harga);
+
+                            let tmpDiscountData = [];
+                            item.diskon.forEach(function(discountItem) {
+                                let discount = {
+                                    id: discountItem.id,
+                                    nama: discountItem.nama,
+                                    result: parseInt(discountItem.result) / item.quantity,
+                                    satuan: discountItem.satuan, value: discountItem.value
+                                };
+                                tmpDiscountData.push(discount);
+                            });
+                            dataForm.append('discount_id[]', JSON.stringify(tmpDiscountData));
+
+                            let tmpModifierData = [];
+                            item.modifier.forEach(function(itemModifier) {
+                                let modifier = { id: itemModifier.id,
+                                    nama: itemModifier.nama,
+                                    harga: itemModifier.harga
+                                };
+                                tmpModifierData.push(modifier);
+                            });
+                            dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
+
+                            let tmpPromoData = [];
+                            item.promo.forEach(function(itemPromo) {
+                                let promo = {
+                                    id: itemPromo.id,
+                                    nama: itemPromo.name,
+                                    purchaseRequirement: itemPromo.purchase_requirement,
+                                    type: itemPromo.type };
+                                tmpPromoData.push(promo);
+                            });
+                            dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
+
+                            dataForm.append('sales_type[]', item.salesType);
+                            let resultCatatan = item.catatan == '' ? '' : item.catatan;
+                            dataForm.append('catatan[]', resultCatatan);
+                            dataForm.append('reward[]', false);
+                        }
+                    } else {
+                        dataForm.append('idProduct[]', item.idProduct);
+                        dataForm.append('idVariant[]', item.idVariant);
+                        dataForm.append('harga[]', item.harga);
+
+                        let tmpDiscountData = [];
+                        item.diskon.forEach(function(discountItem) {
+                            let discount = {
+                                id: discountItem.id, nama: discountItem.nama,
+                                result: discountItem.result, satuan: discountItem.satuan, value: discountItem.value
+                            };
+                            tmpDiscountData.push(discount);
+                        });
+                        dataForm.append('discount_id[]', JSON.stringify(tmpDiscountData));
+
+                        let tmpModifierData = [];
+                        item.modifier.forEach(function(itemModifier) {
+                            let modifier = {
+                                id: itemModifier.id,
+                                nama: itemModifier.nama,
+                                harga: itemModifier.harga
+                            };
+                            tmpModifierData.push(modifier);
+                        });
+                        dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
+
+                        let tmpPromoData = [];
+                        item.promo.forEach(function(itemPromo) {
+                            let promo = {
+                                id: itemPromo.id,
+                                nama: itemPromo.name,
+                                purchaseRequirement: itemPromo.purchase_requirement,
+                                type: itemPromo.type };
+                            tmpPromoData.push(promo);
+                        });
+                        dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
+
+                        dataForm.append('sales_type[]', item.salesType);
+                        let resultCatatan = item.catatan == '' ? '' : item.catatan;
+                        dataForm.append('catatan[]', resultCatatan);
+                        dataForm.append('reward[]', false);
+                    }
+                    });
+
+                    // --- potongan aslinya: listRewardItem
+                    listRewardItem.forEach(function(item) {
+                        if (item.quantity > 1) {
+                            for (let x = 0; x < item.quantity; x++) {
+                            dataForm.append('idProduct[]', item.idProduct);
+
+                            let tmpDiscountData = [];
+                            item.diskon.forEach(function(discountItem) {
+                                let discount = {
+                                id: discountItem.id, nama: discountItem.nama,
+                                result: parseInt(discountItem.result) / item.quantity,
+                                satuan: discountItem.satuan, value: discountItem.value
+                                };
+                                tmpDiscountData.push(discount);
+                            });
+                            dataForm.append('discount_id[]', JSON.stringify(tmpDiscountData));
+
+                            let tmpModifierData = [];
+                            item.modifier.forEach(function(itemModifier) {
+                                let modifier = { id: itemModifier.id, nama: itemModifier.nama, harga: itemModifier.harga };
+                                tmpModifierData.push(modifier);
+                            });
+                            dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
+
+                            let tmpPromoData = [];
+                            item.promo.forEach(function(itemPromo) {
+                                let promo = { id: itemPromo.id, nama: itemPromo.name, purchaseRequirement: itemPromo.purchase_requirement, type: itemPromo.type };
+                                tmpPromoData.push(promo);
+                            });
+                            dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
+
+                            dataForm.append('sales_type[]', item.salesType);
+                            let resultCatatan = item.catatan == '' ? '' : item.catatan;
+                            dataForm.append('catatan[]', resultCatatan);
+                            dataForm.append('reward[]', true);
+                            }
+                        } else {
+                            dataForm.append('idProduct[]', item.idProduct);
+
+                            let tmpDiscountData = [];
+                            item.diskon.forEach(function(discountItem) {
+                                let discount = {
+                                    id: discountItem.id, nama: discountItem.nama,
+                                    result: discountItem.result, satuan: discountItem.satuan, value: discountItem.value
+                                };
+                                tmpDiscountData.push(discount);
+                            });
+                            dataForm.append('discount_id[]', JSON.stringify(tmpDiscountData));
+
+                            let tmpModifierData = [];
+                            item.modifier.forEach(function(itemModifier) {
+                            let modifier = { id: itemModifier.id, nama: itemModifier.nama, harga: itemModifier.harga };
+                            tmpModifierData.push(modifier);
+                            });
+                            dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
+
+                            let tmpPromoData = [];
+                            item.promo.forEach(function(itemPromo) {
+                            let promo = { id: itemPromo.id, nama: itemPromo.name, purchaseRequirement: itemPromo.purchase_requirement, type: itemPromo.type };
+                            tmpPromoData.push(promo);
+                            });
+                            dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
+
+                            dataForm.append('sales_type[]', item.salesType);
+                            let resultCatatan = item.catatan == '' ? '' : item.catatan;
+                            dataForm.append('catatan[]', resultCatatan);
+                            dataForm.append('reward[]', true);
+                        }
+                    });
+
+                    let idCustomer = (idPelanggan == '') ? null : idPelanggan;
+
+                    dataForm.append('nominal_bayar', nominalBayar);
+                    dataForm.append('change', Math.abs(change));
+                    dataForm.append('tipe_pembayaran', tipePembayaran);
+                    dataForm.append('category_payment_id', category_payment_id);
+                    dataForm.append('nama_tipe_pembayaran', nama_tipe_pembayaran);
+                    dataForm.append('total', hargaTotal);
+                    dataForm.append('diskonAllItems', JSON.stringify(listDiskonAllItem));
+                    dataForm.append('total_pajak', JSON.stringify(listPajak));
+                    dataForm.append('rounding', amountRounding);
+                    dataForm.append('tanda_rounding', tandaRounding);
+                    dataForm.append('customer_id', idCustomer);
+                    dataForm.append('catatan_transaksi', valueCatatan);
+                    dataForm.append('patty_cash_id', dataPattyCash[0].id);
+                    dataForm.append('bill_id', billId);
+                    dataForm.append('potongan_point', potonganPoint);
+
+                    // ====== OFFLINE-FIRST MULAI DI SINI ======
+
+                    // 1) serialize FormData -> object arrays agar bisa disimpan ke IndexedDB
+                    const fdObj = {};
+                    for (const [k, v] of dataForm.entries()) {
+                        if (!fdObj[k]) fdObj[k] = [];
+                        fdObj[k].push(v); // string/JSON string
+                    }
+
+                    // 2) buat envelope offline
+                    const client_uuid = uuidv4();
+                    const txOffline = {
+                        client_uuid,
+                        created_at: new Date().toISOString(),
+                        status: 'pending',
+                        source: 'webview-offline',
+                    // metadata ringkas buat UI (opsional)
+                        meta: {
+                            total: hargaTotal,
+                            pembayaran: nama_tipe_pembayaran,
+                            cash: isCash ? Number(nominalBayar || 0) : null,
+                            change: isCash ? Math.max(0, change) : 0
+                        },
+                    // payload mentah: pasangan key -> array value, supaya gampang rebuild FormData saat sync
+                        payload_form: fdObj
+                    };
+
+                    // 3) simpan ke IndexedDB
+                    await idbPut('pending_transactions', txOffline);
+
+                    // 4) reset UI kasir tanpa reload
+                    resetKasirSetelahBayarOffline(hargaTotal, isCash ? Math.max(0, change) : 0, nama_tipe_pembayaran);
+
+                    // 5) coba sync background (tidak mengganggu kasir)
+                    trySyncOne(client_uuid);
+
+                    if (window.Android) {
+                        // Panggil metode JavaScript Interface dengan ID transaksi
+                        // window.Android.handlePaymentSuccess(res.id);
+                        // console.log(res);
+                        // console.log(JSON.stringify(res));
+                        window.Android.handlePaymentSuccess(JSON.stringify(res));
+                    }
+
+                } catch (e){
+                    console.error(e);
+                    alert('Gagal menyimpan transaksi offline. Coba lagi.');
+                } finally {
+                    $btn.text('Simpan').prop('disabled', false).removeClass('disabled');
+                }
+            });
+        }
+
+        function resetKasirSetelahBayarOffline(total, change, metode){
+            // tutup modal
+            $('#choosePaymentOffline').modal('hide');
+            // kasih feedback ke kasir pakai modal/toastmu
+            showToast('success', 'Transaksi disimpan offline. Akan disinkron otomatis.');
+
+            // tampilkan ringkasan seperti online (tanpa id server)
+            const modals = $('#modals');
+            $('#change').text(formatRupiah(String(change || 0), "Rp. "));
+            $('#metodetrx').text(metode || '-');
+            // untuk cetak struk offline kamu bisa pakai client_uuid jika mau, atau sembunyikan tombol sampai tersinkron
+            $('#btnstruk').attr('href', '#'); // atau intent offline kamu sendiri
+            $('#btnSettingDevice').attr('href', 'intent://list-bluetooth-device');
+            modals.modal('show');
+
+            // kosongkan keranjang dan tampilan
+            listItem = []; listItemPromo = []; listRewardItem = [];
+            window.listDiskonAllItem = window.listDiskonAllItem || [];
+            window.listDiskonAllItem.length = 0;
+            window.listPajak = window.listPajak || [];
+            window.listPajak.length = 0;
+
+            $('#catatanTransaksiOffline').val('');
+            $('#cartList').empty?.();                   // kalau kamu punya list item
+            $('#totalHargaOffline').text('Rp 0');
+            $('.btn-choice.active').removeClass('active');
+            $('#inputMoney').val('');
+            $('#payOffline').prop('disabled', true).addClass('disabled');
+        }
+
+        async function rebuildFormData(fdObj){
+            const fd = new FormData();
+            for (const k in fdObj) {
+                (fdObj[k] || []).forEach(v => fd.append(k, v));
+            }
+            return fd;
+        }
+
+        async function syncToServer(tx){
+            // rebuild FormData identik seperti online
+            const fd = await rebuildFormData(tx.payload_form);
+
+            // tambahkan idempotency key jika servermu sudah support
+            // (sangat disarankan) → kolom client_uuid di tabel transactions
+            fd.append('client_uuid', tx.client_uuid);
+
+            const res = await fetch(`{{ route('kasir/bayar') }}`, {
+                method: 'POST',
+                // JANGAN set contentType/processData di fetch; biarkan FormData set boundary sendiri
+                headers: {
+                'X-CSRF-TOKEN': `{{ csrf_token() }}`
+                },
+                body: fd
+            });
+
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const json = await res.json();
+
+            // server mengembalikan {status:true, id, change, metode, ...}
+            // hapus dari pending jika sukses
+            await idbDel('pending_transactions', tx.client_uuid);
+
+            // optional: update UI badge pending
+            // updatePendingCounterUI?.();
+
+            // optional: panggil Android interface untuk cetak struk dengan id server
+            if (window.Android) {
+                try { window.Android.handlePaymentSuccess(JSON.stringify(json)); } catch(e){}
+            }
+        }
+
+        async function trySyncOne(client_uuid){
+            if (!(await isServerReachable())) return;
+            const all = await idbAll('pending_transactions');
+            const tx = all.find(x => x.client_uuid === client_uuid);
+            if (!tx) return;
+            try { await syncToServer(tx); } catch(e){ /* biarkan pending */ }
+        }
+
+        async function syncAllPendingNow(){
+            if (!(await isServerReachable())) return;
+            const all = await idbAll('pending_transactions');
+            for (const tx of all) {
+                try { await syncToServer(tx); } catch(e){ /* skip, coba lagi nanti */ }
+            }
+        }
+
         $(document).ready(function() {
-            window.addEventListener('online', updateNetBadge);
+            // auto-retry saat online/foreground
+            // document.addEventListener('visibilitychange', () => { if(!document.hidden) syncAllPendingNow(); });
+            window.addEventListener('online', () => {
+                syncAllPendingNow();
+                updateNetBadge();
+            });
+
+            // window.addEventListener('online', updateNetBadge);
             window.addEventListener('offline', updateNetBadge);
             updateNetBadge();
             syncDatabase();
@@ -5113,7 +5894,12 @@
                         position: 'topRight'
                     });
                 }else if (listItem.length > 0 || listItemPromo.length > 0){
-                    handleAjax("{{ route('kasir/choosePayment') }}").excute();
+                    if(dataPattyCash.length > 0){
+                        handleAjax("{{ route('kasir/choosePayment') }}").excute();
+                        // handlerPaymentOffline();
+                    }else{
+                        handleAjax("{{ route('kasir/viewPattyCash') }}").excute();
+                    }
                 } else {
                     iziToast['error']({
                         title: "Gagal",
