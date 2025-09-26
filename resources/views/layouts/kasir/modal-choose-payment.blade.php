@@ -686,6 +686,22 @@
                         showToast(res.status, res.message);
 
                         var modals = $('#modals');
+                        $('#btnTransaksiBaru').off().on('click', function(e){
+                            listItem = [];
+                            listPromo = [];
+                            listPajak = [];
+                            listItemPromo = [];
+                            listRewardItem = [];
+                            listDiskonAllItem = [];
+                            billId = 0;
+
+                            idPelanggan = '';
+                            $('#pilih-pelanggan').html("Pilih Pelanggan");
+
+                            syncItemCart();
+
+                            modals.modal('hide');
+                        });
                         $('#change').text(formatRupiah(res.change.toString(), "Rp. "));
                         $('#metodetrx').text(res.metode);
                         // $('#btnstruk').attr('href', '/kasir/struk/' + res.id);
@@ -700,7 +716,12 @@
                             // window.Android.handlePaymentSuccess(res.id);
                             // console.log(res);
                             // console.log(JSON.stringify(res));
-                            window.Android.handlePaymentSuccess(JSON.stringify(res));
+                            if(window.Android.handlePrintCoOffline){
+                                const dataPrint = JSON.stringify(res.dataStruk);
+                                window.Android.handlePrintCoOffline(dataPrint);
+                            }else{
+                                window.Android.handlePaymentSuccess(res.id);
+                            }
                         }
 
                         // if (res.pelanggan) {

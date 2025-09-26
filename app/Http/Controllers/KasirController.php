@@ -535,6 +535,100 @@ class KasirController extends Controller
             TransactionItem::insert($dataProduct);
         }
 
+        $transaction->load(['outlet', 'user', 'customer']);
+
+        $transactionPajak = $transaction->pajak();
+
+        // jika seluruh item tidak terkena pajak maka kosongkan bagian pajak di bill
+        $checkTotalPajak = json_decode($transaction->total_pajak);
+        $totalPajak = 0;
+
+        if(count($checkTotalPajak)){
+            foreach($checkTotalPajak as $pajak){
+                $totalPajak += $pajak->total;
+            }
+        }
+
+        if($totalPajak > 0){
+            $transaction['tax'] = $transactionPajak;
+        }else{
+            $transaction['tax'] = [];
+        }
+
+        $transactionItems = TransactionItem::select(
+            'variant_id',
+            DB::raw('COUNT(*) as total_count'),
+            'product_id',
+            'discount_id',
+            'modifier_id',
+            'promo_id',
+            'sales_type_id',
+            'transaction_id',
+            'catatan',
+            'reward_item',
+            'harga'
+        )->with(['product', 'variant'])->where('transaction_id', $transaction->id)
+        ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'deleted_at', 'created_at', 'updated_at', 'reward_item', 'harga')
+        // ->orderBy('id')
+        ->get();
+
+        // dd($transactionItems);
+
+        foreach ($transactionItems as $transactionItem) {
+            $tmpModifier = [];
+            $modifierItem = $transactionItem->modifiers();
+            foreach ($modifierItem as $modifier) {
+                array_push($tmpModifier, $modifier->name);
+            }
+
+            $transactionItem['modifier'] = $tmpModifier;
+            if(!isNull($transactionItem->variant)){
+                $transactionItem['total_transaction'] = $transactionItem->total_count * $transactionItem->variant->harga;
+            }else{
+                $transactionItem['total_transaction'] = $transactionItem->total_count * $transactionItem->harga;
+            }
+        }
+
+        $user = auth()->user();
+
+        $agent = new Agent();
+        $device = $agent->device();
+
+        // Ambil semua product_id dari transaksi sebagai array sederhana
+        $transactionProductIds = $transactionItems->pluck('product_id')->unique()->filter()->values()->all();
+
+        $now = Carbon::now();
+        $idOutlet = $transaction->outlet->id;
+        $dataNoteReceipt = NoteReceiptScheduling::where('status', true)
+            ->whereTime('start', '<=', $now)
+            ->whereTime('end', '>=', $now)
+            ->where('outlet_id', $idOutlet)
+            ->where(function ($query) use ($transactionProductIds) {
+                // Kondisi untuk product_id null atau array kosong di database
+                $query->whereNull('product_id')
+                    ->orWhere('product_id', '[]'); // Jika disimpan sebagai json array kosong string '[]'
+
+                // Jika product_id tidak kosong, cek ada intersection dengan product_id dari transaction
+                if (!empty($transactionProductIds)) {
+                    $query->orWhere(function ($q) use ($transactionProductIds) {
+                        foreach ($transactionProductIds as $productId) {
+                            // JSON_CONTAINS untuk mysql, cek apakah json array product_id mengandung productId
+                            $q->orWhereRaw("JSON_CONTAINS(product_id, '\"{$productId}\"')");
+                        }
+                    });
+                }
+            })
+            ->get();
+
+        $dataStruk = [
+            'status' => true,
+            'transaction' => $transaction,
+            'transactionItems' => $transactionItems,
+            'user' => $user,
+            'device' => $device,
+            'noteReceiptScheduler' => $dataNoteReceipt
+        ];
+
         $respond = [
             'status'    => 'success',
             'id'        => $transaction->id,
@@ -543,6 +637,7 @@ class KasirController extends Controller
             'metode'    => $request->nama_tipe_pembayaran,
             'message' => "Transaksi Berhasil",
             'pelanggan' => $customer,
+            'dataStruk' => $dataStruk
         ];
         // return responseSuccess(false, "Transaksi Berhasil");
         return response()->json($respond);

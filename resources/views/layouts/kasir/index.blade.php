@@ -1397,7 +1397,8 @@
                     </center>
                 </div>
                 <div class="d-flex justify-content-center mb-4">
-                    <a type="submit" class="btn btn-primary w-50" href="{{ route('kasir') }}">Buat Pesanan Baru</a>
+                    {{-- <a type="submit" class="btn btn-primary w-50" href="{{ route('kasir') }}">Buat Pesanan Baru</a> --}}
+                    <button id="btnTransaksiBaru" class="btn btn-primary w-50">Buat Pesanan Baru</button>
                 </div>
             </div>
         </div>
