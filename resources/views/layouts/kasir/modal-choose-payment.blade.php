@@ -135,9 +135,6 @@
         let totalHarga = parseInt(harga.replace(/[^\d]/g, ""));
 
         let convertHargaToInt = parseInt(this.value.replace('Rp. ', '').replace(/\./g, ''));
-        console.log(this.value);
-        console.log(convertHargaToInt);
-        console.log(totalHarga)
         $('.btn-choice').removeClass('active');
 
         if (this.value == '' || convertHargaToInt < totalHarga || this.value == 'Rp. ' || isNaN(
@@ -285,7 +282,7 @@
             let selectButtonTrim = selectButton.trim();
             let selectButtonAngka = parseInt(selectButtonTrim.replace(/[^\d]/g, ""));
 
-            let checkTypeButton = $('button.active');
+            let checkTypeButton = $('.btn-choice.active');
             let categoryPaymentId = checkTypeButton.data('kategori-payment-id');
             let categoryPaymentName = checkTypeButton.data('kategori-payment-name');
             let paymentValue = checkTypeButton.data('value');
