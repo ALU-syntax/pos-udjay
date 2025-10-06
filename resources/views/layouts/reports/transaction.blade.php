@@ -233,10 +233,6 @@
                                 <div class="col-6 d-flex justify-content-end"><span id="complete-time"></span></div>
                             </div>
                             <div class="row mb-2 d-flex">
-                                <div class="col-4">Customer</div>
-                                <div id="container-customer" class="col-8 d-flex justify-content-end"><span id="customer">-</span></div>
-                            </div>
-                            <div class="row mb-2 d-flex">
                                 <div class="col-6">Table</div>
                                 <div class="col-6 text-right d-flex"></div>
                             </div>
@@ -255,6 +251,14 @@
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">Collected By</div>
                                 <div class="col-6 d-flex justify-content-end" id="collected-by"></div>
+                            </div>
+                            <div class="row mb-2 d-flex">
+                                <div class="col-4">Customer</div>
+                                <div id="container-customer" class="col-8 d-flex justify-content-end"><span id="customer">-</span></div>
+                            </div>
+                            <div class="row mb-2 d-flex">
+                                <div class="col-4">Point Use</div>
+                                <div id="container-point-use" class="col-8 d-flex justify-content-end"><span id="customer">-</span></div>
                             </div>
                             <div class="row mb-2 d-flex">
                                 <div class="col-6">Total Amount</div>
@@ -447,7 +451,9 @@
 
                         let customer = res.data.customer ? res.data.customer.name : '-'
                         let idCustomer = res.data.customer ? res.data.customer.id : null;
+                        let pointUse = res.data.potongan_point ? res.data.potongan_point : 0;
 
+                        $('#container-point-use').text(formatRupiah(pointUse.toString(), "Rp. "));
                         $('#customer').text(customer);
                         $('#btn-batal-kaitkan-customer').data('customer', customer);
                         $('#btn-kaitkan-customer').data('customer-id', idCustomer);

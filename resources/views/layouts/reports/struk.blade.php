@@ -123,6 +123,15 @@
                                 @endforeach
                             @endif
 
+                            @if ($data->customer_id)
+                                <tr>
+                                    <td>Point Use</td>
+                                    <td></td>
+                                    <td>- {{ formatRupiah(strval($data->potongan_point), 'Rp. ') }}</td>
+                                </tr>
+
+                            @endif
+
                             <tr>
                                 <td style="padding-top: 10px; font-weight: bold;">Total</td>
                                 <td></td>

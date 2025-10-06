@@ -130,7 +130,7 @@
     var moneyInput = document.getElementById("inputMoney");
     moneyInput.addEventListener("keyup", function(e) {
 
-        let textHarga = document.getElementById("total").textContent;
+        let textHarga = document.getElementById("totalHarga").textContent;
         let harga = textHarga.trim();
         let totalHarga = parseInt(harga.replace(/[^\d]/g, ""));
 
