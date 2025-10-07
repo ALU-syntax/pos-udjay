@@ -357,6 +357,17 @@ class KasirController extends Controller
         if ($customerId) {
             $customer = Customer::find($customerId);
 
+            $pajakTerhitung = 0;
+            if($request->total_pajak && intval($request->total) > 0){
+                $checkPajak = json_decode($request->total_pajak);
+                if(count($checkPajak)){
+                    foreach($checkPajak as $pajak){
+                        $pajakTerhitung += $pajak->total;
+                    }
+                }
+            }
+
+
             if(intval($request->potongan_point) > 0){
                 $customer->point -= $request->potongan_point;
 
@@ -374,7 +385,8 @@ class KasirController extends Controller
                 Mail::to($customer->email)->send(new PenukaranPoin($dataEmailPointUse));
             }
 
-            $pointExp = intval($request->total) / 100;
+            $pointExpKurangPajak = intval($request->total) - intval($pajakTerhitung);
+            $pointExp = $pointExpKurangPajak / 100;
             $pointExpDidapat = floor($pointExp);
 
             $customer->point += $pointExp;
@@ -404,7 +416,7 @@ class KasirController extends Controller
 
             if(isset($customer->community_id)){
                 $community = Community::find($customer->community_id);
-                $community->exp += intval($request->total) / 100;
+                $community->exp += intval($pointExpKurangPajak) / 100;
 
                 $community->save();
                 $dataPointCommunity = [
