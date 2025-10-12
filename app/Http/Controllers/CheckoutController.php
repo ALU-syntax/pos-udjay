@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Imports\BackupImport;
 use App\Mail\TestEmail;
 use App\Models\Checkout;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CheckoutController extends Controller
 {
@@ -54,4 +56,35 @@ class CheckoutController extends Controller
 
         return back()->with('success', 'Email test berhasil dikirim ke ' . $toEmail);
     }
+
+    // public function importDataBackup(Request $request)
+    // {
+    //     $request->validate([
+    //         'file' => 'required|file',
+    //     ]);
+
+    //     $file = $request->file('file');
+
+    //     // dd($file);
+    //     try {
+    //         Excel::import(new BackupImport, $file);
+    //         return back()->with('success', 'Import selesai! Data berhasil disimpan.');
+    //     } catch (\Exception $e) {
+    //         return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+    //     }
+    // }
+
+    public function importDataBackup(Request $request)
+    {
+        $request->validate(['file' => 'required|file']);
+
+        try {
+            // jalan sebagai job background — tidak kena timeout web server
+            \Maatwebsite\Excel\Facades\Excel::queueImport(new \App\Imports\BackupImport, $request->file('file'));
+            return back()->with('success', 'Import sedang diproses di background. Cek notifikasi/log.');
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Terjadi kesalahan: '.$e->getMessage());
+        }
+    }
+
 }

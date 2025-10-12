@@ -69,6 +69,27 @@ display: none; @endif">
                 </div>
             </div>
 
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        Import Data Lama
+
+                        <div class="container">
+                            <form action="{{ route('konfigurasi/checkout/backup-import') }}" method="POST"
+                                enctype="multipart/form-data">
+                                @csrf
+                                <div class="form-group">
+                                    <label for="file">Pilih file CSV (delimiter “;”)</label>
+                                    <input type="file" name="file" id="file" class="form-control" required>
+                                </div>
+                                <br>
+                                <button type="submit" class="btn btn-primary">Import</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
     </div>

@@ -756,6 +756,7 @@ class KasirController extends Controller
 
 
         $transactionItems = TransactionItem::select(
+            'id',
             'variant_id',
             DB::raw('COUNT(*) as total_count'),
             'product_id',
@@ -768,7 +769,7 @@ class KasirController extends Controller
             'reward_item',
             'harga'
         )->with(['product', 'variant'])->where('transaction_id', $id)
-        ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'deleted_at', 'created_at', 'updated_at', 'reward_item', 'harga')
+        ->groupBy('id', 'variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'deleted_at', 'created_at', 'updated_at', 'reward_item', 'harga')
         ->orderBy('id')
         ->get();
 

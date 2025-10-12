@@ -2,250 +2,192 @@
 
 namespace App\Imports;
 
-use App\Models\Category;
-use App\Models\CategoryPayment;
-use App\Models\Outlets;
-use App\Models\Payment;
-use App\Models\Product;
-use App\Models\Taxes;
-use App\Models\Transaction;
-use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Row;
 use Maatwebsite\Excel\Concerns\OnEachRow;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
-use Maatwebsite\Excel\Concerns\WithCustomCsvSettings;
+use Maatwebsite\Excel\Concerns\SkipsOnFailure;
+use Maatwebsite\Excel\Concerns\SkipsErrors;
+use Maatwebsite\Excel\Concerns\ShouldQueue;
 
-class BackupImport implements OnEachRow, WithHeadingRow, WithChunkReading, WithCustomCsvSettings
+class BackupImport implements OnEachRow, WithHeadingRow, WithChunkReading, ShouldQueue, SkipsOnFailure
 {
-    /**
-     * Custom CSV settings for semicolon delimiter and Latin‑1 encoding.
-     */
-    public function getCsvSettings(): array
+    use SkipsErrors;
+
+    /** @var array<int, array<string, mixed>> */
+    protected array $buffer = [];
+
+    /** @var int jumlah baris per flush upsert */
+    protected int $bufferSize = 1000;
+
+    /** @var string timezone app */
+    protected string $tz = 'Asia/Jakarta';
+
+    public function __construct()
     {
-        return [
-            'delimiter' => ';',
-            'encoding'  => 'ISO-8859-1',   // Latin‑1
-        ];
+        // Kurangi overhead query logging saat import besar
+        DB::disableQueryLog();
     }
 
-    /**
-     * Process each row.
-     */
-    public function onRow(Row $row)
+    public function onRow(Row $row): void
     {
-        // Cek dan buat hanya jika belum ada
-        $user = User::firstOrCreate(
-            ['email' => 'backup@gmail.com'], // Kriteria unik untuk pengecekan
+        $r = $row->toArray();
+
+        // Normalisasi tanggal+jam jadi Carbon (support .xlsx serial dan .csv string)
+        $dt = $this->normalizeExcelOrCsvDateTime($r['date'] ?? null, $r['time'] ?? null, $this->tz);
+
+        // Normalisasi angka (CSV sering berupa string "00.00")
+        $gross      = $this->num($r['gross_sales']   ?? 0);
+        $discounts  = $this->num($r['discounts']     ?? 0);
+        $refunds    = $this->num($r['refunds']       ?? 0);
+        $netSales   = $this->num($r['net_sales']     ?? 0);
+        $gratuity   = $this->num($r['gratuity']      ?? 0);
+        $tax        = $this->num($r['tax']           ?? 0);
+        $totalColl  = $this->num($r['total_collected'] ?? $r['total_amount'] ?? 0);
+        $totalAmt   = $this->num($r['total_amount']  ?? $r['total_collected'] ?? 0);
+
+        // Natural key terbaik dari datamu tampaknya adalah nomor struk
+        $receipt = $r['receipt_number'] ?? null;
+
+        // Siapkan 1 baris payload (SES UAIKAN dengan kolom tabelmu)
+        // Saran: kalau tabel transactions kamu berbeda nama kolomnya, mapping di sini.
+        $this->buffer[] = [
+            'receipt_number'     => $receipt,                             // <— pastikan ada UNIQUE index untuk ini
+            'outlet'             => $r['outlet'] ?? null,
+            'event_type'         => $r['event_type'] ?? null,
+            'reason_of_refund'   => $r['reason_of_refund'] ?? null,
+            'collected_by'       => $r['collected_by'] ?? null,
+            'served_by'          => $r['served_by'] ?? null,
+            'customer'           => $r['customer'] ?? null,
+            'customer_phone'     => $r['customer_phone'] ?? null,
+            'items'              => $r['items'] ?? null,                  // jika nantinya dipecah ke table items, proses terpisah
+            'payment_method'     => $r['payment_method'] ?? null,
+
+            'gross_sales'        => $gross,
+            'discounts'          => $discounts,
+            'refunds'            => $refunds,
+            'net_sales'          => $netSales,
+            'gratuity'           => $gratuity,
+            'tax'                => $tax,
+            'total_collected'    => $totalColl,
+            'total_amount'       => $totalAmt,
+
+            'created_at'         => $dt,    // simpan waktu transaksi ke created_at
+            'updated_at'         => $dt,
+        ];
+
+        if (count($this->buffer) >= $this->bufferSize) {
+            $this->flush();
+        }
+    }
+
+    public function __destruct()
+    {
+        $this->flush();
+    }
+
+    /** Upsert buffer ke DB, 1 query untuk banyak baris */
+    protected function flush(): void
+    {
+        if (!$this->buffer) return;
+
+        // Pastikan tabel & kolom target sesuai proyekmu
+        // Gunakan upsert dengan unique key 'receipt_number' agar tidak duplikat.
+        DB::table('transactions')->upsert(
+            $this->buffer,
+            ['receipt_number'], // conflict key (UNIQUE INDEX disarankan)
             [
-                'name' => 'Backup',
-                'username' => 'backup',
-                'password' => bcrypt('password'),
-                'status' => 1,
-                'role' => 1,
-                'outlet_id' => json_encode([1])
+                // Kolom yang akan di-update jika sudah ada
+                'outlet', 'event_type', 'reason_of_refund', 'collected_by', 'served_by',
+                'customer', 'customer_phone', 'items', 'payment_method',
+                'gross_sales','discounts','refunds','net_sales','gratuity','tax',
+                'total_collected','total_amount','updated_at',
             ]
-        )->assignRole('admin');
+        );
 
-        $row = $row->toArray();
-
-        // dd($row, $user);
-
-        // Convert numeric strings (remove non‑numeric chars) & cast to float/int
-        $numeric = fn($value) => (float) preg_replace('/[^0-9.\-]/', '', $value);
-
-        // ---------CHECK OUTLET---------
-        $namaOutlet = $row['outlet'] ?? '';
-        $words = explode(' ', $namaOutlet);
-        $lastWordOutlet = trim(end($words));
-        $likeWordOutlet = "%" . $lastWordOutlet;
-        $outlet = Outlets::where('name', 'LIKE' ,$likeWordOutlet)->first();
-
-        // ---------TANGGAL & waktu---------
-        $dateSerial = $row['date']; // 45656
-        $timeSerial = $row['time']; // 0.87795138888889
-
-        // 1. Ubah date serial ke timestamp
-        $unixDate = ($dateSerial - 25569) * 86400; // 25569 = offset 1970-01-01
-        $datePart = gmdate('Y-m-d', $unixDate);
-
-        // 2. Ubah time fraction ke jam:menit:detik
-        $secondsInDay = 86400;
-        $unixTime = $timeSerial * $secondsInDay;
-        $timePart = gmdate('H:i:s', $unixTime);
-        // 3. Gabungkan
-        $combined = $datePart . ' ' . $timePart;
-        // 4. Buat Carbon instance
-        $carbonDateTime = Carbon::parse($combined);
-
-        // ---------TOTAL----------
-        $total = $numeric($row['total_amount'] ?? 0);
-
-        // ---------TOTAL COLLECTED----------
-        $nominalBayar = $numeric($row['total_collected'] ?? 0);
-
-        // ---------KEMBALIAN----------
-        $change = intval($nominalBayar) - intval($total);
-
-        // PAYMENT METHOD
-        $paymentMethod = $row['payment_method'] ?? '';
-
-        $checkApakahCashAtauBukan = CategoryPayment::where('name', 'LIKE', '%' . $paymentMethod . '%')->first();
-
-        if($checkApakahCashAtauBukan){
-            $categoryPaymentId = $checkApakahCashAtauBukan->id;
-            $tipePembayaran = null;
-            $namaTipePembayaran = "Cash";
-        }else{
-            $checkTipePembayaran = Payment::where('name', 'LIKE', '%' . $paymentMethod . '%')->with(['categoryPayment'])->first();
-            $categoryPaymentId = $checkTipePembayaran->categoryPayment->id;
-            $tipePembayaran = $checkTipePembayaran->id;
-            $namaTipePembayaran = $checkTipePembayaran->name;
-        }
-
-        // ---------PAJAK----------
-        $nominalPajak = $numeric($row['tax'] ?? 0);
-        $dataPajak = Taxes::where('outlet_id', $outlet->id)->first();
-        $resultPajak = [
-            "id" => $dataPajak->id,
-            "name" => $dataPajak->name,
-            "total" => $nominalPajak,
-            "amount" => $dataPajak->amount,
-            "satuan" =>$dataPajak->satuan
-        ];
-        $tax = json_encode($resultPajak);
-
-        // ---------PAJAK----------
-        $discount = $row['discounts'] ?? 0;
-
-
-        // dd($row, $categoryPaymentId, $tipePembayaran, $namaTipePembayaran);
-
-        // Transaction::create([
-        //     'outlet'          => $row['outlet'] ?? null,
-        //     'date'            => \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($row['date'])->format('Y-m-d'),
-        //     'time'            => $row['time'] ?? null,
-        //     'gross_sales'     => $numeric($row['gross_sales'] ?? 0),
-        //     'discounts'       => $numeric($row['discounts'] ?? 0),
-        //     'refunds'         => $numeric($row['refunds'] ?? 0),
-        //     'net_sales'       => $numeric($row['net_sales'] ?? 0),
-        //     'gratuity'        => $numeric($row['gratuity'] ?? 0),
-        //     'tax'             => $numeric($row['tax'] ?? 0),
-        //     'total_collected' => $numeric($row['total_collected'] ?? 0),
-        //     'total_amount'    => $numeric($row['total_amount'] ?? 0),
-        //     'receipt_number'  => $row['receipt_number'] ?? null,
-        //     'collected_by'    => $row['collected_by'] ?? null,
-        //     'served_by'       => $row['served_by'] ?? null,
-        //     'customer'        => $row['customer'] ?? null,
-        //     'customer_phone'  => $row['customer_phone'] ?? null,
-        //     'items'           => $row['items'] ? (int) $row['items'] : null,
-        //     'payment_method'  => $row['payment_method'] ?? null,
-        //     'other_note'      => $row['other_note_(optional)'] ?? null,
-        // ]);
-
-        $dataTransaction = [
-            'outlet_id' => $outlet->id ?? null,
-            'user_id' => $user->id,
-            'customer_id' => null,
-            'total' => $total,
-            'nominal_bayar' => $nominalBayar,
-            'category_payment_id' => $categoryPaymentId,
-            'nama_tipe_pembayaran' => $namaTipePembayaran,
-            'change' => $change,
-            'tipe_pembayaran' => $tipePembayaran,
-            'total_pajak' => $tax,
-            'total_modifier' => 0,
-            'total_diskon' => $discount,
-            'diskon_all_item' => json_encode([]),
-            'rounding_amount' => 0,
-            'tanda_rounding' => null,
-            'patty_cash_id' => 1,
-            'catatan' => null,
-            'potongan_point' => 0,
-            'created_at' => Carbon::now(),
-            'updated_at' => Carbon::now(),
-            'open_bill_id' => null
-        ];
-
-        // $transaction = Transaction::create($dataTransaction);
-
-        $textItem = "Tiramisu Cream Latte, Cookies, Danish Creamcheese, Magic, Custom Amount";
-
-        $items = array_map('trim', explode(',', $textItem));
-
-        foreach ($items as $item) {
-            preg_match('/^(.+?)(?:\s*\((.*?)\))?(?:\s*x\s*(\d+))?$/i', trim($item), $matches);
-
-            $name     = trim($matches[1] ?? '');
-            $modifier = $matches[2] ?? null;
-            $quantity = isset($matches[3]) ? (int)$matches[3] : 1;
-
-            $isCustom = strcasecmp($name, 'Custom Amount') === 0; // true jika nama persis "Custom Amount"
-
-            $findProduct = Product::where('name', 'LIKE', '%' . $name . '%')->first();
-
-            $backupCategory = Category::firstOrCreate(
-                ['name' => 'Backup'],
-            [
-                'name' => 'Backup',
-                'status' => true
-            ]);
-
-
-            if(!$findProduct) {
-                // Jika produk tidak ditemukan, maka buat product baru
-                $dataProduct = [
-                    "name" => $name,
-                    'category_id' => $backupCategory->id,
-                    // 'harga_jual' => getAmount($validatedData['harga_jual']),
-                    'harga_modal' => getAmount($validatedData['harga_modal']),
-                    // 'stock' => $validatedData['stock'],
-                    'outlet_id' => $outlet,
-                    'status' => $validatedData['status'],
-                    'description' => $validatedData['description'],
-                    'exclude_tax' => $validatedData['exclude_tax'] ?? false
-                ];
-
-                if ($request->hasFile('photo')) {
-                    $dataProduct['photo'] = $request->file('photo')->store('product');
-                }
-
-                $product = Product::create($dataProduct);
-                continue;
-            }
-            dd($name, $modifier, $quantity, $isCustom, $findProduct);
-            $idProduct = $request->idProduct[$x] == 'null' ? null : intval($request->idProduct[$x]);
-            $dataProduct = [
-                'product_id' => $idProduct,
-                'discount_id' => $request->discount_id[$x],
-                'modifier_id' => $request->modifier_id[$x],
-                'harga' => $request->harga[$x],
-                'variant_id' => ($request->idVariant[$x] == 'null' || $request->idVariant[$x] == 'undefined') ? null : $request->idVariant[$x],
-                'promo_id' => $request->promo_id[$x],
-                'reward_item' => $request->reward[$x] == "true" ? true : false,
-                'transaction_id' => $transaction->id,
-                'catatan' => isset($request->catatan[$x]) ? $request->catatan[$x] : '',
-                'sales_type_id' => ($request->sales_type[$x] == 'null' || $request->sales_type[$x] == 'undefined') ?  null : $request->sales_type[$x],
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ];
-
-            // dd($billId, $listIdItemOpenBill, $request->idProduct);
-            if($billId && count($listIdItemOpenBill)){
-                // $dataProduct['item_open_bill_id'] = $listIdItemOpenBill[$x];
-                $dataProduct['item_open_bill_id'] = $billId;
-            }
-
-            TransactionItem::insert($dataProduct);
-        }
+        $this->buffer = [];
     }
 
-    /**
-     * Chunk size to keep memory usage low.
-     */
     public function chunkSize(): int
     {
-        return 1000;
+        // 500–1000 baris per chunk umumnya ideal
+        return 500;
+    }
+
+    /** Konversi angka string CSV → float/int (atau tetap numerik apa adanya) */
+    protected function num($v): float|int
+    {
+        if (is_null($v) || $v === '') return 0;
+        if (is_numeric($v)) return $v + 0;
+        // "1.234,56" → 1234.56 (kalau CSV lokal pakai koma)
+        $v = str_replace(['.'], [''], $v);     // hilangkan pemisah ribuan
+        $v = str_replace([','], ['.'], $v);    // koma jadi titik desimal
+        return is_numeric($v) ? $v + 0 : 0;
+    }
+
+    /**
+     * Parser tanggal fleksibel:
+     * - XLSX: date sebagai serial number, time sebagai fraksi hari
+     * - CSV: date "dd/mm/yy" atau "dd/mm/yyyy", time "HH:mm[:ss]" atau "HH.mm.ss"
+     */
+    protected function normalizeExcelOrCsvDateTime($date, $time = null, string $tz = 'Asia/Jakarta'): ?Carbon
+    {
+        if ($date === null || $date === '') return null;
+
+        // XLSX serial (integer)
+        if (is_numeric($date)) {
+            $dt = Carbon::create(1899,12,30,0,0,0,$tz)->addDays((int)$date);
+        } else {
+            // Bersihkan karakter aneh
+            $dateStr = (string)$date;
+            $dateStr = str_replace("\xEF\xBB\xBF", '', $dateStr);
+            $dateStr = preg_replace('/[\x00-\x1F\x7F\xC2\xA0]/u', '', $dateStr);
+            $dateStr = trim($dateStr);
+
+            // Jika kolom date ikut memuat waktu, ekstrak
+            $tmp = str_replace('.', ':', $dateStr);
+            if (preg_match('/\b(\d{1,2}:\d{2}(?::\d{2})?)\b/', $tmp, $m)) {
+                $time = $time ?: $m[1];
+                $dateStr = trim(str_replace($m[0], '', $tmp));
+            }
+
+            // Normalisasi pemisah tanggal
+            $dateStr = preg_replace('/[.\-]/', '/', $dateStr);
+
+            // Validasi pola d/m/y(yy)
+            if (!preg_match('/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/', $dateStr)) {
+                throw new \InvalidArgumentException("Tanggal tidak sesuai pola d/m/y atau d/m/Y: `{$dateStr}`");
+            }
+
+            $yearPart = explode('/', $dateStr)[2] ?? '';
+            $fmt = (strlen($yearPart) === 2) ? '!d/m/y' : '!d/m/Y';
+
+            $dt = Carbon::createFromFormat($fmt, $dateStr, $tz);
+        }
+
+        // TIME
+        if ($time !== null && $time !== '') {
+            if (is_numeric($time)) {
+                $dt->addSeconds((int) round(((float)$time) * 86400));
+            } else {
+                $t = (string)$time;
+                $t = str_replace("\xEF\xBB\xBF", '', $t);
+                $t = preg_replace('/[\x00-\x1F\x7F\xC2\xA0]/u', '', $t);
+                $t = trim($t);
+                $t = str_replace('.', ':', $t);
+
+                foreach (['H:i:s','H:i'] as $f) {
+                    try {
+                        $pt = Carbon::createFromFormat('!'.$f, $t, $tz);
+                        $dt->setTime($pt->hour, $pt->minute, $pt->second);
+                        break;
+                    } catch (\Throwable $e) {}
+                }
+            }
+        }
+
+        return $dt;
     }
 }

@@ -106,6 +106,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/email-test', [CheckoutController::class, 'showForm']);
             Route::post('/email-test', [CheckoutController::class, 'sendTestEmail'])->name('email/sendTest');
 
+            Route::post('/backup-import', [CheckoutController::class, 'importDataBackup'])->name('checkout/backup-import');
+
         });
 
         Route::prefix('category-payment')->group(function(){

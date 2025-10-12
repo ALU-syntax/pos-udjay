@@ -54,7 +54,7 @@ class ProductController extends Controller
 
             $product = Product::create($dataProduct);
 
-            // Buat data Modifiers
+            // Buat data Variant
             $dataVariant = [];
             for ($x = 0; $x < count($validatedData['harga_jual']); $x++) {
                 $dataVariant[] = [
