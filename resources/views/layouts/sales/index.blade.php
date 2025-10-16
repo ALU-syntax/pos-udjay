@@ -979,6 +979,38 @@
                         }
                     );
 
+                    $('#item-sales tbody').off().on('click', 'tr', function() {
+                        var data = tableSales.row(this).data();
+                        console.log(data);
+                        $.ajax({
+                            url: '{{ route('report/sales/getDetailItemSales') }}',
+                            method: 'GET',
+                            data: {
+                                date: date,
+                                outlet: outlet,
+                                idProduct: data.product_id,
+                                idVariant: data.id,
+                                nameProductVariant: data.name
+                            },
+                            beforeSend: function() {
+                                showLoader();
+                            },
+                            complete: function() {
+                                showLoader(false);
+                            },
+                            success: function(data) {
+                                const modal = $('#modal_detail');
+                                
+                                modal.html(data);
+                                modal.modal('show');
+
+                            },
+                            error: function(xhr) {
+                                console.error(xhr);
+                            }
+                        });
+                    });
+
                 } else if (activeTab === "#category-sales-nobd") {
                     if ($.fn.dataTable.isDataTable('#category-sales')) {
                         $('#category-sales').DataTable().destroy();

@@ -885,4 +885,88 @@ class SalesController extends Controller
             'total_collected' => 0,
         ];
     }
+
+    public function getDetailItemSales(Request $request)
+    {
+
+        $dates = explode(' - ', $request->date);
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        } else {
+            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
+
+        $product = Product::findOrFail($request->idProduct);
+        $nameProductVariant = $request->nameProductVariant;
+
+        // ambil semua group & modifier TANPA transaksi dulu
+        $groups = $product->modifierGroups()
+        ->with('modifier')
+        ->get()
+        ->makeHidden(['created_at', 'updated_at', 'deleted_at'])
+        ->each(function($group){
+            $group->modifier->makeHidden(['created_at', 'updated_at', 'deleted_at']);
+        });
+
+        // kumpulkan semua id modifier
+        $modifierIds = $groups->pluck('modifier.*.id')->flatten()->filter()->unique()->values();
+
+        // ambil semua transaction_items yang mencocokkan salah satu modifier id
+        $items = TransactionItem::query()
+            ->select('variant_id',
+                DB::raw('COUNT(*) as total_count'),
+                'product_id',
+                'discount_id',
+                'modifier_id',
+                'promo_id',
+                'sales_type_id',
+                'transaction_id',
+                'catatan',
+                'reward_item',
+                'created_at')
+            ->where(function ($q) use ($modifierIds) {
+                foreach ($modifierIds as $mid) {
+                    $q->orWhereRaw("JSON_CONTAINS(modifier_id, JSON_OBJECT('id', ?), '$')", [(string) $mid]);
+                }
+            })
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where('variant_id', $request->idVariant)
+            ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'reward_item', 'created_at')
+            ->get();
+
+        // indekskan per modifier id
+        $byModifier = [];
+        foreach ($items as $it) {
+            // ambil semua id modifier yang ada di JSON kolom ini
+            foreach (json_decode($it->modifier_id, true) ?? [] as $m) {
+                $byModifier[(string)$m['id']][] = $it;
+            }
+        }
+
+        // sisipkan ke masing-masing modifier sebagai atribut sementara `transaction_items`
+        $groups->each(function ($group) use (&$byModifier) {
+            $group->modifier->each(function ($mod) use (&$byModifier) {
+                $mod->setRelation(
+                    'transaction_items',
+                    collect($byModifier[(string)$mod->id] ?? [])
+                );
+            });
+        });
+
+        // debug
+        // dd($groups->toArray());
+
+        return view('layouts.sales.modal-detail-item-sales', [
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'modifierGroups' => $groups,
+            'product'        => $product,
+            'nameProductVariant' => $nameProductVariant
+        ]);
+    }
+
+
 }

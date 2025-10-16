@@ -370,6 +370,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/tax-sales', [SalesController::class, 'getTaxSales'])->name('sales/getTaxSales');
             Route::get('/collected-by-sales', [SalesController::class, 'getCollectedBySales'])->name('sales/getCollectedBySales');
             Route::get('/getDetailItemCategorySales', [SalesController::class, 'getDetailItemCategorySales'])->name('sales/getDetailItemCategorySales');
+            Route::get('/getDetailItemSales', [SalesController::class, 'getDetailItemSales'])->name('sales/getDetailItemSales');
             Route::get('report/sales/exportSalesSummary', [SalesController::class, 'exportSalesSummary'])->name('sales/exportSalesSummary');
         });
 
