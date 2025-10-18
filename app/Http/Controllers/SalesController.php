@@ -968,5 +968,107 @@ class SalesController extends Controller
         ]);
     }
 
+    public function getPaymentMerchantMethodSales(Request $request)
+    {
+        $dates = explode(' - ', $request->input('date'));
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        }
+
+        $outlet = $request->input('outlet');
+
+        if($outlet == "all"){
+            $data = CategoryPayment::with(['payment' => function ($payment) use ($startDate, $endDate, $outlet) {
+                $payment->with(['transactions' => function ($transaction) use ($startDate, $endDate) {
+                    $transaction->whereBetween('created_at', [$startDate, $endDate]);
+                    $transaction->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate){
+                        $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
+                        $itemTransaction->with(['product' => function($product){
+                            $product->where('exclude_tax', false);
+                        }]);
+                    }]);
+                    // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
+                }]);
+            }, 'transactions' => function ($transaction) use ($startDate, $endDate) {
+                $transaction->whereBetween('created_at', [$startDate, $endDate]);
+                $transaction->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate){
+                        $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
+                        $itemTransaction->with(['product' => function($product){
+                            $product->where('exclude_tax', false);
+                        }]);
+                    }]);
+                // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
+            }])->get();
+        }else{
+            $data = CategoryPayment::with(['payment' => function ($payment) use ($startDate, $endDate, $outlet) {
+                $payment->with(['transactions' => function ($transaction) use ($startDate, $endDate, $outlet) {
+                    $transaction->whereBetween('created_at', [$startDate, $endDate])->where('outlet_id', $outlet);
+                    $transaction->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate){
+                        $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
+                        $itemTransaction->with(['product' => function($product){
+                            $product->where('exclude_tax', false);
+                        }]);
+                    }]);
+                    // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
+                }]);
+            }, 'transactions' => function ($transaction) use ($startDate, $endDate, $outlet) {
+                $transaction->whereBetween('created_at', [$startDate, $endDate])->where('outlet_id', $outlet);
+                $transaction->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate){
+                    $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
+                    $itemTransaction->with(['product' => function($product){
+                        $product->where('exclude_tax', false);
+                    }]);
+                }]);
+                // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
+            }])->get();
+
+        }
+
+
+        dd($data->toArray());
+        // Format data untuk dikembalikan
+        $result = [];
+        foreach ($data as $category) {
+            $tmpData = [];
+            if ($category->name == "Cash" || $category->id == 1) {
+                $tmpData['payment_method'] = $category->name;
+                $tmpData['number_of_transactions'] = count($category->transactions);
+                $tmpData['parent'] = true;
+                $totalCollected = 0;
+
+                foreach ($category->transactions as $transaction) {
+                    $totalCollected += $transaction->total;
+                }
+
+                $tmpData['total_collected'] = $totalCollected;
+
+                array_push($result, $tmpData);
+            } else {
+                $tmpData['payment_method'] = $category->name;
+                $tmpData['number_of_transactions'] = "";
+                $tmpData['total_collected'] = "";
+                $tmpData['parent'] = true;
+
+                array_push($result, $tmpData);
+
+                foreach ($category->payment as $payment) {
+                    $tmpData['payment_method'] = $payment->name;
+                    $tmpData['number_of_transactions'] = count($payment->transactions);
+                    $tmpData['parent'] = false;
+                    $paymentTotalCollected = 0;
+
+                    foreach ($payment->transactions as $paymentTransaction) {
+                        $paymentTotalCollected += $paymentTransaction->total;
+                    }
+                    $tmpData['total_collected'] = $paymentTotalCollected;
+
+                    array_push($result, $tmpData);
+                }
+            }
+        }
+
+        return response()->json($result);
+    }
 
 }

@@ -36,6 +36,40 @@
             /* Warna abu */
         }
 
+        #payment-method-merchant-table {
+            border-collapse: collapse;
+            /* Menghilangkan border */
+        }
+
+        /* Menghilangkan border pada sel */
+        #payment-method-merchant-table th,
+        #payment-method-merchant-table td {
+            border: none;
+            /* Menghilangkan border */
+            padding: 8px;
+            /* Menambahkan padding untuk estetika */
+        }
+
+        /* Menambahkan border vertikal di kanan kolom Payment Method */
+        #payment-method-merchant-table td:first-child {
+            border-right: 1px solid #ccc;
+            /* Border kanan */
+        }
+
+        /* Menambahkan border horizontal atas dan bawah di baris Total */
+        #payment-method-merchant-table tr:last-child {
+            border-top: 2px solid #000;
+            /* Border atas */
+            border-bottom: 2px solid #000;
+            /* Border bawah */
+        }
+
+        /* Menambahkan background abu pada header tabel */
+        #payment-method-merchant-table thead th {
+            background-color: #f2f2f2;
+            /* Warna abu */
+        }
+
         /* Menambahkan border vertikal di kanan kolom item sales */
         #item-sales td:first-child {
             border-right: 1px solid #ccc;
@@ -238,6 +272,9 @@
                             <a class="nav-link" id="payment-method-tab-nobd" data-bs-toggle="pill"
                                 href="#payment-method-nobd" role="tab" aria-controls="payment-method-nobd"
                                 aria-selected="false">Payment Method</a>
+                            <a class="nav-link" id="payment-method-merchant-tab-nobd" data-bs-toggle="pill"
+                                href="#payment-method-merchant-nobd" role="tab" aria-controls="payment-method-merchant-nobd"
+                                aria-selected="false">Payment Method (Merchant)</a>
                             <a class="nav-link" id="sales-type-tab-nobd" data-bs-toggle="pill" href="#sales-type-nobd"
                                 role="tab" aria-controls="sales-type-nobd" aria-selected="false">Sales Type</a>
                             <a class="nav-link" id="item-sales-tab-nobd" data-bs-toggle="pill" href="#item-sales-nobd"
@@ -400,6 +437,21 @@
                             <div class="tab-pane fade" id="payment-method-nobd" role="tabpanel"
                                 aria-labelledby="payment-method-tab-nobd">
                                 <table id="payment-method-table" class="table">
+                                    <thead>
+                                        <tr>
+                                            <th><b>Payment Method</b></th>
+                                            <th><b>Number of Transactions</b></th>
+                                            <th><b>Total Collected</b></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data akan dimuat di sini -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="tab-pane fade" id="payment-method-merchant-nobd" role="tabpanel"
+                                aria-labelledby="payment-method-merchant-tab-nobd">
+                                <table id="payment-method-merchant-table" class="table">
                                     <thead>
                                         <tr>
                                             <th><b>Payment Method</b></th>
@@ -684,6 +736,75 @@
                         },
                         success: function(data) {
                             var tbody = $('#payment-method-table tbody');
+                            tbody.empty();
+
+                            let numberOfTransaction = 0;
+                            let totalCollected = 0;
+
+                            $.each(data, function(index, transaction) {
+                                console.log(transaction);
+                                numberOfTransaction += transaction.number_of_transactions != '' ?
+                                    transaction.number_of_transactions : 0;
+                                totalCollected += transaction.total_collected != '' ? transaction
+                                    .total_collected : 0;
+
+                                if (transaction.parent) {
+                                    if (transaction.payment_method == "Cash") {
+                                        tbody.append(`
+                                            <tr>
+                                                <td>${transaction.payment_method}</td>
+                                                <td>${transaction.number_of_transactions}</td>
+                                                <td>${formatRupiah(transaction.total_collected.toString(), "Rp. ")}</td>
+                                            </tr>
+                                        `);
+                                    } else {
+                                        tbody.append(`
+                                            <tr>
+                                                <td>${transaction.payment_method}</td>
+                                                <td>${transaction.number_of_transactions}</td>
+                                                <td></td>
+                                            </tr>
+                                        `);
+                                    }
+                                } else {
+                                    tbody.append(`
+                                        <tr>
+                                            <td style="color: rgb(133 133 133 / 75%) !important;">&nbsp ${transaction.payment_method}</td>
+                                            <td>${transaction.number_of_transactions}</td>
+                                            <td>${formatRupiah(transaction.total_collected.toString(), "Rp. ")}</td>
+                                        </tr>
+                                    `);
+                                }
+                            });
+
+                            tbody.append(`
+                                <tr>
+                                    <td>Total</td>
+                                    <td>${numberOfTransaction}</td>
+                                    <td>${formatRupiah(totalCollected.toString(), "Rp. ")}</td>
+                                </tr>
+                            `);
+                        },
+                        error: function(xhr) {
+                            console.error(xhr);
+                        }
+                    });
+                } else if (activeTab === '#payment-method-merchant-nobd') {
+                    $.ajax({
+                        url: '{{ route('report/sales/getPaymentMerchantMethodSales') }}',
+                        method: 'GET',
+                        data: {
+                            date: date,
+                            outlet: outlet
+                        },
+                        beforeSend: function() {
+                            showLoader();
+                        },
+                        complete: function() {
+                            showLoader(false);
+                        },
+                        success: function(data) {
+                            var tbody = $('#payment-method-merchant-table tbody');
                             tbody.empty();
 
                             let numberOfTransaction = 0;

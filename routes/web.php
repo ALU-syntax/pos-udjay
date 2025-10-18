@@ -362,6 +362,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/sales-summary', [SalesController::class, 'getSalesSummary'])->name('sales/getSalesSummary');
             Route::get('/gross-profit', [SalesController::class, 'getGrossProfit'])->name('sales/getGrossProfit');
             Route::get('/payment-method', [SalesController::class, 'getPaymentMethodSales'])->name('sales/getPaymentMethodSales');
+            Route::get('/payment-method-merchant', [SalesController::class, 'getPaymentMerchantMethodSales'])->name('sales/getPaymentMerchantMethodSales');
             Route::get('/sales-type', [SalesController::class, 'getSalesType'])->name('sales/getSalesType');
             Route::get('/item-sales', [SalesController::class, 'getItemSales'])->name('sales/getItemSales');
             Route::get('/category-sales', [SalesController::class, 'getCategorySales'])->name('sales/getCategorySales');
