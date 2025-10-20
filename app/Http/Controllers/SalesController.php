@@ -983,20 +983,20 @@ class SalesController extends Controller
                 $payment->with(['transactions' => function ($transaction) use ($startDate, $endDate) {
                     $transaction->whereBetween('created_at', [$startDate, $endDate]);
                     $transaction->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate){
-                        $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
-                        $itemTransaction->with(['product' => function($product){
-                            $product->where('exclude_tax', false);
-                        }]);
+                        $itemTransaction->whereBetween('created_at', [$startDate, $endDate])
+                        ->whereHas('product', function ($q) {
+                            $q->where('exclude_tax', 1); // atau true, pastikan casts boolean
+                        });
                     }]);
                     // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
                 }]);
             }, 'transactions' => function ($transaction) use ($startDate, $endDate) {
                 $transaction->whereBetween('created_at', [$startDate, $endDate]);
                 $transaction->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate){
-                        $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
-                        $itemTransaction->with(['product' => function($product){
-                            $product->where('exclude_tax', false);
-                        }]);
+                        $itemTransaction->whereBetween('created_at', [$startDate, $endDate])
+                        ->whereHas('product', function ($q) {
+                            $q->where('exclude_tax', 1); // atau true, pastikan casts boolean
+                        });
                     }]);
                 // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
             }])->get();
@@ -1005,28 +1005,27 @@ class SalesController extends Controller
                 $payment->with(['transactions' => function ($transaction) use ($startDate, $endDate, $outlet) {
                     $transaction->whereBetween('created_at', [$startDate, $endDate])->where('outlet_id', $outlet);
                     $transaction->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate){
-                        $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
-                        $itemTransaction->with(['product' => function($product){
-                            $product->where('exclude_tax', false);
-                        }]);
+                        $itemTransaction->whereBetween('created_at', [$startDate, $endDate])
+                        ->whereHas('product', function ($q) {
+                            $q->where('exclude_tax', 1); // atau true, pastikan casts boolean
+                        });
                     }]);
                     // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
                 }]);
             }, 'transactions' => function ($transaction) use ($startDate, $endDate, $outlet) {
                 $transaction->whereBetween('created_at', [$startDate, $endDate])->where('outlet_id', $outlet);
                 $transaction->with(['itemTransaction' => function($itemTransaction) use($startDate, $endDate){
-                    $itemTransaction->whereBetween('created_at', [$startDate, $endDate]);
-                    $itemTransaction->with(['product' => function($product){
-                        $product->where('exclude_tax', false);
-                    }]);
+                    $itemTransaction->whereBetween('created_at', [$startDate, $endDate])
+                    ->whereHas('product', function ($q) {
+                        $q->where('exclude_tax', 1); // atau true, pastikan casts boolean
+                    });
                 }]);
                 // $transaction->whereDate('created_at', Carbon::yesterday())->where('outlet_id', $outlet);
             }])->get();
 
         }
 
-
-        dd($data->toArray());
+        // dd($data->toArray());
         // Format data untuk dikembalikan
         $result = [];
         foreach ($data as $category) {
@@ -1037,8 +1036,11 @@ class SalesController extends Controller
                 $tmpData['parent'] = true;
                 $totalCollected = 0;
 
+                
                 foreach ($category->transactions as $transaction) {
-                    $totalCollected += $transaction->total;
+                    foreach($transaction->itemTransaction as $itemTransaction) {
+                        $totalCollected += $itemTransaction->harga;
+                    }
                 }
 
                 $tmpData['total_collected'] = $totalCollected;
@@ -1052,6 +1054,7 @@ class SalesController extends Controller
 
                 array_push($result, $tmpData);
 
+                // dd($category->toArray());
                 foreach ($category->payment as $payment) {
                     $tmpData['payment_method'] = $payment->name;
                     $tmpData['number_of_transactions'] = count($payment->transactions);
@@ -1059,7 +1062,9 @@ class SalesController extends Controller
                     $paymentTotalCollected = 0;
 
                     foreach ($payment->transactions as $paymentTransaction) {
-                        $paymentTotalCollected += $paymentTransaction->total;
+                        foreach($paymentTransaction->itemTransaction as $itemTransaction) {
+                            $paymentTotalCollected += $itemTransaction->harga;
+                        }
                     }
                     $tmpData['total_collected'] = $paymentTotalCollected;
 
