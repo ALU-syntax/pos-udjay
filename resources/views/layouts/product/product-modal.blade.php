@@ -23,7 +23,7 @@
     <div class="col-4">
         <div class="form-group">
             <label>Name <span class="text-danger">*</span></label>
-            <input id="name" name="name" value="{{ $data->name }}" type="text" class="form-control"
+            <input id="name" name="name" value="{{ old('name', $data->name) }}" type="text" class="form-control"
                 placeholder="nama product.." required>
         </div>
     </div>
@@ -135,8 +135,9 @@
             var valueHargaJual = "{{ $data->harga_jual }}";
             var valueHargaModal = "{{ $data->harga_modal }}";
             var valueNamaProduct = "{{ $data->name }}";
-            var listVariants = '{!! $data->variants !!}';
-            var jsonListVariants = JSON.parse(listVariants);
+            // var listVariants = '{!! $data->variants !!}';
+            // var jsonListVariants = JSON.parse(listVariants);
+            var jsonListVariants = @json($data->variants);
 
             $('#tambah-varian').nextAll().remove();
             jsonListVariants.forEach(function(item, index) {
