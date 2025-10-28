@@ -523,12 +523,16 @@ class KasirController extends Controller
 
         for ($x = 0; $x < count($request->idProduct); $x++) {
             $idProduct = $request->idProduct[$x] == 'null' ? null : intval($request->idProduct[$x]);
+            $variantId = ($request->idVariant[$x] == 'null' || $request->idVariant[$x] == 'undefined') ? null : $request->idVariant[$x];
+            if($variantId){
+                VariantProduct::whereKey($variantId)->decrement('stok', 1);
+            }
             $dataProduct = [
                 'product_id' => $idProduct,
                 'discount_id' => $request->discount_id[$x],
                 'modifier_id' => $request->modifier_id[$x],
                 'harga' => $request->harga[$x],
-                'variant_id' => ($request->idVariant[$x] == 'null' || $request->idVariant[$x] == 'undefined') ? null : $request->idVariant[$x],
+                'variant_id' => $variantId,
                 'promo_id' => $request->promo_id[$x],
                 'reward_item' => $request->reward[$x] == "true" ? true : false,
                 'transaction_id' => $transaction->id,
