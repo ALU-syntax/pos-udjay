@@ -23,6 +23,14 @@ class DetailItemTransactionDataTable extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
+            ->addColumn('details', function ($row) {
+                $checkModifier = $row->modifier_id;
+                $modifierArrow = json_decode($checkModifier, true);
+                if (count($modifierArrow) > 0) {
+                    return '<i class="fa fa-chevron-right toggle-details text-primary" style="cursor:pointer;"></i>';
+                }
+                return ''; // tidak ada icon jika modifier_id null
+            })
             ->addColumn('name', function($row){
                 if($row->product && $row->variant){
                     return $row->product->name == $row->variant->name ? $row->product->name : $row->product->name . '-' . $row->variant->name;
@@ -39,7 +47,17 @@ class DetailItemTransactionDataTable extends DataTable
             ->addColumn('total_harga', function($row){
                 return $row->harga;
             })
-            ->setRowId('id');
+            ->rawColumns(['details']) 
+            ->setRowId('id')
+            // ✅ Tambahkan baris ini:
+            ->setRowClass(function ($row) {
+                $checkModifier = $row->modifier_id;
+                $modifierArrow = json_decode($checkModifier, true);
+                if (count($modifierArrow) > 0) {
+                    return 'expand';
+                }
+                return '';
+            });;
     }
 
     /**
@@ -47,7 +65,9 @@ class DetailItemTransactionDataTable extends DataTable
      */
     public function query(TransactionItem $model): QueryBuilder
     {
-        return $model->with(['variant', 'product'])->where('transaction_id', $this->transactionId)->newQuery();
+        $test = $model->with(['variant', 'product'])->where('transaction_id', $this->transactionId)->newQuery();
+        // dd($test->get());
+        return $test;
     }
 
     /**
@@ -78,6 +98,12 @@ class DetailItemTransactionDataTable extends DataTable
     public function getColumns(): array
     {
         return [
+            Column::computed('details')
+                ->title('')
+                ->exportable(false)
+                ->printable(false)
+                ->width(30)
+                ->addClass('dt-control text-center'),
             Column::make('name')->title("Nama Item"),
             Column::make('qty')->title("Quantity"),
             Column::make('harga')->title("Harga"),
