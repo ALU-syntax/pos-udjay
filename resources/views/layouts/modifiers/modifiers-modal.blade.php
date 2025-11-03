@@ -7,15 +7,23 @@
         /* Pastikan dropdown tetap di dalam konteks modal */
     }
 </style>
-<x-modal addStyle="modal-lg" title="Tambah Modifiers" action="{{ $action }}" method="POST">
+<x-modal addStyle="modal-lg" title="{{ $data->id ? 'Edit Modifiers' : 'Tambah Modifiers' }}"  action="{{ $action }}" method="POST" update="{{$update}}">
     @if ($data->id)
         @method('put')
     @endif
-    <div class="col-sm-12">
+    <div class="col-sm-8">
         <div class="form-group">
             <label>Modifier Group <span class="text-danger">*</span></label>
             <input id="name" name="name" value="{{ $data->name }}" type="text" class="form-control"
                 placeholder="Name" required>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="form-check mt-5">
+            <input class="form-check-input" type="checkbox" name="is_required" value="1" id="is_required" @if($data->is_required) checked @endif>
+            <label class="form-check-label" for="is_required">
+                Required
+            </label>
         </div>
     </div>
     <hr class="ms-4 me-4" style="width: 95%;">

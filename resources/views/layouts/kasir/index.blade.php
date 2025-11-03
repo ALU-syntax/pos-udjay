@@ -3604,12 +3604,29 @@
                 $('#salesTypeOffline').append(containerSalesType);
             }
 
+            
+            modifierItem = modifierItem.sort((a, b) => {
+                const aRequired = a.is_required === true || a.is_required === 1;
+                const bRequired = b.is_required === true || b.is_required === 1;
+                return aRequired === bRequired ? 0 : aRequired ? -1 : 1;
+            });
+
             // Render Modifier (Choose Many)
             modifierItem.forEach(function(dataModifier){
-                let containerModifier = $(`
+
+                const requiredMark = (dataModifier.is_required == true || dataModifier.is_required == 1)
+                    ? '<span style="color: red;">*</span>'
+                    : '';
+
+                const requiredTitle = (dataModifier.is_required == true || dataModifier.is_required == 1)
+                    ? 'Choose, at least one'
+                    : 'Choose Many';    
+                const containerModifier = $(`
                     <div class="mb-4">
-                        <label for="quantity" class="form-label"><strong>${dataModifier.name}</strong></label> |
-                        <small>Choose Many</small>
+                        <label for="quantity" class="form-label">
+                            <strong>${dataModifier.name}${requiredMark}</strong>
+                        </label> |
+                        <small>${requiredTitle}</small>
                         <div class="row mt-1"></div>
                     </div>
                 `);
@@ -3731,6 +3748,7 @@
                 let totalHargaProduct = dataHargaProduct * quantityProduct;
                 var isProductExcludeTax = dataItem.exclude_tax;
 
+                const listModifierRequiredOfflineProduct = getDataRelationProductFromJsonStringify(listModifier, dataIdProduct, true);
                 var dataSalesOffline = listSalesType;
                 if (dataSalesOffline.length > 0) {
                     var salesTypeId = dataSalesOffline[0].id;
@@ -3745,6 +3763,35 @@
                 let dataModifierNama = listModifierNameOffline;
                 let dataModifierHarga = listModifierHargaOffline;
 
+                if(listModifierRequiredOfflineProduct.length > 0){
+                    for(let i = 0; i < listModifierRequiredOfflineProduct.length; i++){
+                        let isModifierSelected = false;
+                        for(let j = 0; j < dataModifierId.length; j++){
+                            let selectedModifierId = dataModifierId[j];
+                            let modifierOptions = listModifierRequiredOfflineProduct[i].modifier;
+
+                            for(let k = 0; k < modifierOptions.length; k++){
+                                if(modifierOptions[k].id == selectedModifierId){
+                                    isModifierSelected = true;
+                                    break;
+                                }
+                            }
+
+                            if(isModifierSelected){
+                                break;
+                            }
+                        }
+
+                        if(!isModifierSelected){
+                            iziToast['error']({
+                                title: "Gagal",
+                                message: `Modifier wajib "${listModifierRequiredOfflineProduct[i].name}" belum dipilih`,
+                                position: 'topRight'
+                            });
+                            return;
+                        }
+                    }
+                }
                 let dataModifier = [];
                 for (let x = 0; x < dataModifierId.length; x++) {
                     let tmpDataModifier = {
@@ -4739,9 +4786,15 @@
             } catch { return []; }
         }
 
-        function getDataRelationProductFromJsonStringify(list, productId){
+        function getDataRelationProductFromJsonStringify(list, productId, isRequired = false){
             const pid = Number(productId);
-            const groups = list.filter(g => safeIds(g.product_id).includes(pid));
+            let groups = list.filter(g => safeIds(g.product_id).includes(pid));
+            if (isRequired){
+                groups = groups.filter(item => 
+                    item.hasOwnProperty('is_required') && (item.is_required == true || item.is_required == 1)
+                );
+            }
+
             return (groups || []);
         }
 

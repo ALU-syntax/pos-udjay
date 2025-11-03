@@ -94,6 +94,7 @@ class ModifiersController extends Controller
             "data" => new ModifierGroup(),
             "action" => route("library/modifiers/store"),
             "outlets" => Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get(),
+            "update" => false
         ]);
     }
 
@@ -104,14 +105,16 @@ class ModifiersController extends Controller
             'option_name' => 'required|array',
             'price' => 'required|array',
             'stok' => 'nullable|array',
-            'outlet_id' => 'required|array'
+            'outlet_id' => 'required|array',
+            'is_required' => 'nullable'
         ]);
 
         DB::transaction(function () use ($validatedData) {
             foreach ($validatedData['outlet_id'] as $outlet) {
                 $dataModifierGroup = [
                     "name" => $validatedData['name'],
-                    'outlet_id' => $outlet
+                    "outlet_id" => $outlet,
+                    "is_required" => $validatedData['is_required'] ?? false
                 ];
 
                 // Simpan ModifierGroup
@@ -146,7 +149,8 @@ class ModifiersController extends Controller
         return view('layouts.modifiers.modifiers-modal', [
             'data' => $modifierGroup,
             'action' => route('library/modifiers/update', $modifierGroup->id),
-            'outlets' => json_encode([$dataOutlet])
+            'outlets' => json_encode([$dataOutlet]),
+            'update' => true
         ]);
     }
 
@@ -161,11 +165,13 @@ class ModifiersController extends Controller
             'id_modifier' => 'required',
             'price' => 'required|array',
             'stok' => 'nullable|array',
-            'outlet_id' => 'required'
+            'outlet_id' => 'required',
+            'is_required' => 'nullable'
         ]);
 
         $dataModifierGroupUpdate = [
             'name' => $validateData['name'],
+            "is_required" => $validateData['is_required'] ?? false
         ];
 
         $modifier->update($dataModifierGroupUpdate);
