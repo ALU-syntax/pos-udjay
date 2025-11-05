@@ -1119,6 +1119,14 @@
                                     Pelanggan</button>
                             </div>
                         </div>
+
+                        <div class="row mb-1">
+                            <div class="col-12">
+                                {{-- <button class="btn btn-primary btn-lg w-100 rounded" id="treatment-pelanggan">Treatmen Pelanggan</button> --}}
+                                <button class="btn btn-lg btn-primary w-100 btn-open" data-toggle="modal" data-target="#rewardsModal">Treatmen Pelanggan</button>
+                            </div>
+                        </div>
+
                         <div class="card border-uddjaya">
                             <div class="card-body">
 
@@ -1404,6 +1412,193 @@
         </div>
     </div>
 
+    <!-- MODAL: Rewards Picker -->
+    <div class="modal fade" id="rewardsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 1rem; overflow: hidden;">
+            <div class="modal-body p-0">
+            <div class="row g-0">
+                <!-- LEFT PANEL: Member Summary -->
+                <div class="col-md-4 bg-body-tertiary p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="avatar" id="modalAvatar">AK</div>
+                    <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0" id="modalMemberName">Nama Member</h5>
+                        <span id="modalLevelBadge" class="badge rounded-pill level-silver">Silver</span>
+                    </div>
+                    <div class="small text-secondary" id="modalMemberMeta">ID • HP</div>
+                    </div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-4">
+                    <div class="mini-stat">
+                        <div class="label">EXP</div>
+                        <div class="value" id="modalExp">0</div>
+                    </div>
+                    </div>
+                    <div class="col-4">
+                    <div class="mini-stat">
+                        <div class="label">Points</div>
+                        <div class="value" id="modalPoints">0</div>
+                    </div>
+                    </div>
+                    <div class="col-4">
+                    <div class="mini-stat">
+                        <div class="label">Birthday</div>
+                        <div class="value d-flex align-items-center justify-content-center gap-1">
+                        <i class="bi bi-cake2" ></i>
+                        <span id="modalBirthday">—</span>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                <div class="small text-secondary">* Ilustrasi desain: nilai & aturan hanya contoh.</div>
+                </div>
+
+                <!-- RIGHT PANEL: Tabs & Rewards -->
+                <div class="col-md-8 p-4">
+                <div class="mb-3">
+                    <h5 class="mb-1">Pilih Rewards</h5>
+                    <div class="small text-secondary">Checklist rewards yang ingin ditambahkan ke transaksi.</div>
+                </div>
+
+                <ul class="nav nav-tabs" id="rewardTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-birthday" data-bs-toggle="tab" data-bs-target="#pane-birthday" type="button" role="tab">
+                        <i class="bi bi-cake2 me-2"></i>Birthday
+                    </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-level" data-bs-toggle="tab" data-bs-target="#pane-level" type="button" role="tab">
+                        <i class="bi bi-award me-2"></i>Level
+                    </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-exp" data-bs-toggle="tab" data-bs-target="#pane-exp" type="button" role="tab">
+                        <i class="bi bi-cup-hot me-2"></i>EXP
+                    </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content pt-3">
+                    <!-- Birthday -->
+                    <div class="tab-pane fade show active" id="pane-birthday" role="tabpanel">
+                    <div class="card">
+                        <div class="card-body">
+                        <div class="d-flex align-items-start justify-content-between">
+                            <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-cake2"></i>
+                                <h6 class="mb-0">Birthday Reward</h6>
+                            </div>
+                            <div class="text-secondary small">Gratis 1 menu "Signature Drink" pada bulan ulang tahun. *Contoh ketentuan: 1x per tahun.</div>
+                            <div class="text-secondary small mt-1">Masa berlaku: <span id="birthdayValidity">—</span></div>
+                            </div>
+                            <div class="form-check form-check-lg">
+                            <input class="form-check-input" type="checkbox" id="chkBirthday" />
+                            <label class="form-check-label" for="chkBirthday">Tambah</label>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                    </div>
+
+                    <!-- Level -->
+                    <div class="tab-pane fade" id="pane-level" role="tabpanel">
+                    <div class="card mb-2">
+                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="p-2 border rounded-3"><i class="bi bi-percent"></i></div>
+                            <div>
+                            <div class="fw-semibold">Diskon 10%</div>
+                            <div class="small text-secondary">Berlaku untuk semua minuman kecuali seasonal.</div>
+                            </div>
+                        </div>
+                        <div class="form-check form-check-lg pt-1">
+                            <input class="form-check-input" type="checkbox" id="chkLevelDiscount10" />
+                            <label class="form-check-label" for="chkLevelDiscount10">Pilih</label>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="card mb-2">
+                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="p-2 border rounded-3"><i class="bi bi-arrow-up-circle"></i></div>
+                            <div>
+                            <div class="fw-semibold">Upgrade Size Gratis</div>
+                            <div class="small text-secondary">Naik 1 level ukuran untuk 1 item minuman.</div>
+                            </div>
+                        </div>
+                        <div class="form-check form-check-lg pt-1">
+                            <input class="form-check-input" type="checkbox" id="chkLevelUpgrade" />
+                            <label class="form-check-label" for="chkLevelUpgrade">Pilih</label>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="p-2 border rounded-3"><i class="bi bi-lightning-charge"></i></div>
+                            <div>
+                            <div class="fw-semibold">Priority Queue</div>
+                            <div class="small text-secondary">Akses jalur prioritas (ilustrasi desain kasir).</div>
+                            </div>
+                        </div>
+                        <div class="form-check form-check-lg pt-1">
+                            <input class="form-check-input" type="checkbox" id="chkLevelPriority" />
+                            <label class="form-check-label" for="chkLevelPriority">Pilih</label>
+                        </div>
+                        </div>
+                    </div>
+                    </div>
+
+                    <!-- EXP -->
+                    <div class="tab-pane fade" id="pane-exp" role="tabpanel">
+                    <div class="card">
+                        <div class="card-body">
+                        <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+                            <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-cup-hot"></i>
+                                <h6 class="mb-0">Reward per 5.000 EXP</h6>
+                            </div>
+                            <div class="text-secondary small">Tukar setiap 5.000 EXP menjadi 1 item gratis: <span class="fw-semibold text-body">Kopi Susu</span></div>
+                            <div class="text-secondary small mt-1">Ketersediaan: <span id="expAvailable">0</span>x (berdasarkan EXP saat ini)</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                            <div class="form-check form-check-lg">
+                                <input class="form-check-input" type="checkbox" id="chkExp" />
+                                <label class="form-check-label" for="chkExp">Tukarkan</label>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-outline-secondary" id="btnExpMinus" type="button"><i class="bi bi-dash"></i></button>
+                                <div class="text-center fw-semibold" id="expQty" style="width: 40px;">0</div>
+                                <button class="btn btn-outline-secondary" id="btnExpPlus" type="button"><i class="bi bi-plus"></i></button>
+                            </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="small text-secondary" id="modalAppliedCount">Belum ada rewards dipilih</div>
+                    <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary" id="btnReset" type="button">Reset</button>
+                    <button class="btn btn-primary" id="btnApply" type="button" data-bs-dismiss="modal">Terapkan</button>
+                    </div>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="modalSuccessSplitBill" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
         aria-labelledby="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog modal-fullscreen">
@@ -1678,6 +1873,20 @@
                 });
             }
         }
+
+        // ===== Demo Data =====
+        const sampleMembers = [
+            { id: "M-00123", name: "Dina Kartika", level: "Gold", exp: 12850, points: 7420, birthday: "12 Nov", phone: "+62 812 3456 7890" },
+            { id: "M-00456", name: "Bima Pratama", level: "Silver", exp: 5100, points: 2140, birthday: "03 Jan", phone: "+62 813 1122 3344" },
+            { id: "M-00899", name: "Rina Fauzi", level: "Platinum", exp: 30500, points: 18200, birthday: "22 Aug", phone: "+62 815 7788 9911" },
+        ];
+
+        // ===== State (Design only) =====
+        let selected = sampleMembers[0];
+        let useBirthday = false;
+        let levelRewards = new Set(); // 'discount10' | 'upgrade' | 'priority'
+        let useExp = false;
+        let expQty = 0;
 
         function generateRandomID() {
             return 'temp-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
