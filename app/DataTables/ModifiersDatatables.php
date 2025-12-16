@@ -37,6 +37,11 @@ class ModifiersDatatables extends DataTable
                 $result = substr($tag , 0, -9);
                 return $result;
             })
+            ->filterColumn('option_name', function ($query, $keyword) {
+                $query->whereHas('modifier', function ($q) use ($keyword) {
+                    $q->where('name', 'like', "%{$keyword}%");
+                });
+            })
             ->addColumn('outlet', function($row){
                 return "<span class='badge badge-primary'>{$row->outlet->name} </span></br>";
             })

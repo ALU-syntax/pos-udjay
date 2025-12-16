@@ -112,10 +112,13 @@ class ProductController extends Controller
 
     public function update(ProductStoreRequest $request, Product $product)
     {
+        // dd($request, $product);
         // Muat relasi `variants` hanya untuk produk ini
         $product->load('variants');
 
-        $product->fill($request->validated());
+        $updateRequest = $request->validated();
+
+        $product->fill($updateRequest);
         // $product->harga_jual = getAmount($request->harga_jual);
         $product->harga_modal = getAmount($request->harga_modal);
         if (!empty($request->file('photo'))) {
@@ -135,7 +138,7 @@ class ProductController extends Controller
         $listNameVariant = $request['nama_varian'];
         $listHargaJualVariant = $request['harga_jual'];
         $listStockVariant = $request['stock'];
-        $listIdVariant = $request['id_variant'];
+        $listIdVariant = $request['id_variant'] ?? [];
 
         $idVariantExist = array_column($product->variants->toArray(), 'id');
 
