@@ -433,7 +433,7 @@
                         showLoader(false);
                     },
                     success: function(res) {
-                        console.log(res);
+                        // console.log(res);
 
                         $('#id_transaction').val(res.data.id);
                         $('#complete-time').text(res.data.create_formated);
@@ -472,6 +472,22 @@
 
                         // Mengisi tabel dengan data item_transaction
                         res.data.item_transaction.forEach(item => {
+                            let modifiers = [];
+                            try {
+                                modifiers = JSON.parse(item.modifier_id) ?? [];
+                            } catch (e) {
+                                modifiers = [];
+                            }
+
+                            let modifierHtml = '';
+                            if (modifiers.length > 0) {
+                                modifierHtml = `
+                                    <ul class="mb-0 ps-3 small text-muted">
+                                        ${modifiers.map(m => `<li>${m.nama ?? "modifier tidak ditemukan"}</li>`).join('')}
+                                    </ul>
+                                `;
+                            }
+                            
                             if (item.product) {
                                 let namaProduct = item.variant.name == item.product.name ? item
                                     .product.name :
@@ -479,7 +495,10 @@
 
                                 tbody.append(`
                                                 <tr>
-                                                    <td>${namaProduct}</td>
+                                                    <td>
+                                                        <div class="fw-semibold">${namaProduct}</div>
+                                                        ${modifierHtml}
+                                                    </td>
                                                     <td>${item.total_count}</td>
                                                 </tr>
                                             `);

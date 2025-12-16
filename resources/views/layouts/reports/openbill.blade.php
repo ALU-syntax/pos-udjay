@@ -272,7 +272,7 @@
                         showLoader(false);
                     },
                     success: function(res) {
-                        console.log(res)
+                        // console.log(res)
                         let total = 0;
                         let pajak = res.pajak.value;
                         let totalNominalPajak = 0;
@@ -291,11 +291,25 @@
                         });
 
                         res.data.item.forEach(function(item) {
+                            // console.log(item);
                             let harga = item.harga;
                             let itemTerbayar = item.qty_terbayar ? item.qty_terbayar : 0;
                             let qty = parseInt(item.quantity) + itemTerbayar;
 
-                            let hargaAkhir = harga * qty;
+                            let listModifier = [];
+                            try{
+                                listModifier = JSON.parse(item.modifier);
+                            }catch(e){
+                                listModifier = [];
+                            }
+
+                            let listHargaModifier = listModifier.map((val) => val.harga);
+                            let totalHargaModifier = listHargaModifier.reduce((sum, value) => sum + value, 0);
+                            let hargaAkhirModifier = totalHargaModifier * qty;
+                            
+                            let hargaAkhirItem = harga * qty;
+
+                            let hargaAkhir = hargaAkhirItem + hargaAkhirModifier;
 
                             let pajakItem = hargaAkhir * pajak / 100;
 
@@ -328,8 +342,26 @@
 
                         // Mengisi tabel dengan data item_transaction
                         res.data.item.forEach(item => {
+                            // console.log(item);
                             let qtyTerbayar = item.qty_terbayar ? item.qty_terbayar : 0;
                             let qtyPesanan = parseInt(item.quantity) + qtyTerbayar;
+
+                            let modifiers = [];
+                            try {
+                                modifiers = JSON.parse(item.modifier) ?? [];
+                            } catch (e) {
+                                modifiers = [];
+                            }
+
+                            let modifierHtml = '';
+                            if (modifiers.length > 0) {
+                                modifierHtml = `
+                                    <ul class="mb-0 ps-3 small text-muted">
+                                        ${modifiers.map(m => `<li>${m.nama ?? "modifier tidak ditemukan"}</li>`).join('')}
+                                    </ul>
+                                `;
+                            }
+                            
 
                             let qtyText = qtyTerbayar > 0 && item.deleted_at == null ?
                                 `${qtyPesanan} <span class="badge rounded-pill badge-success">Paid ${qtyTerbayar}</span>` : (item.deleted_at == null ? qtyPesanan : `${qtyPesanan} <span class="badge rounded-pill badge-success">Paid ${qtyPesanan}</span>`);
@@ -340,7 +372,10 @@
 
                                 tbody.append(`
                                                 <tr>
-                                                    <td>${namaProduct}</td>
+                                                    <td>
+                                                        <div class="fw-semibold">${namaProduct}</div>
+                                                        ${modifierHtml}
+                                                    </td>
                                                     <td>${qtyText}</td>
                                                     <td>${item.create_formated}</td>
                                                 </tr>
@@ -451,7 +486,7 @@
                 let activeTab = $('a.nav-link.active').attr('href');
                 let outlet = $('#filter-outlet').val();
                 let status = $('#status-bill').val();
-                console.log(status);
+                // console.log(status);
 
                 if (activeTab === "#open-bill") { // Use your tab's href id accordingly
                     window.LaravelDataTables[idOpenBillDatatable].ajax.reload(null, false);
