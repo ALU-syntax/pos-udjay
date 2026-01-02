@@ -24,13 +24,15 @@
         modal.modal('hide');
     });
 
-    $('#removeCustomer').on('click', function() {
+    $('#removeCustomer').off().on('click', function() {
         if (idPelanggan == '') {
             showToast('error', "Pelanggan Belum Dipilih");
         } else {
             idPelanggan = '';
+            dataPelanggan = {};
             showToast('success', "Berhasil hapus pelanggan dari penjualan");
             $('#pilih-pelanggan').html("Pilih Pelanggan");
+            $('#treatment-pelanggan').addClass('d-none');
 
             const modal = $('#itemModal');
             modal.modal('hide');

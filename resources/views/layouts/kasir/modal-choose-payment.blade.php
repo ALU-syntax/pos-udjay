@@ -429,15 +429,16 @@
 
                     dataForm.append('sales_type[]', item.salesType);
 
-                    let resultCatatan = item.catatan == '' ? '' : item.catatan;
 
-                    let checkProductCustom = item.idProduct ? resultCatatan : 'custom';
 
                     dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
                     dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
-                    dataForm.append('catatan[]', checkProductCustom);
 
-                    dataForm.append('reward[]', false);
+                    let resultCatatan = item.rewardItem ? 'Birthday Reward' : (item.idProduct ? (item.catatan || '') : 'custom');
+                    dataForm.append('catatan[]', resultCatatan);
+
+                    let isRewardItem = item.rewardItem ? true : false;
+                    dataForm.append('reward[]', isRewardItem);
                 }
             });
 
@@ -720,6 +721,8 @@
                                 window.Android.handlePaymentSuccess(res.id);
                             }
                         }
+
+                        $('#treatment-pelanggan').addClass('d-none');
 
                         // if (res.pelanggan) {
                         //     $('#btninvoice').data('id', res.id)

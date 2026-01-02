@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ItemSalesExport;
 use App\Exports\SalesSummaryExport;
 use App\Models\Category;
 use App\Models\CategoryPayment;
@@ -21,6 +22,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Services\DataTable;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SalesController extends Controller
 {
@@ -278,104 +281,237 @@ class SalesController extends Controller
             ->make(true);
     }
 
+    // getItemSales Default
+    // public function getItemSales(Request $request)
+    // {
+    //     $dates = explode(' - ', $request->input('date'));
+    //     if (count($dates) == 2) {
+    //         $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+    //         $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+    //     } else {
+    //         // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
+    //         $startDate = Carbon::now()->startOfDay();
+    //         $endDate = Carbon::now()->endOfDay();
+    //     }
+
+    //     $outlet = $request->input('outlet');
+
+    //     if($outlet == "all"){
+    //         $data = VariantProduct::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate) {
+    //             $transaction->whereBetween('created_at', [$startDate, $endDate]);
+    //         }, 'product.category' => function($category){
+    //             $category->withTrashed();
+    //         }, 'product.outlet'])->get();
+    //     }else{
+    //         $data = VariantProduct::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate) {
+    //             $transaction->whereBetween('created_at', [$startDate, $endDate]);
+    //         }, 'product.category' => function($category){
+    //             $category->withTrashed();
+    //         }, 'product.outlet'])->whereHas('product', function ($query) use ($outlet) {
+    //             $query->where('outlet_id', $outlet);
+    //         })->get();
+    //     }
+
+    //     return DataTables::of($data)
+    //         ->addColumn('name', function ($row) use($outlet) {
+    //             // $namaVariant
+    //             if($outlet == "all"){
+    //                 return ($row->name == $row->product->name) ? $row->product->name . " (" . $row->product->outlet->name . ")" : $row->product->name . ' - ' . $row->name . " (" . $row->product->outlet->name . ")";
+    //             }else{
+    //                 return ($row->name == $row->product->name) ? $row->product->name : $row->product->name . ' - ' . $row->name;
+    //             }
+    //         })
+    //         ->addColumn('category', function ($row) {
+    //             return $row->product->category->name;
+    //         })
+    //         ->addColumn('item_sold', function ($row) {
+    //             $itemSold = count($row->itemTransaction);
+    //             return $itemSold;
+    //         })
+    //         ->addColumn('gross_sales', function ($row) {
+    //             $itemSold = count($row->itemTransaction);
+    //             $grossSales = $itemSold * $row->harga;
+    //             return $grossSales == 0 ? "Rp. 0" : formatRupiah(strval($grossSales), "Rp. ");
+    //         })
+    //         ->addColumn('discounts', function ($row) {
+    //             $totalDiscount = 0;
+    //             foreach ($row->itemTransaction as $itemTransaction) {
+    //                 $dataDiscount = json_decode($itemTransaction->discount_id);
+    //                 foreach ($dataDiscount as $discount) {
+    //                     $totalDiscount += $discount->result;
+    //                 }
+    //             }
+    //             return $totalDiscount == 0 ? "Rp. 0" : formatRupiah(strval($totalDiscount), "Rp. ");
+    //         })
+    //         ->addColumn('net_sales', function ($row) {
+    //             $totalDiscount = 0;
+    //             $jumlahTransaksi = count($row->itemTransaction);
+    //             $grossSales = $jumlahTransaksi * $row->harga;
+    //             foreach ($row->itemTransaction as $itemTransaction) {
+    //                 $dataDiscount = json_decode($itemTransaction->discount_id);
+
+    //                 foreach ($dataDiscount as $discount) {
+    //                     $totalDiscount += $discount->result;
+    //                 }
+    //             }
+
+    //             $netSales = $grossSales -= $totalDiscount;
+    //             return $netSales == 0 ? "Rp. 0" : formatRupiah(strval($netSales), "Rp. ");
+    //         })
+    //         ->addColumn('gross_profit', function ($row) {
+    //             $totalDiscount = 0;
+    //             $jumlahTransaksi = count($row->itemTransaction);
+    //             $grossSales = $jumlahTransaksi * $row->harga;
+    //             foreach ($row->itemTransaction as $itemTransaction) {
+    //                 $dataDiscount = json_decode($itemTransaction->discount_id);
+
+    //                 foreach ($dataDiscount as $discount) {
+    //                     $totalDiscount += $discount->result;
+    //                 }
+    //             }
+
+    //             $grossProfit = $grossSales -= $totalDiscount;
+    //             return $grossProfit == 0 ? "Rp. 0" : formatRupiah(strval($grossProfit), "Rp. ");
+    //         })
+    //         ->addColumn('gross_margin', function ($row) {
+    //             $grossMargin = count($row->itemTransaction) ? "100%" : "0%";
+    //             return $grossMargin;
+    //         })
+    //         ->setRowId('id')
+    //         ->make(true);
+    // }
+
     public function getItemSales(Request $request)
     {
         $dates = explode(' - ', $request->input('date'));
         if (count($dates) == 2) {
             $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
-            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+            $endDate   = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
         } else {
-            // Tetapkan tanggal default jika input 'date' hilang atau tidak valid
             $startDate = Carbon::now()->startOfDay();
-            $endDate = Carbon::now()->endOfDay();
+            $endDate   = Carbon::now()->endOfDay();
         }
 
         $outlet = $request->input('outlet');
 
-        if($outlet == "all"){
-            $data = VariantProduct::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate) {
-                $transaction->whereBetween('created_at', [$startDate, $endDate]);
-            }, 'product.category' => function($category){
-                $category->withTrashed();
-            }, 'product.outlet'])->get();
-        }else{
-            $data = VariantProduct::with(['itemTransaction' => function ($transaction) use ($startDate, $endDate) {
-                $transaction->whereBetween('created_at', [$startDate, $endDate]);
-            }, 'product.category' => function($category){
-                $category->withTrashed();
-            }, 'product.outlet'])->whereHas('product', function ($query) use ($outlet) {
-                $query->where('outlet_id', $outlet);
-            })->get();
+        // 🔹 Bikin QUERY, jangan get()
+        $query = VariantProduct::query()
+            ->with([
+                'itemTransaction' => function ($transaction) use ($startDate, $endDate) {
+                    $transaction->whereBetween('created_at', [$startDate, $endDate]);
+                },
+                'product.outlet',
+                'product.category' => function ($category) {
+                    $category->withTrashed();
+                },
+            ]);
+
+        if ($outlet !== 'all') {
+            $query->whereHas('product', function ($q) use ($outlet) {
+                $q->where('outlet_id', $outlet);
+            });
         }
 
-        return DataTables::of($data)
-            ->addColumn('name', function ($row) use($outlet) {
-                // $namaVariant
-                if($outlet == "all"){
-                    return ($row->name == $row->product->name) ? $row->product->name . " (" . $row->product->outlet->name . ")" : $row->product->name . ' - ' . $row->name . " (" . $row->product->outlet->name . ")";
-                }else{
-                    return ($row->name == $row->product->name) ? $row->product->name : $row->product->name . ' - ' . $row->name;
+        return DataTables::of($query) // ⬅️ kirim query, bukan collection
+            ->addColumn('name', function ($row) use ($outlet) {
+                if ($outlet == "all") {
+                    return ($row->name == $row->product->name)
+                        ? $row->product->name . " (" . $row->product->outlet->name . ")"
+                        : $row->product->name . ' - ' . $row->name . " (" . $row->product->outlet->name . ")";
+                } else {
+                    return ($row->name == $row->product->name)
+                        ? $row->product->name
+                        : $row->product->name . ' - ' . $row->name;
                 }
             })
             ->addColumn('category', function ($row) {
-                return $row->product->category->name;
+                return optional($row->product->category)->name;
             })
             ->addColumn('item_sold', function ($row) {
-                $itemSold = count($row->itemTransaction);
-                return $itemSold;
+                return $row->itemTransaction->count();
             })
             ->addColumn('gross_sales', function ($row) {
-                $itemSold = count($row->itemTransaction);
+                $itemSold   = $row->itemTransaction->count();
                 $grossSales = $itemSold * $row->harga;
-                return $grossSales == 0 ? "Rp. 0" : formatRupiah(strval($grossSales), "Rp. ");
+
+                return $grossSales == 0
+                    ? "Rp. 0"
+                    : formatRupiah((string) $grossSales, "Rp. ");
             })
             ->addColumn('discounts', function ($row) {
                 $totalDiscount = 0;
+
                 foreach ($row->itemTransaction as $itemTransaction) {
+                    if (!$itemTransaction->discount_id) {
+                        continue;
+                    }
+
                     $dataDiscount = json_decode($itemTransaction->discount_id);
+
+                    if (!is_array($dataDiscount)) {
+                        continue;
+                    }
+
                     foreach ($dataDiscount as $discount) {
-                        $totalDiscount += $discount->result;
+                        $totalDiscount += $discount->result ?? 0;
                     }
                 }
-                return $totalDiscount == 0 ? "Rp. 0" : formatRupiah(strval($totalDiscount), "Rp. ");
+
+                return $totalDiscount == 0
+                    ? "Rp. 0"
+                    : formatRupiah((string) $totalDiscount, "Rp. ");
             })
             ->addColumn('net_sales', function ($row) {
+                $jumlahTransaksi = $row->itemTransaction->count();
+                $grossSales      = $jumlahTransaksi * $row->harga;
+
                 $totalDiscount = 0;
-                $jumlahTransaksi = count($row->itemTransaction);
-                $grossSales = $jumlahTransaksi * $row->harga;
                 foreach ($row->itemTransaction as $itemTransaction) {
+                    if (!$itemTransaction->discount_id) continue;
                     $dataDiscount = json_decode($itemTransaction->discount_id);
+                    if (!is_array($dataDiscount)) continue;
 
                     foreach ($dataDiscount as $discount) {
-                        $totalDiscount += $discount->result;
+                        $totalDiscount += $discount->result ?? 0;
                     }
                 }
 
-                $netSales = $grossSales -= $totalDiscount;
-                return $netSales == 0 ? "Rp. 0" : formatRupiah(strval($netSales), "Rp. ");
+                $netSales = $grossSales - $totalDiscount;
+
+                return $netSales == 0
+                    ? "Rp. 0"
+                    : formatRupiah((string) $netSales, "Rp. ");
             })
             ->addColumn('gross_profit', function ($row) {
+                // Sekarang masih sama dengan net_sales, idealnya pakai harga_modal juga
+                $jumlahTransaksi = $row->itemTransaction->count();
+                $grossSales      = $jumlahTransaksi * $row->harga;
+
                 $totalDiscount = 0;
-                $jumlahTransaksi = count($row->itemTransaction);
-                $grossSales = $jumlahTransaksi * $row->harga;
                 foreach ($row->itemTransaction as $itemTransaction) {
+                    if (!$itemTransaction->discount_id) continue;
                     $dataDiscount = json_decode($itemTransaction->discount_id);
+                    if (!is_array($dataDiscount)) continue;
 
                     foreach ($dataDiscount as $discount) {
-                        $totalDiscount += $discount->result;
+                        $totalDiscount += $discount->result ?? 0;
                     }
                 }
 
-                $grossProfit = $grossSales -= $totalDiscount;
-                return $grossProfit == 0 ? "Rp. 0" : formatRupiah(strval($grossProfit), "Rp. ");
+                $grossProfit = $grossSales - $totalDiscount;
+
+                return $grossProfit == 0
+                    ? "Rp. 0"
+                    : formatRupiah((string) $grossProfit, "Rp. ");
             })
             ->addColumn('gross_margin', function ($row) {
-                $grossMargin = count($row->itemTransaction) ? "100%" : "0%";
+                $grossMargin = $row->itemTransaction->count() ? "100%" : "0%";
                 return $grossMargin;
             })
             ->setRowId('id')
             ->make(true);
     }
+
 
     public function getCategorySales(Request $request)
     {
@@ -1036,7 +1172,7 @@ class SalesController extends Controller
                 $tmpData['parent'] = true;
                 $totalCollected = 0;
 
-                
+
                 foreach ($category->transactions as $transaction) {
                     foreach($transaction->itemTransaction as $itemTransaction) {
                         $totalCollected += $itemTransaction->harga;
@@ -1074,6 +1210,73 @@ class SalesController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    // old version
+    // public function exportItemSales(Request $request)
+    // {
+    //     $dates = explode(' - ', $request->input('date'));
+    //     if (count($dates) == 2) {
+    //         $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+    //         $endDate   = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+    //     } else {
+    //         $startDate = Carbon::now()->startOfDay();
+    //         $endDate   = Carbon::now()->endOfDay();
+    //     }
+
+    //     $outlet = $request->input('outlet', 'all');
+
+    //     $fileName = 'item_sales_report_' . now()->format('Ymd_His') . '.xlsx';
+    //     $path = "exports/{$fileName}";
+
+    //     (new ItemSalesExport(
+    //         $startDate,
+    //         $endDate,
+    //         $outlet
+    //     ))->queue($path, 'public');
+
+    //     // URL ini baru valid setelah job selesai. Simpan/ingatkan user saja dulu.
+    //     return response()->json([
+    //         'ok'           => true,
+    //         'message'      => 'Export dimulai di background. Anda akan dapat file ketika proses selesai.',
+    //         'path'         => $path,
+    //         'download_url' => Storage::disk('public')->url($path),
+    //     ]);
+    //     // return Excel::download(
+    //     //     new ItemSalesExport($startDate, $endDate, $outlet),
+    //     //     $fileName
+    //     // );
+    // }
+
+     public function exportItemSales(Request $r)
+    {
+        // Ambil outlet pertama untuk nama file (kalau multi outlet dipilih)
+        $outletName = 'all_outlets';
+
+        $outletIds = (array) $r->input('outlet_id', []); // dari outlet_id[]
+        if (!empty($outletIds)) {
+            $outlet = Outlets::whereIn('id', $outletIds)->first();
+            if ($outlet) {
+                $outletName = Str::slug($outlet->name, '_');
+            }
+        }
+
+        $filename = 'item_sales_' . $outletName . '_' . now()->format('Ymd_His') . '.xlsx';
+        $path     = "exports/{$filename}";
+
+        // Kirim ke queue, pakai Laravel Excel
+        (new ItemSalesExport(
+            from:      $r->input('from'),
+            to:        $r->input('to'),
+            outletIds: $outletIds
+        ))->queue($path, 'public');
+
+        return response()->json([
+            'ok'           => true,
+            'message'      => 'Export Item Sales dimulai di background. File akan tersedia ketika proses selesai.',
+            'path'         => $path,
+            'download_url' => Storage::disk('public')->url($path),
+        ]);
     }
 
 }

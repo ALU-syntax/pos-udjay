@@ -293,6 +293,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/store', [LevelMembershipController::class, 'store'])->name('level-membership/store');
             Route::get('/edit/{level}', [LevelMembershipController::class, 'edit'])->name('level-membership/edit');
             Route::put('/update/{level}', [LevelMembershipController::class, 'update'])->name('level-membership/update');
+            Route::put('/update-birthday-reward', [LevelMembershipController::class, 'updateBirthdayReward'])->name('level-membership/update-birthday-reward');
             Route::delete('/destroy/{level}', [LevelMembershipController::class, 'destroy'])->name('level-membership/destroy');
         });
     });
@@ -373,6 +374,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/getDetailItemCategorySales', [SalesController::class, 'getDetailItemCategorySales'])->name('sales/getDetailItemCategorySales');
             Route::get('/getDetailItemSales', [SalesController::class, 'getDetailItemSales'])->name('sales/getDetailItemSales');
             Route::get('report/sales/exportSalesSummary', [SalesController::class, 'exportSalesSummary'])->name('sales/exportSalesSummary');
+            Route::get('/export-item-sales', [SalesController::class, 'exportItemSales'])->name('sales/exportItemSales');
+            Route::post('/export-item-sales', [SalesController::class, 'exportItemSales'])->name('sales/exportItemSales');
+
         });
 
         Route::prefix('transactions')->group(function () {

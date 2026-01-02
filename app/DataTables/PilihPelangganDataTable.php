@@ -2,8 +2,10 @@
 
 namespace App\DataTables;
 
+use App\Models\BirthdayRewardClaims;
 use App\Models\Customer;
 use App\Models\PilihPelanggan;
+use App\Models\ProductBirthdayReward;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
@@ -16,6 +18,12 @@ use Yajra\DataTables\Services\DataTable;
 
 class PilihPelangganDataTable extends DataTable
 {
+    protected $today;
+
+    public function __construct()
+    {
+        $this->today = Carbon::today();
+    }
     /**
      * Build the DataTable class.
      *
@@ -29,8 +37,46 @@ class PilihPelangganDataTable extends DataTable
             })
             ->addColumn('action', function ($row) {
                 // Ganti $row->id dan $row->name dengan nama kolom yang sesuai
+                // dd($row);
+                $newData = $row;
+                $displayTanggalLahir = date('d M', strtotime($newData->tanggal_lahir));
+                $newData->display_tanggal_lahir = $displayTanggalLahir;
+
+                $newData->can_claim_birthday_reward = false;
+                $newData->note_claim_birthday_reward = "";
+
+                $endDate = Carbon::parse($newData->tanggal_lahir);
+                $endDateDisplay = $endDate->copy()->addMonths(1);
+                $nowAge = $endDate->age;
+
+                $periodClaim = $displayTanggalLahir . " - " .  date('d M', strtotime($endDateDisplay));
+                $newData->period_claim = $periodClaim;
+
+                if ($newData->created_at->diffInDays(now()) >= 30){ //check apakah umur akun sudah lebih dari 30 hari
+                    if ($this->isBirthdayInRange($newData->tanggal_lahir)) {
+                        $newData->can_claim_birthday_reward = true;
+                    }
+                }
+
+                $userData = auth()->user();
+                $outletUser = json_decode($userData->outlet_id);
+                $rewardBirthday = ProductBirthdayReward::with('product')->where('outlet_id', $outletUser[0])->first();
+
+                $checkClaimReward = BirthdayRewardClaims::select('created_at', 'outlet_id')
+                    ->with('outlet:id,name')
+                    ->where('customer_id', $row->id)
+                    ->where('age', $nowAge)
+                    ->first()
+                    ?->only(['created_at', 'outlet']);
+
+                if($checkClaimReward){
+                    $checkClaimReward['created_at'] = $checkClaimReward['created_at']->format('d M Y H:i');
+                }
+
                 return view('layouts.kasir.button-pilih-pelanggan', [
-                    'data' => $row
+                    'data' => $newData,
+                    'reward_birthday' => $rewardBirthday,
+                    'check_claim_reward' => $checkClaimReward
                 ]);
             })
             // ->rawColumns(['created_at'])
@@ -42,7 +88,7 @@ class PilihPelangganDataTable extends DataTable
      */
     public function query(Customer $model): QueryBuilder
     {
-        return $model->newQuery()->orderBy('name', 'asc');
+        return $model->with(['levelMembership', 'community'])->newQuery()->orderBy('name', 'asc');
 
     }
 
@@ -93,5 +139,24 @@ class PilihPelangganDataTable extends DataTable
     protected function filename(): string
     {
         return 'PilihPelanggan_' . date('YmdHis');
+    }
+
+    function isBirthdayInRange(string $tanggalLahir): bool
+    {
+        $birth = Carbon::parse($tanggalLahir);
+        // ulang tahun di tahun ini
+        $birthdayThisYear = $birth->copy()->year($this->today->year);
+        $endDateThisYear = $birthdayThisYear->copy()->addMonths();
+        $endDateThisYear->endOfDay();
+
+        $birthdayLastYear = $birthdayThisYear->copy()->subYear();
+        $endDateLastYear = $birthdayLastYear->copy()->addMonth();
+        $endDateLastYear->endOfDay();
+
+        $canClaim =
+                $this->today->between($birthdayThisYear, $endDateThisYear) ||
+                $this->today->between($birthdayLastYear, $endDateLastYear);
+
+        return $canClaim;
     }
 }

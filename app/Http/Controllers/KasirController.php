@@ -8,6 +8,7 @@ use App\Mail\KenaikanLevelMember;
 use App\Mail\PenambahanPoinMembershipKomunitas;
 use App\Mail\PenambahanPointExpMembership;
 use App\Mail\PenukaranPoin;
+use App\Models\BirthdayRewardClaims;
 use App\Models\Category;
 use App\Models\CategoryPayment;
 use App\Models\Checkout;
@@ -93,17 +94,36 @@ class KasirController extends Controller
 
         }
 
-        $listCategoryPayment = CategoryPayment::with(['transactions' => function ($transaction) use ($pettyCash) {
-            if (count($pettyCash)) {
-                $transaction->with(['payments'])->where('patty_cash_id', $pettyCash[0]->id);
-            }
-        }, 'payment' => function ($payment) use ($pettyCash) {
-            $payment->with(['transactions' => function ($transaction) use ($pettyCash) {
-                if (count($pettyCash)) {
-                    $transaction->where('patty_cash_id', $pettyCash[0]->id);
-                }
-            }]);
-        }])->get();
+        // $listCategoryPayment = CategoryPayment::with(['transactions' => function ($transaction) use ($pettyCash) {
+        //     if (count($pettyCash)) {
+        //         $transaction->with(['payments'])->where('patty_cash_id', $pettyCash[0]->id);
+        //     }
+        // }, 'payment' => function ($payment) use ($pettyCash) {
+        //     $payment->with(['transactions' => function ($transaction) use ($pettyCash) {
+        //         if (count($pettyCash)) {
+        //             $transaction->where('patty_cash_id', $pettyCash[0]->id);
+        //         }
+        //     }]);
+        // }])->get();
+
+        $with = [
+            'payment', // misal payment mau di-load selalu
+        ];
+
+        // hanya tambahkan eager load transactions kalau pettyCash tidak kosong
+        if (!empty($pettyCash->toArray())) {
+            $with['transactions'] = function ($q) use ($pettyCash) {
+                $q->with('payments')
+                ->where('patty_cash_id', $pettyCash[0]->id);
+            };
+
+            // nested eager loading: payment -> transactions
+            $with['payment.transactions'] = function ($q) use ($pettyCash) {
+                $q->where('patty_cash_id', $pettyCash[0]->id);
+            };
+        }
+
+        $listCategoryPayment = CategoryPayment::with($with)->get();
 
         // dd($listCategoryPayment);
         return view('layouts.kasir.index', [
@@ -353,9 +373,13 @@ class KasirController extends Controller
         }
 
         $customerId = $request->customer_id == 'null' ? null : $request->customer_id;
+        $umurCustomer = 0;
 
         if ($customerId) {
             $customer = Customer::find($customerId);
+
+            $birthCarbon = Carbon::parse($customer->tanggal_lahir);
+            $umurCustomer = $birthCarbon->age;
 
             $pajakTerhitung = 0;
             if($request->total_pajak && intval($request->total) > 0){
@@ -527,6 +551,8 @@ class KasirController extends Controller
             if($variantId){
                 VariantProduct::whereKey($variantId)->decrement('stok', 1);
             }
+
+            $checkCatatan = isset($request->catatan[$x]) ? $request->catatan[$x] : '';
             $dataProduct = [
                 'product_id' => $idProduct,
                 'discount_id' => $request->discount_id[$x],
@@ -536,7 +562,7 @@ class KasirController extends Controller
                 'promo_id' => $request->promo_id[$x],
                 'reward_item' => $request->reward[$x] == "true" ? true : false,
                 'transaction_id' => $transaction->id,
-                'catatan' => isset($request->catatan[$x]) ? $request->catatan[$x] : '',
+                'catatan' => $checkCatatan,
                 'sales_type_id' => ($request->sales_type[$x] == 'null' || $request->sales_type[$x] == 'undefined') ?  null : $request->sales_type[$x],
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
@@ -546,6 +572,19 @@ class KasirController extends Controller
             if($billId && count($listIdItemOpenBill)){
                 // $dataProduct['item_open_bill_id'] = $listIdItemOpenBill[$x];
                 $dataProduct['item_open_bill_id'] = $billId;
+            }
+
+
+            if($customerId && $checkCatatan == "Birthday Reward" && $umurCustomer != 0){
+                // Catat penggunaan reward item di tabel customer_rewards
+                $dataClaimBirthdayReward = [
+                    'customer_id' => (int) $customerId,
+                    'outlet_id' => (int) $dataOutletUser[0],
+                    'product_id' => (int) $idProduct,
+                    'age' => (int) $umurCustomer
+                ];
+
+                BirthdayRewardClaims::create($dataClaimBirthdayReward);
             }
 
             TransactionItem::insert($dataProduct);
@@ -642,7 +681,8 @@ class KasirController extends Controller
             'transactionItems' => $transactionItems,
             'user' => $user,
             'device' => $device,
-            'noteReceiptScheduler' => $dataNoteReceipt
+            'noteReceiptScheduler' => $dataNoteReceipt,
+            'pelanggan' => $customer,
         ];
 
         $respond = [
@@ -871,6 +911,7 @@ class KasirController extends Controller
             'salesType' => 'array',
             'tmpId' => 'array',
             'customer_id' => 'nullable',
+            'exclude_tax' => 'array|nullable',
         ]);
 
         // DB::transaction(function () use ($validatedData) {
@@ -926,6 +967,7 @@ class KasirController extends Controller
 
         $dataItemOpenBill = [];
         for ($x = 0; $x < count($validatedData['tmpId']); $x++) {
+            $checkExcludeTax = $validatedData['exclude_tax'][$x] == "true" ? true : false;
             $dataItemOpenBill[] = [
                 'open_bill_id' => $openBill->id,
                 'catatan' => $validatedData['catatan'][$x],
@@ -945,6 +987,7 @@ class KasirController extends Controller
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
                 'queue_order' => 1,
+                'exclude_tax' => $checkExcludeTax,
             ];
         }
 
@@ -995,6 +1038,7 @@ class KasirController extends Controller
         DB::transaction(function () use ($request, $openBill) {
             $dataItemOpenBill = [];
             for ($x = 0; $x < count($request['tmpId']); $x++) {
+                $checkExcludeTax = $request['exclude_tax'][$x] == "true" ? true : false;
                 $dataItemOpenBill[] = [
                     'open_bill_id' => $request->bill_id,
                     'catatan' => $request['catatan'][$x],
@@ -1014,6 +1058,7 @@ class KasirController extends Controller
                     'created_at' => Carbon::now(),
                     'updated_at' => Carbon::now(),
                     'queue_order' => $openBill->queue_order,
+                    'exclude_tax' => $checkExcludeTax,
                 ];
             }
 

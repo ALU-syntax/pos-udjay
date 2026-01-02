@@ -651,6 +651,154 @@
         <script>
             var outlet = $('#filter-outlet').val();
             var date = $('#date_range_transaction').val();
+
+            function parseDateRange(val) {
+                if (!val) return null;
+                const parts = String(val).split(' - ');
+                const from = toIsoYmd(parts[0]);
+                const to = toIsoYmd(parts[1] || parts[0]);
+                if (!from || !to) return null;
+                return {
+                    from,
+                    to
+                };
+            }
+
+            function fmt(dt) {
+                const y = dt.getFullYear();
+                const m = String(dt.getMonth() + 1).padStart(2, '0');
+                const d = String(dt.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+
+            function toIsoYmd(str) {
+                if (!str) return null;
+                str = str.trim();
+                // dd/mm/yyyy
+                if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
+                    const [d, m, y] = str.split('/');
+                    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+                }
+                // yyyy-mm-dd
+                if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(str)) return str;
+                const dt = new Date(str);
+                return isNaN(dt) ? null : fmt(dt);
+            }
+
+            function waitUntilReadyWithIziToast(downloadUrl, filename, opts = {}) {
+                const intervalMs = opts.intervalMs ?? 3000;
+                const timeoutMs = opts.timeoutMs ?? 10 * 60 * 1000; // 10 menit
+
+                const toastId = 'export-progress-' + Date.now();
+                let toastEl = null;
+                let elapsedSec = 0;
+                let uiTimer = null;
+                let pollTimer = null;
+                let stopped = false;
+
+                // Render toast dengan konten yang bisa di-update
+                iziToast.show({
+                    id: toastId,
+                    timeout: false,
+                    close: false,
+                    progressBar: false,
+                    position: 'topRight',
+                    theme: 'light',
+                    title: 'Menyiapkan Export…',
+                    message: `<div id="${toastId}-wrap" style="min-width:260px">
+                        <div class="mb-1">File sedang diproses di background.</div>
+                        <div class="text-muted">Elapsed: <b id="${toastId}-elapsed">00:00</b></div>
+                        <div class="text-muted small mt-1">Cek setiap ${(intervalMs/1000)} detik…</div>
+                    </div>`,
+                    buttons: [
+                        ['<button>Batalkan</button>', function(instance, toast) {
+                            stopped = true;
+                            clearInterval(uiTimer);
+                            clearInterval(pollTimer);
+                            iziToast.hide({
+                                transitionOut: 'fadeOut'
+                            }, toast);
+                            iziToast.info({
+                                title: 'Dibatalkan',
+                                message: 'Polling export dihentikan.'
+                            });
+                        }]
+                    ],
+                    onOpening: function(instance, toast) {
+                        toastEl = toast;
+                    },
+                    onClosing: function() {
+                        clearInterval(uiTimer);
+                        clearInterval(pollTimer);
+                    }
+                });
+
+                // Timer UI: update elapsed tiap 1s
+                uiTimer = setInterval(function() {
+                    elapsedSec++;
+                    const el = document.getElementById(`${toastId}-elapsed`);
+                    if (el) el.textContent = fmtElapsed(elapsedSec);
+                }, 1000);
+
+                const startedAt = Date.now();
+
+                // Timer Polling: HEAD ke downloadUrl
+                pollTimer = setInterval(function() {
+                    if (stopped) return;
+
+                    // timeout guard
+                    if (Date.now() - startedAt > timeoutMs) {
+                        clearInterval(uiTimer);
+                        clearInterval(pollTimer);
+                        iziToast.hide({}, toastEl);
+                        iziToast.warning({
+                            title: 'Timeout',
+                            message: 'Menunggu file terlalu lama. Coba lagi nanti atau periksa antrian export.'
+                        });
+                        return;
+                    }
+
+                    $.ajax({
+                            url: downloadUrl,
+                            type: 'HEAD',
+                            cache: false
+                        })
+                        .done(function() {
+                            if (stopped) return;
+                            clearInterval(uiTimer);
+                            clearInterval(pollTimer);
+                            iziToast.hide({
+                                transitionOut: 'fadeOut'
+                            }, toastEl);
+                            iziToast.success({
+                                title: 'Siap',
+                                message: 'File siap diunduh. Mengunduh…',
+                                timeout: 2000
+                            });
+                            triggerDownload(downloadUrl, filename || 'export.xlsx');
+                        })
+                        .fail(function() {
+                            // belum siap → diam saja; toast tetap menampilkan timer
+                        });
+                }, intervalMs);
+            }
+
+            function triggerDownload(url, filename = 'export.xlsx') {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }
+
+            function fmtElapsed(sec) {
+                const m = String(Math.floor(sec / 60)).padStart(2, '0');
+                const s = String(sec % 60).padStart(2, '0');
+                return `${m}:${s}`;
+            }
+
+
             function checkActiveTab() {
                 var activeTab = $('a.nav-link.active').attr('href');
                 console.log('Active Tab:', activeTab);
@@ -921,6 +1069,8 @@
                         $('#item-sales').find('thead tr:gt(0)').remove(); // sisakan hanya baris header pertama
                     }
 
+                    let isNeedPagination = outlet == "all" || isRangeMoreThan31Days(date) ? true : false;
+
                     var tableSales = $('#item-sales').DataTable({
                         processing: true,
                         serverSide: true,
@@ -965,7 +1115,7 @@
                                 name: 'gross_margin',
                             }
                         ],
-                        paging: false, // Menghilangkan pagination
+                        paging: isNeedPagination, // Menghilangkan pagination
                         searching: true, // Menghilangkan search bar
                         ordering: true,
                         orderMulti: true,
@@ -976,16 +1126,108 @@
                         info: true,
                         dom: 'Bfrtip',
                         buttons: [{
-                                extend: 'excelHtml5',
                                 text: '<span class="mdi mdi-file-excel"></span> Export Excel',
                                 className: 'btn btn-modern btn-excel',
-                                title: 'Item Sales Report', // judul di file
-                                filename: 'item_sales_report', // nama file
-                                sheetName: 'Item Sales', // nama sheet (Excel)
-                                exportOptions: {
-                                    columns: [0, 1, 2, 3, 4, 5, 6]
-                                } // misal kolom ke 0,1,3,5
+                                action: function (e, dt, node, config) {
+                                    // ambil filter yang lagi dipakai
+                                    var dateVal   = date;          // kalau variabel date di luar scope, pakai selector input-nya
+                                    var outletVal = outlet;        // atau: $('#outlet').val();
+
+                                    var params = new URLSearchParams({
+                                        date: dateVal,
+                                        outlet: outletVal
+                                    });
+
+                                    // window.location = '{{ route('report/sales/exportItemSales') }}?' + params.toString();
+
+                                    // BATAS BARU
+
+                                    e.preventDefault();
+
+                                    const $btn    = $(node); // button DOM dari DataTables
+                                    const $dateEl = $('#date_range_transaction');
+                                    const $outlet = $('#filter-outlet');
+
+                                    const range = parseDateRange($dateEl.val());
+                                    if (!range) {
+                                        iziToast.error({
+                                            title: 'Gagal',
+                                            message: "Isi tanggal dengan format <b>YYYY-MM-DD - YYYY-MM-DD</b>."
+                                        });
+                                        return;
+                                    }
+
+                                    const payload = {
+                                        from: range.from,
+                                        to:   range.to
+                                    };
+
+                                    const ov = $outlet.val();
+                                    if (Array.isArray(ov)) {
+                                        ov.forEach(id => {
+                                            (payload['outlet_id[]'] = (payload['outlet_id[]'] || [])).push(id);
+                                        });
+                                    } else if (ov && ov !== 'all') {
+                                        payload['outlet_id[]'] = ov;
+                                    }
+
+                                    // Tombol jadi loading
+                                    const originalHtml = $btn.html();
+                                    $btn.prop('disabled', true).html(
+                                        '<span class="spinner-border spinner-border-sm mr-1"></span>Memproses…'
+                                    );
+
+                                    $.ajax({
+                                        url: "{{ route('report/sales/exportItemSales') }}", // controller ->queue()
+                                        method: 'POST',
+                                        data: payload,
+                                        headers: {
+                                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                        }
+                                    })
+                                    .done(function(resp) {
+                                        if (resp && resp.ok && resp.download_url) {
+                                            const filename = (resp.path || 'item_sales.xlsx').split('/').pop();
+
+                                            // Helper yang sudah kamu pakai di exportPosFormat
+                                            waitUntilReadyWithIziToast(resp.download_url, filename, {
+                                                intervalMs: 3000,
+                                                timeoutMs: 10 * 60 * 1000
+                                            });
+                                        } else {
+                                            iziToast.error({
+                                                title: 'Gagal',
+                                                message: (resp && resp.message) || 'Export gagal dimulai.'
+                                            });
+                                        }
+                                    })
+                                    .fail(function(xhr) {
+                                        let msg = 'Export gagal.';
+                                        try {
+                                            msg = (JSON.parse(xhr.responseText)).message || msg;
+                                        } catch (_) {}
+
+                                        iziToast.warning({
+                                            title: 'Error',
+                                            message: msg
+                                        });
+                                    })
+                                    .always(function() {
+                                        $btn.prop('disabled', false).html(originalHtml);
+                                    });
+                                }
                             },
+                            // {
+                            //     extend: 'excelHtml5',
+                            //     text: '<span class="mdi mdi-file-excel"></span> Export Excel',
+                            //     className: 'btn btn-modern btn-excel',
+                            //     title: 'Item Sales Report', // judul di file
+                            //     filename: 'item_sales_report', // nama file
+                            //     sheetName: 'Item Sales', // nama sheet (Excel)
+                            //     exportOptions: {
+                            //         columns: [0, 1, 2, 3, 4, 5, 6]
+                            //     } // misal kolom ke 0,1,3,5
+                            // },
                             // {
                             //     extend: 'csvHtml5',
                             //     title: 'Item Sales Report',
@@ -1121,7 +1363,7 @@
                             },
                             success: function(data) {
                                 const modal = $('#modal_detail');
-                                
+
                                 modal.html(data);
                                 modal.modal('show');
 
@@ -1631,6 +1873,23 @@
                 }
                 // Tambahkan logika untuk tab lainnya
             }
+
+            function isRangeMoreThan31Days(rangeStr) {
+                const [startStr, endStr] = rangeStr.split(' - ');
+
+                // parse "YYYY/MM/DD"
+                const [sy, sm, sd] = startStr.split('/').map(Number);
+                const [ey, em, ed] = endStr.split('/').map(Number);
+
+                const startDate = new Date(sy, sm - 1, sd);
+                const endDate   = new Date(ey, em - 1, ed);
+
+                const diffMs   = endDate - startDate;
+                const diffDays = diffMs / (1000 * 60 * 60 * 24) + 1; // +1 kalau mau hitung inklusif
+
+                return diffDays > 31;
+            }
+
 
             $(document).ready(function() {
                 $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function() {

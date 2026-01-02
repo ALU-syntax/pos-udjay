@@ -54,6 +54,7 @@
             openBillForm.append('salesType[]', item.salesType);
             openBillForm.append('tmpId[]', item.tmpId);
             openBillForm.append('bill_id_item[]', item.billId);
+            openBillForm.append('exclude_tax[]', item.excludeTax ?? false);
         });
 
         listItemPromo.forEach(function(item, index) {
@@ -72,6 +73,7 @@
             openBillForm.append('salesType[]', item.salesType);
             openBillForm.append('tmpId[]', item.tmpId);
             openBillForm.append('bill_id_item[]', item.billId);
+            openBillForm.append('exclude_tax[]', item.excludeTax ?? false);
         });
 
         console.log(openBillForm);

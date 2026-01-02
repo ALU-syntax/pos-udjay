@@ -96,8 +96,8 @@ class ProductController extends Controller
         return responseSuccess(false);
     }
 
-    public function edit(Product $product)
-    {
+    public function edit(Product $product){
+        $product->load('category');
         $products = $product->where('id', $product->id)->with(['outlet', 'variants'])->get()[0];
         $outlet = Outlets::find($products->outlet_id);
         $dataOutlet = ['id' => $outlet->id, 'name' => $outlet->name];

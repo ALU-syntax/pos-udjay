@@ -109,6 +109,7 @@
 
         const baseUrlBill = `{{ route('kasir/chooseBill', ':id') }}`; // Placeholder ':id'
         const urlBill = baseUrlBill.replace(':id', dataId); // Ganti ':id' dengan nilai dataId
+        $('#treatment-pelanggan').addClass('d-none');
 
         $.ajax({
             url: urlBill,
@@ -153,6 +154,7 @@
                         catatan: item.catatan ? item.catatan : "",
                         resultTotal: parseInt(item.result_total), //result
                         openBillId: item.open_bill_id,
+                        excludeTax: item.exclude_tax,
                     }
 
                     listItem.push(data);
@@ -175,7 +177,7 @@
         });
     });
 
-    $('#new-bill').on('click', function() {
+    $('#new-bill').off().on('click', function() {
         billId = 0;
         listItem = [];
         listItemPromo = [];
@@ -189,6 +191,10 @@
             message: "Berhasil Membuat Order Baru",
             position: 'topRight'
         });
+
+        idPelanggan = '';
+        $('#pilih-pelanggan').html("Pilih Pelanggan");
+        $('#treatment-pelanggan').addClass('d-none');
 
         const modal = $('#itemModal');
         modal.modal('hide');

@@ -18,7 +18,7 @@
                 <div class="row d-flex justify-content-center">
                     <div class="col-12">
                         <h4>Choose One Of The Following Promos</h4> <br>
-                        <p>Ther eare more than 1 active promos, choose the desired promo and click button "Apply". Promo
+                        <p>There are more than 1 active promos, choose the desired promo and click button "Apply". Promo
                             will be applied automatically to the selected Items.</p>
                     </div>
                 </div>
@@ -78,8 +78,8 @@
                     <button type="button" class="btn mt-2 btn-outline-primary w-100 btn-lg ">
                         <div>
                             <p>${itemPromo.name}</p>
-                            
-                            
+
+
                         </div>
                     </button>
                 `

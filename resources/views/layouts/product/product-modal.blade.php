@@ -12,7 +12,7 @@
                 style="width: 100% !important;" required>
                 <option selected disabled>Pilih Category</option>
                 @foreach ($categorys as $category)
-                    <option value="{{ $category->id }}" @if ($data->category_id == $category->id) selected @endif>
+                    <option value="{{ $category->id }}" @if ($data->category_id == $category->id) selected @endif data-reward="{{ $category->reward_categories }}">
                         {{ $category->name }}</option>
                 @endforeach
             </select>
@@ -97,6 +97,7 @@
 
     <script>
         var hargaModalInput = document.getElementById("harga_modal");
+        var $category = $('#category_id');
 
         $(".select2InsideModal").select2({
             dropdownParent: $("#modal_action")
@@ -120,6 +121,24 @@
 
             // Menambahkan elemen baru ke dalam container
             $(".list-varian").last().after(newVarian);
+        });
+
+        $category.on('change', function() {
+            var rewardCategories = $(this).find('option:selected').data('reward');
+
+            if(rewardCategories){
+                $('#tambah-varian').nextAll().remove();
+                $('#tambah-varian').after(`
+                            <div class="input-group col-12 list-varian">
+                                <input id="harga-varian" name="harga_jual[]" placeholder="Harga Jual" type="text"
+                                    class="form-control harga_jual" required>
+                                <input id="stok-varian" name="stock[]" type="number" class="form-control" placeholder="Stok" required>
+                            </div>
+                        `);
+                $('#tambah-varian').attr('hidden', true);
+            } else {
+                $('#tambah-varian').attr('hidden', false);
+            }
         });
 
         $(document).off().on('click', '.remove-varian', function() {
@@ -185,6 +204,11 @@
                 }
 
                 listVarianLength = index;
+                @if ($data->category->reward_categories)
+                    $('#tambah-varian').attr('hidden', true);
+                @else
+                    $('#tambah-varian').attr('hidden', false);
+                @endif
             });
 
             $(document).off().on('click', '.remove-varian', function() {

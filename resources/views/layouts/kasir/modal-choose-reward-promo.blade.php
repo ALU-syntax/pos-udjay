@@ -28,7 +28,7 @@
                 <div class="row d-flex justify-content-center">
                     <div class="col-12">
                         <h4>Choose One Of The Following Rewards</h4> <br>
-                        <p>Ther eare more than 1 rewards for the selected promotion, choose the desired reward and click
+                        <p>There are more than 1 rewards for the selected promotion, choose the desired reward and click
                             button "Apply"</p>
                     </div>
                 </div>
@@ -75,7 +75,7 @@
                     <button type="button" class="btn mt-2 btn-outline-primary w-100 btn-lg btn-reward-product btn-product-${index+1}" data-idproduct="${product[0][0]}">
                         <div>
                             <p>${product[0][1]}</p>
-                            
+
                         </div>
                     </button>
                 `
@@ -87,7 +87,7 @@
                     <button type="button" class="active btn mt-2 btn-outline-primary w-100 btn-reward-product btn-lg btn-product-${index+1}" data-idproduct="${product[0][0]}">
                         <div>
                             <p>${product[0][1]}</p>
-                            
+
                         </div>
                     </button>
                 `
@@ -125,30 +125,30 @@
         rewardTerpilih.forEach(function(item, index) {
             let variantRewardContainer =
                 `<div id="variant-reward-container-${index+1}" class="mt-4 container-variant"></div>`;
-            $('#btnApplyRewardPromo').before(variantRewardContainer); // Pindahkan ini ke atas  
+            $('#btnApplyRewardPromo').before(variantRewardContainer); // Pindahkan ini ke atas
 
             console.log(item);
-            let htmlVariant = `  
-            <div class="container">  
-                <div class="row">  
-                    <p>Item - ${item[0][1]}</p>  
-                    <div class="col-12">  
-                        ${item[1].map(function(variant, indexVariant) {  
-                            return `  
+            let htmlVariant = `
+            <div class="container">
+                <div class="row">
+                    <p>Item - ${item[0][1]}</p>
+                    <div class="col-12">
+                        ${item[1].map(function(variant, indexVariant) {
+                            return `
                                 <button type="button" class="btn mt-2 btn-outline-primary w-100 btn-lg btn-variant-product btn-variant-${index+1}" data-idproduct="${item[0][0]}" data-idvariant="${variant[0]}"
-                                data-namaproduct="${item[0][1]}" data-namavariant="${variant[1]}" data-quantity="${item[2]}">  
-                                    <div>  
-                                        <p>${variant[1]}</p>  
-                                    </div>  
-                                </button>`;  
-                        }).join('')}  
-                    </div>  
-                </div>  
-            </div>  
+                                data-namaproduct="${item[0][1]}" data-namavariant="${variant[1]}" data-quantity="${item[2]}">
+                                    <div>
+                                        <p>${variant[1]}</p>
+                                    </div>
+                                </button>`;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
         `;
 
             $(`#variant-reward-container-${index+1}`).append(
-                htmlVariant); // Pastikan ini setelah container ditambahkan  
+                htmlVariant); // Pastikan ini setelah container ditambahkan
 
             $(`.btn-variant-${index+1}`).first().addClass('active');
 
@@ -191,9 +191,9 @@
 
                 let fromPromo = [];
                 fromPromo.push(dataPromo);
-    
+
                 let randomId = generateRandomID();
-    
+
                 let data = {
                     catatan: '',
                     diskon: [],
@@ -217,7 +217,7 @@
         const modal = $('#promoModal');
         // modal.html(res);
         modal.modal('hide');
-        
+
         syncAllItemInCart();
         showToast('success', "Reward Promo Berhasil Ditambahkan");
     })

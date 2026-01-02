@@ -628,10 +628,10 @@
                     theme: 'light',
                     title: 'Menyiapkan Export…',
                     message: `<div id="${toastId}-wrap" style="min-width:260px">
-         <div class="mb-1">File sedang diproses di background.</div>
-         <div class="text-muted">Elapsed: <b id="${toastId}-elapsed">00:00</b></div>
-         <div class="text-muted small mt-1">Cek setiap ${(intervalMs/1000)} detik…</div>
-       </div>`,
+                        <div class="mb-1">File sedang diproses di background.</div>
+                        <div class="text-muted">Elapsed: <b id="${toastId}-elapsed">00:00</b></div>
+                        <div class="text-muted small mt-1">Cek setiap ${(intervalMs/1000)} detik…</div>
+                    </div>`,
                     buttons: [
                         ['<button>Batalkan</button>', function(instance, toast) {
                             stopped = true;

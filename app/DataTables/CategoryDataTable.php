@@ -33,10 +33,18 @@ class CategoryDataTable extends DataTable
             ->editColumn('status',function($row){
                 return view('components.badge', ['data' => $row]);
             })
+            ->editColumn('reward_categories', function ($row) {
+                if ($row->reward_categories == 1) {
+                    return "<span class='badge badge-success'>Iya</span></br>";
+                } else {
+                    return "<span class='badge badge-danger'>Tidak </span></br>";
+                }
+            })
             ->editColumn('created_at', function($row){
                 return Carbon::parse($row->created_at)->diffForHumans();
             })
-            ->addIndexColumn();
+            ->addIndexColumn()
+            ->rawColumns(['reward_categories']);
     }
 
     /**
@@ -70,6 +78,7 @@ class CategoryDataTable extends DataTable
             Column::make('DT_RowIndex')->title('No')->searchable(false)->orderable(false),
             Column::make('name'),
             Column::make('status'),
+            Column::make('reward_categories'),
             Column::make('created_at'),
             Column::computed('action')
                 ->exportable(false)

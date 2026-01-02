@@ -417,6 +417,16 @@
             }
         }
 
+        .avatar {
+            width: 44px; height: 44px; border-radius: 999px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 600; background: #f3f4f6; color: #111827;
+        }
+
+        .mini-stat { border: 1px solid var(--bs-border-color); border-radius: .8rem; padding: .6rem .75rem; text-align: center; }
+        .mini-stat .label { font-size: .65rem; letter-spacing: .06em; text-transform: uppercase; color: var(--bs-secondary-color); }
+        .mini-stat .value { font-weight: 700; font-size: .95rem; }
+
     </style>
 </head>
 
@@ -1122,8 +1132,8 @@
 
                         <div class="row mb-1">
                             <div class="col-12">
-                                {{-- <button class="btn btn-primary btn-lg w-100 rounded" id="treatment-pelanggan">Treatmen Pelanggan</button> --}}
-                                <button class="btn btn-lg btn-primary w-100 btn-open" data-toggle="modal" data-target="#rewardsModal">Treatmen Pelanggan</button>
+                                {{-- <button class="btn btn-primary btn-lg w-100 rounded" id="treatment-pelanggan">Treatment Pelanggan</button> --}}
+                                <button class="btn btn-lg btn-primary w-100 btn-open d-none" id="treatment-pelanggan" data-toggle="modal" data-target="#rewardsModal">Treatment Pelanggan</button>
                             </div>
                         </div>
 
@@ -1339,14 +1349,14 @@
         <!-- Bottom Navigation -->
         <ul class="nav nav-pills nav-fill fixed-bottom bg-light" id="bottom-navbar">
             <li class="nav-item-small ">
-                <a class="nav-link bottom-nav-li pb-1" data-target="#setting" href="#">
+                <a class="nav-link bottom-nav-li pb-1" data-target="#setting" data-toggle="tab" href="#">
                     <div class="contianer mt-2">
                         <i class="fa-solid fa-list" style="font-size: 26px;"></i>
                     </div>
                 </a>
             </li>
             <li class="nav-item ">
-                <a class="nav-link active bottom-nav-li pb-1" data-target="#favorite" href="#">
+                <a class="nav-link active bottom-nav-li pb-1" data-target="#favorite" data-toggle="tab" href="#">
                     <div class="container">
                         <i class="fa-solid fa-star" style="font-size: 26px;"></i>
                     </div>
@@ -1354,7 +1364,7 @@
                 </a>
             </li>
             <li class="nav-item ">
-                <a class="nav-link bottom-nav-li pb-1" data-target="#library" href="#">
+                <a class="nav-link bottom-nav-li pb-1" data-target="#library" data-toggle="tab" href="#">
                     <div class="container">
                         <i class="fa-solid fa-table-list" style="font-size: 26px;"></i>
                     </div>
@@ -1362,7 +1372,7 @@
                 </a>
             </li>
             <li class="nav-item ">
-                <a class="nav-link bottom-nav-li pb-1" data-target="#custom" href="#">
+                <a class="nav-link bottom-nav-li pb-1" data-target="#custom" data-toggle="tab" href="#">
                     <div class="container">
                         <i class="fa-solid fa-calculator" style="font-size: 26px;"></i>
                     </div>
@@ -1415,187 +1425,192 @@
     <!-- MODAL: Rewards Picker -->
     <div class="modal fade" id="rewardsModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 1rem; overflow: hidden;">
-            <div class="modal-body p-0">
-            <div class="row g-0">
-                <!-- LEFT PANEL: Member Summary -->
-                <div class="col-md-4 bg-body-tertiary p-4">
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="avatar" id="modalAvatar">AK</div>
-                    <div>
-                    <div class="d-flex align-items-center gap-2">
-                        <h5 class="mb-0" id="modalMemberName">Nama Member</h5>
-                        <span id="modalLevelBadge" class="badge rounded-pill level-silver">Silver</span>
-                    </div>
-                    <div class="small text-secondary" id="modalMemberMeta">ID • HP</div>
-                    </div>
-                </div>
-                <div class="row g-2 mb-3">
-                    <div class="col-4">
-                    <div class="mini-stat">
-                        <div class="label">EXP</div>
-                        <div class="value" id="modalExp">0</div>
-                    </div>
-                    </div>
-                    <div class="col-4">
-                    <div class="mini-stat">
-                        <div class="label">Points</div>
-                        <div class="value" id="modalPoints">0</div>
-                    </div>
-                    </div>
-                    <div class="col-4">
-                    <div class="mini-stat">
-                        <div class="label">Birthday</div>
-                        <div class="value d-flex align-items-center justify-content-center gap-1">
-                        <i class="bi bi-cake2" ></i>
-                        <span id="modalBirthday">—</span>
+            <div class="modal-content" style="border-radius: 1rem; overflow: hidden;">
+                <div class="modal-body p-0">
+                    <div class="row g-0">
+                        <!-- LEFT PANEL: Member Summary -->
+                        <div class="col-md-5 bg-body-tertiary p-4">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <div class="avatar" id="modalAvatar">AK</div>
+                                <div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h5 class="mb-0" id="modalMemberName">Nama Member</h5>
+                                        <span id="modalLevelBadge" class="badge rounded-pill">Silver</span>
+                                    </div>
+                                    <div class="small text-secondary" id="modalMemberMeta">ID • HP</div>
+                                    <div class="small text-secondary" id="modalMemberMeta">Dibuat pada: <span id="member-created">-</span></div>
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-4">
+                                    <div class="mini-stat">
+                                        <div class="label">EXP</div>
+                                        <div class="value" id="modalExp">0</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="mini-stat">
+                                        <div class="label">Points</div>
+                                        <div class="value" id="modalPoints">0</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="mini-stat">
+                                        <div class="label">Birthday</div>
+                                        <div class="value d-flex align-items-center justify-content-center gap-1">
+                                            <i class="fa-solid fa-cake-candles"></i>
+                                            <span id="modalBirthday">—</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    </div>
-                </div>
-                <div class="small text-secondary">* Ilustrasi desain: nilai & aturan hanya contoh.</div>
-                </div>
 
-                <!-- RIGHT PANEL: Tabs & Rewards -->
-                <div class="col-md-8 p-4">
-                <div class="mb-3">
-                    <h5 class="mb-1">Pilih Rewards</h5>
-                    <div class="small text-secondary">Checklist rewards yang ingin ditambahkan ke transaksi.</div>
-                </div>
+                        <!-- RIGHT PANEL: Tabs & Rewards -->
+                        <div class="col-md-7 p-4">
+                            <div class="mb-3">
+                                <h5 class="mb-1">Pilih Rewards</h5>
+                                <div class="small text-secondary">Checklist rewards yang ingin ditambahkan ke transaksi.</div>
+                            </div>
 
-                <ul class="nav nav-tabs" id="rewardTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="tab-birthday" data-bs-toggle="tab" data-bs-target="#pane-birthday" type="button" role="tab">
-                        <i class="bi bi-cake2 me-2"></i>Birthday
-                    </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tab-level" data-bs-toggle="tab" data-bs-target="#pane-level" type="button" role="tab">
-                        <i class="bi bi-award me-2"></i>Level
-                    </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tab-exp" data-bs-toggle="tab" data-bs-target="#pane-exp" type="button" role="tab">
-                        <i class="bi bi-cup-hot me-2"></i>EXP
-                    </button>
-                    </li>
-                </ul>
+                            <ul class="nav nav-tabs" id="rewardTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="tab-birthday" data-toggle="tab" data-target="#pane-birthday" type="button" role="tab">
+                                    <i class="fa-solid fa-cake-candles me-2"></i>Birthday
+                                </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="tab-level" data-toggle="tab" data-target="#pane-level" type="button" role="tab">
+                                    <i class="fa-solid fa-medal me-2"></i>Level
+                                </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="tab-exp" data-toggle="tab" data-target="#pane-exp" type="button" role="tab">
+                                    <i class="fa-solid fa-mug-hot me-2"></i>EXP
+                                </button>
+                                </li>
+                            </ul>
 
-                <div class="tab-content pt-3">
-                    <!-- Birthday -->
-                    <div class="tab-pane fade show active" id="pane-birthday" role="tabpanel">
-                    <div class="card">
-                        <div class="card-body">
-                        <div class="d-flex align-items-start justify-content-between">
-                            <div>
-                            <div class="d-flex align-items-center gap-2 mb-1">
-                                <i class="bi bi-cake2"></i>
-                                <h6 class="mb-0">Birthday Reward</h6>
-                            </div>
-                            <div class="text-secondary small">Gratis 1 menu "Signature Drink" pada bulan ulang tahun. *Contoh ketentuan: 1x per tahun.</div>
-                            <div class="text-secondary small mt-1">Masa berlaku: <span id="birthdayValidity">—</span></div>
-                            </div>
-                            <div class="form-check form-check-lg">
-                            <input class="form-check-input" type="checkbox" id="chkBirthday" />
-                            <label class="form-check-label" for="chkBirthday">Tambah</label>
-                            </div>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
+                            <div class="tab-content pt-3">
+                                <!-- Birthday -->
+                                <div class="tab-pane fade show active" id="pane-birthday" role="tabpanel">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-start justify-content-between">
+                                                <div>
+                                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                                        <i class="fa-solid fa-cake-candles"></i>
+                                                        <h6 class="mb-0">Birthday Reward</h6>
+                                                    </div>
+                                                    <div class="text-secondary small" id="desc-reward-birthday">Gratis 1 menu "Signature Drink" pada bulan ulang tahun. *Contoh ketentuan: 1x per tahun.</div>
+                                                    <div class="text-secondary fw-bold small mt-1">Masa berlaku: <span id="birthdayValidity">—</span></div>
+                                                    <div class="text-danger fw-bold small mt-1"><i id="note-reward"></i></div>
+                                                </div>
+                                                <div class="form-check form-check-lg">
+                                                    <input class="form-check-input" type="checkbox" id="chkBirthday" />
+                                                    <label class="form-check-label" for="chkBirthday">Tambah</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                    <!-- Level -->
-                    <div class="tab-pane fade" id="pane-level" role="tabpanel">
-                    <div class="card mb-2">
-                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
-                        <div class="d-flex align-items-start gap-3">
-                            <div class="p-2 border rounded-3"><i class="bi bi-percent"></i></div>
-                            <div>
-                            <div class="fw-semibold">Diskon 10%</div>
-                            <div class="small text-secondary">Berlaku untuk semua minuman kecuali seasonal.</div>
-                            </div>
-                        </div>
-                        <div class="form-check form-check-lg pt-1">
-                            <input class="form-check-input" type="checkbox" id="chkLevelDiscount10" />
-                            <label class="form-check-label" for="chkLevelDiscount10">Pilih</label>
-                        </div>
-                        </div>
-                    </div>
-                    <div class="card mb-2">
-                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
-                        <div class="d-flex align-items-start gap-3">
-                            <div class="p-2 border rounded-3"><i class="bi bi-arrow-up-circle"></i></div>
-                            <div>
-                            <div class="fw-semibold">Upgrade Size Gratis</div>
-                            <div class="small text-secondary">Naik 1 level ukuran untuk 1 item minuman.</div>
-                            </div>
-                        </div>
-                        <div class="form-check form-check-lg pt-1">
-                            <input class="form-check-input" type="checkbox" id="chkLevelUpgrade" />
-                            <label class="form-check-label" for="chkLevelUpgrade">Pilih</label>
-                        </div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
-                        <div class="d-flex align-items-start gap-3">
-                            <div class="p-2 border rounded-3"><i class="bi bi-lightning-charge"></i></div>
-                            <div>
-                            <div class="fw-semibold">Priority Queue</div>
-                            <div class="small text-secondary">Akses jalur prioritas (ilustrasi desain kasir).</div>
-                            </div>
-                        </div>
-                        <div class="form-check form-check-lg pt-1">
-                            <input class="form-check-input" type="checkbox" id="chkLevelPriority" />
-                            <label class="form-check-label" for="chkLevelPriority">Pilih</label>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
+                                <!-- Level -->
+                                <div class="tab-pane fade" id="pane-level" role="tabpanel">
+                                    <div class="card mb-2">
+                                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="p-2 border rounded-3"><i class="bi bi-percent"></i></div>
+                                                <div>
+                                                    <div class="fw-semibold">Diskon 10%</div>
+                                                    <div class="small text-secondary">Berlaku untuk semua minuman kecuali seasonal.</div>
+                                                </div>
+                                            </div>
+                                            <div class="form-check form-check-lg pt-1">
+                                                <input class="form-check-input" type="checkbox" id="chkLevelDiscount10" />
+                                                <label class="form-check-label" for="chkLevelDiscount10">Pilih</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card mb-2">
+                                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="p-2 border rounded-3"><i class="bi bi-arrow-up-circle"></i></div>
+                                                <div>
+                                                    <div class="fw-semibold">Upgrade Size Gratis</div>
+                                                    <div class="small text-secondary">Naik 1 level ukuran untuk 1 item minuman.</div>
+                                                </div>
+                                            </div>
+                                            <div class="form-check form-check-lg pt-1">
+                                                <input class="form-check-input" type="checkbox" id="chkLevelUpgrade" />
+                                                <label class="form-check-label" for="chkLevelUpgrade">Pilih</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card">
+                                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="p-2 border rounded-3"><i class="bi bi-lightning-charge"></i></div>
+                                                <div>
+                                                    <div class="fw-semibold">Priority Queue</div>
+                                                    <div class="small text-secondary">Akses jalur prioritas (ilustrasi desain kasir).</div>
+                                                </div>
+                                            </div>
+                                            <div class="form-check form-check-lg pt-1">
+                                                <input class="form-check-input" type="checkbox" id="chkLevelPriority" />
+                                                <label class="form-check-label" for="chkLevelPriority">Pilih</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                    <!-- EXP -->
-                    <div class="tab-pane fade" id="pane-exp" role="tabpanel">
-                    <div class="card">
-                        <div class="card-body">
-                        <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
-                            <div>
-                            <div class="d-flex align-items-center gap-2 mb-1">
-                                <i class="bi bi-cup-hot"></i>
-                                <h6 class="mb-0">Reward per 5.000 EXP</h6>
+                                <!-- EXP -->
+                                <div class="tab-pane fade" id="pane-exp" role="tabpanel">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+                                                <div>
+                                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                                        <i class="bi bi-cup-hot"></i>
+                                                        <h6 class="mb-0">Reward per 5.000 EXP</h6>
+                                                    </div>
+                                                    <div class="text-secondary small">
+                                                        Tukar setiap 5.000 EXP menjadi 1 item gratis: <span class="fw-semibold text-body">Kopi Susu</span>
+                                                    </div>
+                                                    <div class="text-secondary small mt-1">
+                                                        Ketersediaan: <span id="expAvailable">0</span>x (berdasarkan EXP saat ini)
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="form-check form-check-lg">
+                                                        <input class="form-check-input" type="checkbox" id="chkExp" />
+                                                        <label class="form-check-label" for="chkExp">Tukarkan</label>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <button class="btn btn-outline-secondary" id="btnExpMinus" type="button"><i class="bi bi-dash"></i></button>
+                                                        <div class="text-center fw-semibold" id="expQty" style="width: 40px;">0</div>
+                                                        <button class="btn btn-outline-secondary" id="btnExpPlus" type="button"><i class="bi bi-plus"></i></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-secondary small">Tukar setiap 5.000 EXP menjadi 1 item gratis: <span class="fw-semibold text-body">Kopi Susu</span></div>
-                            <div class="text-secondary small mt-1">Ketersediaan: <span id="expAvailable">0</span>x (berdasarkan EXP saat ini)</div>
-                            </div>
-                            <div class="d-flex align-items-center gap-3">
-                            <div class="form-check form-check-lg">
-                                <input class="form-check-input" type="checkbox" id="chkExp" />
-                                <label class="form-check-label" for="chkExp">Tukarkan</label>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <button class="btn btn-outline-secondary" id="btnExpMinus" type="button"><i class="bi bi-dash"></i></button>
-                                <div class="text-center fw-semibold" id="expQty" style="width: 40px;">0</div>
-                                <button class="btn btn-outline-secondary" id="btnExpPlus" type="button"><i class="bi bi-plus"></i></button>
-                            </div>
+
+                            <hr class="my-4" />
+
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div class="small text-secondary" id="modalAppliedCount">Belum ada rewards dipilih</div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-secondary" id="btnReset" type="button">Reset</button>
+                                    <button class="btn btn-primary" id="btnApply" type="button" data-bs-dismiss="modal">Terapkan</button>
+                                </div>
                             </div>
                         </div>
-                        </div>
                     </div>
-                    </div>
-                </div>
-
-                <hr class="my-4" />
-
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <div class="small text-secondary" id="modalAppliedCount">Belum ada rewards dipilih</div>
-                    <div class="d-flex gap-2">
-                    <button class="btn btn-outline-secondary" id="btnReset" type="button">Reset</button>
-                    <button class="btn btn-primary" id="btnApply" type="button" data-bs-dismiss="modal">Terapkan</button>
-                    </div>
-                </div>
                 </div>
             </div>
-            </div>
-        </div>
         </div>
     </div>
 
@@ -1855,6 +1870,7 @@
         var listDiskonAmountOffline = [];
 
         var dataHarga = 0;
+        var dataPelanggan = {};
 
         var backBtn = document.getElementById('back-btn');
 
@@ -1897,7 +1913,6 @@
             var row = $(button).closest('.row');
 
             let dataTmpId = button.getAttribute('data-tmpId');
-
 
             // Ambil nilai harga dari input hidden
             var harga = parseInt(row.find('input[name="harga[]"]').val());
@@ -1946,7 +1961,6 @@
             console.log(listItem.length)
             if(!listItem.length){
                 listDiskonAllItem = listDiskonAllItem.filter(item => item.hasOwnProperty('tmpId'));
-
             }
 
             syncItemCart()
@@ -2032,7 +2046,6 @@
         }
 
         function showToast(status = 'success', message) {
-            console.log(message);
             iziToast[status]({
                 title: status == 'success' ? 'Success' : 'Error',
                 message: message,
@@ -2149,46 +2162,48 @@
 
                     dataItemCart.forEach(function(productInCart, indexProductInCart) {
                         let dataProduct = listProduct.find((val) => productInCart.idProduct == val.id);
-                        let categoryProduct = dataProduct.category_id;
-                        console.log(categoryRequirement, categoryProduct)
 
-                        if (categoryRequirement == categoryProduct) {
-                            if (parseInt(productInCart.quantity) >= parseInt(
-                                    quantityCategoryRequirement)) {
-                                let data = {
-                                    tmpId: productInCart.tmpId,
-                                    qty: quantityCategoryRequirement
-                                } //ambil data yang akan dikurangi
-                                tmpCondition.push(data);
+                        if(dataProduct){
+                            let categoryProduct = dataProduct.category_id;
 
-
-                                return;
-                            } else {
-                                if ((quantityCategoryRequirement - productInCart.quantity) <= 0) {
+                            if (categoryRequirement == categoryProduct) {
+                                if (parseInt(productInCart.quantity) >= parseInt(
+                                        quantityCategoryRequirement)) {
                                     let data = {
-                                        tmpId: item.tmpId,
+                                        tmpId: productInCart.tmpId,
                                         qty: quantityCategoryRequirement
                                     } //ambil data yang akan dikurangi
-                                    tmpDataKebutuhanCategory.push(data);
+                                    tmpCondition.push(data);
 
-                                    tmpCondition.push(tmpDataKebutuhanCategory);
 
                                     return;
                                 } else {
-                                    let data = {
-                                        tmpId: item.tmpId,
-                                        qty: qtyProduct
-                                    } //ambil data yang akan dikurangi
-                                    tmpDataKebutuhanCategory.push(data);
+                                    if ((quantityCategoryRequirement - productInCart.quantity) <= 0) {
+                                        let data = {
+                                            tmpId: item.tmpId,
+                                            qty: quantityCategoryRequirement
+                                        } //ambil data yang akan dikurangi
+                                        tmpDataKebutuhanCategory.push(data);
 
-                                    qtyProduct - item.quantity;
+                                        tmpCondition.push(tmpDataKebutuhanCategory);
+
+                                        return;
+                                    } else {
+                                        let data = {
+                                            tmpId: item.tmpId,
+                                            qty: qtyProduct
+                                        } //ambil data yang akan dikurangi
+                                        tmpDataKebutuhanCategory.push(data);
+
+                                        qtyProduct - item.quantity;
+                                    }
                                 }
                             }
-                        }
 
-                        if ((indexProductInCart + 1) == dataItemCart.length) {
-                            if (tmpCondition.length == 0) {
-                                tmpCondition.push(false);
+                            if ((indexProductInCart + 1) == dataItemCart.length) {
+                                if (tmpCondition.length == 0) {
+                                    tmpCondition.push(false);
+                                }
                             }
                         }
                     });
@@ -2536,10 +2551,11 @@
                     </div>
                     `;
                 } else {
+                    let checkIsRewardBirthdayPrice = item.rewardItem ? 'Free' : formatRupiah(item.resultTotal.toString(), "Rp. ");
                     html = `
                     <div class="row mb-0 mt-2">
                         <div class="col-6" data-tmpid="${item.tmpId}" onclick="handlerEditItem(this)">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
-                        <div class="col-5 text-end">${formatRupiah(item.resultTotal.toString(), "Rp. ")}</div>
+                        <div class="col-5 text-end">${checkIsRewardBirthdayPrice}</div>
                         <div class="col-1 text-end text-danger">
                             <button type="button" onclick="deleteItem(this)" data-tmpId="${item.tmpId}" class="btn btn-link btn-sm text-danger p-0 w-100">&times;</button>
                         </div>
@@ -2573,6 +2589,14 @@
                     html += `
                         <div class="row mb-0 mt-0 catatan" data-tmpId="${item.tmpId}">
                             <div class="col-6 text-muted">${item.catatan}</div>
+                        </div>
+                        `;
+                }
+
+                if(item.rewardItem){
+                    html += `
+                        <div class="row mb-0 mt-0 catatan" data-tmpId="${item.tmpId}">
+                            <div class="col-6 text-muted">Birthday Reward</div>
                         </div>
                         `;
                 }
@@ -3813,7 +3837,7 @@
                 $('#salesTypeOffline').append(containerSalesType);
             }
 
-            
+
             modifierItem = modifierItem.sort((a, b) => {
                 const aRequired = a.is_required === true || a.is_required === 1;
                 const bRequired = b.is_required === true || b.is_required === 1;
@@ -3829,7 +3853,7 @@
 
                 const requiredTitle = (dataModifier.is_required == true || dataModifier.is_required == 1)
                     ? 'Choose, at least one'
-                    : 'Choose Many';    
+                    : 'Choose Many';
                 const containerModifier = $(`
                     <div class="mb-4">
                         <label for="quantity" class="form-label">
@@ -4233,6 +4257,14 @@
 
             console.log(dataItem);
             if(!dataItem.idProduct) return;
+            if(dataItem.rewardItem){
+                iziToast['warning']({
+                    title: "Update",
+                    message: "Item reward tidak bisa diubah",
+                    position: 'topRight'
+                });
+                return
+            }
 
             hargaAkhirEditItem = dataItem.harga;
 
@@ -4999,7 +5031,7 @@
             const pid = Number(productId);
             let groups = list.filter(g => safeIds(g.product_id).includes(pid));
             if (isRequired){
-                groups = groups.filter(item => 
+                groups = groups.filter(item =>
                     item.hasOwnProperty('is_required') && (item.is_required == true || item.is_required == 1)
                 );
             }
@@ -5127,6 +5159,68 @@
 
             // Update harga pada elemen HTML
             $('#totalHargaItemOffline').text(formatRupiah(resultHargaAkhir.toString(), "Rp. "));
+        }
+
+        function initials(name) {
+            const parts = name.trim().split(/\s+/);
+            return (parts[0]?.[0] || 'M') + (parts[parts.length - 1]?.[0] || 'B');
+        }
+
+        function hexToHSL(hex) {
+            hex = hex.replace('#', '');
+            if (hex.length === 3) hex = hex.split('').map(x => x + x).join('');
+            const r = parseInt(hex.substr(0, 2), 16) / 255;
+            const g = parseInt(hex.substr(2, 2), 16) / 255;
+            const b = parseInt(hex.substr(4, 2), 16) / 255;
+
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            return { h: h * 360, s: s * 100, l: l * 100 };
+        }
+
+        function HSLToCSS(h, s, l) {
+            return `hsl(${h}, ${s}%, ${l}%)`;
+        }
+
+        function generateBgFromPrimary(primaryHex) {
+            const { h, s, l } = hexToHSL(primaryHex);
+            const newL = Math.min(l + 50, 95); // lebih terang
+            const newS = Math.max(s - 40, 10); // lebih pudar
+            return HSLToCSS(h, newS, newL);
+        }
+
+        function checkBirthdayReward(idProductBirthdayReward, rewardBirthdayDesc, canClaimReward, alreadyClaim, dataBirthdayClaim){
+            console.log(dataBirthdayClaim);
+            $('#note-reward').text("");
+            if(idProductBirthdayReward){
+                $('#chkBirthday').val(idProductBirthdayReward);
+                $('#desc-reward-birthday').val(rewardBirthdayDesc == '' ? 'Reward Ulang Tahun' : rewardBirthdayDesc);
+                $('#chkBirthday').prop('disabled', !canClaimReward);
+                $('#chkBirthday').prop('checked', alreadyClaim);
+                if(dataBirthdayClaim){
+                    $('#chkBirthday').prop('disabled', true);
+                    $('#chkBirthday').prop('checked', true);
+                    $('#note-reward').text(`*Reward sudah diambil di ${dataBirthdayClaim.outlet.name} pada ${dataBirthdayClaim.created_at}`);
+                }
+            }else{
+                $('#birthdayValidity').text('-');
+                $('#desc-reward-birthday').val("Reward belum diset di backoffice");
+                $('#chkBirthday').val('');
+                $('#chkBirthday').prop('disabled', true);
+            }
         }
 
         $(document).ready(function() {
@@ -5267,19 +5361,6 @@
                 $('#txt-sold-items').text(soldItem);
 
             }
-
-            $('.nav-link').on('click', function(e) {
-                e.preventDefault();
-                var target = $(this).data('target');
-
-                // Remove active class from all sections and add to the target section
-                $('.content-section').removeClass('active');
-                $(target).addClass('active');
-
-                // Update active class on nav items
-                $('.nav-link').removeClass('active');
-                $(this).addClass('active');
-            });
 
 
             // Handle click on list items to show specific views
@@ -5660,83 +5741,93 @@
 
             $('#simpan-bill').on('click', function() {
                 if (listItem.length > 0 || listItemPromo.length > 0) {
-                    if (billId != 0 || billId != "0") {
-                        var itemBaru = 0;
-                        openBillForm = new FormData();
-                        openBillForm.append('name', $('#name-open-bill').val());
-                        openBillForm.append('outlet_id', dataPattyCash[0].outlet_data.id);
+                    let checkBirthdayRewardExist = listItem.some(item => item?.birthdayReward == true);
+                    if(!checkBirthdayRewardExist){
+                        if (billId != 0 || billId != "0") {
+                            var itemBaru = 0;
+                            openBillForm = new FormData();
+                            openBillForm.append('name', $('#name-open-bill').val());
+                            openBillForm.append('outlet_id', dataPattyCash[0].outlet_data.id);
 
-                        listItem.forEach(function(item, index) {
-                            if (!item.openBillId) {
-                                itemBaru++;
-                                openBillForm.append('catatan[]', item.catatan);
-                                openBillForm.append('diskon[]', JSON.stringify(item.diskon));
-                                openBillForm.append('harga[]', item.harga);
-                                openBillForm.append('idProduct[]', item.idProduct);
-                                openBillForm.append('idVariant[]', item.idVariant);
-                                openBillForm.append('modifier[]', JSON.stringify(item.modifier));
-                                openBillForm.append('namaProduct[]', item.namaProduct);
-                                openBillForm.append('namaVariant[]', item.namaVariant);
-                                openBillForm.append('pilihan[]', JSON.stringify(item.pilihan));
-                                openBillForm.append('promo[]', JSON.stringify(item.promo));
-                                openBillForm.append('quantity[]', item.quantity);
-                                openBillForm.append('resultTotal[]', item.resultTotal);
-                                openBillForm.append('salesType[]', item.salesType);
-                                openBillForm.append('tmpId[]', item.tmpId);
-                            }
-                        });
-
-                        openBillForm.append('bill_id', billId);
-
-                        if (itemBaru > 0) {
-                            $.ajax({
-                                url: "{{ route('kasir/updateBill') }}",
-                                method: "POST",
-                                data: openBillForm,
-                                contentType: false,
-                                processData: false,
-                                beforeSend: function() {
-                                    showLoader();
-                                },
-                                success: (res) => {
-                                    listItem = [];
-                                    listItemPromo = [];
-                                    listRewardItem = [];
-
-                                    syncItemCart();
-                                    if (window.Android) {
-                                        // Panggil metode JavaScript Interface dengan ID transaksi
-                                        window.Android.handlePrintOpenBill(res.data.id);
-                                    }
-                                    iziToast['success']({
-                                        title: "Success",
-                                        message: "Berhasil Memperbarui Bill",
-                                        position: 'topRight'
-                                    });
-
-                                    const modal = $('#itemModal');
-                                    modal.modal('hide');
-
-                                    billId = 0;
-                                },
-                                complete: function() {
-                                    showLoader(false);
-                                },
-                                error: function(err) {
-                                    const errors = err.responseJSON?.errors
-
-                                    showToast('error', err.responseJSON?.message)
+                            listItem.forEach(function(item, index) {
+                                if (!item.openBillId) {
+                                    itemBaru++;
+                                    openBillForm.append('catatan[]', item.catatan);
+                                    openBillForm.append('diskon[]', JSON.stringify(item.diskon));
+                                    openBillForm.append('harga[]', item.harga);
+                                    openBillForm.append('idProduct[]', item.idProduct);
+                                    openBillForm.append('idVariant[]', item.idVariant);
+                                    openBillForm.append('modifier[]', JSON.stringify(item.modifier));
+                                    openBillForm.append('namaProduct[]', item.namaProduct);
+                                    openBillForm.append('namaVariant[]', item.namaVariant);
+                                    openBillForm.append('pilihan[]', JSON.stringify(item.pilihan));
+                                    openBillForm.append('promo[]', JSON.stringify(item.promo));
+                                    openBillForm.append('quantity[]', item.quantity);
+                                    openBillForm.append('resultTotal[]', item.resultTotal);
+                                    openBillForm.append('salesType[]', item.salesType);
+                                    openBillForm.append('tmpId[]', item.tmpId);
+                                    openBillForm.append('exclude_tax[]', item.excludeTax ?? false);
                                 }
-                            })
-                        } else {
-                            iziToast['warning']({
-                                title: "Oopss",
-                                message: "Tidak ada item baru",
-                                position: 'topRight'
                             });
+
+                            openBillForm.append('bill_id', billId);
+
+                            if (itemBaru > 0) {
+                                $.ajax({
+                                    url: "{{ route('kasir/updateBill') }}",
+                                    method: "POST",
+                                    data: openBillForm,
+                                    contentType: false,
+                                    processData: false,
+                                    beforeSend: function() {
+                                        showLoader();
+                                    },
+                                    success: (res) => {
+                                        listItem = [];
+                                        listItemPromo = [];
+                                        listRewardItem = [];
+
+                                        syncItemCart();
+                                        if (window.Android) {
+                                            // Panggil metode JavaScript Interface dengan ID transaksi
+                                            window.Android.handlePrintOpenBill(res.data.id);
+                                        }
+                                        iziToast['success']({
+                                            title: "Success",
+                                            message: "Berhasil Memperbarui Bill",
+                                            position: 'topRight'
+                                        });
+
+                                        const modal = $('#itemModal');
+                                        modal.modal('hide');
+
+                                        billId = 0;
+                                    },
+                                    complete: function() {
+                                        showLoader(false);
+                                    },
+                                    error: function(err) {
+                                        const errors = err.responseJSON?.errors
+
+                                        showToast('error', err.responseJSON?.message)
+                                    }
+                                })
+                            } else {
+                                iziToast['warning']({
+                                    title: "Oopss",
+                                    message: "Tidak ada item baru",
+                                    position: 'topRight'
+                                });
+                            }
+                        } else {
+                            handleAjax("{{ route('kasir/viewOpenBill') }}").excute();
                         }
-                    } else {
-                        handleAjax("{{ route('kasir/viewOpenBill') }}").excute();
+                    }else{
+                        iziToast['error']({
+                            title: "Gagal",
+                            message: "Product Reward / Hadiah tidak boleh disimpan",
+                            position: 'topRight'
+                        });
                     }
                 } else {
                     iziToast['error']({
@@ -5754,7 +5845,7 @@
 
             $('#search-item').on('keyup', function() {
                 var value = $(this).val().toLowerCase();
-                console.log(value);
+                // console.log(value);
                 if (value.length > 0) {
                     $('#library-view').addClass('d-none');
                     $('.list-group').addClass('d-none');
@@ -5857,6 +5948,78 @@
             window.addEventListener('online', () => {
                 // manualSync().catch(() => {});
                 updateNetBadge();
+            });
+
+            $('#treatment-pelanggan').off().on('click', function(){
+                let checkBirthdayRewardExist = listItem.some(item => item?.birthdayReward == true);
+
+                checkBirthdayReward(dataPelanggan.idProductBirthdayReward, dataPelanggan.rewardBirthdayDesc, dataPelanggan.canClaim, checkBirthdayRewardExist, dataPelanggan.checkClaimReward);
+                if (window.Android) {
+                    if(window.Android.handleTreatmentPelanggan){
+                        window.Android.handleTreatmentPelanggan();
+                    }else{
+                     iziToast['warning']({
+                            title: "Oopss",
+                            message: "Update ke versi terbaru terlebih dahulu",
+                            position: 'topRight'
+                        });
+                    }
+                }
+            });
+
+            $('#chkBirthday').off().on('change', function(){
+                const tmpRandomIdBirthday = generateRandomID();
+                const dataIdProduct = $(this).val();
+                const getProduct = listProduct.find(item => item.id == dataIdProduct);
+
+                const idProduct = getProduct.id;
+                const namaProduct = getProduct.variants[0].name;
+                const dataHargaProduct = getProduct.variants[0].harga;
+                const quantityProduct = 1;
+                const dataDiskon = [];
+                const salesTypeId = null;
+                const idVariant = getProduct.variants[0].id;
+                const namaVariant = getProduct.variants[0].name;
+                const dataModifier = [];
+                const dataPilihan = [];
+                const catatan = "";
+                const excludeTax = false;
+                const resultTotal = getProduct.variants[0].harga;
+                const listVariant = getProduct.variants;
+
+                if($(this).is(':checked')){
+                    const data = {
+                        tmpId: tmpRandomIdBirthday,
+                        idProduct: idProduct,
+                        namaProduct: namaProduct,
+                        harga: 0,
+                        quantity: quantityProduct,
+                        diskon: dataDiskon,
+                        salesType: salesTypeId,
+                        promo: [],
+                        idVariant: idVariant,
+                        namaVariant: namaVariant,
+                        modifier: dataModifier,
+                        pilihan: dataPilihan,
+                        catatan: catatan,
+                        excludeTax: excludeTax,
+                        resultTotal: 0,
+                        listVariant: listVariant,
+                        listPilihan: [],
+                        listSalesType: [],
+                        listModifier: [],
+                        listDiskon: [],
+                        rewardItem: true,
+                        birthdayReward: true,
+                    }
+
+                    listItem.push(data);
+
+                    syncItemCart();
+                }else{
+                    listItem = listItem.filter(item => item.birthdayReward != true);
+                    syncItemCart();
+                }
             });
         });
     </script>

@@ -24,6 +24,7 @@ class CategoryStoreRequest extends FormRequest
     {
         return [
             'name' => ['required', Rule::unique('categories')->ignore($this->category)],
+            'reward_categories' => 'required',
             'status' => 'required'
         ];
     }
