@@ -111,6 +111,9 @@ class MenuSeeder extends Seeder
         $sm = $mm->subMenus()->create(['name' => 'Level Membership', 'url' => $mm->url . '/level-membership', 'category' => $mm->category]);
         $this->attachMenuPermission($sm, null, ['admin']);
 
+        $sm = $mm->subMenus()->create(['name' => 'List Icon', 'url' => $mm->url . '/list-icon', 'category' => $mm->category]);
+        $this->attachMenuPermission($sm, null, ['admin']);
+
         // END CUSTOMER MANAGEMENT
 
         //  KONFIGURASI

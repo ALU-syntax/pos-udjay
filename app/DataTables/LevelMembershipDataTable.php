@@ -76,7 +76,9 @@ class LevelMembershipDataTable extends DataTable
             Column::make('DT_RowIndex')->title('No')->searchable(false)->orderable(false),
             Column::make('name'),
             Column::make('benchmark'),
-            Column::make('color'),
+            Column::make('color')
+                ->searchable(false)
+                ->orderable(false),
             Column::computed('action')
                 ->exportable(false)
                 ->printable(false)

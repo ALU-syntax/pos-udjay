@@ -292,9 +292,16 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [LevelMembershipController::class, 'create'])->name('level-membership/create');
             Route::post('/store', [LevelMembershipController::class, 'store'])->name('level-membership/store');
             Route::get('/edit/{level}', [LevelMembershipController::class, 'edit'])->name('level-membership/edit');
+            Route::get('/searchIcon', [LevelMembershipController::class, 'searchIcons'])->name('level-membership/searchIcon');
             Route::put('/update/{level}', [LevelMembershipController::class, 'update'])->name('level-membership/update');
             Route::put('/update-birthday-reward', [LevelMembershipController::class, 'updateBirthdayReward'])->name('level-membership/update-birthday-reward');
             Route::delete('/destroy/{level}', [LevelMembershipController::class, 'destroy'])->name('level-membership/destroy');
+        });
+
+        Route::prefix('list-icon')->group(function(){
+            Route::get('/', function(){
+                return view('layouts.list_icon');
+            });
         });
     });
 

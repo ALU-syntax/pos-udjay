@@ -9,6 +9,7 @@ use App\Models\LevelMembership;
 use App\Models\Outlets;
 use App\Models\Product;
 use App\Models\ProductBirthdayReward;
+use App\Models\RewardLevelMembershipProduct;
 use App\Models\RewardMembership;
 use App\Models\VariantProduct;
 use Illuminate\Http\Request;
@@ -38,16 +39,29 @@ class LevelMembershipController extends Controller
 
     public function create()
     {
+
+        $productReward = Product::whereHas('category', function ($q) {
+                $q->where('reward_categories', 1);
+            })
+            ->select('name', 'category_id')
+            ->distinct()
+            ->get();
+
         return view("layouts.level_membership.level-membership-modal", [
             'data' => new LevelMembership(),
-            'action' => route('membership/level-membership/store')
+            'product_rewards' => $productReward,
+            'action' => route('membership/level-membership/store'),
+            'update' => false,
+            'title' => 'Tambah Level Membership'
         ]);
     }
 
     public function store(LevelMembershipRequest $request)
     {
+        // dd($request);
         $data = $request->validated();
 
+        // dd($data['without_reward'] ?? false);
         $dataLevelMembership = [
             'name' =>  $data['name'],
             'benchmark' =>  $data['benchmark'],
@@ -56,18 +70,46 @@ class LevelMembershipController extends Controller
         $levelMembership = new LevelMembership($dataLevelMembership);
         $levelMembership->save();
 
-        $rewardMembership = [];
-
-        foreach ($data['reward_memberships'] as $reward) {
-            $rewardMembership[] = [
-                'name' => $reward,
-                'level_membership_id' => $levelMembership->id,
-                'created_at' => now(),
-                'updated_at' => now()
-            ];
+        //kalau level tidak mempunyai reward langsung return
+        if($data['without_reward'] ?? false){
+            return responseSuccess(false);
         }
 
-        RewardMembership::insert($rewardMembership);
+        for($x=0; $x < count($data['category_product_id']); $x++){
+            $categoryProductId = (int) $data['category_product_id'][$x];
+            $nameProduct = $data['name_product'][$x];
+
+            $dataRewardMembership = [
+                'name' => $nameProduct,
+                'icon' => $data['icon'][$x],
+                'description' => $data['level-reward-desc'][$x],
+                'level_membership_id' => $levelMembership->id,
+            ];
+
+            $rewardMembership = RewardMembership::create($dataRewardMembership);
+
+            DB::transaction(function () use ($nameProduct, $categoryProductId, $rewardMembership) {
+                // chunk biar aman kalau outlet banyak
+                Outlets::query()->select('id')->chunkById(200, function ($outlets) use($nameProduct, $categoryProductId, $rewardMembership) {
+                    foreach ($outlets as $outlet) {
+                            $product = $this->findOrCreateRewardProduct(
+                                outletId: $outlet->id,
+                                categoryId: $categoryProductId,
+                                name: $nameProduct,
+                                desc: ''
+                            );
+
+                        // Asumsi 1 record reward per outlet (lebih masuk akal)
+                        RewardLevelMembershipProduct::create([
+                            'reward_membership_id' => $rewardMembership->id,
+                            'product_id' => $product->id,
+                            'outlet_id' => $outlet->id,
+                        ]);
+                    }
+                });
+            });
+
+        }
 
         return responseSuccess(false);
     }
@@ -75,14 +117,26 @@ class LevelMembershipController extends Controller
     public function edit(LevelMembership $level)
     {
         $level->load(['rewards']);
+        $productReward = Product::whereHas('category', function ($q) {
+                $q->where('reward_categories', 1);
+            })
+            ->select('name', 'category_id')
+            ->distinct()
+            ->get();
+        // dd($level);
         return view('layouts.level_membership.level-membership-modal', [
             'data' => $level,
-            'action' => route('membership/level-membership/update', $level->id)
+            'product_rewards' => $productReward,
+            'action' => route('membership/level-membership/update', $level->id),
+            'update' => true,
+            'title' => 'Edit Level Membership'
         ]);
     }
 
     public function update(LevelMembershipRequest $request, LevelMembership $level){
         $level->load(['rewards']);
+
+        // dd($request);
 
         $data = $request->validated();
 
@@ -92,34 +146,113 @@ class LevelMembershipController extends Controller
             'color' => $data['color']
         ];
 
-        $listIdReward = $data['id_reward_memberships'];
-        $listNameReward = $data['reward_memberships'];
+        $listIdCategoryReward = $data['category_product_id'] ?? [];
+        $listNameProductReward = $data['name_product'] ?? [];
+
+        $listIdReward = $data['id_reward_memberships'] ?? [];
 
         $level->update($dataLevelMembership);
 
-        $idRewardExist = array_column($level->rewards->toArray(), 'id');
-
-        $rewardToDelete = array_diff($idRewardExist, $data['id_reward_memberships']);
-
-        foreach ($rewardToDelete as $deleteItem) {
-            RewardMembership::find($deleteItem)->delete();
+        if($data['without_reward'] ?? false){
+            $dataRewardMembership = RewardMembership::where('level_membership_id', $level->id)->first();
+            if($dataRewardMembership){
+                $dataRewardMembership->rewardProduct()->delete();
+                $dataRewardMembership->delete();
+            }
+            return responseSuccess(true);
         }
 
-        foreach($listNameReward as $key => $value){
+        $idRewardExist = array_column($level->rewards->toArray(), 'id');
+
+        $rewardToDelete = array_diff($idRewardExist, $listIdReward);
+
+        foreach ($rewardToDelete as $deleteItem) {
+            $dataRewardMembership = RewardMembership::find($deleteItem);
+            if($dataRewardMembership){
+                $dataRewardMembership->rewardProduct()->delete();
+                $dataRewardMembership->delete();
+            }
+        }
+
+        foreach($listNameProductReward as $key => $value){
             if(isset($listIdReward[$key])){
-                $rewardItem = RewardMembership::find($listIdReward[$key]);
+                $rewardItem = RewardMembership::where('id', $listIdReward[$key])
+                ->with('rewardProduct')
+                ->first();
+
+                // dd($rewardItem->rewardProduct);
                 $dataReward = [
-                    'name' => $value
+                    'name' => $value,
+                    'description' => $data['level-reward-desc'][$key] ?? '',
+                    'icon' => $data['icon'][$key],
                 ];
 
                 $rewardItem->update($dataReward);
+
+                DB::transaction(function () use ($rewardItem, $listIdCategoryReward, $listNameProductReward, $key) {
+                    // chunk biar aman kalau outlet banyak
+                    Outlets::query()->select('id')->chunkById(200, function ($outlets) use($rewardItem, $listIdCategoryReward, $listNameProductReward, $key) {
+                        foreach ($outlets as $outlet) {
+                            $product = $this->findOrCreateRewardProduct(
+                                outletId: $outlet->id,
+                                categoryId: $listIdCategoryReward[$key],
+                                name: $listNameProductReward[$key],
+                                desc: ''
+                            );
+
+                            $rewardLevelMembershipProduct = RewardLevelMembershipProduct::where('reward_membership_id', $rewardItem->id)
+                                ->where('outlet_id', $outlet->id)
+                                ->first();
+
+                            if ($rewardLevelMembershipProduct) {
+                                // hanya update kalau product berubah
+                                if ($rewardLevelMembershipProduct->product_id !== $product->id) {
+                                    $rewardLevelMembershipProduct->update([
+                                        'product_id' => $product->id
+                                    ]);
+                                }
+                            } else {
+                                RewardLevelMembershipProduct::create([
+                                    'reward_membership_id' => $rewardItem->id,
+                                    'outlet_id' => $outlet->id,
+                                    'product_id' => $product->id
+                                ]);
+                            }
+                        }
+
+                    });
+                });
+
             }else{
                 $dataReward = [
                     'name' => $value,
-                    'level_membership_id' => $level->id
+                    'level_membership_id' => $level->id,
+                    'description' => $data['level-reward-desc'][$key] ?? '',
+                    'icon' => $data['icon'][$key],
                 ];
 
-                RewardMembership::create($dataReward);
+                $rewardItem = RewardMembership::create($dataReward);
+
+                DB::transaction(function () use ($rewardItem, $listIdCategoryReward, $listNameProductReward, $key) {
+                    // chunk biar aman kalau outlet banyak
+                    Outlets::query()->select('id')->chunkById(200, function ($outlets) use($rewardItem, $listIdCategoryReward, $listNameProductReward, $key) {
+                        foreach ($outlets as $outlet) {
+                            $product = $this->findOrCreateRewardProduct(
+                                outletId: $outlet->id,
+                                categoryId: $listIdCategoryReward[$key],
+                                name: $listNameProductReward[$key],
+                                desc: ''
+                            );
+
+                            RewardLevelMembershipProduct::create([
+                                'reward_membership_id' => $rewardItem->id,
+                                'product_id' => $product->id,
+                                'outlet_id' => $outlet->id,
+                            ]);
+                        }
+
+                    });
+                });
             }
         }
 
@@ -129,9 +262,11 @@ class LevelMembershipController extends Controller
 
     public function destroy(LevelMembership $level)
     {
-        $level->rewards()->delete();
-        $level->delete();
+        $level->rewards->each(function ($reward) {
+            $reward->delete(); // ini akan trigger deleting() di RewardMembership
+        });
 
+        $level->delete();
 
         return responseSuccessDelete();
     }
@@ -211,5 +346,29 @@ class LevelMembershipController extends Controller
         }
 
         return $product;
+    }
+
+    public function searchIcons(Request $request)
+    {
+        $search = strtolower($request->q ?? '');
+
+        $icons = collect(config('fontawesome'))
+            ->filter(function ($label, $class) use ($search) {
+                return str_contains(strtolower($class), $search)
+                    || str_contains(strtolower($label), $search);
+            })
+            ->map(function ($label, $class) {
+                return [
+                    'id'   => $class,
+                    'text' => $label,
+                    'icon' => $class
+                ];
+            })
+            ->values()
+            ->take(50); // batasi biar ringan
+
+        return response()->json([
+            'results' => $icons
+        ]);
     }
 }

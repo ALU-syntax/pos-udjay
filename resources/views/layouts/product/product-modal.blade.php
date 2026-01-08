@@ -84,7 +84,7 @@
             <select @if ($data->id) name="outlet_id" @else name="outlet_id[]" @endif
                 class="select2InsideModal form-select w-100" style="width: 100% !important;" required multiple
                 @if ($data->id) hidden @endif>
-                <option disabled>Pilih Category</option>
+                <option disabled>Pilih Outlet</option>
                 @foreach (json_decode($outlets) as $outlet)
                     <option value="{{ $outlet->id }}" @if ($data->outlet_id == $outlet->id) selected @endif>
                         {{ $outlet->name }}</option>
@@ -131,8 +131,8 @@
                 $('#tambah-varian').after(`
                             <div class="input-group col-12 list-varian">
                                 <input id="harga-varian" name="harga_jual[]" placeholder="Harga Jual" type="text"
-                                    class="form-control harga_jual" required>
-                                <input id="stok-varian" name="stock[]" type="number" class="form-control" placeholder="Stok" required>
+                                    class="form-control harga_jual" value="0" readonly required>
+                                <input id="stok-varian" name="stock[]" type="number" class="form-control" placeholder="Stok"  required>
                             </div>
                         `);
                 $('#tambah-varian').attr('hidden', true);

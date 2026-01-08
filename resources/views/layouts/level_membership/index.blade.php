@@ -13,7 +13,7 @@
                             <h5 class="card-title">Setup Item Birthday Reward</h5>
                         </div>
                         <div class="card-body">
-                            <div class="row pe-5">
+                            <div class="row pe-2">
                                 <div class="col-12">
                                     <select class="dropdown-custom w-100" name="birthday_reward" id="birthday_reward">
                                         @if ($birthday_reward_choose)
@@ -58,8 +58,7 @@
             </div>
         </div>
 
-
-        <div class="card mt-4">
+        <div class="card mt-1">
             <div class="card-header d-flex justify-content-end">
 
                 @can('create membership/level-membership')
