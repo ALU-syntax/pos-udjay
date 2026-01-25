@@ -36,6 +36,7 @@
 
             const modal = $('#itemModal');
             modal.modal('hide');
+            resetAllItemRewardInCart();
         }
     });
 </script>

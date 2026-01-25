@@ -127,7 +127,8 @@
                 listItemPromo = [];
                 listRewardItem = [];
                 listDiskonAllItem = [];
-                console.log(res);
+                rewardAppliedCount = [];
+                // console.log(res);
 
                 if(res.data.customer){
                     idPelanggan = res.data.customer.id;
@@ -183,6 +184,7 @@
         listItemPromo = [];
         listRewardItem = [];
         listDiskonAllItem = [];
+        rewardAppliedCount = [];
 
         syncItemCart()
 

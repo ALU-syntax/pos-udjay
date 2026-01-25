@@ -16,6 +16,10 @@ class RewardMembership extends Model
         return $this->hasMany(RewardLevelMembershipProduct::class, 'reward_membership_id', 'id');
     }
 
+    public function rewardConfirmation(){
+        return $this->hasMany(RewardConfirmation::class, 'reward_memberships_id', 'id');
+    }
+
     protected static function booted()
     {
         static::deleting(function ($reward) {

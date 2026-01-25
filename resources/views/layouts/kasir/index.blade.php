@@ -1504,10 +1504,10 @@
                                                     </div>
                                                     <div class="text-secondary small" id="desc-reward-birthday">Gratis 1 menu "Signature Drink" pada bulan ulang tahun. *Contoh ketentuan: 1x per tahun.</div>
                                                     <div class="text-secondary fw-bold small mt-1">Masa berlaku: <span id="birthdayValidity">—</span></div>
-                                                    <div class="text-danger fw-bold small mt-1"><i id="note-reward"></i></div>
+                                                    <div class="text-danger small mt-1"><i id="note-reward"></i></div>
                                                 </div>
                                                 <div class="form-check form-check-lg">
-                                                    <input class="form-check-input" type="checkbox" id="chkBirthday" />
+                                                    <input class="form-check-input checkbox-reward" type="checkbox" id="chkBirthday" data-type-reward="birthday"/>
                                                     <label class="form-check-label" for="chkBirthday">Tambah</label>
                                                 </div>
                                             </div>
@@ -1517,51 +1517,7 @@
 
                                 <!-- Level -->
                                 <div class="tab-pane fade" id="pane-level" role="tabpanel">
-                                    <div class="card mb-2">
-                                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
-                                            <div class="d-flex align-items-start gap-3">
-                                                <div class="p-2 border rounded-3"><i class="bi bi-percent"></i></div>
-                                                <div>
-                                                    <div class="fw-semibold">Diskon 10%</div>
-                                                    <div class="small text-secondary">Berlaku untuk semua minuman kecuali seasonal.</div>
-                                                </div>
-                                            </div>
-                                            <div class="form-check form-check-lg pt-1">
-                                                <input class="form-check-input" type="checkbox" id="chkLevelDiscount10" />
-                                                <label class="form-check-label" for="chkLevelDiscount10">Pilih</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="card mb-2">
-                                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
-                                            <div class="d-flex align-items-start gap-3">
-                                                <div class="p-2 border rounded-3"><i class="bi bi-arrow-up-circle"></i></div>
-                                                <div>
-                                                    <div class="fw-semibold">Upgrade Size Gratis</div>
-                                                    <div class="small text-secondary">Naik 1 level ukuran untuk 1 item minuman.</div>
-                                                </div>
-                                            </div>
-                                            <div class="form-check form-check-lg pt-1">
-                                                <input class="form-check-input" type="checkbox" id="chkLevelUpgrade" />
-                                                <label class="form-check-label" for="chkLevelUpgrade">Pilih</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="card">
-                                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
-                                            <div class="d-flex align-items-start gap-3">
-                                                <div class="p-2 border rounded-3"><i class="bi bi-lightning-charge"></i></div>
-                                                <div>
-                                                    <div class="fw-semibold">Priority Queue</div>
-                                                    <div class="small text-secondary">Akses jalur prioritas (ilustrasi desain kasir).</div>
-                                                </div>
-                                            </div>
-                                            <div class="form-check form-check-lg pt-1">
-                                                <input class="form-check-input" type="checkbox" id="chkLevelPriority" />
-                                                <label class="form-check-label" for="chkLevelPriority">Pilih</label>
-                                            </div>
-                                        </div>
-                                    </div>
+
                                 </div>
 
                                 <!-- EXP -->
@@ -1604,7 +1560,7 @@
                                 <div class="small text-secondary" id="modalAppliedCount">Belum ada rewards dipilih</div>
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-outline-secondary" id="btnReset" type="button">Reset</button>
-                                    <button class="btn btn-primary" id="btnApply" type="button" data-bs-dismiss="modal">Terapkan</button>
+                                    <button class="btn btn-primary" id="btnApply" type="button" data-dismiss="modal">Terapkan</button>
                                 </div>
                             </div>
                         </div>
@@ -1873,6 +1829,8 @@
         var dataPelanggan = {};
 
         var backBtn = document.getElementById('back-btn');
+
+        var rewardAppliedCount = [];
 
         function showLoader(show = true) {
             const preloader = $("#preloader");
@@ -2543,7 +2501,8 @@
             $('#order-list').empty();
             listItem.forEach(function(item, index) {
                 let html = '';
-                if (item.openBillId) {
+
+                if (item.openBillId || item.rewardItem) {
                     html = `
                     <div class="row mb-0 mt-2" >
                         <div class="col-6" data-tmpid="${item.tmpId}" onclick="handlerEditItem(this)">${item.namaProduct}   <small class="text-muted">x${item.quantity}</small></div>
@@ -2593,10 +2552,26 @@
                         `;
                 }
 
-                if(item.rewardItem){
+                if(item.birthdayReward){
                     html += `
                         <div class="row mb-0 mt-0 catatan" data-tmpId="${item.tmpId}">
                             <div class="col-6 text-muted">Birthday Reward</div>
+                        </div>
+                        `;
+                }
+
+                if(item.levelReward){
+                    html += `
+                        <div class="row mb-0 mt-0 catatan" data-tmpId="${item.tmpId}">
+                            <div class="col-6 text-muted">Level Reward</div>
+                        </div>
+                        `;
+                }
+
+                if(item.expReward){
+                    html += `
+                        <div class="row mb-0 mt-0 catatan" data-tmpId="${item.tmpId}">
+                            <div class="col-6 text-muted">Exp Reward</div>
                         </div>
                         `;
                 }
@@ -4257,6 +4232,14 @@
 
             console.log(dataItem);
             if(!dataItem.idProduct) return;
+            if(dataItem.openBillId){
+                iziToast['warning']({
+                    title: "Update",
+                    message: "Item Open Bill tidak bisa diubah",
+                    position: 'topRight'
+                });
+                return
+            }
             if(dataItem.rewardItem){
                 iziToast['warning']({
                     title: "Update",
@@ -5203,10 +5186,10 @@
         }
 
         function checkBirthdayReward(idProductBirthdayReward, rewardBirthdayDesc, canClaimReward, alreadyClaim, dataBirthdayClaim){
-            console.log(dataBirthdayClaim);
+            // console.log(dataBirthdayClaim);
             $('#note-reward').text("");
             if(idProductBirthdayReward){
-                $('#chkBirthday').val(idProductBirthdayReward);
+                $('#chkBirthday').data('idProduct', idProductBirthdayReward);
                 $('#desc-reward-birthday').val(rewardBirthdayDesc == '' ? 'Reward Ulang Tahun' : rewardBirthdayDesc);
                 $('#chkBirthday').prop('disabled', !canClaimReward);
                 $('#chkBirthday').prop('checked', alreadyClaim);
@@ -5221,6 +5204,49 @@
                 $('#chkBirthday').val('');
                 $('#chkBirthday').prop('disabled', true);
             }
+        }
+
+        function generateLevelReward(data){
+            $('#pane-level').empty();
+            console.log(data);
+
+            let htmlLevelReward = '';
+            if(data){
+                data.forEach(function(levelReward){
+                    let checkClaim = levelReward.reward_confirmation;
+                    let descClaim = checkClaim ? `*Reward sudah diambil di ${checkClaim.outlet.name} pada ${checkClaim.created_at}` : '';
+                    let propClaim = checkClaim ? 'checked disabled' : '';
+                    htmlLevelReward += `<div class="card mb-2">
+                                            <div class="card-body d-flex align-items-start justify-content-between gap-3">
+                                                <div class="d-flex align-items-start gap-3">
+                                                    <div class="p-2 border rounded-3"><i class="${levelReward.icon ?? "fa-classic fa-solid fa-champagne-glasses fa-fw"}"></i></div>
+                                                    <div>
+                                                        <div class="fw-semibold">${levelReward.name ?? "-"}</div>
+                                                        <div class="small text-secondary">${levelReward.description ?? "-"}</div>
+                                                        <div class="small text-danger"><i>${descClaim}</i></div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-check form-check-lg pt-1">
+                                                    <input class="form-check-input checkbox-reward" type="checkbox" data-type-reward="level" data-id-product="${levelReward.reward_product[0].product_id ?? 0}" ${propClaim} />
+                                                    <label class="form-check-label" >Pilih</label>
+                                                </div>
+                                            </div>
+                                        </div>`;
+                });
+            }else{
+                htmlLevelReward += '<p class="alignt-item-center">Tidak ada Reward untuk level ini</p>';
+            }
+
+            $('#pane-level').append(htmlLevelReward);
+        }
+
+        function resetAllItemRewardInCart(){
+            rewardAppliedCount = [];
+            $('.checkbox-reward').prop('checked', false);
+            listItem = listItem.filter(item => item.rewardItem != true)
+            syncItemCart();
+
+            $('#modalAppliedCount').text('Belum ada rewards dipilih');
         }
 
         $(document).ready(function() {
@@ -5734,6 +5760,7 @@
                     listItemPromo = [];
                     listRewardItem = [];
                     listDiskonAllItem = [];
+                    resetAllItemRewardInCart();
 
                     syncItemCart();
                 }
@@ -5741,8 +5768,8 @@
 
             $('#simpan-bill').on('click', function() {
                 if (listItem.length > 0 || listItemPromo.length > 0) {
-                    let checkBirthdayRewardExist = listItem.some(item => item?.birthdayReward == true);
-                    if(!checkBirthdayRewardExist){
+                    let checkRewardExist = listItem.some(item => item?.rewardItem == true);
+                    if(!checkRewardExist){
                         if (billId != 0 || billId != "0") {
                             var itemBaru = 0;
                             openBillForm = new FormData();
@@ -5967,29 +5994,39 @@
                 }
             });
 
-            $('#chkBirthday').off().on('change', function(){
-                const tmpRandomIdBirthday = generateRandomID();
-                const dataIdProduct = $(this).val();
-                const getProduct = listProduct.find(item => item.id == dataIdProduct);
-
-                const idProduct = getProduct.id;
-                const namaProduct = getProduct.variants[0].name;
-                const dataHargaProduct = getProduct.variants[0].harga;
-                const quantityProduct = 1;
-                const dataDiskon = [];
-                const salesTypeId = null;
-                const idVariant = getProduct.variants[0].id;
-                const namaVariant = getProduct.variants[0].name;
-                const dataModifier = [];
-                const dataPilihan = [];
-                const catatan = "";
-                const excludeTax = false;
-                const resultTotal = getProduct.variants[0].harga;
-                const listVariant = getProduct.variants;
+            $(document).on('change', '.checkbox-reward', function(){
+                const dataIdProduct = $(this).data('idProduct');
+                const typeReward = $(this).data('typeReward');
 
                 if($(this).is(':checked')){
+                    const tmpRandomId = generateRandomID();
+                    const idProduct = dataIdProduct ?? 0;
+                    if(idProduct == 0){
+                        iziToast['error']({
+                            title: "Gagal",
+                            message: "Product Reward Tidak Ditemukan",
+                            position: 'topRight'
+                        });
+                        return;
+                    }
+                    const getProduct = listProduct.find(item => item.id == idProduct);
+
+                    const namaProduct = getProduct.variants[0].name;
+                    const dataHargaProduct = getProduct.variants[0].harga;
+                    const quantityProduct = 1;
+                    const dataDiskon = [];
+                    const salesTypeId = null;
+                    const idVariant = getProduct.variants[0].id;
+                    const namaVariant = getProduct.variants[0].name;
+                    const dataModifier = [];
+                    const dataPilihan = [];
+                    const catatan = "";
+                    const excludeTax = false;
+                    const resultTotal = getProduct.variants[0].harga;
+                    const listVariant = getProduct.variants;
+
                     const data = {
-                        tmpId: tmpRandomIdBirthday,
+                        tmpId: tmpRandomId,
                         idProduct: idProduct,
                         namaProduct: namaProduct,
                         harga: 0,
@@ -6010,17 +6047,64 @@
                         listModifier: [],
                         listDiskon: [],
                         rewardItem: true,
-                        birthdayReward: true,
+                    }
+
+                    if(typeReward == "birthday"){
+                        data.birthdayReward = true;
+                    }
+                    if(typeReward == "level"){
+                        data.levelReward = true;
+                    }
+
+                    if(typeReward == "exp"){
+                        data.expReward = true;
                     }
 
                     listItem.push(data);
 
+                    const tmpRewardProductData = {
+                        tmpId: tmpRandomId,
+                        idProduct: idProduct,
+                    };
+
+                    rewardAppliedCount.push(tmpRewardProductData);
+
                     syncItemCart();
                 }else{
-                    listItem = listItem.filter(item => item.birthdayReward != true);
+                    const idProduct = dataIdProduct ?? 0;
+                    if(idProduct == 0){
+                        iziToast['error']({
+                            title: "Gagal",
+                            message: "Product Reward Tidak Ditemukan",
+                            position: 'topRight'
+                        });
+                        return;
+                    }
+
+                    if(typeReward == "level"){
+                        listItem = listItem.filter(item => item.idProduct != idProduct && item.levelReward != true);
+                        // listItem = listItem.filter(item => item.idProduct == idProduct && item.levelReward == true);
+                    }
+                    if(typeReward == "exp"){
+                        listItem = listItem.filter(item => item.expReward != true);
+                    }
+                    if(typeReward == "birthday"){
+                        listItem = listItem.filter(item => item.birthdayReward != true);
+                    }
+
+                    rewardAppliedCount = rewardAppliedCount.filter(item => item.idProduct != idProduct);
                     syncItemCart();
+
                 }
+
+                const jumlahItemRewardDipakai = rewardAppliedCount.length == 0 ? 'Belum ada rewards dipilih' : `${rewardAppliedCount.length} reward telah dipilih`;
+                $('#modalAppliedCount').text(jumlahItemRewardDipakai);
             });
+
+            $(document).on('click', '#btnReset', function(){
+                resetAllItemRewardInCart();
+            });
+
         });
     </script>
 

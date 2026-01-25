@@ -434,7 +434,9 @@
                     dataForm.append('promo_id[]', JSON.stringify(tmpPromoData));
                     dataForm.append('modifier_id[]', JSON.stringify(tmpModifierData));
 
-                    let resultCatatan = item.rewardItem ? 'Birthday Reward' : (item.idProduct ? (item.catatan || '') : 'custom');
+                    // let resultCatatan = item.rewardItem ? 'Birthday Reward' : (item.idProduct ? (item.catatan || '') : 'custom');
+
+                    let resultCatatan = item.birthdayReward ? 'Birthday Reward' : (item.levelReward ? 'Level Reward' : (item.expReward ? 'Exp Reward' : (item.idProduct ? (item.catatan || '') : 'custom')))
                     dataForm.append('catatan[]', resultCatatan);
 
                     let isRewardItem = item.rewardItem ? true : false;

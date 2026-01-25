@@ -27,6 +27,8 @@ use App\Models\PettyCash;
 use App\Models\Product;
 use App\Models\Promo;
 use App\Models\RefundTransaction;
+use App\Models\RewardConfirmation;
+use App\Models\RewardMembership;
 use App\Models\SalesType;
 use App\Models\Taxes;
 use App\Models\Transaction;
@@ -519,6 +521,8 @@ class KasirController extends Controller
             $customer = '';
         }
 
+        $now = Carbon::now();
+
         $dataTransaction = [
             'outlet_id' => $dataOutletUser[0],
             'user_id' => auth()->user()->id,
@@ -538,8 +542,8 @@ class KasirController extends Controller
             'patty_cash_id' => $request->patty_cash_id,
             'catatan' => $request->catatan_transaksi,
             'potongan_point' => intval($request->potongan_point),
-            'created_at' => Carbon::now(),
-            'updated_at' => Carbon::now(),
+            'created_at' => $now,
+            'updated_at' => $now,
             'open_bill_id' => $billId
         ];
 
@@ -564,8 +568,8 @@ class KasirController extends Controller
                 'transaction_id' => $transaction->id,
                 'catatan' => $checkCatatan,
                 'sales_type_id' => ($request->sales_type[$x] == 'null' || $request->sales_type[$x] == 'undefined') ?  null : $request->sales_type[$x],
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
+                'created_at' => $now,
+                'updated_at' => $now,
             ];
 
             // dd($billId, $listIdItemOpenBill, $request->idProduct);
@@ -575,16 +579,62 @@ class KasirController extends Controller
             }
 
 
-            if($customerId && $checkCatatan == "Birthday Reward" && $umurCustomer != 0){
+            if($customerId){
                 // Catat penggunaan reward item di tabel customer_rewards
-                $dataClaimBirthdayReward = [
-                    'customer_id' => (int) $customerId,
-                    'outlet_id' => (int) $dataOutletUser[0],
-                    'product_id' => (int) $idProduct,
-                    'age' => (int) $umurCustomer
-                ];
 
-                BirthdayRewardClaims::create($dataClaimBirthdayReward);
+                if($checkCatatan == "Birthday Reward" && $umurCustomer != 0){
+                    $dataClaimBirthdayReward = [
+                        'customer_id' => (int) $customerId,
+                        'outlet_id' => (int) $dataOutletUser[0],
+                        'product_id' => (int) $idProduct,
+                        'age' => (int) $umurCustomer
+                    ];
+
+                    BirthdayRewardClaims::create($dataClaimBirthdayReward);
+                }
+
+                if($checkCatatan == "Level Reward"){
+                    // $rewardMembershipId = RewardMembership::join('products', 'products.name', '=', 'reward_memberships.name')
+                    //     ->where('products.id', $idProduct)
+                    //     ->where('reward_memberships.level_membership_id', $customerId->level_membership_id)
+                    //     ->value('reward_memberships.id');
+
+                    $dataRewardMembership = RewardMembership::join('products', 'products.name', '=', 'reward_memberships.name')
+                        ->join('level_memberships', 'level_memberships.id', '=', 'reward_memberships.level_membership_id')
+                        ->where('products.id', $idProduct)
+                        ->where('reward_memberships.level_membership_id', $customer->level_memberships_id)
+                        ->select(
+                            'reward_memberships.id as reward_id',
+                            'products.id as product_id',
+                            'products.name as product_name',
+                            'level_memberships.id as level_id',
+                            'level_memberships.name as level_name'
+                        )
+                        ->first();
+
+                    $dataSnapshot = [
+                        'product_id' => (int) $dataRewardMembership->product_id,
+                        'product_name' => $dataRewardMembership->product_name,
+                        'level_membership_id' => (int) $dataRewardMembership->level_id,
+                        'level_membership_name' => $dataRewardMembership->level_name,
+                    ];
+
+
+                    $dataClaimLevelReward = [
+                        'level_membership_id' => (int) $customer->level_memberships_id,
+                        'reward_memberships_id' => $dataRewardMembership->reward_id ?? 0,
+                        'customer_id' => (int) $customerId,
+                        'user_id' => auth()->user()->id,
+                        'outlet_id' => (int) $dataOutletUser[0],
+                        'snapshot' => json_encode($dataSnapshot),
+                        'level_batch' => (int) $customer->level_batch,
+                        'created_at' => $now,
+                        'updated_at' => $now
+
+                    ];
+
+                    RewardConfirmation::insert($dataClaimLevelReward);
+                }
             }
 
             TransactionItem::insert($dataProduct);
@@ -652,7 +702,6 @@ class KasirController extends Controller
         // Ambil semua product_id dari transaksi sebagai array sederhana
         $transactionProductIds = $transactionItems->pluck('product_id')->unique()->filter()->values()->all();
 
-        $now = Carbon::now();
         $idOutlet = $transaction->outlet->id;
         $dataNoteReceipt = NoteReceiptScheduling::where('status', true)
             ->whereTime('start', '<=', $now)

@@ -6,6 +6,7 @@ use App\Models\BirthdayRewardClaims;
 use App\Models\Customer;
 use App\Models\PilihPelanggan;
 use App\Models\ProductBirthdayReward;
+use App\Models\RewardConfirmation;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
@@ -19,10 +20,14 @@ use Yajra\DataTables\Services\DataTable;
 class PilihPelangganDataTable extends DataTable
 {
     protected $today;
+    protected $outletUser;
 
     public function __construct()
     {
         $this->today = Carbon::today();
+        $userData = auth()->user();
+        $dataOutletUser = json_decode($userData->outlet_id);
+        $this->outletUser = $dataOutletUser[0];
     }
     /**
      * Build the DataTable class.
@@ -58,9 +63,7 @@ class PilihPelangganDataTable extends DataTable
                     }
                 }
 
-                $userData = auth()->user();
-                $outletUser = json_decode($userData->outlet_id);
-                $rewardBirthday = ProductBirthdayReward::with('product')->where('outlet_id', $outletUser[0])->first();
+                $rewardBirthday = ProductBirthdayReward::with('product')->where('outlet_id', $this->outletUser)->first();
 
                 $checkClaimReward = BirthdayRewardClaims::select('created_at', 'outlet_id')
                     ->with('outlet:id,name')
@@ -73,10 +76,41 @@ class PilihPelangganDataTable extends DataTable
                     $checkClaimReward['created_at'] = $checkClaimReward['created_at']->format('d M Y H:i');
                 }
 
+                // $listRewardAccept = RewardConfirmation::where('customer_id', $newData->id)
+                // ->where('level_membership_id', $newData->levelMembership->id)
+                // ->where('level_batch', $newData->level_batch)
+                // ->get();
+
+                $rewardLevel = [];
+                $listRewardLevel = $newData->levelMembership->rewards->toArray();
+
+
+                foreach($listRewardLevel as $index => $dataRewardLevel){
+                    $tmpDataReward = $dataRewardLevel;
+
+                    // array_push($tmpDataReward, $dataRewardLevel);
+                    foreach($newData->rewardConfirmations->toArray() as $dataRewardConfirmation){
+                        if($dataRewardConfirmation['reward_memberships_id'] == $dataRewardLevel['id']
+                         && $dataRewardConfirmation['level_batch'] == $newData['level_batch']
+                         && $dataRewardConfirmation['customer_id'] == $newData['id']){
+                            $formatCreatedAt = Carbon::parse($dataRewardConfirmation['created_at'])->format('d M Y H:i');
+
+                            $dataRewardConfirmation['created_at'] = $formatCreatedAt;
+                            $tmpDataReward['reward_confirmation'] = $dataRewardConfirmation;
+                        }
+                    }
+                    array_push($rewardLevel, $tmpDataReward);
+                }
+
+                // if($newData->id == 409){
+                //     dd($newData->rewardConfirmations);
+                // }
+
                 return view('layouts.kasir.button-pilih-pelanggan', [
                     'data' => $newData,
                     'reward_birthday' => $rewardBirthday,
-                    'check_claim_reward' => $checkClaimReward
+                    'check_claim_reward_birthday' => $checkClaimReward,
+                    'reward_level' => $rewardLevel
                 ]);
             })
             // ->rawColumns(['created_at'])
@@ -88,8 +122,18 @@ class PilihPelangganDataTable extends DataTable
      */
     public function query(Customer $model): QueryBuilder
     {
-        return $model->with(['levelMembership', 'community'])->newQuery()->orderBy('name', 'asc');
-
+        return $model->with(['levelMembership' => function($levelMembership){
+            $levelMembership->with([
+                'rewards' => function($rewards) {
+                $rewards->with(['rewardProduct' => function($rewardProduct){
+                    $rewardProduct->where('outlet_id', $this->outletUser)->select('id', 'reward_membership_id','product_id');
+                }])->select('id', 'level_membership_id', 'name', 'description', 'icon');
+            }]);
+        }, 'rewardConfirmations' => function($rewardConfirmation){
+            $rewardConfirmation->with(['outlet' => function($outlet){
+                $outlet->select('id', 'name');
+            }])->select('id', 'level_membership_id', 'reward_memberships_id', 'level_batch', 'customer_id', 'outlet_id', 'created_at');
+        }, 'community'])->newQuery()->orderBy('name', 'asc');
     }
 
     /**

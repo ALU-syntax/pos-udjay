@@ -7,7 +7,8 @@
     data-idproductbirthdayreward="{{ $reward_birthday->product_id ?? '' }}"
     data-canclaim="{{ $data->can_claim_birthday_reward ? '1' : '0' }}"
     data-periodclaim="{{ $data->period_claim }}"
-    data-check-claim-reward='@json($check_claim_reward)'>
+    data-check-claim-reward='@json($check_claim_reward_birthday)'
+    data-reward-level='@json($reward_level)'>
     Pilih
 </button>
 
@@ -15,6 +16,7 @@
     $('.pilih-pelanggan-btn').off().on('click', function() {
         // console.log($(this).data());
 
+        resetAllItemRewardInCart();
         let id = $(this).data('id');
         let name = $(this).data('nama');
         let point = $(this).data('poin');
@@ -27,6 +29,7 @@
         let periodClaim = $(this).data('periodclaim');
         let claimable = canClaim ? true : false;
         let checkClaimReward = $(this).data('checkClaimReward');
+        let rewardLevel = $(this).data('rewardLevel');
 
         let tmpCustomer = {
             id: id,
@@ -37,7 +40,8 @@
             idProductBirthdayReward: idProductBirthdayReward,
             rewardBirthdayDesc: rewardBirthdayDesc,
             periodClaim: periodClaim,
-            checkClaimReward: checkClaimReward
+            checkClaimReward: checkClaimReward,
+            rewardLevel: rewardLevel
         }
 
         dataPelanggan = tmpCustomer;
@@ -45,6 +49,7 @@
         idPelanggan = id;
         pointPelanggan = parseInt(point);
         checkBirthdayReward(idProductBirthdayReward, rewardBirthdayDesc, claimable, false, checkClaimReward);
+        generateLevelReward(rewardLevel);
         $('#modalMemberName').text(name)
         $('#modalLevelBadge').text($(this).data('level'));
         $('#modalLevelBadge').css({

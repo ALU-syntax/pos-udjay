@@ -10,6 +10,7 @@ class Customer extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'customers';
     protected $guarded = ['id'];
 
     public function transactions(){
@@ -30,6 +31,10 @@ class Customer extends Model
 
     public function levelMembership(){
         return $this->belongsTo(LevelMembership::class, 'level_memberships_id', 'id');
+    }
+
+    public function rewardConfirmations(){
+        return $this->hasMany(RewardConfirmation::class, 'customer_id', 'id');
     }
 
 }
