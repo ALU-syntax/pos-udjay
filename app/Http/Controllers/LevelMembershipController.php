@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\DataTables\LevelMembershipDataTable;
 use App\Http\Requests\LevelMembershipRequest;
-use App\Models\Category;
 use App\Models\LevelMembership;
 use App\Models\Outlets;
 use App\Models\Product;
 use App\Models\ProductBirthdayReward;
+use App\Models\ProductExpReward;
 use App\Models\RewardLevelMembershipProduct;
 use App\Models\RewardMembership;
 use App\Models\VariantProduct;
@@ -19,21 +19,41 @@ class LevelMembershipController extends Controller
 {
     public function index(LevelMembershipDataTable $datatable)
     {
-        $birthdayReward = ProductBirthdayReward::with('product')->first();
-        $excludeName = optional($birthdayReward?->product)->name; // aman kalau null
+        $birthdayReward = ProductBirthdayReward::with([
+            'product:id,name,category_id,description',
+            'product.category:id,name'
+        ])->first();
 
-        $productReward = Product::whereHas('category', function ($q) {
+        $excludeNameBirthdayReward = optional($birthdayReward?->product)->name; // aman kalau null
+
+        $expReward = ProductExpReward::with(['product:id,name,category_id,description', 'product.category:id,name'])->first();
+        $excludeNameExpReward = optional($expReward?->product)->name;
+
+        $products = Product::with(['category:id,name,reward_categories'])
+            ->whereHas('category', function ($q) {
                 $q->where('reward_categories', 1);
             })
             ->select('name', 'category_id')
-            ->when($excludeName, fn ($q) => $q->where('name', '!=', $excludeName))
             ->distinct()
             ->get();
 
+        $productBirthdayReward = $products
+            ->when($excludeNameBirthdayReward, fn ($c) =>
+                $c->where('name', '!=', $excludeNameBirthdayReward)
+            )
+            ->values();
+
+        $productExpReward = $products
+            ->when($excludeNameExpReward, fn ($c) =>
+                $c->where('name', '!=', $excludeNameExpReward)
+            )
+            ->values();
 
         return $datatable->render("layouts.level_membership.index", [
-            'product_rewards' => $productReward,
-            'birthday_reward_choose' => $birthdayReward
+            'product_birthday_rewards' => $productBirthdayReward,
+            'birthday_reward_choose' => $birthdayReward,
+            'product_exp_rewards' => $productExpReward,
+            'exp_reward_choose' => $expReward
         ]);
     }
 
@@ -370,5 +390,41 @@ class LevelMembershipController extends Controller
         return response()->json([
             'results' => $icons
         ]);
+    }
+
+    public function updateExpReward(Request $request){
+        $data = $request->validate([
+            'name_exp_reward'   => ['required', 'string', 'max:255'],
+            'category_id'       => ['required', 'integer'],
+            'desc_exp_reward'   => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $name = $data['name_exp_reward'];
+        $categoryId = (int) $data['category_id'];
+        $desc = $data['desc_exp_reward'] ?? '';
+
+        DB::transaction(function() use($name, $categoryId, $desc){
+            Outlets::query()->select('id')->chunkById(200, function($outlets) use($desc, $name, $categoryId){
+                foreach($outlets as $outlet){
+                    $product = $this->findOrCreateRewardProduct(
+                        outletId: $outlet->id,
+                        categoryId: $categoryId,
+                        name: $name,
+                        desc: $desc
+                    );
+
+                    // Asumsi 1 record reward per outlet (lebih masuk akal)
+                    ProductExpReward::updateOrCreate(
+                        ['outlet_id' => $outlet->id],
+                        [
+                            'product_id'    => $product->id,
+                            'product_name'  => $name,
+                        ]
+                    );
+                }
+            });
+        });
+
+        return responseSuccess(true, "Exp reward berhasil diperbarui");
     }
 }

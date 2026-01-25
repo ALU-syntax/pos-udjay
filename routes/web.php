@@ -295,6 +295,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/searchIcon', [LevelMembershipController::class, 'searchIcons'])->name('level-membership/searchIcon');
             Route::put('/update/{level}', [LevelMembershipController::class, 'update'])->name('level-membership/update');
             Route::put('/update-birthday-reward', [LevelMembershipController::class, 'updateBirthdayReward'])->name('level-membership/update-birthday-reward');
+            Route::put('/update-exp-reward', [LevelMembershipController::class, 'updateExpReward'])->name('level-membership/update-exp-reward');
             Route::delete('/destroy/{level}', [LevelMembershipController::class, 'destroy'])->name('level-membership/destroy');
         });
 
