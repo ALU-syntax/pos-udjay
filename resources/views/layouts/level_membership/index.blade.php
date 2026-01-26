@@ -63,7 +63,7 @@
                                 </div>
                                 <div class="col-12 mt-2">
                                     <textarea id="exp-reward-desc" name="exp-reward-desc" rows="4" class="form-control w-100"
-                                        placeholder="Description reward, Contoh: Gratis 1 menu 'Signature Drink' dengan kelipatan 5000 EXP.">{{ $exp_reward_choose->product->description ?? '' }}</textarea>
+                                        placeholder="Description reward, Contoh: Tukar setiap 5.000 EXP menjadi 1 item gratis.">{{ $exp_reward_choose->product->description ?? '' }}</textarea>
                                 </div>
                                 <div class="col-2 mt-2">
                                     <button class="btn btn-primary" id="btn-simpan-exp-reward">Simpan</button>

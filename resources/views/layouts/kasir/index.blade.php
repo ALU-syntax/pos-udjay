@@ -1527,25 +1527,21 @@
                                             <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
                                                 <div>
                                                     <div class="d-flex align-items-center gap-2 mb-1">
-                                                        <i class="bi bi-cup-hot"></i>
+                                                        <i class="fa-solid fa-mug-hot "></i>
                                                         <h6 class="mb-0">Reward per 5.000 EXP</h6>
                                                     </div>
-                                                    <div class="text-secondary small">
-                                                        Tukar setiap 5.000 EXP menjadi 1 item gratis: <span class="fw-semibold text-body">Kopi Susu</span>
+                                                    <div class="text-secondary small" id="descExpReward">
+                                                        -
                                                     </div>
+                                                    <div class="text-danger small mt-1"><i id="note-exp-reward"></i></div>
                                                     <div class="text-secondary small mt-1">
-                                                        Ketersediaan: <span id="expAvailable">0</span>x (berdasarkan EXP saat ini)
+                                                        Item Gratis: <span class="fw-semibold text-body" id="productExpRewardAvailable">Belum diset dari backoffice</span>
                                                     </div>
                                                 </div>
                                                 <div class="d-flex align-items-center gap-3">
                                                     <div class="form-check form-check-lg">
-                                                        <input class="form-check-input" type="checkbox" id="chkExp" />
+                                                        <input class="form-check-input checkbox-reward" type="checkbox" id="chkExp" data-type-reward="exp"/>
                                                         <label class="form-check-label" for="chkExp">Tukarkan</label>
-                                                    </div>
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <button class="btn btn-outline-secondary" id="btnExpMinus" type="button"><i class="bi bi-dash"></i></button>
-                                                        <div class="text-center fw-semibold" id="expQty" style="width: 40px;">0</div>
-                                                        <button class="btn btn-outline-secondary" id="btnExpPlus" type="button"><i class="bi bi-plus"></i></button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -5206,12 +5202,32 @@
             }
         }
 
+        function checkExpReward(idProductExpReward, rewardExpDesc, dataExpClaim){
+            $('#note-exp-reward').text("");
+            let checkExpCustomer = dataPelanggan.exp >= 5000 ? true : false;
+            if(idProductExpReward){
+                const getProduct = listProduct.find(item => item.id == idProductExpReward);
+                $('#productExpRewardAvailable').text(getProduct.name);
+                $('#descExpReward').val(rewardExpDesc == '' ? "Reward Exp" : rewardExpDesc)
+                $('#chkExp').data('idProduct', idProductExpReward);
+                $('#chkExp').prop('disabled', !checkExpCustomer);
+
+                if(dataExpClaim){
+                    $('#chkExp').prop('disabled', true);
+                    $('#chkExp').prop('checked', true);
+                    $('#note-exp-reward').text(`*Reward sudah diambil di ${dataExpClaim.outlet.name} pada ${dataExpClaim.created_at}`);
+                }
+            }else{
+                $('#chkExp').prop('disabled', true);
+            }
+        }
+
         function generateLevelReward(data){
             $('#pane-level').empty();
-            console.log(data);
+            // console.log(data);
 
             let htmlLevelReward = '';
-            if(data){
+            if(data && data.length){
                 data.forEach(function(levelReward){
                     let checkClaim = levelReward.reward_confirmation;
                     let descClaim = checkClaim ? `*Reward sudah diambil di ${checkClaim.outlet.name} pada ${checkClaim.created_at}` : '';
@@ -5227,7 +5243,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="form-check form-check-lg pt-1">
-                                                    <input class="form-check-input checkbox-reward" type="checkbox" data-type-reward="level" data-id-product="${levelReward.reward_product[0].product_id ?? 0}" ${propClaim} />
+                                                    <input class="form-check-input checkbox-reward" type="checkbox" data-type-reward="level" data-id-product="${levelReward?.reward_product[0]?.product_id ?? 0}" ${propClaim} />
                                                     <label class="form-check-label" >Pilih</label>
                                                 </div>
                                             </div>
@@ -5980,7 +5996,7 @@
             $('#treatment-pelanggan').off().on('click', function(){
                 let checkBirthdayRewardExist = listItem.some(item => item?.birthdayReward == true);
 
-                checkBirthdayReward(dataPelanggan.idProductBirthdayReward, dataPelanggan.rewardBirthdayDesc, dataPelanggan.canClaim, checkBirthdayRewardExist, dataPelanggan.checkClaimReward);
+                checkBirthdayReward(dataPelanggan.idProductBirthdayReward, dataPelanggan.rewardBirthdayDesc, dataPelanggan.canClaim, checkBirthdayRewardExist, dataPelanggan.checkClaimBirthdayReward);
                 if (window.Android) {
                     if(window.Android.handleTreatmentPelanggan){
                         window.Android.handleTreatmentPelanggan();

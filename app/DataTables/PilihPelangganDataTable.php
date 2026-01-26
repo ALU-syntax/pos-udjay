@@ -4,8 +4,10 @@ namespace App\DataTables;
 
 use App\Models\BirthdayRewardClaims;
 use App\Models\Customer;
+use App\Models\ExpRewardClaims;
 use App\Models\PilihPelanggan;
 use App\Models\ProductBirthdayReward;
+use App\Models\ProductExpReward;
 use App\Models\RewardConfirmation;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
@@ -65,16 +67,41 @@ class PilihPelangganDataTable extends DataTable
 
                 $rewardBirthday = ProductBirthdayReward::with('product')->where('outlet_id', $this->outletUser)->first();
 
-                $checkClaimReward = BirthdayRewardClaims::select('created_at', 'outlet_id')
+                $checkClaimBirthdayReward = BirthdayRewardClaims::select('created_at', 'outlet_id')
                     ->with('outlet:id,name')
                     ->where('customer_id', $row->id)
                     ->where('age', $nowAge)
                     ->first()
                     ?->only(['created_at', 'outlet']);
 
-                if($checkClaimReward){
-                    $checkClaimReward['created_at'] = $checkClaimReward['created_at']->format('d M Y H:i');
+                if($checkClaimBirthdayReward){
+                    $checkClaimBirthdayReward['created_at'] = $checkClaimBirthdayReward['created_at']->format('d M Y H:i');
                 }
+
+
+
+                $rewardExp = ProductExpReward::with('product')->where('outlet_id', $this->outletUser)->first();
+
+                $checkClaimExpReward = null;
+                $exp = $newData->exp;
+
+                // kelipatan 5000 terbesar
+                $claimableExp = intdiv($exp, 5000) * 5000;
+
+                if($exp >= 5000){
+                    $checkClaimExpReward = ExpRewardClaims::select('created_at', 'outlet_id')
+                        ->with('outlet:id,name')
+                        ->where('customer_id', $newData->id)
+                        ->where('exp', $claimableExp)
+                        ->where('level_batch', $newData->level_batch)
+                        ->first()
+                        ?->only(['created_at', 'outlet']);
+
+                    if($checkClaimExpReward){
+                        $checkClaimExpReward['created_at'] = $checkClaimExpReward['created_at']->format('d M Y H:i');
+                    }
+                }
+
 
                 // $listRewardAccept = RewardConfirmation::where('customer_id', $newData->id)
                 // ->where('level_membership_id', $newData->levelMembership->id)
@@ -102,15 +129,18 @@ class PilihPelangganDataTable extends DataTable
                     array_push($rewardLevel, $tmpDataReward);
                 }
 
-                // if($newData->id == 409){
+                // if($newData->id == 27){
+                //     dd($exp, $claimableExp, $checkClaimExpReward);
                 //     dd($newData->rewardConfirmations);
                 // }
 
                 return view('layouts.kasir.button-pilih-pelanggan', [
                     'data' => $newData,
                     'reward_birthday' => $rewardBirthday,
-                    'check_claim_reward_birthday' => $checkClaimReward,
-                    'reward_level' => $rewardLevel
+                    'check_claim_reward_birthday' => $checkClaimBirthdayReward,
+                    'reward_level' => $rewardLevel,
+                    'reward_exp' => $rewardExp,
+                    'check_claim_reward_exp' => $checkClaimExpReward,
                 ]);
             })
             // ->rawColumns(['created_at'])

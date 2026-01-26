@@ -15,6 +15,7 @@ use App\Models\Checkout;
 use App\Models\Community;
 use App\Models\Customer;
 use App\Models\Discount;
+use App\Models\ExpRewardClaims;
 use App\Models\HistoryExpMembershipLevel;
 use App\Models\ItemOpenBill;
 use App\Models\LevelMembership;
@@ -272,6 +273,8 @@ class KasirController extends Controller
             ]);
         }
 
+        // dd($request);
+
         // Simpan hash ke cache selama 10 detik
         Cache::put($cacheKey, true, now()->addSeconds(45));
 
@@ -379,6 +382,11 @@ class KasirController extends Controller
 
         if ($customerId) {
             $customer = Customer::find($customerId);
+            $customerExp = $customer->exp;
+            $customerClaimableExp = intdiv($customerExp, 5000) * 5000;
+            $customerLevelMembershipId = $customer->level_memberships_id;
+            $customerLevelbatch = $customer->level_batch;
+
 
             $birthCarbon = Carbon::parse($customer->tanggal_lahir);
             $umurCustomer = $birthCarbon->age;
@@ -519,6 +527,10 @@ class KasirController extends Controller
             $customer->save();
         } else {
             $customer = '';
+            $customerExp = '';
+            $customerLevelMembershipId = '';
+            $customerLevelbatch = '';
+            $customerClaimableExp = '';
         }
 
         $now = Carbon::now();
@@ -602,7 +614,7 @@ class KasirController extends Controller
                     $dataRewardMembership = RewardMembership::join('products', 'products.name', '=', 'reward_memberships.name')
                         ->join('level_memberships', 'level_memberships.id', '=', 'reward_memberships.level_membership_id')
                         ->where('products.id', $idProduct)
-                        ->where('reward_memberships.level_membership_id', $customer->level_memberships_id)
+                        ->where('reward_memberships.level_membership_id', $customerLevelMembershipId)
                         ->select(
                             'reward_memberships.id as reward_id',
                             'products.id as product_id',
@@ -621,13 +633,13 @@ class KasirController extends Controller
 
 
                     $dataClaimLevelReward = [
-                        'level_membership_id' => (int) $customer->level_memberships_id,
+                        'level_membership_id' => (int) $customerLevelMembershipId,
                         'reward_memberships_id' => $dataRewardMembership->reward_id ?? 0,
                         'customer_id' => (int) $customerId,
                         'user_id' => auth()->user()->id,
                         'outlet_id' => (int) $dataOutletUser[0],
                         'snapshot' => json_encode($dataSnapshot),
-                        'level_batch' => (int) $customer->level_batch,
+                        'level_batch' => (int) $customerLevelbatch,
                         'created_at' => $now,
                         'updated_at' => $now
 
@@ -635,6 +647,19 @@ class KasirController extends Controller
 
                     RewardConfirmation::insert($dataClaimLevelReward);
                 }
+
+                if($checkCatatan == "Exp Reward"){
+                    $dataClaimExpReward = [
+                        'customer_id' => (int) $customerId,
+                        'outlet_id' => (int) $dataOutletUser[0],
+                        'product_id' => (int) $idProduct,
+                        'exp' => (int) $customerClaimableExp,
+                        'level_batch' => (int) $customerLevelbatch
+                    ];
+
+                    ExpRewardClaims::create($dataClaimExpReward);
+                }
+
             }
 
             TransactionItem::insert($dataProduct);
