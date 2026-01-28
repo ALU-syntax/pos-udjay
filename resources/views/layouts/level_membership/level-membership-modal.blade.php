@@ -161,7 +161,7 @@
             dropdownParent: $('#modal_action .modal-body'),
             templateResult: formatIcon,
             templateSelection: formatIcon,
-            placeholder: 'Pilih Icon',
+            placeholder: 'Pilih Reward',
             width: '100%'
         });
 
@@ -231,12 +231,14 @@
         });
 
         $('#add_reward').on('click', function() {
+            let checkProductReward = @json($product_rewards);
+            let firstNameProduct = checkProductReward.length ? checkProductReward[0].name : "";
             var newItem = `
             <div class="row specific_item mt-2">
                 <div class="col-10 pe-0">
                     <div class="row reward">
                         <div class="form-group col-8">
-                            <input type="text" value="{{ json_decode($product_rewards[0])->name }}"  hidden name="name_product[]">
+                            <input type="text" value="${firstNameProduct}"  hidden name="name_product[]">
                             <select name="category_product_id[]"
                                 class="select2InsideModal category_product_id form-select w-100"
                                 style="width: 100% !important;">

@@ -56,7 +56,9 @@ class OpenBillController extends Controller
 
         $openBill = OpenBill::withTrashed()->find($idOpenBill);
         $openBill->load(['user', 'transactions', 'item' => function($itemOpenBill){
-            $itemOpenBill->withTrashed()->with(['variant', 'product', 'itemTransactions']);
+            $itemOpenBill->withTrashed()->with(['variant' => function($variant){
+                $variant->withTrashed();
+            }, 'product', 'itemTransactions']);
         }]);
 
         // Add create_formated to each item after loading

@@ -5208,7 +5208,7 @@
             if(idProductExpReward){
                 const getProduct = listProduct.find(item => item.id == idProductExpReward);
                 $('#productExpRewardAvailable').text(getProduct.name);
-                $('#descExpReward').val(rewardExpDesc == '' ? "Reward Exp" : rewardExpDesc)
+                $('#descExpReward').text(rewardExpDesc == '' ? "Reward Exp" : rewardExpDesc)
                 $('#chkExp').data('idProduct', idProductExpReward);
                 $('#chkExp').prop('disabled', !checkExpCustomer);
 

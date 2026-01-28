@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('item_open_bills', function (Blueprint $table) {
-            $table->boolean('exclude_tax')->nullable();
+            if (!Schema::hasColumn('item_open_bills', 'exclude_tax')) {
+                $table->boolean('exclude_tax')->nullable();
+            }
         });
     }
 
