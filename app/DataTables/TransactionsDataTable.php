@@ -30,6 +30,10 @@ class TransactionsDataTable extends DataTable
             ->editColumn('created_at', function ($row) {
                 return Carbon::parse($row->created_at)->format('H:i');
             })
+            ->orderColumn('created_at', function ($query, $order) {
+                // Sorting hanya berdasarkan JAM (tanpa tanggal)
+                $query->orderByRaw("TIME(transactions.created_at) {$order}");
+            })
             ->editColumn('user_id', function ($row) {
                 return $row->user->name;
             })

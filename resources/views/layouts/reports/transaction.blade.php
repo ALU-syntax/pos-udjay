@@ -339,6 +339,12 @@
                         idOutlet: outletTerpilih, // Kirim data array ke server
                         date: date
                     },
+                    beforeSend: function() {
+                        showLoader();
+                    },
+                    complete: function() {
+                        showLoader(false);
+                    },
                     success: function(response) {
                         console.log(response)
                         let totalTransaksi = 0;
@@ -487,7 +493,7 @@
                                     </ul>
                                 `;
                             }
-                            
+
                             if (item.product) {
                                 let namaProduct = item.variant.name == item.product.name ? item
                                     .product.name :
