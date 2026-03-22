@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Imports\BackupImport;
+use App\Mail\BirthdayMail;
 use App\Mail\TestEmail;
 use App\Models\Checkout;
+use App\Models\Customer;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Maatwebsite\Excel\Facades\Excel;
@@ -34,11 +37,11 @@ class CheckoutController extends Controller
         }
     }
 
-    public function showForm()
-    {
-        // Mail::to("test@gmail.com")->send(new TestEmail());
-        // return view('email_test');
-    }
+    // public function showForm()
+    // {
+    //     // Mail::to("test@gmail.com")->send(new TestEmail());
+    //     // return view('email_test');
+    // }
 
     public function sendTestEmail(Request $request)
     {
@@ -48,7 +51,8 @@ class CheckoutController extends Controller
 
         $toEmail = $request->input('email');
 
-        Mail::to($toEmail)->send(new TestEmail());
+        $data = ['name' => "Ardian"];
+        Mail::to($toEmail)->send(new BirthdayMail($data));
         // Mail::raw('Ini adalah email uji coba dari Laravel.', function ($message) use ($toEmail) {
         //     $message->to($toEmail)
         //             ->subject('Test Email Laravel');

@@ -1668,6 +1668,17 @@
                 </div>
                 <div class="modal-body">
 
+                    <div class="callout callout-info d-none" id="container-note-product">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-1"><i class="d-flex justify-content-center align-items-center fa-solid fa-circle-info" style="color: #5bc0de; font-size: 30px;"></i></div>
+                                <div class="col-11" id="note-product">
+                                    <h4>Deskripsi Produk</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="listVariantOffline"></div>
 
                     <div id="listPilihanOffline"></div>
@@ -3668,6 +3679,7 @@
             $('#listDiskonOffline').empty();
             $('#quantity-offline').val(1);
             $('#catatanOffline').val('');
+            $('#container-note-product').addClass('d-none');
 
             // let item = $(widget);
             // let itemTmpId = item.attr('data-tmpid');
@@ -3677,6 +3689,12 @@
             let modifierItem = getDataRelationProductFromJsonStringify(listModifier, id);
             let pilihanItem = getDataRelationProductFromJsonStringify(listPilihan, id);
             let diskonItem = [];
+            if(dataItem?.description){
+                $('#container-note-product').removeClass('d-none');
+                $('#note-product').empty();
+                $('#note-product').append('<h4>Deskripsi Produk</h4>');
+                $('#note-product').append(dataItem.description);
+            }
             listDiskon.forEach(function(discount){
                if(discount.type_input == "fixed" && discount.satuan == "percent"){
                 diskonItem.push(discount)
