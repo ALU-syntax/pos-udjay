@@ -1,4 +1,4 @@
-<x-modal title="Tambah Outlet" action="{{ $action }}"
+<x-modal title="Tambah Outlet" action="{{ $action }}" update="{{$update}}"
     method="POST">
     @if ($data->id)
         @method('put')
@@ -29,6 +29,18 @@
             <label>Catatan Nota</label>
             <textarea id="catatan_nota" name="catatan_nota" value="{{ $data->catatan_nota }}" type="text" class="form-control"
                 placeholder="note.." aria-label="With textarea">{{ $data->catatan_nota }}</textarea>
+        </div>
+    </div>
+
+    <div class="col-sm-12">
+        <div class="form-group">
+            <select name="brand_id" class="select2InsideModal form-select w-100" style="width: 100% !important;" required>
+                <option disabled>Pilih Brand</option>
+                @foreach (json_decode($brands) as $brand)
+                    <option value="{{ $brand->id }}" @if ($data->brand_id == $brand->id) selected @endif>
+                        {{ $brand->name }}</option>
+                @endforeach
+            </select>
         </div>
     </div>
     <script>

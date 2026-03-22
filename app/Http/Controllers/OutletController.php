@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\DataTables\OutletsDatatables;
 use App\Http\Requests\OutletRequest;
+use App\Models\Brand;
 use App\Models\Outlets;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -20,6 +21,8 @@ class OutletController extends Controller
     {
         return view("layouts.outlet.outlet-modal", [
             "data" => new Outlets(),
+            "brands" => Brand::select('id', 'name')->get(),
+            'update' => false,
             "action" => route("konfigurasi/outlets/store")
         ]);
     }
@@ -36,6 +39,8 @@ class OutletController extends Controller
     {
         return view('layouts.outlet.outlet-modal', [
             'data' => $outlet,
+            "brands" => Brand::select('id', 'name')->get(),
+            'update' => true,
             'action' => route('konfigurasi/outlets/update', $outlet),
         ]);
     }
@@ -57,15 +62,15 @@ class OutletController extends Controller
 
     public function getAkun($outlet_id)
     {
-        // Ambil semua pengguna  
+        // Ambil semua pengguna
         $users = User::where('role', 3)->get(['name', 'email', 'outlet_id']);
 
-        // Filter pengguna berdasarkan outlet_id  
+        // Filter pengguna berdasarkan outlet_id
         $akuns = $users->filter(function ($user) use ($outlet_id) {
-            $outletIds = json_decode($user->outlet_id); // Decode outlet_id  
+            $outletIds = json_decode($user->outlet_id); // Decode outlet_id
             // dd($outletIds);
-            return in_array($outlet_id, $outletIds); // Cek apakah outlet_id ada  
-        })->values(); // Reset keys  
+            return in_array($outlet_id, $outletIds); // Cek apakah outlet_id ada
+        })->values(); // Reset keys
 
         return response()->json($akuns);
     }

@@ -26,6 +26,7 @@ class OutletRequest extends FormRequest
             'address' => 'required',
             'phone' => 'required|numeric',
             'catatan_nota' => 'nullable|string',
+            'brand_id' => 'required',
         ];
     }
 }
