@@ -29,6 +29,7 @@ use App\Http\Controllers\PromoController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SalesTypeController;
+use App\Http\Controllers\SatuanController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\UserController;
@@ -409,6 +410,16 @@ Route::middleware('auth')->group(function () {
             Route::post('/restoreOpenBill', [OpenBillController::class, 'restoreOpenBill'])->name('openbill/restoreOpenBill');
             Route::post('/deleteOpenBill/{idOpenBill}', [OpenBillController::class, 'deleteOpenBill'])->name('openbill/deleteOpenBill');
 
+        });
+    });
+
+    Route::group(['prefix' => 'warehouse', 'as' => 'warehouse/'], function(){
+        Route::prefix('satuan')->group(function () {
+            Route::get('/', [SatuanController::class, 'index'])->name('satuan');
+            Route::get('/create', [SatuanController::class, 'create'])->name('satuan/create');
+            Route::post('/store', [SatuanController::class, 'store'])->name('satuan/store');
+            Route::get('/edit/{satuan}', [SatuanController::class, 'edit'])->name('satuan/edit');
+            Route::put('/update/{satuan}', [SatuanController::class, 'update'])->name('satuan/update');
         });
     });
 
