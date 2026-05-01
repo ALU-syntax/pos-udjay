@@ -10,7 +10,14 @@ use Illuminate\Http\Request;
 class CategoryController extends Controller
 {
     public function index(CategoryDataTable $categoryDataTable){
-        return $categoryDataTable->render('layouts.category.index');
+        $stats = [
+            'total' => Category::count(),
+            'active' => Category::where('status', 1)->count(),
+            'inactive' => Category::where('status', 0)->count(),
+            'reward' => Category::where('reward_categories', 1)->count(),
+        ];
+
+        return $categoryDataTable->render('layouts.category.index', compact('stats'));
     }
 
     public function create(){
@@ -24,7 +31,15 @@ class CategoryController extends Controller
         $category = new Category($request->validated());
         $category->save();
 
-        return responseSuccess(false);
+        $stats = [
+            'total' => Category::count(),
+            'active' => Category::where('status', 1)->count(),
+            'inactive' => Category::where('status', 0)->count(),
+            'reward' => Category::where('reward_categories', 1)->count(),
+        ];
+
+
+        return responseSuccess(false, false, $stats);
     }
 
     public function edit(Category $category){
@@ -38,7 +53,14 @@ class CategoryController extends Controller
         $category->fill($request->validated());
         $category->save();
 
-        return responseSuccess(true);
+        $stats = [
+            'total' => Category::count(),
+            'active' => Category::where('status', 1)->count(),
+            'inactive' => Category::where('status', 0)->count(),
+            'reward' => Category::where('reward_categories', 1)->count(),
+        ];
+
+        return responseSuccess(true, false, $stats);
     }
 
     public function destroy(Category $category){

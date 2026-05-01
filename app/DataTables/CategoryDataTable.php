@@ -27,7 +27,10 @@ class CategoryDataTable extends DataTable
 
         return (new EloquentDataTable($query))
             ->addColumn('action', function ($row) {
-                $actions = $this->basicActions($row);
+                $actions = [];
+                if (user()->can('update ' . request()->path())) {
+                    $actions['Edit'] = route(str_replace('/', '/', request()->path()) . '/edit', $row->id);
+                }
                 return view('action', ['actions' => $actions]);
             })
             ->editColumn('status',function($row){

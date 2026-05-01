@@ -12,8 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('outlets', function (Blueprint $table) {
-            $table->unsignedBigInteger('brand_id')->nullable()->default(1);
-            $table->foreign('brand_id')->references('id')->on('brands')->onDelete('CASCADE');
+            if (!Schema::hasColumn('outlets', 'brand_id')) {
+                $table->unsignedBigInteger('brand_id')->nullable();
+                $table->foreign('brand_id')->references('id')->on('brands')->onDelete('CASCADE');
+            }
         });
     }
 

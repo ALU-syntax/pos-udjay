@@ -35,21 +35,15 @@ if (!function_exists('menus')) {
     }
 
     if (!function_exists('responseSuccess')) {
-        function responseSuccess($isEdit = false, $customMessage = false)
+        function responseSuccess($isEdit = false, $customMessage = false, $data = [])
         {
 
-            if($customMessage){
-                return response()->json([
+            $checkMessage = $customMessage ? $customMessage : ($isEdit ? 'Update data Successfully' : 'Create data Successfully');
+            return response()->json([
                     'status' => 'success',
-                    'message' => $customMessage
+                    'message' => $checkMessage,
+                    'data' => $data
                 ]);
-            }else{
-                return response()->json([
-                    'status' => 'success',
-                    'message' => $isEdit ? 'Update data Successfully' : 'Create data Successfully',
-                ]);
-            }
-
         }
     }
 

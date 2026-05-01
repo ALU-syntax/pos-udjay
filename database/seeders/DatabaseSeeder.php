@@ -34,6 +34,8 @@ class DatabaseSeeder extends Seeder
             KategoriPengeluaranSeeder::class,
             KategoriPemasukanSeeder::class,
             BrandSeeder::class,
+            SatuanSeeder::class,
+            WarehouseMenuSeeder::class
         ]);
 
         // Memanggil ProductFactory
