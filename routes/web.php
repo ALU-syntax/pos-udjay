@@ -30,6 +30,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SalesTypeController;
 use App\Http\Controllers\SatuanController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\UserController;
@@ -420,6 +421,21 @@ Route::middleware('auth')->group(function () {
             Route::post('/store', [SatuanController::class, 'store'])->name('satuan/store');
             Route::get('/edit/{satuan}', [SatuanController::class, 'edit'])->name('satuan/edit');
             Route::put('/update/{satuan}', [SatuanController::class, 'update'])->name('satuan/update');
+        });
+
+        Route::prefix('supplier')->group(function () {
+            Route::get('/', [SupplierController::class, 'index'])->name('supplier');
+            Route::get('/create', [SupplierController::class, 'create'])->name('supplier/create');
+            Route::post('/store', [SupplierController::class, 'store'])->name('supplier/store');
+            Route::get('/{supplier}/show', [SupplierController::class, 'show'])->name('supplier/show');
+            Route::get('/{supplier}/edit', [SupplierController::class, 'edit'])->name('supplier/edit');
+            Route::put('/{supplier}/update', [SupplierController::class, 'update'])->name('supplier/update');
+            Route::delete('/{supplier}/destroy', [SupplierController::class, 'destroy'])->name('supplier/destroy');
+            Route::get('/{supplier}/raw-materials/create', [SupplierController::class, 'createRawMaterial'])->name('supplier/raw-materials/create');
+            Route::post('/{supplier}/raw-materials/store', [SupplierController::class, 'storeRawMaterial'])->name('supplier/raw-materials/store');
+            Route::get('/{supplier}/raw-materials/{supplierRawMaterial}/edit', [SupplierController::class, 'editRawMaterial'])->name('supplier/raw-materials/edit');
+            Route::put('/{supplier}/raw-materials/{supplierRawMaterial}/update', [SupplierController::class, 'updateRawMaterial'])->name('supplier/raw-materials/update');
+            Route::delete('/{supplier}/raw-materials/{supplierRawMaterial}/destroy', [SupplierController::class, 'destroyRawMaterial'])->name('supplier/raw-materials/destroy');
         });
     });
 

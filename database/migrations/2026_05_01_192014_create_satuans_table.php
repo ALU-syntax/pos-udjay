@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('satuans', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->string('name')->unique(); // contoh: kg, gram, liter, ml, pcs, pack, box
             $table->boolean('is_active')->default(1);
             $table->timestamps();
         });

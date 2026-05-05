@@ -16,14 +16,17 @@ trait HasMenuPermission{
          }
 
          foreach($permissions as $item){
-            $permission = Permission::create(['name' => $item . "{$menu->url}"]);
+            $permission = Permission::updateOrCreate(
+                ['name' => $item . "{$menu->url}"],
+                ['name' => $item . "{$menu->url}"]);
+
             $permission->menus()->attach($menu);
             if($roles){
                 $permission->assignRole($roles);
             }
-            
+
          }
-        
+
 
     }
 }
