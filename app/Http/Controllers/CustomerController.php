@@ -149,18 +149,42 @@ class CustomerController extends Controller
     }
 
     public function detail(Customer $customer, ListCustomerTransactionDataTable $datatable){
-        $customer->load(['transactions', 'levelMembership', 'createdBy']);
+        $customer->load(['transactions', 'levelMembership.rewards', 'createdBy']);
 
         $transactionNominal = 0;
         foreach($customer->transactions as $transaction){
             $transactionNominal += $transaction->total;
         }
 
+        $transactionCount = $customer->transactions->count();
+        $averageTransaction = $transactionCount > 0 ? round($transactionNominal / $transactionCount) : 0;
         $levelBadgeColor = $this->normalizeHexColor($customer->levelMembership?->color);
+        $membershipLevels = LevelMembership::orderBy('benchmark')->get();
+        $currentExp = (int) $customer->exp;
+        $maxLevelBenchmark = max((int) ($membershipLevels->max('benchmark') ?? 0), 1);
+        $levelProgressPercent = min(100, ($currentExp / $maxLevelBenchmark) * 100);
+        $nextLevel = $membershipLevels->first(function ($level) use ($currentExp) {
+            return (int) $level->benchmark > $currentExp;
+        });
+        $claimedRewardCount = $customer->level_memberships_id
+            ? RewardConfirmation::where('customer_id', $customer->id)
+                ->where('level_membership_id', $customer->level_memberships_id)
+                ->distinct('reward_memberships_id')
+                ->count('reward_memberships_id')
+            : 0;
+        $totalReward = max($customer->levelMembership?->rewards->count() ?? 0, $claimedRewardCount);
 
         return $datatable->with('customerId', $customer->id)->render('layouts.customer.detail',[
             'data' => $customer,
             'transactionNominal' => $transactionNominal,
+            'averageTransaction' => $averageTransaction,
+            'totalReward' => $totalReward,
+            'membershipLevels' => $membershipLevels,
+            'currentExp' => $currentExp,
+            'maxLevelBenchmark' => $maxLevelBenchmark,
+            'levelProgressPercent' => $levelProgressPercent,
+            'nextLevel' => $nextLevel,
+            'expToNextLevel' => $nextLevel ? max(0, (int) $nextLevel->benchmark - $currentExp) : 0,
             'customerInitials' => $this->getInitials($customer->name),
             'accountAge' => (int) Carbon::parse($customer->created_at)->diffInMonths(now()) . ' bulan',
             'createdLocation' => $this->getCustomerCreatedLocation($customer),
