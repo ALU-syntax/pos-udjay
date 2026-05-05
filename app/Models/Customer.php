@@ -33,6 +33,10 @@ class Customer extends Model
         return $this->belongsTo(LevelMembership::class, 'level_memberships_id', 'id');
     }
 
+    public function createdBy(){
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
     public function rewardConfirmations(){
         return $this->hasMany(RewardConfirmation::class, 'customer_id', 'id');
     }

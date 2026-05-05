@@ -15,6 +15,7 @@ use App\Models\CustomerPoinExp;
 use App\Models\CustomerReferral;
 use App\Models\HistoryExpMembershipLevel;
 use App\Models\LevelMembership;
+use App\Models\Outlets;
 use App\Models\RewardConfirmation;
 use App\Models\Transaction;
 use Carbon\Carbon;
@@ -148,16 +149,23 @@ class CustomerController extends Controller
     }
 
     public function detail(Customer $customer, ListCustomerTransactionDataTable $datatable){
-        $customer->load(['transactions']);
+        $customer->load(['transactions', 'levelMembership', 'createdBy']);
 
         $transactionNominal = 0;
         foreach($customer->transactions as $transaction){
             $transactionNominal += $transaction->total;
         }
 
+        $levelBadgeColor = $this->normalizeHexColor($customer->levelMembership?->color);
+
         return $datatable->with('customerId', $customer->id)->render('layouts.customer.detail',[
             'data' => $customer,
-            'transactionNominal' => $transactionNominal
+            'transactionNominal' => $transactionNominal,
+            'customerInitials' => $this->getInitials($customer->name),
+            'accountAge' => (int) Carbon::parse($customer->created_at)->diffInMonths(now()) . ' bulan',
+            'createdLocation' => $this->getCustomerCreatedLocation($customer),
+            'levelBadgeColor' => $levelBadgeColor,
+            'levelBadgeTextColor' => $this->getReadableTextColor($levelBadgeColor),
         ]);
     }
 
@@ -288,6 +296,84 @@ class CustomerController extends Controller
                 'data' => $customer,
                 'transactionNominal' => $transactionNominal
             ]);;
+    }
+
+    private function getCustomerCreatedLocation(Customer $customer): string
+    {
+        $creator = $customer->createdBy;
+
+        if (!$creator) {
+            return 'Data lama / Tidak diketahui';
+        }
+
+        if ((int) $creator->role !== 3) {
+            return 'Backoffice';
+        }
+
+        $outletIds = $this->normalizeOutletIds($creator->outlet_id);
+
+        if (empty($outletIds)) {
+            return 'Outlet kasir tidak tersedia';
+        }
+
+        $outlet = Outlets::find($outletIds[0]);
+
+        return $outlet?->name ?? 'Outlet tidak ditemukan';
+    }
+
+    private function normalizeOutletIds($outletIds): array
+    {
+        if (is_string($outletIds)) {
+            $decodedOutletIds = json_decode($outletIds, true);
+            $outletIds = json_last_error() === JSON_ERROR_NONE ? $decodedOutletIds : [$outletIds];
+        }
+
+        if (!is_array($outletIds)) {
+            return [];
+        }
+
+        return array_values(array_filter($outletIds, function ($outletId) {
+            return $outletId !== null && $outletId !== '';
+        }));
+    }
+
+    private function getInitials(?string $name): string
+    {
+        $words = preg_split('/\s+/', trim((string) $name), -1, PREG_SPLIT_NO_EMPTY);
+
+        if (empty($words)) {
+            return '?';
+        }
+
+        $initials = mb_substr($words[0], 0, 1);
+
+        if (count($words) > 1) {
+            $initials .= mb_substr($words[1], 0, 1);
+        }
+
+        return mb_strtoupper($initials);
+    }
+
+    private function normalizeHexColor(?string $color): string
+    {
+        $color = trim((string) $color);
+
+        if (preg_match('/^#[0-9a-fA-F]{6}$/', $color)) {
+            return $color;
+        }
+
+        return '#2563eb';
+    }
+
+    private function getReadableTextColor(string $backgroundColor): string
+    {
+        $hex = ltrim($backgroundColor, '#');
+        $red = hexdec(substr($hex, 0, 2));
+        $green = hexdec(substr($hex, 2, 2));
+        $blue = hexdec(substr($hex, 4, 2));
+        $brightness = (($red * 299) + ($green * 587) + ($blue * 114)) / 1000;
+
+        return $brightness > 150 ? '#111827' : '#ffffff';
     }
 
 }
