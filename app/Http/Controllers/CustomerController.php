@@ -9,13 +9,17 @@ use App\DataTables\ListRefereeDataTable;
 use App\Http\Requests\CustomerRequest;
 use App\Mail\CustomerRegistered;
 use App\Mail\RegistrasiMembershipKomunitas;
+use App\Models\BirthdayRewardClaims;
 use App\Models\Community;
 use App\Models\Customer;
 use App\Models\CustomerPoinExp;
 use App\Models\CustomerReferral;
+use App\Models\ExpRewardClaims;
 use App\Models\HistoryExpMembershipLevel;
 use App\Models\LevelMembership;
 use App\Models\Outlets;
+use App\Models\ProductBirthdayReward;
+use App\Models\ProductExpReward;
 use App\Models\RewardConfirmation;
 use App\Models\Transaction;
 use Carbon\Carbon;
@@ -149,7 +153,14 @@ class CustomerController extends Controller
     }
 
     public function detail(Customer $customer, ListCustomerTransactionDataTable $datatable){
-        $customer->load(['transactions', 'levelMembership.rewards', 'createdBy']);
+        $customer->load([
+            'transactions.outlet',
+            'transactions.itemTransaction.product',
+            'transactions.itemTransaction.variant',
+            'levelMembership.rewards',
+            'createdBy',
+            'rewardConfirmations',
+        ]);
 
         $transactionNominal = 0;
         foreach($customer->transactions as $transaction){
@@ -173,6 +184,94 @@ class CustomerController extends Controller
                 ->count('reward_memberships_id')
             : 0;
         $totalReward = max($customer->levelMembership?->rewards->count() ?? 0, $claimedRewardCount);
+        $birthdayClaimCount = BirthdayRewardClaims::where('customer_id', $customer->id)->count();
+        $expRewardClaimCount = ExpRewardClaims::where('customer_id', $customer->id)->count();
+        $rewardRedeemedCount = $customer->rewardConfirmations->count() + $birthdayClaimCount + $expRewardClaimCount;
+        $latestTransaction = $customer->transactions->sortByDesc('created_at')->first();
+        $favoriteOutlet = $customer->transactions
+            ->filter(fn ($transaction) => $transaction->outlet)
+            ->groupBy('outlet_id')
+            ->sortByDesc(fn ($transactions) => $transactions->count())
+            ->first()?->first()?->outlet?->name ?? '-';
+        $favoriteItem = $customer->transactions
+            ->flatMap(fn ($transaction) => $transaction->itemTransaction)
+            ->filter(fn ($item) => $item->product)
+            ->groupBy(fn ($item) => ($item->product_id ?? 'custom') . '-' . ($item->variant_id ?? 'base'))
+            ->sortByDesc(fn ($items) => $items->count())
+            ->first()?->first();
+        $favoriteItemName = $favoriteItem ? $this->getTransactionItemName($favoriteItem) : '-';
+        $currentRewardClaims = $customer->rewardConfirmations
+            ->where('level_membership_id', $customer->level_memberships_id)
+            ->pluck('reward_memberships_id')
+            ->map(fn ($rewardId) => (int) $rewardId)
+            ->all();
+
+        $birthdayRewards = ProductBirthdayReward::with('product')->limit(1)->get()->values();
+        $expRewards = ProductExpReward::with('product')->limit(1)->get()->values();
+        $currentClaimableExp = intdiv((int) $customer->exp, 5000) * 5000;
+
+        $hasBirthdayClaimThisYear = BirthdayRewardClaims::where('customer_id', $customer->id)
+            ->whereYear('created_at', now()->year)
+            ->exists();
+
+        $hasCurrentExpClaim = ExpRewardClaims::where('customer_id', $customer->id)
+            ->where('level_batch', (int) $customer->level_batch)
+            ->when($currentClaimableExp > 0, fn ($query) => $query->where('exp', $currentClaimableExp))
+            ->exists();
+
+
+        $availableRewards = collect()
+            ->merge($customer->levelMembership?->rewards->map(function ($reward) use ($currentRewardClaims) {
+                return [
+                    'name' => $reward->name,
+                    'type' => 'Level Reward',
+                    'claimed' => in_array((int) $reward->id, $currentRewardClaims, true),
+                ];
+            }) ?? collect())
+            ->merge($birthdayRewards->map(function ($reward) use ($hasBirthdayClaimThisYear) {
+                return [
+                    'name' => $reward->product?->name ?? $reward->product_name ?? 'Birthday Reward',
+                    'type' => 'Birthday',
+                    'claimed' => $hasBirthdayClaimThisYear,
+                ];
+            }))
+            ->merge($expRewards->map(function ($reward) use ($hasCurrentExpClaim) {
+                return [
+                    'name' => $reward->product?->name ?? $reward->product_name ?? 'Milestone Reward',
+                    'type' => 'Milestone',
+                    'claimed' => $hasCurrentExpClaim,
+                ];
+            }));
+
+        $overviewRecentTransactions = $customer->transactions
+            ->sortByDesc('created_at')
+            ->take(5)
+            ->map(function ($transaction) {
+                $items = $transaction->itemTransaction
+                    ->map(fn ($item) => $this->getTransactionItemName($item))
+                    ->filter()
+                    ->values();
+
+                return [
+                    'outlet_name' => $transaction->outlet?->name ?? 'Outlet tidak diketahui',
+                    'items' => $items->isNotEmpty() ? $items->join(', ') : 'Tidak ada item',
+                    'total' => (int) $transaction->total,
+                    'point' => floor(((int) $transaction->total) / 100),
+                ];
+            })
+            ->values();
+        $activitySummary = [
+            'last_transaction_outlet' => $latestTransaction?->outlet?->name ?? '-',
+            'favorite_outlet' => $favoriteOutlet,
+            'favorite_item' => $favoriteItemName,
+            'referral_count' => CustomerReferral::where('referral_id', $customer->id)->count(),
+            'reward_redeemed_count' => $rewardRedeemedCount,
+        ];
+        $levelBenefits = [
+            'current' => $customer->levelMembership?->rewards ?? collect(),
+            'next' => $nextLevel?->rewards()->get() ?? collect(),
+            'next_level_name' => $nextLevel?->name,
+        ];
 
         return $datatable->with('customerId', $customer->id)->render('layouts.customer.detail',[
             'data' => $customer,
@@ -190,6 +289,10 @@ class CustomerController extends Controller
             'createdLocation' => $this->getCustomerCreatedLocation($customer),
             'levelBadgeColor' => $levelBadgeColor,
             'levelBadgeTextColor' => $this->getReadableTextColor($levelBadgeColor),
+            'overviewRecentTransactions' => $overviewRecentTransactions,
+            'availableRewards' => $availableRewards,
+            'activitySummary' => $activitySummary,
+            'levelBenefits' => $levelBenefits,
         ]);
     }
 
@@ -398,6 +501,19 @@ class CustomerController extends Controller
         $brightness = (($red * 299) + ($green * 587) + ($blue * 114)) / 1000;
 
         return $brightness > 150 ? '#111827' : '#ffffff';
+    }
+
+    private function getTransactionItemName($item): string
+    {
+        if (!$item->product) {
+            return 'Custom item';
+        }
+
+        if (!$item->variant || $item->product->name === $item->variant->name) {
+            return $item->product->name;
+        }
+
+        return $item->product->name . ' - ' . $item->variant->name;
     }
 
 }
