@@ -266,6 +266,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/detail/{customer}', [CustomerController::class, 'detail'])->name('customer/detail');
             Route::get('/detail-customer/{customer}', [CustomerController::class, 'detailCustomer'])->name('customer/detailCustomer');
             Route::get('/detail-transaction/{transaction}', [CustomerController::class, 'detailTransaction'])->name('customer/detailTransaction');
+            Route::get('/detail-rewards/{customer}', [CustomerController::class, 'detailRewards'])->name('customer/detailRewards');
             Route::get('/history-point-use/{customer}', [CustomerController::class, 'historyPointUse'])->name('customer/historyPointUse');
             Route::post('/reward-confirmation', [CustomerController::class, 'rewardConfirmation'])->name('customer/rewardConfirmation');
             Route::get('/check-reward-confirmation/{customer}', [CustomerController::class, 'checkRewardConfirmation'])->name('customer/checkRewardConfirmation');

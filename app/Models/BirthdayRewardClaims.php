@@ -18,4 +18,8 @@ class BirthdayRewardClaims extends Model
     public function outlet(){
         return $this->belongsTo(Outlets::class, 'outlet_id', 'id');
     }
+
+    public function product(){
+        return $this->belongsTo(Product::class, 'product_id', 'id')->withTrashed();
+    }
 }

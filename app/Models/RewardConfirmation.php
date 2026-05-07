@@ -15,4 +15,8 @@ class RewardConfirmation extends Model
     public function outlet(){
         return $this->belongsTo(Outlets::class, 'outlet_id', 'id');
     }
+
+    public function rewardMembership(){
+        return $this->belongsTo(RewardMembership::class, 'reward_memberships_id', 'id')->withTrashed();
+    }
 }

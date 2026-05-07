@@ -557,6 +557,14 @@
             font-weight: 800;
         }
 
+        .member-transactions-insights,
+        .member-rewards-insights {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
         .member-transaction-insight {
             min-height: 78px;
             padding: 12px;
@@ -584,31 +592,43 @@
         }
 
         .member-transactions-table-shell,
+        .member-rewards-table-shell,
         .member-transactions-table-shell .dataTables_wrapper,
+        .member-rewards-table-shell .dataTables_wrapper,
         .member-transactions-table-shell .dataTables_scroll,
+        .member-rewards-table-shell .dataTables_scroll,
         .member-transactions-table-shell .dataTables_scrollHead,
+        .member-rewards-table-shell .dataTables_scrollHead,
         .member-transactions-table-shell .dataTables_scrollHeadInner,
-        .member-transactions-table-shell .dataTables_scrollBody {
+        .member-rewards-table-shell .dataTables_scrollHeadInner,
+        .member-transactions-table-shell .dataTables_scrollBody,
+        .member-rewards-table-shell .dataTables_scrollBody {
             width: 100% !important;
         }
 
         .member-transactions-table-shell .dataTables_filter,
-        .member-transactions-table-shell .dataTables_length {
+        .member-rewards-table-shell .dataTables_filter,
+        .member-transactions-table-shell .dataTables_length,
+        .member-rewards-table-shell .dataTables_length {
             display: none;
         }
 
         .member-transactions-table-shell table.dataTable,
-        #listcustomertransaction-table {
+        .member-rewards-table-shell table.dataTable,
+        #listcustomertransaction-table,
+        #customerreward-table {
             width: 100% !important;
         }
 
-        #listcustomertransaction-table {
+        #listcustomertransaction-table,
+        #customerreward-table {
             margin: 0 !important;
             border-collapse: separate !important;
             border-spacing: 0;
         }
 
-        #listcustomertransaction-table thead th {
+        #listcustomertransaction-table thead th,
+        #customerreward-table thead th {
             border-bottom: 1px solid #e5e7eb;
             color: #475569;
             font-size: 11px;
@@ -617,7 +637,8 @@
             white-space: nowrap;
         }
 
-        #listcustomertransaction-table tbody td {
+        #listcustomertransaction-table tbody td,
+        #customerreward-table tbody td {
             vertical-align: middle;
             border-color: #eef2f7;
             color: #374151;
@@ -625,7 +646,8 @@
             font-weight: 700;
         }
 
-        #listcustomertransaction-table tbody tr:hover {
+        #listcustomertransaction-table tbody tr:hover,
+        #customerreward-table tbody tr:hover {
             background: #f8fafc;
         }
 
@@ -681,6 +703,69 @@
             color: #92400e;
         }
 
+        .reward-name-cell,
+        .reward-redeemed-cell {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .reward-name,
+        .reward-redeemed-cell span {
+            color: #111827;
+            font-weight: 800;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
+        }
+
+        .reward-description,
+        .reward-redeemed-cell small {
+            color: #94a3b8;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+        }
+
+        .reward-type-badge,
+        .reward-status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 24px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .reward-type-badge.type-level {
+            background: #eef4ff;
+            color: #1d4ed8;
+        }
+
+        .reward-type-badge.type-birthday {
+            background: #fdf2f8;
+            color: #be185d;
+        }
+
+        .reward-type-badge.type-milestone {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .reward-status-badge.is-claimed {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .reward-status-badge.is-open {
+            background: #fff7ed;
+            color: #9a3412;
+        }
+
         @media (max-width: 767.98px) {
             .member-profile-header {
                 align-items: flex-start;
@@ -724,6 +809,11 @@
             .member-transactions-controls,
             .member-transaction-search {
                 width: 100%;
+            }
+
+            .member-transactions-insights,
+            .member-rewards-insights {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
     </style>
@@ -1082,7 +1172,57 @@
                     </div>
                     <div class="tab-pane fade" id="rewards-pane" role="tabpanel" aria-labelledby="rewards-tab"
                         tabindex="0">
-                        <div class="member-tab-placeholder">TODO Rewards</div>
+                        <div class="member-transactions-toolbar">
+                            <div class="member-transactions-heading">
+                                <h5 class="member-transactions-title">Reward History</h5>
+                                <p class="member-transactions-caption">Daftar reward dan status redeem member</p>
+                            </div>
+                            <div class="member-transactions-controls">
+                                <div class="member-transaction-search">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" class="form-control" id="memberRewardSearch"
+                                        placeholder="Cari reward, type, outlet, atau status">
+                                </div>
+                                <select class="form-select member-transaction-page-size" id="memberRewardPageSize"
+                                    aria-label="Jumlah row reward">
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="memberRewardClear"
+                                    title="Bersihkan pencarian" aria-label="Bersihkan pencarian reward">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" id="memberRewardReload"
+                                    title="Refresh reward" aria-label="Refresh reward">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="member-rewards-insights">
+                            <div class="member-transaction-insight">
+                                <span>Total reward</span>
+                                <strong>{{ number_format($rewardStats['total'], 0, ',', '.') }}</strong>
+                            </div>
+                            <div class="member-transaction-insight">
+                                <span>Sudah diambil</span>
+                                <strong>{{ number_format($rewardStats['redeemed'], 0, ',', '.') }}</strong>
+                            </div>
+                            <div class="member-transaction-insight">
+                                <span>Belum diambil</span>
+                                <strong>{{ number_format($rewardStats['pending'], 0, ',', '.') }}</strong>
+                            </div>
+                            <div class="member-transaction-insight">
+                                <span>Level saat ini</span>
+                                <strong>{{ $data->levelMembership?->name ?? '-' }}</strong>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive member-rewards-table-shell">
+                            {!! $rewardDataTable->table(['class' => 'table table-hover align-middle w-100 member-rewards-table', 'style' => 'width:100%'], true) !!}
+                        </div>
                     </div>
                     <div class="tab-pane fade" id="capsule-history-pane" role="tabpanel"
                         aria-labelledby="capsule-history-tab" tabindex="0">
@@ -1098,10 +1238,12 @@
 
     @push('js')
         {!! $dataTable->scripts() !!}
+        {!! $rewardDataTable->scripts() !!}
 
         <script>
             var success = "{{ session('success') }}";
             var datatable = 'listcustomertransaction-table';
+            var rewardDatatable = 'customerreward-table';
 
             function getMemberTransactionTable() {
                 if (window.LaravelDataTables && window.LaravelDataTables[datatable]) {
@@ -1139,6 +1281,42 @@
 
             $('#transactions-tab').on('shown.bs.tab', scheduleMemberTransactionTableAdjust);
 
+            function getMemberRewardTable() {
+                if (window.LaravelDataTables && window.LaravelDataTables[rewardDatatable]) {
+                    return window.LaravelDataTables[rewardDatatable];
+                }
+
+                if ($.fn.DataTable.isDataTable('#' + rewardDatatable)) {
+                    return $('#' + rewardDatatable).DataTable();
+                }
+
+                return null;
+            }
+
+            function adjustMemberRewardTable() {
+                const table = getMemberRewardTable();
+                const tableElement = $('#' + rewardDatatable);
+
+                tableElement.css('width', '100%');
+                tableElement.closest('.dataTables_wrapper').css('width', '100%');
+
+                if (!table) return;
+
+                table.columns.adjust();
+
+                if (table.responsive && typeof table.responsive.recalc === 'function') {
+                    table.responsive.recalc();
+                }
+            }
+
+            function scheduleMemberRewardTableAdjust() {
+                adjustMemberRewardTable();
+                setTimeout(adjustMemberRewardTable, 50);
+                setTimeout(adjustMemberRewardTable, 250);
+            }
+
+            $('#rewards-tab').on('shown.bs.tab', scheduleMemberRewardTableAdjust);
+
             $('#memberTransactionSearch').on('keyup change', function() {
                 const table = getMemberTransactionTable();
                 if (!table) return;
@@ -1170,6 +1348,39 @@
                 if (!table) return;
 
                 table.ajax.reload(scheduleMemberTransactionTableAdjust, false);
+            });
+
+            $('#memberRewardSearch').on('keyup change', function() {
+                const table = getMemberRewardTable();
+                if (!table) return;
+
+                table.search(this.value).draw();
+                scheduleMemberRewardTableAdjust();
+            });
+
+            $('#memberRewardPageSize').on('change', function() {
+                const table = getMemberRewardTable();
+                if (!table) return;
+
+                table.page.len(parseInt(this.value, 10)).draw();
+                scheduleMemberRewardTableAdjust();
+            });
+
+            $('#memberRewardClear').on('click', function() {
+                const table = getMemberRewardTable();
+                $('#memberRewardSearch').val('');
+
+                if (!table) return;
+
+                table.search('').draw();
+                scheduleMemberRewardTableAdjust();
+            });
+
+            $('#memberRewardReload').on('click', function() {
+                const table = getMemberRewardTable();
+                if (!table) return;
+
+                table.ajax.reload(scheduleMemberRewardTableAdjust, false);
             });
 
             handleAction(datatable);

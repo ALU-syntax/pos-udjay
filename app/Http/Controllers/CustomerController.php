@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\CustomerDataTable;
+use App\DataTables\CustomerRewardDataTable;
 use App\DataTables\DetailItemTransactionDataTable;
 use App\DataTables\ListCustomerTransactionDataTable;
 use App\DataTables\ListRefereeDataTable;
@@ -152,7 +153,7 @@ class CustomerController extends Controller
         return $datatable->with('customerId', $customer->id)->render('layouts.customer.list-referee-modal');
     }
 
-    public function detail(Customer $customer, ListCustomerTransactionDataTable $datatable){
+    public function detail(Customer $customer, ListCustomerTransactionDataTable $datatable, CustomerRewardDataTable $rewardDataTable){
         $customer->load([
             'transactions.outlet',
             'transactions.itemTransaction.product',
@@ -272,6 +273,24 @@ class CustomerController extends Controller
             'next' => $nextLevel?->rewards()->get() ?? collect(),
             'next_level_name' => $nextLevel?->name,
         ];
+        $levelRewardIds = $customer->levelMembership?->rewards->pluck('id')->map(fn ($rewardId) => (int) $rewardId) ?? collect();
+        $claimedLevelRewardIds = $customer->rewardConfirmations
+            ->pluck('reward_memberships_id')
+            ->map(fn ($rewardId) => (int) $rewardId)
+            ->unique();
+        $birthdayRewardIds = ProductBirthdayReward::limit(1)->pluck('product_id');
+        $expRewardIds = ProductExpReward::limit(1)->pluck('product_id');
+        $rewardStatsRedeemed = RewardConfirmation::where('customer_id', $customer->id)->count()
+            + BirthdayRewardClaims::where('customer_id', $customer->id)->count()
+            + ExpRewardClaims::where('customer_id', $customer->id)->count();
+        $rewardStatsPending = $levelRewardIds->diff($claimedLevelRewardIds)->count()
+            + ($birthdayRewardIds->isNotEmpty() && BirthdayRewardClaims::where('customer_id', $customer->id)->whereIn('product_id', $birthdayRewardIds)->doesntExist() ? 1 : 0)
+            + ($expRewardIds->isNotEmpty() && ExpRewardClaims::where('customer_id', $customer->id)->whereIn('product_id', $expRewardIds)->doesntExist() ? 1 : 0);
+        $rewardStats = [
+            'total' => $rewardStatsRedeemed + $rewardStatsPending,
+            'redeemed' => $rewardStatsRedeemed,
+            'pending' => $rewardStatsPending,
+        ];
 
         return $datatable->with('customerId', $customer->id)->render('layouts.customer.detail',[
             'data' => $customer,
@@ -293,12 +312,19 @@ class CustomerController extends Controller
             'availableRewards' => $availableRewards,
             'activitySummary' => $activitySummary,
             'levelBenefits' => $levelBenefits,
+            'rewardDataTable' => $rewardDataTable->with('customerId', $customer->id)->html(),
+            'rewardStats' => $rewardStats,
         ]);
     }
 
     public function detailTransaction(Transaction $transaction, DetailItemTransactionDataTable $datatable){
 
         return $datatable->with('transactionId', $transaction->id)->render('layouts.customer.list-item-transaction');
+    }
+
+    public function detailRewards(Customer $customer, CustomerRewardDataTable $datatable)
+    {
+        return $datatable->with('customerId', $customer->id)->ajax();
     }
 
     public function checkRewardConfirmation(Customer $customer){
