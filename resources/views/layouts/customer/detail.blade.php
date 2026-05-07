@@ -488,6 +488,199 @@
             text-align: center;
         }
 
+        .member-transactions-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .member-transactions-heading {
+            min-width: 220px;
+        }
+
+        .member-transactions-title {
+            margin: 0;
+            color: #111827;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.3;
+        }
+
+        .member-transactions-caption {
+            margin: 2px 0 0;
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .member-transactions-controls {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .member-transaction-search {
+            position: relative;
+            min-width: 260px;
+        }
+
+        .member-transaction-search i {
+            position: absolute;
+            top: 50%;
+            left: 12px;
+            color: #94a3b8;
+            font-size: 12px;
+            transform: translateY(-50%);
+        }
+
+        .member-transaction-search .form-control {
+            min-height: 38px;
+            padding-left: 34px;
+            border-color: #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .member-transaction-page-size {
+            min-height: 38px;
+            width: 86px;
+            border-color: #e5e7eb;
+            border-radius: 8px;
+            color: #374151;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .member-transaction-insight {
+            min-height: 78px;
+            padding: 12px;
+            border: 1px solid #eef2f7;
+            border-radius: 8px;
+            background: #fbfdff;
+        }
+
+        .member-transaction-insight span {
+            display: block;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .member-transaction-insight strong {
+            display: block;
+            margin-top: 5px;
+            color: #111827;
+            font-size: 17px;
+            font-weight: 800;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+        }
+
+        .member-transactions-table-shell,
+        .member-transactions-table-shell .dataTables_wrapper,
+        .member-transactions-table-shell .dataTables_scroll,
+        .member-transactions-table-shell .dataTables_scrollHead,
+        .member-transactions-table-shell .dataTables_scrollHeadInner,
+        .member-transactions-table-shell .dataTables_scrollBody {
+            width: 100% !important;
+        }
+
+        .member-transactions-table-shell .dataTables_filter,
+        .member-transactions-table-shell .dataTables_length {
+            display: none;
+        }
+
+        .member-transactions-table-shell table.dataTable,
+        #listcustomertransaction-table {
+            width: 100% !important;
+        }
+
+        #listcustomertransaction-table {
+            margin: 0 !important;
+            border-collapse: separate !important;
+            border-spacing: 0;
+        }
+
+        #listcustomertransaction-table thead th {
+            border-bottom: 1px solid #e5e7eb;
+            color: #475569;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        #listcustomertransaction-table tbody td {
+            vertical-align: middle;
+            border-color: #eef2f7;
+            color: #374151;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        #listcustomertransaction-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .transaction-code-cell,
+        .transaction-date-cell {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .transaction-code,
+        .transaction-total {
+            color: #111827;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .transaction-code-sub,
+        .transaction-date-cell small {
+            color: #94a3b8;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .transaction-outlet-badge,
+        .transaction-point-badge,
+        .transaction-exp-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 24px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .transaction-outlet-badge {
+            background: #eef4ff;
+            color: #1d4ed8;
+        }
+
+        .transaction-point-badge {
+            background: #ecfdf5;
+            color: #047857;
+        }
+
+        .transaction-exp-badge {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
         @media (max-width: 767.98px) {
             .member-profile-header {
                 align-items: flex-start;
@@ -521,6 +714,16 @@
 
             .member-summary-value {
                 max-width: 52%;
+            }
+
+            .member-transactions-toolbar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .member-transactions-controls,
+            .member-transaction-search {
+                width: 100%;
             }
         }
     </style>
@@ -844,8 +1047,37 @@
                     </div>
                     <div class="tab-pane fade" id="transactions-pane" role="tabpanel" aria-labelledby="transactions-tab"
                         tabindex="0">
-                        <div class="table-responsive">
-                            {!! $dataTable->table() !!}
+                        <div class="member-transactions-toolbar">
+                            <div class="member-transactions-heading">
+                                <h5 class="member-transactions-title">Transaction History</h5>
+                                <p class="member-transactions-caption">Riwayat transaksi member yang sudah terhubung</p>
+                            </div>
+                            <div class="member-transactions-controls">
+                                <div class="member-transaction-search">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" class="form-control" id="memberTransactionSearch"
+                                        placeholder="Cari kode, outlet, atau tanggal">
+                                </div>
+                                <select class="form-select member-transaction-page-size" id="memberTransactionPageSize"
+                                    aria-label="Jumlah row transaksi">
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="memberTransactionClear"
+                                    title="Bersihkan pencarian" aria-label="Bersihkan pencarian">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" id="memberTransactionReload"
+                                    title="Refresh transaksi" aria-label="Refresh transaksi">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive member-transactions-table-shell">
+                            {!! $dataTable->table(['class' => 'table table-hover align-middle w-100 member-transactions-table', 'style' => 'width:100%'], true) !!}
                         </div>
                     </div>
                     <div class="tab-pane fade" id="rewards-pane" role="tabpanel" aria-labelledby="rewards-tab"
@@ -871,10 +1103,73 @@
             var success = "{{ session('success') }}";
             var datatable = 'listcustomertransaction-table';
 
-            $('button[data-bs-target="#transactions-pane"]').on('shown.bs.tab', function() {
-                if ($.fn.dataTable && $.fn.dataTable.tables) {
-                    $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
+            function getMemberTransactionTable() {
+                if (window.LaravelDataTables && window.LaravelDataTables[datatable]) {
+                    return window.LaravelDataTables[datatable];
                 }
+
+                if ($.fn.DataTable.isDataTable('#' + datatable)) {
+                    return $('#' + datatable).DataTable();
+                }
+
+                return null;
+            }
+
+            function adjustMemberTransactionTable() {
+                const table = getMemberTransactionTable();
+                const tableElement = $('#' + datatable);
+
+                tableElement.css('width', '100%');
+                tableElement.closest('.dataTables_wrapper').css('width', '100%');
+
+                if (!table) return;
+
+                table.columns.adjust();
+
+                if (table.responsive && typeof table.responsive.recalc === 'function') {
+                    table.responsive.recalc();
+                }
+            }
+
+            function scheduleMemberTransactionTableAdjust() {
+                adjustMemberTransactionTable();
+                setTimeout(adjustMemberTransactionTable, 50);
+                setTimeout(adjustMemberTransactionTable, 250);
+            }
+
+            $('#transactions-tab').on('shown.bs.tab', scheduleMemberTransactionTableAdjust);
+
+            $('#memberTransactionSearch').on('keyup change', function() {
+                const table = getMemberTransactionTable();
+                if (!table) return;
+
+                table.search(this.value).draw();
+                scheduleMemberTransactionTableAdjust();
+            });
+
+            $('#memberTransactionPageSize').on('change', function() {
+                const table = getMemberTransactionTable();
+                if (!table) return;
+
+                table.page.len(parseInt(this.value, 10)).draw();
+                scheduleMemberTransactionTableAdjust();
+            });
+
+            $('#memberTransactionClear').on('click', function() {
+                const table = getMemberTransactionTable();
+                $('#memberTransactionSearch').val('');
+
+                if (!table) return;
+
+                table.search('').draw();
+                scheduleMemberTransactionTableAdjust();
+            });
+
+            $('#memberTransactionReload').on('click', function() {
+                const table = getMemberTransactionTable();
+                if (!table) return;
+
+                table.ajax.reload(scheduleMemberTransactionTableAdjust, false);
             });
 
             handleAction(datatable);

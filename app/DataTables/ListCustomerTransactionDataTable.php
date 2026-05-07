@@ -24,14 +24,28 @@ class ListCustomerTransactionDataTable extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
+            ->editColumn('receipt_number', function($row){
+                $receiptNumber = $row->receipt_number ?: 'TRX-' . str_pad($row->id, 5, '0', STR_PAD_LEFT);
+
+                return '<div class="transaction-code-cell">'
+                    . '<span class="transaction-code">' . e($receiptNumber) . '</span>'
+                    . '<span class="transaction-code-sub">#' . e($row->id) . '</span>'
+                    . '</div>';
+            })
+            ->editColumn('total', function($row){
+                return '<span class="transaction-total">' . formatRupiah(strval((int) $row->total), 'Rp. ') . '</span>';
+            })
             ->addColumn('point', function($row){
-                return floor($row->total/100);
+                return '<span class="transaction-point-badge">+' . number_format(floor($row->total/100), 0, ',', '.') . '</span>';
             })
             ->addColumn('exp', function($row){
-                return floor($row->total/100);
+                return '<span class="transaction-exp-badge">+' . number_format(floor($row->total/100), 0, ',', '.') . '</span>';
             })
             ->editColumn('created_at', function($row){
-                return Carbon::parse($row->created_at)->format('d-m-Y H:i');
+                return '<div class="transaction-date-cell">'
+                    . '<span>' . Carbon::parse($row->created_at)->format('d M Y') . '</span>'
+                    . '<small>' . Carbon::parse($row->created_at)->format('H:i') . '</small>'
+                    . '</div>';
             })
             ->addColumn('action', function($row){
                 return view('layouts.customer.action-transaction', [
@@ -40,9 +54,22 @@ class ListCustomerTransactionDataTable extends DataTable
                 ]);
             })
             ->addColumn("ordered_at", function($row) {
-                return "<span class='badge badge-primary'>{$row->outlet->name} </span></br>";
+                return "<span class='transaction-outlet-badge'>" . e($row->outlet?->name ?? 'Outlet tidak diketahui') . "</span>";
             })
-            ->rawColumns(['ordered_at'])
+            ->filterColumn('receipt_number', function ($query, $keyword) {
+                $query->where(function ($query) use ($keyword) {
+                    $query->where('receipt_number', 'like', "%{$keyword}%")
+                        ->orWhere('id', 'like', "%{$keyword}%");
+                });
+            })
+            ->filterColumn('ordered_at', function ($query, $keyword) {
+                $query->whereHas('outlet', function ($query) use ($keyword) {
+                    $query->where('name', 'like', "%{$keyword}%");
+                });
+            })
+            ->orderColumn('total', 'transactions.total $1')
+            ->orderColumn('created_at', 'transactions.created_at $1')
+            ->rawColumns(['receipt_number', 'total', 'point', 'exp', 'created_at', 'ordered_at', 'action'])
             ->setRowId('id');
     }
 
@@ -51,7 +78,7 @@ class ListCustomerTransactionDataTable extends DataTable
      */
     public function query(Transaction $model): QueryBuilder
     {
-        return $model->with(['customer'])->where('customer_id', $this->customerId)->orderBy('id', 'desc')->newQuery();
+        return $model->with(['customer', 'outlet'])->where('customer_id', $this->customerId)->newQuery();
     }
 
     /**
@@ -64,8 +91,11 @@ class ListCustomerTransactionDataTable extends DataTable
                     ->columns($this->getColumns())
                     ->minifiedAjax()
                     //->dom('Bfrtip')
-                    ->orderBy(1)
+                    ->orderBy(4, 'desc')
                     ->selectStyleSingle()
+                    ->parameters([
+                        'autoWidth' => false,
+                    ])
                     ->buttons([
                         Button::make('excel'),
                         Button::make('csv'),
@@ -82,12 +112,13 @@ class ListCustomerTransactionDataTable extends DataTable
     public function getColumns(): array
     {
         return [
-            Column::make('id')->title("Kode Transaksi"),
-            Column::make('point'),
-            Column::make('exp'),
-            Column::make('created_at'),
-            Column::make('ordered_at')->title("Outlet Transaksi"),
-            Column::make('action'),
+            Column::make('receipt_number')->title("Kode Transaksi")->orderable(false),
+            Column::make('total')->title("Nominal")->searchable(false)->orderable(true),
+            Column::make('point')->title("Point")->searchable(false)->orderable(false),
+            Column::make('exp')->title("EXP")->searchable(false)->orderable(false),
+            Column::make('created_at')->title("Tanggal"),
+            Column::make('ordered_at')->title("Outlet Transaksi")->orderable(false),
+            Column::make('action')->searchable(false)->orderable(false),
         ];
     }
 
