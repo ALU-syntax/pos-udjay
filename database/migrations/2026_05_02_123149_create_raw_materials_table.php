@@ -30,6 +30,8 @@ return new class extends Migration
                 ->constrained('satuans')
                 ->restrictOnDelete();
 
+            $table->unsignedTinyInteger('is_stockable')->default(1);
+
             /*
              * contoh:
              * dry     = bahan kering

@@ -18,18 +18,9 @@ return new class extends Migration
                 ->constrained('suppliers')
                 ->cascadeOnDelete();
 
-            /*
-             * Contoh channel_type:
-             * whatsapp
-             * phone
-             * marketplace
-             * app
-             * website
-             * email
-             * offline_store
-             * other
-             */
-            $table->string('channel_type', 50);
+            $table->foreignId('channel_type_id')
+                ->constrained('supplier_channel_types')
+                ->cascadeOnDelete();
 
             /*
              * Contoh:
@@ -62,7 +53,6 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->index('supplier_id');
-            $table->index('channel_type');
             $table->index('is_primary');
             $table->index('is_active');
         });

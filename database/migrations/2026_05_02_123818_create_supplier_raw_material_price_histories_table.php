@@ -22,6 +22,7 @@ return new class extends Migration
             $table->date('effective_from')->nullable();
             $table->date('effective_until')->nullable();
 
+            $table->unsignedBigInteger("updated_by");
             /*
              * contoh:
              * non_tax
@@ -39,6 +40,7 @@ return new class extends Migration
                 ->on('supplier_raw_materials')
                 ->cascadeOnDelete();
 
+            $table->foreign('updated_by')->references('id')->on('users')->onDelete('CASCADE');
             $table->index('supplier_raw_material_id', 'srm_price_hist_srm_id_idx');
             $table->index('effective_from');
             $table->index('effective_until');

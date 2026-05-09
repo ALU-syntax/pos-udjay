@@ -12,6 +12,12 @@ class Supplier extends Model
 
     protected $guarded = ['id'];
 
+    public $procurementMode = [
+        'ONLINE' => 'online',
+        'OFFLINE'=> 'offline',
+        'BOTH' => 'both'
+    ];
+
     protected $casts = [
         'is_active' => 'boolean',
     ];

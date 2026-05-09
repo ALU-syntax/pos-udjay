@@ -385,7 +385,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/getDetailItemCategorySales', [SalesController::class, 'getDetailItemCategorySales'])->name('sales/getDetailItemCategorySales');
             Route::get('/getDetailItemSales', [SalesController::class, 'getDetailItemSales'])->name('sales/getDetailItemSales');
             Route::get('report/sales/exportSalesSummary', [SalesController::class, 'exportSalesSummary'])->name('sales/exportSalesSummary');
-            Route::get('/export-item-sales', [SalesController::class, 'exportItemSales'])->name('sales/exportItemSales');
+            // Route::get('/export-item-sales', [SalesController::class, 'exportItemSales'])->name('sales/exportItemSales');
             Route::post('/export-item-sales', [SalesController::class, 'exportItemSales'])->name('sales/exportItemSales');
 
         });
