@@ -30,6 +30,15 @@ class WarehouseMenuSeeder extends Seeder
 
             $this->attachMenuPermission($sm, null, ['admin']);
 
+            $sm = $mm->subMenus()->updateOrCreate(
+                ['url' => 'library/category-bahan-baku'],
+                [
+                    'name' => 'Kategori Bahan Baku',
+                    'category' => $mm->category,
+                ]
+            );
+            $this->attachMenuPermission($sm, null, ['admin']);
+
             $mm = Menu::updateOrCreate(
                 ['url' => 'warehouse'],
                 [
@@ -38,7 +47,6 @@ class WarehouseMenuSeeder extends Seeder
                     'icon' => 'fa-warehouse',
                 ]
             );
-
             $this->attachMenuPermission($mm, null, ['admin']);
 
             $sm = $mm->subMenus()->updateOrCreate(
@@ -48,8 +56,9 @@ class WarehouseMenuSeeder extends Seeder
                     'category' => $mm->category,
                 ]
             );
-
             $this->attachMenuPermission($sm, null, ['admin']);
+
+
         });
     }
 }

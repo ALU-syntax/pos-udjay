@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\HakAksesController;
 use App\Http\Controllers\KasirController;
+use App\Http\Controllers\KategoriBahanBakuController;
 use App\Http\Controllers\LevelMembershipController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\MenuController;
@@ -268,6 +269,15 @@ Route::middleware('auth')->group(function () {
             Route::get('/conversions/{conversion}/edit', [SatuanController::class, 'editConversion'])->name('satuan/conversions/edit');
             Route::put('/conversions/{conversion}/update', [SatuanController::class, 'updateConversion'])->name('satuan/conversions/update');
             Route::delete('/conversions/{conversion}/destroy', [SatuanController::class, 'destroyConversion'])->name('satuan/conversions/destroy');
+        });
+
+        Route::prefix('category-bahan-baku')->group(function () {
+            Route::get('/', [KategoriBahanBakuController::class, 'index'])->name('category-bahan-baku');
+            Route::get('/create', [KategoriBahanBakuController::class, 'create'])->name('category-bahan-baku/create');
+            Route::post('/store', [KategoriBahanBakuController::class, 'store'])->name('category-bahan-baku/store');
+            Route::get('/detail/{categoryBahanBaku}', [KategoriBahanBakuController::class, 'detail'])->name('category-bahan-baku/detail');
+            Route::get('/edit/{categoryBahanBaku}', [KategoriBahanBakuController::class, 'edit'])->name('category-bahan-baku/edit');
+            Route::put('/update/{categoryBahanBaku}', [KategoriBahanBakuController::class, 'update'])->name('category-bahan-baku/update');
         });
     });
 
