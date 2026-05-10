@@ -66,7 +66,8 @@ class MenuController extends Controller
 
 
             foreach ($request->permissions ?? [] as $permission) {
-                Permission::create(['name' => $permission . " {$menu->url}"])->menus()->attach($menu);
+                $permissionModel = Permission::firstOrCreate(['name' => $permission . " {$menu->url}"]);
+                $permissionModel->menus()->syncWithoutDetaching([$menu->id]);
             }
             DB::commit();
         } catch (\Throwable $th) {
@@ -115,6 +116,8 @@ class MenuController extends Controller
             'orders' => 'required|integer',
             'icon' => 'required',
             'category' => 'required',
+            "level_menu" => "required",
+            "main_menu" => 'nullable'
         ]);
 
         $menu = Menu::find($id);
@@ -131,10 +134,11 @@ class MenuController extends Controller
             //     }
             // }
 
-            if($request->level_menu == 'main_menu'){   
+            if($request->level_menu == 'main_menu'){
                 $menu->main_menu_id = null;
+            }else{
+                $menu->main_menu_id = $validateData['main_menu'];
             }
-
             $menu->update($validateData);
 
             // foreach ($request->permissions ?? [] as $permission) {

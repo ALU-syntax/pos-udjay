@@ -17,6 +17,19 @@ class WarehouseMenuSeeder extends Seeder
         DB::transaction(function () {
             Cache::forget('menus');
 
+            // Penambahan Library
+            $mm = Menu::firstOrCreate(['url' => 'library'], ['name' => 'Library', 'category' => 'LIBRARY', 'icon' => 'fa-book']);
+            $this->attachMenuPermission($mm, null, ['admin']);
+            $sm = $mm->subMenus()->updateOrCreate(
+                ['url' => 'warehouse/satuan'],
+                [
+                    'name' => 'Satuan',
+                    'category' => $mm->category,
+                ]
+            );
+
+            $this->attachMenuPermission($sm, null, ['admin']);
+
             $mm = Menu::updateOrCreate(
                 ['url' => 'warehouse'],
                 [
@@ -27,16 +40,6 @@ class WarehouseMenuSeeder extends Seeder
             );
 
             $this->attachMenuPermission($mm, null, ['admin']);
-
-            $sm = $mm->subMenus()->updateOrCreate(
-                ['url' => 'warehouse/satuan'],
-                [
-                    'name' => 'Satuan',
-                    'category' => $mm->category,
-                ]
-            );
-
-            $this->attachMenuPermission($sm, null, ['admin']);
 
             $sm = $mm->subMenus()->updateOrCreate(
                 ['url' => 'warehouse/supplier'],

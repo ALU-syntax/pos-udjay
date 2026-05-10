@@ -256,6 +256,14 @@ Route::middleware('auth')->group(function () {
             Route::put('/update/product/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'setProductRequirement'])->name('note-receipt-scheduling/setProductRequirement');
             Route::delete('/destroy/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'destroy'])->name('note-receipt-scheduling/destroy');
         });
+
+        Route::prefix('satuan')->group(function () {
+            Route::get('/', [SatuanController::class, 'index'])->name('satuan');
+            Route::get('/create', [SatuanController::class, 'create'])->name('satuan/create');
+            Route::post('/store', [SatuanController::class, 'store'])->name('satuan/store');
+            Route::get('/edit/{satuan}', [SatuanController::class, 'edit'])->name('satuan/edit');
+            Route::put('/update/{satuan}', [SatuanController::class, 'update'])->name('satuan/update');
+        });
     });
 
     Route::group(['prefix'=> 'membership', 'as' => 'membership/'], function () {
@@ -416,14 +424,6 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::group(['prefix' => 'warehouse', 'as' => 'warehouse/'], function(){
-        Route::prefix('satuan')->group(function () {
-            Route::get('/', [SatuanController::class, 'index'])->name('satuan');
-            Route::get('/create', [SatuanController::class, 'create'])->name('satuan/create');
-            Route::post('/store', [SatuanController::class, 'store'])->name('satuan/store');
-            Route::get('/edit/{satuan}', [SatuanController::class, 'edit'])->name('satuan/edit');
-            Route::put('/update/{satuan}', [SatuanController::class, 'update'])->name('satuan/update');
-        });
-
         Route::prefix('supplier')->group(function () {
             Route::get('/', [SupplierController::class, 'index'])->name('supplier');
             Route::get('/create', [SupplierController::class, 'create'])->name('supplier/create');

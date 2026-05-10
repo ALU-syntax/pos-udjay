@@ -20,7 +20,7 @@ trait HasMenuPermission{
                 ['name' => $item . "{$menu->url}"],
                 ['name' => $item . "{$menu->url}"]);
 
-            $permission->menus()->attach($menu);
+            $permission->menus()->syncWithoutDetaching([$menu->id]);
             if($roles){
                 $permission->assignRole($roles);
             }

@@ -13,15 +13,11 @@ return new class extends Migration
     {
         Schema::table('satuans', function (Blueprint $table) {
             if (!Schema::hasColumn('satuans', 'code')) {
-                $table->string('code', 50)->nullable()->unique()->after('id');
+                $table->string('code', 50)->nullable()->unique()->after('id'); // unique, contoh: pcs, kg, gr, ml
             }
 
             if (!Schema::hasColumn('satuans', 'symbol')) {
-                $table->string('symbol', 20)->nullable()->after('name');
-            }
-
-            if (!Schema::hasColumn('satuans', 'unit_type')) {
-                $table->string('unit_type', 50)->nullable()->after('symbol');
+                $table->string('symbol', 20)->nullable()->after('name'); // contoh: pcs, kg, g, ml
             }
         });
     }
@@ -32,10 +28,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('satuans', function (Blueprint $table) {
-            if (Schema::hasColumn('satuans', 'unit_type')) {
-                $table->dropColumn('unit_type');
-            }
-
             if (Schema::hasColumn('satuans', 'symbol')) {
                 $table->dropColumn('symbol');
             }

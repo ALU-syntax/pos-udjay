@@ -23,7 +23,7 @@ class SatuanController extends Controller
     {
         return view('layouts.satuan.satuan-modal', [
             'data' => new Satuan(),
-            'action' => route('warehouse/satuan/store')
+            'action' => route('library/satuan/store')
         ]);
     }
 
@@ -45,7 +45,7 @@ class SatuanController extends Controller
     {
         return view('layouts.satuan.satuan-modal', [
             'data' => $satuan,
-            'action' => route('warehouse/satuan/update', $satuan->id)
+            'action' => route('library/satuan/update', $satuan->id)
         ]);
     }
 

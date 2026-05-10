@@ -41,7 +41,7 @@ class PermissionController extends Controller
         $checkMenu = Menu::where('name', $namaMenu[1])->firstOrFail();
 
         $permission = Permission::create($requestValidate);
-        $permission->menus()->attach($checkMenu);
+        $permission->menus()->syncWithoutDetaching([$checkMenu->id]);
 
         return redirect()->route('konfigurasi/permissions')->with('success','Permission Berhasil dibuat!');
     }

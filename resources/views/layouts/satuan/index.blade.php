@@ -9,7 +9,7 @@
                     </h2>
                     <p class="text-muted small mt-1">Buat, lihat, dan perbarui satuan produk dan bahan baku.</p>
                 </div>
-                <a href="{{ route('warehouse/satuan/create') }}" class="btn btn-primary btn-round action">
+                <a href="{{ route('library/satuan/create') }}" class="btn btn-primary btn-round action">
                     <i class="fa fa-plus me-2"></i>Tambah Satuan
                 </a>
             </div>
