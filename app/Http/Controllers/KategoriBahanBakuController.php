@@ -42,7 +42,7 @@ class KategoriBahanBakuController extends Controller
 
     public function detail(RawMaterialCategories $categoryBahanBaku)
     {
-        $categoryBahanBaku->load(['rawMaterials.baseUnit']);
+        $categoryBahanBaku->load(['rawMaterials.baseUnit', 'rawMaterials.storageType']);
 
         return view('layouts.kategori_bahan_baku.detail-modal', [
             'category' => $categoryBahanBaku,

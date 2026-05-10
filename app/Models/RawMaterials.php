@@ -12,6 +12,10 @@ class RawMaterials extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
     public function category()
     {
         return $this->belongsTo(RawMaterialCategories::class, 'raw_material_category_id');
@@ -20,5 +24,10 @@ class RawMaterials extends Model
     public function baseUnit()
     {
         return $this->belongsTo(Satuan::class, 'base_unit_id');
+    }
+
+    public function storageType()
+    {
+        return $this->belongsTo(RawStorageType::class, 'storage_type_id');
     }
 }

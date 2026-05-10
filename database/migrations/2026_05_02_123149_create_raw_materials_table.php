@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('code', 50)->nullable()->unique();
             // contoh: RM-0001, RM-0002
 
-            $table->string('name')->unique();
+            $table->string('name');
             // contoh: Daging Ayam, Telur Ayam, Susu UHT
 
             $table->foreignId('raw_material_category_id')
@@ -30,7 +30,6 @@ return new class extends Migration
                 ->constrained('satuans')
                 ->restrictOnDelete();
 
-            $table->unsignedTinyInteger('is_stockable')->default(1);
 
             /*
              * contoh:
@@ -39,7 +38,9 @@ return new class extends Migration
              * frozen  = bahan beku
              * other   = lainnya
              */
-            $table->string('storage_type', 50)->default('dry');
+            $table->foreignId('storage_type_id')
+                ->constrained('raw_storage_types')
+                ->restrictOnDelete();
 
             $table->boolean('is_active')->default(true);
             $table->text('notes')->nullable();
@@ -50,7 +51,7 @@ return new class extends Migration
             $table->index('name');
             $table->index('raw_material_category_id');
             $table->index('base_unit_id');
-            $table->index('storage_type');
+            $table->index('storage_type_id');
             $table->index('is_active');
         });
     }

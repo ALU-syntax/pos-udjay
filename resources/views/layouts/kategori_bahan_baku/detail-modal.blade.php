@@ -1,12 +1,5 @@
 <x-modal addStyle="modal-xl" title="Detail Bahan Baku: {{ $category->name }}" action="#" method="GET" customSubmit="true">
     @php
-        $storageLabels = [
-            'dry' => 'Dry',
-            'chilled' => 'Chilled',
-            'frozen' => 'Frozen',
-            'other' => 'Lainnya',
-        ];
-
         $activeMaterials = $materials->where('is_active', true)->count();
         $stockableMaterials = $materials->where('is_stockable', true)->count();
     @endphp
@@ -25,13 +18,6 @@
                 <div>
                     <small class="text-muted d-block">Aktif</small>
                     <strong>{{ $activeMaterials }}</strong>
-                </div>
-            </div>
-            <div class="raw-detail-item">
-                <span class="raw-detail-icon"><i class="fa fa-warehouse"></i></span>
-                <div>
-                    <small class="text-muted d-block">Stockable</small>
-                    <strong>{{ $stockableMaterials }}</strong>
                 </div>
             </div>
             <div class="raw-detail-item">
@@ -77,7 +63,7 @@
                                     @endif
                                 </td>
                                 <td>{{ optional($material->baseUnit)->symbol ?: optional($material->baseUnit)->name ?: '-' }}</td>
-                                <td>{{ $storageLabels[$material->storage_type] ?? ucfirst($material->storage_type ?? '-') }}</td>
+                                <td>{{ optional($material->storageType)->name ?: '-' }}</td>
                                 <td>
                                     @if ($material->is_stockable)
                                         <span class="badge badge-success">Ya</span>
@@ -109,7 +95,7 @@
     <style>
         .raw-detail-summary {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 10px;
         }
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BahanBakuController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CategoryPaymentController;
 use App\Http\Controllers\CheckoutController;
@@ -278,6 +279,16 @@ Route::middleware('auth')->group(function () {
             Route::get('/detail/{categoryBahanBaku}', [KategoriBahanBakuController::class, 'detail'])->name('category-bahan-baku/detail');
             Route::get('/edit/{categoryBahanBaku}', [KategoriBahanBakuController::class, 'edit'])->name('category-bahan-baku/edit');
             Route::put('/update/{categoryBahanBaku}', [KategoriBahanBakuController::class, 'update'])->name('category-bahan-baku/update');
+        });
+
+        Route::prefix('bahan-baku')->group(function(){
+            Route::get('/', [BahanBakuController::class, 'index'])->name('bahan-baku');
+            Route::get('/create', [BahanBakuController::class, 'create'])->name('bahan-baku/create');
+            Route::post('/store', [BahanBakuController::class, 'store'])->name('bahan-baku/store');
+            Route::get('/detail/{rawMaterial}', [BahanBakuController::class, 'detail'])->name('bahan-baku/detail');
+            Route::get('/edit/{rawMaterial}', [BahanBakuController::class, 'edit'])->name('bahan-baku/edit');
+            Route::put('/update/{rawMaterial}', [BahanBakuController::class, 'update'])->name('bahan-baku/update');
+            Route::delete('/destroy/{rawMaterial}', [BahanBakuController::class, 'destroy'])->name('bahan-baku/destroy');
         });
     });
 

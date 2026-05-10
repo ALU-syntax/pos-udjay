@@ -13,31 +13,34 @@ class SatuanSeeder extends Seeder
     public function run(): void
     {
         $satuans = [
-            'pcs',
-            'kg',
-            'gram',
-            'liter',
-            'ml',
-            'pack',
-            'box',
-            'botol',
-            'kaleng',
-            'dus',
-            'sak',
-            'ikat',
-            'buah',
-            'lembar',
-            'roll',
-            'meter',
-            'cm',
-            'sendok',
-            'cup',
-            'porsi',
+            'Pieces' => 'pcs',
+            'Kilogram' => 'kg',
+            'Gram' => 'g',
+            'Liter' => 'L',
+            'Mililiter' => 'ml',
+            'Pack' => 'pack',
+            'Box' => 'box',
+            'Botol' => 'botol',
+            'Kaleng' => 'kaleng',
+            "Dus" => 'dus',
+            'Sak' => 'sak',
+            'Ikat' => 'ikat',
+            'Buah' => 'buah',
+            'Lembar' => 'lembar',
+            'Roll' => 'roll',
+            'Meter' => 'm',
+            'Centimeter' => 'cm',
+            'Sendok' => 'sendok',
+            'Cup' => 'cup',
+            'Porsi' => 'porsi',
         ];
 
-        foreach ($satuans as $satuan) {
+        foreach ($satuans as $name => $symbol) {
             DB::table('satuans')->updateOrInsert(
-                ['name' => $satuan],
+                [
+                    'name' => $name,
+                    'symbol' => $symbol
+                ],
                 [
                     'is_active' => true,
                     'updated_at' => now(),

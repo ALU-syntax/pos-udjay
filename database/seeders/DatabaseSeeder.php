@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
             KategoriPemasukanSeeder::class,
             BrandSeeder::class,
             SatuanSeeder::class,
+            RawStorageTypeSeeder::class,
             WarehouseMenuSeeder::class
         ]);
 
