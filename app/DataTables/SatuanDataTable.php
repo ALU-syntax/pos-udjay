@@ -35,8 +35,13 @@ class SatuanDataTable extends DataTable
                     ? "<span class='badge badge-pill badge-success'>Aktif</span>"
                     : "<span class='badge badge-pill badge-danger'>Tidak Aktif</span>";
             })
+            ->editColumn('symbol', function ($row) {
+                return $row->symbol
+                    ? '<span class="badge bg-light text-dark border">' . e($row->symbol) . '</span>'
+                    : '<span class="text-muted">-</span>';
+            })
             ->addIndexColumn()
-            ->rawColumns(['is_active']);
+            ->rawColumns(['is_active', 'symbol']);
     }
 
     /**
@@ -77,6 +82,7 @@ class SatuanDataTable extends DataTable
         return [
             Column::make('DT_RowIndex')->title('No')->searchable(false)->orderable(false),
             Column::make('name')->title('Nama Satuan'),
+            Column::make('symbol')->title('Symbol'),
             Column::make('is_active')->title('Status'),
             Column::computed('action')
                 ->exportable(false)

@@ -16,6 +16,7 @@ class SatuanStoreRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255', Rule::unique('satuans')->ignore($this->satuan)],
+            'symbol' => ['nullable', 'string', 'max:20'],
             'is_active' => ['required', Rule::in([0, 1])],
         ];
     }

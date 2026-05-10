@@ -12,10 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('satuans', function (Blueprint $table) {
-            if (!Schema::hasColumn('satuans', 'code')) {
-                $table->string('code', 50)->nullable()->unique()->after('id'); // unique, contoh: pcs, kg, gr, ml
-            }
-
             if (!Schema::hasColumn('satuans', 'symbol')) {
                 $table->string('symbol', 20)->nullable()->after('name'); // contoh: pcs, kg, g, ml
             }
@@ -30,11 +26,6 @@ return new class extends Migration
         Schema::table('satuans', function (Blueprint $table) {
             if (Schema::hasColumn('satuans', 'symbol')) {
                 $table->dropColumn('symbol');
-            }
-
-            if (Schema::hasColumn('satuans', 'code')) {
-                $table->dropUnique(['code']);
-                $table->dropColumn('code');
             }
         });
     }

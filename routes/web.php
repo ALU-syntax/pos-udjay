@@ -263,6 +263,11 @@ Route::middleware('auth')->group(function () {
             Route::post('/store', [SatuanController::class, 'store'])->name('satuan/store');
             Route::get('/edit/{satuan}', [SatuanController::class, 'edit'])->name('satuan/edit');
             Route::put('/update/{satuan}', [SatuanController::class, 'update'])->name('satuan/update');
+            Route::get('/conversions/create', [SatuanController::class, 'createConversion'])->name('satuan/conversions/create');
+            Route::post('/conversions/store', [SatuanController::class, 'storeConversion'])->name('satuan/conversions/store');
+            Route::get('/conversions/{conversion}/edit', [SatuanController::class, 'editConversion'])->name('satuan/conversions/edit');
+            Route::put('/conversions/{conversion}/update', [SatuanController::class, 'updateConversion'])->name('satuan/conversions/update');
+            Route::delete('/conversions/{conversion}/destroy', [SatuanController::class, 'destroyConversion'])->name('satuan/conversions/destroy');
         });
     });
 
