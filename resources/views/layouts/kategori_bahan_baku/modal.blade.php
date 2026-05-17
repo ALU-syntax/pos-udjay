@@ -3,7 +3,7 @@
         @method('put')
     @endif
 
-    <div class="col-sm-12 mb-3">
+    <div class="col-sm-12">
         <div class="form-group">
             <label>Nama Kategori <span class="text-danger">*</span></label>
             <input id="name" name="name" value="{{ old('name', $data->name) }}" type="text" class="form-control"
@@ -12,7 +12,7 @@
         </div>
     </div>
 
-    <div class="col-sm-12 mb-3">
+    <div class="col-sm-12">
         <div class="form-group">
             <label>Status <span class="text-danger">*</span></label>
             @php

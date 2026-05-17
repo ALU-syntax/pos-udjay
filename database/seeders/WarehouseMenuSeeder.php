@@ -67,6 +67,15 @@ class WarehouseMenuSeeder extends Seeder
             );
             $this->attachMenuPermission($sm, null, ['admin']);
 
+            $sm = $mm->subMenus()->updateOrCreate(
+                ['url' => 'warehouse/inventory'],
+                [
+                    'name' => 'Inventory',
+                    'category' => $mm->category,
+                ]
+            );
+            $this->attachMenuPermission($sm, null, ['admin']);
+
 
         });
     }

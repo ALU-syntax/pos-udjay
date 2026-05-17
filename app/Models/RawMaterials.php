@@ -30,4 +30,19 @@ class RawMaterials extends Model
     {
         return $this->belongsTo(RawStorageType::class, 'storage_type_id');
     }
+
+    public function stockBalances()
+    {
+        return $this->hasMany(InventoryRawMaterialStockBalance::class, 'raw_material_id');
+    }
+
+    public function inventoryLocations()
+    {
+        return $this->belongsToMany(
+            InventoryLocation::class,
+            'inventory_raw_material_stock_balances',
+            'raw_material_id',
+            'inventory_location_id'
+        )->withPivot(['qty_available', 'qty_reserved'])->withTimestamps();
+    }
 }

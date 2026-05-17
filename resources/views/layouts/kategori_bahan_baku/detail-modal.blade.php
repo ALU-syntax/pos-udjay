@@ -46,7 +46,6 @@
                             <th>Nama Bahan</th>
                             <th>Satuan Dasar</th>
                             <th>Penyimpanan</th>
-                            <th>Stockable</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -62,15 +61,8 @@
                                         <small class="text-muted">{{ \Illuminate\Support\Str::limit($material->notes, 70) }}</small>
                                     @endif
                                 </td>
-                                <td>{{ optional($material->baseUnit)->symbol ?: optional($material->baseUnit)->name ?: '-' }}</td>
+                                <td><span class="badge bg-light text-dark border">{{ optional($material->baseUnit)->symbol ?: optional($material->baseUnit)->name ?: '-' }}</span></td>
                                 <td>{{ optional($material->storageType)->name ?: '-' }}</td>
-                                <td>
-                                    @if ($material->is_stockable)
-                                        <span class="badge badge-success">Ya</span>
-                                    @else
-                                        <span class="badge badge-secondary">Tidak</span>
-                                    @endif
-                                </td>
                                 <td>
                                     @if ($material->is_active)
                                         <span class="badge badge-success">Aktif</span>
