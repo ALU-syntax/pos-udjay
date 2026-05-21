@@ -23,7 +23,7 @@ class InventoryStockBalanceRequest extends FormRequest
 
     public function rules(): array
     {
-        $inventoryLocation = $this->route('inventoryLocation');
+        $inventory = $this->route('inventory');
         $stockBalance = $this->route('stockBalance');
 
         return [
@@ -32,7 +32,7 @@ class InventoryStockBalanceRequest extends FormRequest
                 Rule::exists('raw_materials', 'id')->whereNull('deleted_at'),
                 Rule::unique('inventory_raw_material_stock_balances', 'raw_material_id')
                     ->ignore($stockBalance?->id)
-                    ->where(fn ($query) => $query->where('inventory_location_id', $inventoryLocation?->id)),
+                    ->where(fn ($query) => $query->where('inventory_id', $inventory?->id)),
             ],
             'qty_available' => ['required', 'numeric', 'min:0'],
             'qty_reserved' => ['required', 'numeric', 'min:0', 'lte:qty_available'],

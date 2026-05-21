@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class InventoryLocation extends Model
+class Inventory extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -38,11 +38,11 @@ class InventoryLocation extends Model
 
     public function type()
     {
-        return $this->belongsTo(InventoryLocationType::class, 'inventory_location_type_id');
+        return $this->belongsTo(InventoryType::class, 'inventory_type_id');
     }
 
     public function stockBalances()
     {
-        return $this->hasMany(InventoryRawMaterialStockBalance::class, 'inventory_location_id');
+        return $this->hasMany(InventoryRawMaterialStockBalance::class, 'inventory_id');
     }
 }

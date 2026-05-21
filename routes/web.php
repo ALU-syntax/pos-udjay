@@ -455,16 +455,16 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [InventoryController::class, 'index'])->name('inventory');
             Route::get('/create', [InventoryController::class, 'create'])->name('inventory/create');
             Route::post('/store', [InventoryController::class, 'store'])->name('inventory/store');
-            Route::get('/detail/{inventoryLocation}', [InventoryController::class, 'detail'])->name('inventory/detail');
-            Route::get('/edit/{inventoryLocation}', [InventoryController::class, 'edit'])->name('inventory/edit');
-            Route::put('/update/{inventoryLocation}', [InventoryController::class, 'update'])->name('inventory/update');
-            Route::delete('/destroy/{inventoryLocation}', [InventoryController::class, 'destroy'])->name('inventory/destroy');
+            Route::get('/detail/{inventory}', [InventoryController::class, 'detail'])->name('inventory/detail');
+            Route::get('/edit/{inventory}', [InventoryController::class, 'edit'])->name('inventory/edit');
+            Route::put('/update/{inventory}', [InventoryController::class, 'update'])->name('inventory/update');
+            Route::delete('/destroy/{inventory}', [InventoryController::class, 'destroy'])->name('inventory/destroy');
 
-            Route::get('/{inventoryLocation}/stock-balances/create', [InventoryController::class, 'createStockBalance'])->name('inventory/stock-balances/create');
-            Route::post('/{inventoryLocation}/stock-balances/store', [InventoryController::class, 'storeStockBalance'])->name('inventory/stock-balances/store');
-            Route::get('/{inventoryLocation}/stock-balances/{stockBalance}/edit', [InventoryController::class, 'editStockBalance'])->name('inventory/stock-balances/edit');
-            Route::put('/{inventoryLocation}/stock-balances/{stockBalance}/update', [InventoryController::class, 'updateStockBalance'])->name('inventory/stock-balances/update');
-            Route::delete('/{inventoryLocation}/stock-balances/{stockBalance}/destroy', [InventoryController::class, 'destroyStockBalance'])->name('inventory/stock-balances/destroy');
+            Route::get('/{inventory}/stock-balances/create', [InventoryController::class, 'createStockBalance'])->name('inventory/stock-balances/create');
+            Route::post('/{inventory}/stock-balances/store', [InventoryController::class, 'storeStockBalance'])->name('inventory/stock-balances/store');
+            Route::get('/{inventory}/stock-balances/{stockBalance}/edit', [InventoryController::class, 'editStockBalance'])->name('inventory/stock-balances/edit');
+            Route::put('/{inventory}/stock-balances/{stockBalance}/update', [InventoryController::class, 'updateStockBalance'])->name('inventory/stock-balances/update');
+            Route::delete('/{inventory}/stock-balances/{stockBalance}/destroy', [InventoryController::class, 'destroyStockBalance'])->name('inventory/stock-balances/destroy');
         });
         Route::prefix('supplier')->group(function () {
             Route::get('/', [SupplierController::class, 'index'])->name('supplier');

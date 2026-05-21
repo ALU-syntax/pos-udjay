@@ -12,7 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('inventory_location_types', function (Blueprint $table) {
+        Schema::create('inventory_types', function (Blueprint $table) {
             $table->id();
             $table->string('name', 50)->unique();
             $table->boolean('is_active')->default(true);
@@ -23,7 +23,7 @@ return new class extends Migration
             $table->index('is_active');
         });
 
-        DB::table('inventory_location_types')->insert([
+        DB::table('inventory_types')->insert([
             ['name' => 'Central Warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'Branch Warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'Outlet Warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
@@ -39,6 +39,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('inventory_location_types');
+        Schema::dropIfExists('inventory_types');
     }
 };

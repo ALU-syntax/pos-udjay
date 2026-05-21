@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
 
             $table->unsignedBigInteger('raw_material_id');
-            $table->unsignedBigInteger('inventory_location_id');
+            $table->unsignedBigInteger('inventory_id');
 
             $table->decimal('qty_available', 15, 5)->default(0);
             $table->decimal('qty_reserved', 15, 5)->default(0);
@@ -24,20 +24,20 @@ return new class extends Migration
 
             $table->unique([
                 'raw_material_id',
-                'inventory_location_id',
-            ], 'unique_material_location');
+                'inventory_id',
+            ], 'unique_material');
 
             $table->index('raw_material_id', 'idx_raw_material_id');
-            $table->index('inventory_location_id', 'idx_inventory_location_id');
+            $table->index('inventory_id', 'idx_inventory_id');
 
             $table->foreign('raw_material_id', 'stock_balances_raw_material_id_foreign')
                 ->references('id')
                 ->on('raw_materials')
                 ->restrictOnDelete();
 
-            $table->foreign('inventory_location_id', 'stock_balances_inventory_location_id_foreign')
+            $table->foreign('inventory_id', 'stock_balances_inventory_id_foreign')
                 ->references('id')
-                ->on('inventory_locations')
+                ->on('inventory')
                 ->restrictOnDelete();
         });
     }

@@ -5,14 +5,14 @@
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
                 <div>
                     <h2 class="h4 mb-1 font-weight-bold">
-                        <i class="fa fa-warehouse me-2"></i>{{ $inventoryLocation->name }}
+                        <i class="fa fa-warehouse me-2"></i>{{ $inventory->name }}
                     </h2>
                     <div class="d-flex flex-wrap align-items-center gap-2">
-                        <span class="badge bg-light text-dark border">{{ $inventoryLocation->code ?: 'Tanpa kode' }}</span>
-                        @if ($inventoryLocation->type)
-                            <span class="badge inventory-type-badge">{{ $inventoryLocation->type->name }}</span>
+                        <span class="badge bg-light text-dark border">{{ $inventory->code ?: 'Tanpa kode' }}</span>
+                        @if ($inventory->type)
+                            <span class="badge inventory-type-badge">{{ $inventory->type->name }}</span>
                         @endif
-                        @if ($inventoryLocation->is_active)
+                        @if ($inventory->is_active)
                             <span class="badge bg-success">Aktif</span>
                         @else
                             <span class="badge bg-secondary">Tidak Aktif</span>
@@ -25,7 +25,7 @@
                         <i class="fa fa-arrow-left me-1"></i>Kembali
                     </a>
                     @can('create warehouse/inventory')
-                        <a href="{{ route('warehouse/inventory/stock-balances/create', $inventoryLocation->id) }}" class="btn btn-primary btn-sm action">
+                        <a href="{{ route('warehouse/inventory/stock-balances/create', $inventory->id) }}" class="btn btn-primary btn-sm action">
                             <i class="fa fa-plus me-1"></i>Tambah Bahan Baku
                         </a>
                     @endcan
@@ -77,25 +77,25 @@
                     <div class="card-body">
                         <dl class="row mb-0">
                             <dt class="col-5 text-muted">Nama</dt>
-                            <dd class="col-7">{{ $inventoryLocation->name }}</dd>
+                            <dd class="col-7">{{ $inventory->name }}</dd>
 
                             <dt class="col-5 text-muted">Kode</dt>
-                            <dd class="col-7">{{ $inventoryLocation->code ?: '-' }}</dd>
+                            <dd class="col-7">{{ $inventory->code ?: '-' }}</dd>
 
                             <dt class="col-5 text-muted">Tipe</dt>
-                            <dd class="col-7">{{ optional($inventoryLocation->type)->name ?: '-' }}</dd>
+                            <dd class="col-7">{{ optional($inventory->type)->name ?: '-' }}</dd>
 
                             <dt class="col-5 text-muted">Parent</dt>
-                            <dd class="col-7">{{ optional($inventoryLocation->parent)->name ?: '-' }}</dd>
+                            <dd class="col-7">{{ optional($inventory->parent)->name ?: '-' }}</dd>
 
                             <dt class="col-5 text-muted">Outlet</dt>
-                            <dd class="col-7">{{ optional($inventoryLocation->outlet)->name ?: 'Semua outlet' }}</dd>
+                            <dd class="col-7">{{ optional($inventory->outlet)->name ?: 'Semua outlet' }}</dd>
 
                             <dt class="col-5 text-muted">Brand</dt>
-                            <dd class="col-7">{{ optional($inventoryLocation->brand)->name ?: 'Semua brand' }}</dd>
+                            <dd class="col-7">{{ optional($inventory->brand)->name ?: 'Semua brand' }}</dd>
 
                             <dt class="col-5 text-muted">Update Terakhir</dt>
-                            <dd class="col-7">{{ optional($inventoryLocation->updated_at)->format('d M Y H:i') }}</dd>
+                            <dd class="col-7">{{ optional($inventory->updated_at)->format('d M Y H:i') }}</dd>
                         </dl>
                     </div>
                 </div>
@@ -119,7 +119,7 @@
                                 <option value="Out of Stock">Out of Stock</option>
                             </select>
                             @can('create warehouse/inventory')
-                                <a href="{{ route('warehouse/inventory/stock-balances/create', $inventoryLocation->id) }}"
+                                <a href="{{ route('warehouse/inventory/stock-balances/create', $inventory->id) }}"
                                     class="btn btn-primary btn-sm action">
                                     <i class="fa fa-plus me-1"></i> Bahan Baku
                                 </a>
@@ -182,13 +182,13 @@
                                                 <td class="text-center">
                                                     <div class="btn-group" role="group">
                                                         @can('update warehouse/inventory')
-                                                            <a href="{{ route('warehouse/inventory/stock-balances/edit', [$inventoryLocation->id, $item->id]) }}"
+                                                            <a href="{{ route('warehouse/inventory/stock-balances/edit', [$inventory->id, $item->id]) }}"
                                                                 class="btn btn-sm btn-outline-primary action">
                                                                 Edit
                                                             </a>
                                                         @endcan
                                                         @can('delete warehouse/inventory')
-                                                            <a href="{{ route('warehouse/inventory/stock-balances/destroy', [$inventoryLocation->id, $item->id]) }}"
+                                                            <a href="{{ route('warehouse/inventory/stock-balances/destroy', [$inventory->id, $item->id]) }}"
                                                                 class="btn btn-sm btn-outline-danger delete-stock">
                                                                 Hapus
                                                             </a>

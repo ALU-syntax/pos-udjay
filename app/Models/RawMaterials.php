@@ -36,13 +36,13 @@ class RawMaterials extends Model
         return $this->hasMany(InventoryRawMaterialStockBalance::class, 'raw_material_id');
     }
 
-    public function inventoryLocations()
+    public function inventory()
     {
         return $this->belongsToMany(
-            InventoryLocation::class,
+            Inventory::class,
             'inventory_raw_material_stock_balances',
             'raw_material_id',
-            'inventory_location_id'
+            'inventory_id'
         )->withPivot(['qty_available', 'qty_reserved'])->withTimestamps();
     }
 }

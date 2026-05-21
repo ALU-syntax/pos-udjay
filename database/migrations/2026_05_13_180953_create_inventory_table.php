@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('inventory_locations', function (Blueprint $table) {
+        Schema::create('inventory', function (Blueprint $table) {
             $table->id();
 
             $table->unsignedBigInteger('parent_id')->nullable();
@@ -21,8 +21,8 @@ return new class extends Migration
             $table->string('code', 50)->nullable();
             $table->string('name');
 
-            $table->foreignId('inventory_location_type_id')
-                ->constrained('inventory_location_types')
+            $table->foreignId('inventory_type_id')
+                ->constrained('inventory_types')
                 ->restrictOnDelete();
 
             $table->boolean('is_active')->default(true);
@@ -33,20 +33,20 @@ return new class extends Migration
             $table->index('parent_id', 'idx_parent_id');
             $table->index('outlet_id', 'idx_outlet_id');
             $table->index('brand_id', 'idx_brand_id');
-            $table->index('inventory_location_type_id', 'idx_type');
+            $table->index('inventory_type_id', 'idx_type');
             $table->index('is_active', 'idx_is_active');
 
-            $table->foreign('parent_id', 'inventory_locations_parent_id_foreign')
+            $table->foreign('parent_id', 'inventory_parent_id_foreign')
                 ->references('id')
-                ->on('inventory_locations')
+                ->on('inventory')
                 ->nullOnDelete();
 
-            $table->foreign('outlet_id', 'inventory_locations_outlet_id_foreign')
+            $table->foreign('outlet_id', 'inventory_outlet_id_foreign')
                 ->references('id')
                 ->on('outlets')
                 ->nullOnDelete();
 
-            $table->foreign('brand_id', 'inventory_locations_brand_id_foreign')
+            $table->foreign('brand_id', 'inventory_brand_id_foreign')
                 ->references('id')
                 ->on('brands')
                 ->nullOnDelete();
@@ -58,6 +58,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('inventory_locations');
+        Schema::dropIfExists('inventory');
     }
 };

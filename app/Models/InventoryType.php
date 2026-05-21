@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class InventoryLocationType extends Model
+class InventoryType extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -16,8 +16,8 @@ class InventoryLocationType extends Model
         'is_active' => 'boolean',
     ];
 
-    public function inventoryLocations()
+    public function inventory()
     {
-        return $this->hasMany(InventoryLocation::class, 'inventory_location_type_id');
+        return $this->hasMany(Inventory::class, 'inventory_type_id');
     }
 }

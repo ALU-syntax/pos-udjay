@@ -21,8 +21,8 @@ class InventoryRawMaterialStockBalance extends Model
         return $this->belongsTo(RawMaterials::class, 'raw_material_id');
     }
 
-    public function inventoryLocation()
+    public function inventory()
     {
-        return $this->belongsTo(InventoryLocation::class, 'inventory_location_id');
+        return $this->belongsTo(Inventory::class, 'inventory_id');
     }
 }

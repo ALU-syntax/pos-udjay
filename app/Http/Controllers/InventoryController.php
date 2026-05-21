@@ -2,48 +2,48 @@
 
 namespace App\Http\Controllers;
 
-use App\DataTables\InventoryLocationsDataTable;
-use App\Http\Requests\InventoryLocationRequest;
+use App\DataTables\InventoryDataTable;
+use App\Http\Requests\InventoryRequest;
 use App\Http\Requests\InventoryStockBalanceRequest;
 use App\Models\Brand;
-use App\Models\InventoryLocation;
-use App\Models\InventoryLocationType;
+use App\Models\Inventory;
+use App\Models\InventoryType;
 use App\Models\Outlets;
 use App\Models\RawMaterials;
 use App\Models\InventoryRawMaterialStockBalance;
 
 class InventoryController extends Controller
 {
-    public function index(InventoryLocationsDataTable $datatable)
+    public function index(InventoryDataTable $datatable)
     {
         return $datatable->render('layouts.inventory.index', [
             'stats' => $this->stats(),
-            'types' => InventoryLocationType::orderBy('name')->get(),
-            'parents' => InventoryLocation::orderBy('name')->get(),
+            'types' => InventoryType::orderBy('name')->get(),
+            'parents' => Inventory::orderBy('name')->get(),
             'outlets' => Outlets::orderBy('name')->get(),
             'brands' => Brand::orderBy('name')->get(),
-            'latestInventory' => InventoryLocation::latest('updated_at')->first(),
+            'latestInventory' => Inventory::latest('updated_at')->first(),
         ]);
     }
 
     public function create()
     {
         return view('layouts.inventory.modal', $this->formData(
-            new InventoryLocation(),
+            new Inventory(),
             route('warehouse/inventory/store')
         ));
     }
 
-    public function store(InventoryLocationRequest $request)
+    public function store(InventoryRequest $request)
     {
-        InventoryLocation::create($request->validated());
+        Inventory::create($request->validated());
 
         return responseSuccess(false, 'Lokasi inventory berhasil ditambahkan', $this->stats());
     }
 
-    public function detail(InventoryLocation $inventoryLocation)
+    public function detail(Inventory $inventory)
     {
-        $inventoryLocation->load([
+        $inventory->load([
             'type',
             'parent',
             'outlet',
@@ -54,106 +54,106 @@ class InventoryController extends Controller
         ]);
 
         return view('layouts.inventory.show', [
-            'inventoryLocation' => $inventoryLocation,
-            'stockBalances' => $inventoryLocation->stockBalances,
-            'stockStats' => $this->stockStats($inventoryLocation),
+            'inventory' => $inventory,
+            'stockBalances' => $inventory->stockBalances,
+            'stockStats' => $this->stockStats($inventory),
         ]);
     }
 
-    public function edit(InventoryLocation $inventoryLocation)
+    public function edit(Inventory $inventory)
     {
         return view('layouts.inventory.modal', $this->formData(
-            $inventoryLocation,
-            route('warehouse/inventory/update', $inventoryLocation->id)
+            $inventory,
+            route('warehouse/inventory/update', $inventory->id)
         ));
     }
 
-    public function update(InventoryLocationRequest $request, InventoryLocation $inventoryLocation)
+    public function update(InventoryRequest $request, Inventory $inventory)
     {
-        $inventoryLocation->update($request->validated());
+        $inventory->update($request->validated());
 
         return responseSuccess(true, 'Lokasi inventory berhasil diperbarui', $this->stats());
     }
 
-    public function destroy(InventoryLocation $inventoryLocation)
+    public function destroy(Inventory $inventory)
     {
-        $inventoryLocation->delete();
+        $inventory->delete();
 
         return responseSuccess(false, 'Lokasi inventory berhasil diarsipkan', $this->stats());
     }
 
-    public function createStockBalance(InventoryLocation $inventoryLocation)
+    public function createStockBalance(Inventory $inventory)
     {
         return view('layouts.inventory.stock-modal', [
-            'inventoryLocation' => $inventoryLocation,
+            'inventory' => $inventory,
             'item' => new InventoryRawMaterialStockBalance(),
             'rawMaterials' => $this->availableRawMaterials(),
-            'action' => route('warehouse/inventory/stock-balances/store', $inventoryLocation->id),
+            'action' => route('warehouse/inventory/stock-balances/store', $inventory->id),
         ]);
     }
 
-    public function storeStockBalance(InventoryStockBalanceRequest $request, InventoryLocation $inventoryLocation)
+    public function storeStockBalance(InventoryStockBalanceRequest $request, Inventory $inventory)
     {
         InventoryRawMaterialStockBalance::create(array_merge(
             $request->validated(),
-            ['inventory_location_id' => $inventoryLocation->id]
+            ['inventory_id' => $inventory->id]
         ));
 
-        return responseSuccess(false, 'Bahan baku inventory berhasil ditambahkan', $this->stockStats($inventoryLocation));
+        return responseSuccess(false, 'Bahan baku inventory berhasil ditambahkan', $this->stockStats($inventory));
     }
 
-    public function editStockBalance(InventoryLocation $inventoryLocation, InventoryRawMaterialStockBalance $stockBalance)
+    public function editStockBalance(Inventory $inventory, InventoryRawMaterialStockBalance $stockBalance)
     {
-        $this->ensureStockBelongsToLocation($inventoryLocation, $stockBalance);
+        $this->ensureStockBelongsToLocation($inventory, $stockBalance);
 
         return view('layouts.inventory.stock-modal', [
-            'inventoryLocation' => $inventoryLocation,
+            'inventory' => $inventory,
             'item' => $stockBalance,
             'rawMaterials' => $this->availableRawMaterials(),
-            'action' => route('warehouse/inventory/stock-balances/update', [$inventoryLocation->id, $stockBalance->id]),
+            'action' => route('warehouse/inventory/stock-balances/update', [$inventory->id, $stockBalance->id]),
             'update' => true,
         ]);
     }
 
     public function updateStockBalance(
         InventoryStockBalanceRequest $request,
-        InventoryLocation $inventoryLocation,
+        Inventory $inventory,
         InventoryRawMaterialStockBalance $stockBalance
     ) {
-        $this->ensureStockBelongsToLocation($inventoryLocation, $stockBalance);
+        $this->ensureStockBelongsToLocation($inventory, $stockBalance);
 
         $stockBalance->update($request->validated());
 
-        return responseSuccess(true, 'Stok bahan baku berhasil diperbarui', $this->stockStats($inventoryLocation));
+        return responseSuccess(true, 'Stok bahan baku berhasil diperbarui', $this->stockStats($inventory));
     }
 
-    public function destroyStockBalance(InventoryLocation $inventoryLocation, InventoryRawMaterialStockBalance $stockBalance)
+    public function destroyStockBalance(Inventory $inventory, InventoryRawMaterialStockBalance $stockBalance)
     {
-        $this->ensureStockBelongsToLocation($inventoryLocation, $stockBalance);
+        $this->ensureStockBelongsToLocation($inventory, $stockBalance);
 
         $stockBalance->delete();
 
-        return responseSuccess(false, 'Stok bahan baku berhasil dihapus', $this->stockStats($inventoryLocation));
+        return responseSuccess(false, 'Stok bahan baku berhasil dihapus', $this->stockStats($inventory));
     }
 
-    private function formData(InventoryLocation $inventoryLocation, string $action): array
+    private function formData(Inventory $inventory, string $action): array
     {
-        $parents = InventoryLocation::query()
-            ->when($inventoryLocation->exists, fn ($query) => $query->where('id', '!=', $inventoryLocation->id))
+        $parents = Inventory::query()
+            ->when($inventory->exists, fn ($query) => $query->where('id', '!=', $inventory->id))
             ->orderBy('name')
             ->get();
 
-        $types = InventoryLocationType::query()
+        $types = InventoryType::query()
             ->when(
-                $inventoryLocation->inventory_location_type_id,
-                fn ($query) => $query->where('id', $inventoryLocation->inventory_location_type_id)->orWhere('is_active', 1),
+                $inventory->inventory_type_id,
+                fn ($query) => $query->where('id', $inventory->inventory_type_id)->orWhere('is_active', 1),
                 fn ($query) => $query->where('is_active', 1)
             )
             ->orderBy('name')
             ->get();
 
         return [
-            'data' => $inventoryLocation,
+            'data' => $inventory,
             'action' => $action,
             'parents' => $parents,
             'types' => $types,
@@ -174,19 +174,19 @@ class InventoryController extends Controller
     private function stats(): array
     {
         return [
-            'total' => InventoryLocation::count(),
-            'active' => InventoryLocation::where('is_active', 1)->count(),
-            'inactive' => InventoryLocation::where('is_active', 0)->count(),
-            'assigned_outlet' => InventoryLocation::whereNotNull('outlet_id')->count(),
-            'assigned_brand' => InventoryLocation::whereNotNull('brand_id')->count(),
-            'stocked_locations' => InventoryRawMaterialStockBalance::distinct('inventory_location_id')->count('inventory_location_id'),
+            'total' => Inventory::count(),
+            'active' => Inventory::where('is_active', 1)->count(),
+            'inactive' => Inventory::where('is_active', 0)->count(),
+            'assigned_outlet' => Inventory::whereNotNull('outlet_id')->count(),
+            'assigned_brand' => Inventory::whereNotNull('brand_id')->count(),
+            'stocked_locations' => InventoryRawMaterialStockBalance::distinct('inventory_id')->count('inventory_id'),
         ];
     }
 
-    private function stockStats(InventoryLocation $inventoryLocation): array
+    private function stockStats(Inventory $inventory): array
     {
         $summary = InventoryRawMaterialStockBalance::query()
-            ->where('inventory_location_id', $inventoryLocation->id)
+            ->where('inventory_id', $inventory->id)
             ->selectRaw('COUNT(*) as total_materials')
             ->selectRaw('COALESCE(SUM(qty_available), 0) as total_available')
             ->selectRaw('COALESCE(SUM(qty_reserved), 0) as total_reserved')
@@ -203,9 +203,9 @@ class InventoryController extends Controller
         ];
     }
 
-    private function ensureStockBelongsToLocation(InventoryLocation $inventoryLocation, InventoryRawMaterialStockBalance $stockBalance): void
+    private function ensureStockBelongsToLocation(Inventory $inventory, InventoryRawMaterialStockBalance $stockBalance): void
     {
-        if ((int) $stockBalance->inventory_location_id !== (int) $inventoryLocation->id) {
+        if ((int) $stockBalance->inventory_id !== (int) $inventory->id) {
             abort(404);
         }
     }

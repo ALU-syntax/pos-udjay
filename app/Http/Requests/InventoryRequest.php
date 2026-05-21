@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class InventoryLocationRequest extends FormRequest
+class InventoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -24,19 +24,19 @@ class InventoryLocationRequest extends FormRequest
 
     public function rules(): array
     {
-        $inventoryLocationId = $this->route('inventoryLocation')?->id;
+        $inventoryId = $this->route('inventory')?->id;
 
         return [
             'code' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
             'parent_id' => [
                 'nullable',
-                'exists:inventory_locations,id',
-                Rule::notIn([$inventoryLocationId]),
+                'exists:inventory,id',
+                Rule::notIn([$inventoryId]),
             ],
             'outlet_id' => ['nullable', 'exists:outlets,id'],
             'brand_id' => ['nullable', 'exists:brands,id'],
-            'inventory_location_type_id' => ['required', 'exists:inventory_location_types,id'],
+            'inventory_type_id' => ['required', 'exists:inventory_types,id'],
             'is_active' => ['required', Rule::in([0, 1])],
         ];
     }
@@ -45,7 +45,7 @@ class InventoryLocationRequest extends FormRequest
     {
         return [
             'name.required' => 'Nama lokasi inventory wajib diisi.',
-            'inventory_location_type_id.required' => 'Tipe lokasi wajib dipilih.',
+            'inventory_type_id.required' => 'Tipe lokasi wajib dipilih.',
             'parent_id.not_in' => 'Parent lokasi tidak boleh menunjuk dirinya sendiri.',
             'is_active.required' => 'Status lokasi wajib dipilih.',
         ];

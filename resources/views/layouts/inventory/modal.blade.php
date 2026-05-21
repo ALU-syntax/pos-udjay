@@ -22,10 +22,10 @@
     <div class="col-md-6 mb-3">
         <div class="form-group">
             <label>Tipe Lokasi <span class="text-danger">*</span></label>
-            <select name="inventory_location_type_id" class="form-select select2InsideModal" required>
+            <select name="inventory_type_id" class="form-select select2InsideModal" required>
                 <option value="">Pilih tipe lokasi</option>
                 @foreach ($types as $type)
-                    <option value="{{ $type->id }}" @if (old('inventory_location_type_id', $data->inventory_location_type_id) == $type->id) selected @endif>
+                    <option value="{{ $type->id }}" @if (old('inventory_type_id', $data->inventory_type_id) == $type->id) selected @endif>
                         {{ $type->name }}{{ $type->is_active ? '' : ' (Nonaktif)' }}
                     </option>
                 @endforeach

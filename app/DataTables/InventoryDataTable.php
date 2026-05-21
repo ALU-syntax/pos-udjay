@@ -2,50 +2,50 @@
 
 namespace App\DataTables;
 
-use App\Models\InventoryLocation;
+use App\Models\Inventory;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
 use Yajra\DataTables\Html\Column;
 use Yajra\DataTables\Services\DataTable;
 
-class InventoryLocationsDataTable extends DataTable
+class InventoryDataTable extends DataTable
 {
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
-            ->addColumn('action', function (InventoryLocation $inventoryLocation) {
-                return view('layouts.inventory.action', compact('inventoryLocation'))->render();
+            ->addColumn('action', function (Inventory $inventory) {
+                return view('layouts.inventory.action', compact('inventory'))->render();
             })
-            ->editColumn('code', function (InventoryLocation $inventoryLocation) {
-                return $inventoryLocation->code
-                    ? '<span class="badge bg-light text-dark border">' . e($inventoryLocation->code) . '</span>'
+            ->editColumn('code', function (Inventory $inventory) {
+                return $inventory->code
+                    ? '<span class="badge bg-light text-dark border">' . e($inventory->code) . '</span>'
                     : '<span class="text-muted">-</span>';
             })
-            ->addColumn('type_name', function (InventoryLocation $inventoryLocation) {
-                return $inventoryLocation->type
-                    ? '<span class="inv-tag inv-tag-type">' . e($inventoryLocation->type->name) . '</span>'
+            ->addColumn('type_name', function (Inventory $inventory) {
+                return $inventory->type
+                    ? '<span class="inv-tag inv-tag-type">' . e($inventory->type->name) . '</span>'
                     : '<span class="text-muted">-</span>';
             })
-            ->addColumn('parent_name', function (InventoryLocation $inventoryLocation) {
-                return $inventoryLocation->parent
-                    ? e($inventoryLocation->parent->name)
+            ->addColumn('parent_name', function (Inventory $inventory) {
+                return $inventory->parent
+                    ? e($inventory->parent->name)
                     : '<span class="text-muted">-</span>';
             })
-            ->addColumn('outlet_name', function (InventoryLocation $inventoryLocation) {
-                return $inventoryLocation->outlet
-                    ? e($inventoryLocation->outlet->name)
+            ->addColumn('outlet_name', function (Inventory $inventory) {
+                return $inventory->outlet
+                    ? e($inventory->outlet->name)
                     : '<span class="text-muted">Semua outlet</span>';
             })
-            ->addColumn('brand_name', function (InventoryLocation $inventoryLocation) {
-                return $inventoryLocation->brand
-                    ? e($inventoryLocation->brand->name)
+            ->addColumn('brand_name', function (Inventory $inventory) {
+                return $inventory->brand
+                    ? e($inventory->brand->name)
                     : '<span class="text-muted">Semua brand</span>';
             })
-            ->addColumn('stock_summary', function (InventoryLocation $inventoryLocation) {
-                $available = (float) ($inventoryLocation->qty_available_sum ?? 0);
-                $reserved = (float) ($inventoryLocation->qty_reserved_sum ?? 0);
-                $materials = (int) ($inventoryLocation->stock_balances_count ?? 0);
+            ->addColumn('stock_summary', function (Inventory $inventory) {
+                $available = (float) ($inventory->qty_available_sum ?? 0);
+                $reserved = (float) ($inventory->qty_reserved_sum ?? 0);
+                $materials = (int) ($inventory->stock_balances_count ?? 0);
                 $free = $available - $reserved;
 
                 return '<div class="inv-stock-meta">'
@@ -53,13 +53,13 @@ class InventoryLocationsDataTable extends DataTable
                     . '<small>Ready ' . number_format($free, 2, ',', '.') . '</small>'
                     . '</div>';
             })
-            ->editColumn('is_active', function (InventoryLocation $inventoryLocation) {
-                return $inventoryLocation->is_active
+            ->editColumn('is_active', function (Inventory $inventory) {
+                return $inventory->is_active
                     ? '<span class="badge badge-pill badge-success">Aktif</span><span class="d-none">1</span>'
                     : '<span class="badge badge-pill badge-secondary">Tidak Aktif</span><span class="d-none">0</span>';
             })
-            ->editColumn('updated_at', function (InventoryLocation $inventoryLocation) {
-                return $inventoryLocation->updated_at ? $inventoryLocation->updated_at->format('d M Y H:i') : '-';
+            ->editColumn('updated_at', function (Inventory $inventory) {
+                return $inventory->updated_at ? $inventory->updated_at->format('d M Y H:i') : '-';
             })
             ->filterColumn('type_name', function (QueryBuilder $query, $keyword) {
                 $query->whereHas('type', fn ($type) => $type->where('name', 'like', "%{$keyword}%"));
@@ -101,7 +101,7 @@ class InventoryLocationsDataTable extends DataTable
             ]);
     }
 
-    public function query(InventoryLocation $model): QueryBuilder
+    public function query(Inventory $model): QueryBuilder
     {
         return $model->newQuery()
             ->with(['type', 'parent', 'outlet', 'brand'])
@@ -143,6 +143,6 @@ class InventoryLocationsDataTable extends DataTable
 
     protected function filename(): string
     {
-        return 'Inventory_Locations_' . date('YmdHis');
+        return 'Inventory_' . date('YmdHis');
     }
 }
