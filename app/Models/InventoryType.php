@@ -10,6 +10,7 @@ class InventoryType extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'inventory_types';
     protected $guarded = ['id'];
 
     protected $casts = [
