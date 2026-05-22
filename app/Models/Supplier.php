@@ -49,6 +49,31 @@ class Supplier extends Model
         return $this->hasMany(SupplierRawMaterials::class);
     }
 
+    public function purchaseOrderItems()
+    {
+        return $this->hasMany(PurchaseOrdersItems::class, 'supplier_id');
+    }
+
+    public function purchaseOrders()
+    {
+        return $this->belongsToMany(
+            PurchaseOrders::class,
+            'purchase_order_items',
+            'supplier_id',
+            'purchase_order_id'
+        )->distinct();
+    }
+
+    public function purchaseOrderReceipts()
+    {
+        return $this->hasMany(PurchaseOrderReceipts::class, 'supplier_id');
+    }
+
+    public function purchaseOrderCancellations()
+    {
+        return $this->hasMany(PurchaseOrderCancellations::class, 'supplier_id');
+    }
+
     public function preferredRawMaterials()
     {
         return $this->hasMany(SupplierRawMaterials::class)->where('is_preferred', true);

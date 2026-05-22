@@ -46,4 +46,14 @@ class Inventory extends Model
     {
         return $this->hasMany(InventoryRawMaterialStockBalance::class, 'inventory_id');
     }
+
+    public function receivingPurchaseOrders()
+    {
+        return $this->hasMany(PurchaseOrders::class, 'receiving_inventory_id');
+    }
+
+    public function purchaseOrderReceipts()
+    {
+        return $this->hasMany(PurchaseOrderReceipts::class, 'received_inventory_id');
+    }
 }
