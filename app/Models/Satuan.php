@@ -25,4 +25,14 @@ class Satuan extends Model
     {
         return $this->hasMany(PurchaseOrderCancellationItems::class, 'unit_id');
     }
+
+    public function rawMaterialRequestItems()
+    {
+        return $this->hasMany(RawMaterialRequestItems::class, 'unit_id');
+    }
+
+    public function procurementPlanItems()
+    {
+        return $this->hasMany(ProcurementPlanItems::class, 'unit_id');
+    }
 }

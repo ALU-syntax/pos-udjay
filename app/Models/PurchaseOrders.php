@@ -21,9 +21,24 @@ class PurchaseOrders extends Model
         'ordered_at' => 'datetime',
     ];
 
-    public function receivingInventory()
+    public function procurementPlan()
+    {
+        return $this->belongsTo(ProcurementPlans::class, 'procurement_plan_id');
+    }
+
+    public function orderedByLocation()
+    {
+        return $this->belongsTo(Inventory::class, 'ordered_by_inventory_id');
+    }
+
+    public function receivingLocation()
     {
         return $this->belongsTo(Inventory::class, 'receiving_inventory_id');
+    }
+
+    public function receivingInventory()
+    {
+        return $this->receivingLocation();
     }
 
     public function status()

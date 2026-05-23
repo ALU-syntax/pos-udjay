@@ -49,11 +49,31 @@ class Inventory extends Model
 
     public function receivingPurchaseOrders()
     {
-        return $this->hasMany(PurchaseOrders::class, 'receiving_inventory_id');
+        return $this->hasMany(PurchaseOrders::class, 'receiving_location_id');
+    }
+
+    public function orderedPurchaseOrders()
+    {
+        return $this->hasMany(PurchaseOrders::class, 'ordered_by_location_id');
     }
 
     public function purchaseOrderReceipts()
     {
         return $this->hasMany(PurchaseOrderReceipts::class, 'received_inventory_id');
+    }
+
+    public function requestedRawMaterialRequests()
+    {
+        return $this->hasMany(RawMaterialRequests::class, 'requester_inventory_id');
+    }
+
+    public function fulfillmentRawMaterialRequests()
+    {
+        return $this->hasMany(RawMaterialRequests::class, 'fulfillment_location_id');
+    }
+
+    public function procurementPlans()
+    {
+        return $this->hasMany(ProcurementPlans::class, 'planning_location_id');
     }
 }

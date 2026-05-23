@@ -51,6 +51,16 @@ class RawMaterials extends Model
         return $this->hasMany(PurchaseOrderCancellationItems::class, 'raw_material_id');
     }
 
+    public function rawMaterialRequestItems()
+    {
+        return $this->hasMany(RawMaterialRequestItems::class, 'raw_material_id');
+    }
+
+    public function procurementPlanItems()
+    {
+        return $this->hasMany(ProcurementPlanItems::class, 'raw_material_id');
+    }
+
     public function inventory()
     {
         return $this->belongsToMany(
