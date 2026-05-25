@@ -3,21 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Imports\BackupImport;
+use App\Jobs\ProcessBackupImportJob;
 use App\Mail\BirthdayMail;
-use App\Mail\TestEmail;
 use App\Models\Checkout;
-use App\Models\Customer;
-use Carbon\Carbon;
+use App\Models\Outlets;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
-use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CheckoutController extends Controller
 {
     public function index()
     {
+        $outletIds = json_decode(auth()->user()->outlet_id ?? '[]') ?: [];
+
         return view('layouts.checkout.index', [
-            'data' =>Checkout::find(1)
+            'data' =>Checkout::find(1),
+            'outlets' => Outlets::whereIn('id', $outletIds)->get(),
         ]);
     }
 
@@ -80,15 +84,75 @@ class CheckoutController extends Controller
 
     public function importDataBackup(Request $request)
     {
-        $request->validate(['file' => 'required|file']);
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt',
+            'import_id' => 'nullable|string|max:80',
+            'fallback_outlet_id' => 'nullable|exists:outlets,id',
+        ]);
+
+        $importId = $request->input('import_id') ?: (string) Str::uuid();
+        $cacheKey = BackupImport::progressCacheKey(auth()->id(), $importId);
 
         try {
-            // jalan sebagai job background — tidak kena timeout web server
-            \Maatwebsite\Excel\Facades\Excel::queueImport(new \App\Imports\BackupImport, $request->file('file'));
-            return back()->with('success', 'Import sedang diproses di background. Cek notifikasi/log.');
+            $file = $request->file('file');
+            $extension = $file->getClientOriginalExtension() ?: 'csv';
+            $storedPath = $file->storeAs('imports/backup', $importId . '.' . $extension);
+
+            Cache::put($cacheKey, array_merge(BackupImport::defaultProgress(), [
+                'status' => 'queued',
+                'message' => 'File diterima. Import masuk antrean.',
+            ]), now()->addHour());
+
+            ProcessBackupImportJob::dispatch(
+                $storedPath,
+                $importId,
+                auth()->id(),
+                $request->integer('fallback_outlet_id') ?: null
+            );
+
+            $message = 'Import dimulai di background. Progress akan berjalan otomatis.';
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => $message,
+                    'data' => [
+                        'import_id' => $importId,
+                    ],
+                ], 202);
+            }
+
+            return back()->with('success', $message);
         } catch (\Throwable $e) {
+            if (isset($storedPath)) {
+                Storage::delete($storedPath);
+            }
+
+            Cache::put($cacheKey, array_merge(BackupImport::defaultProgress(), [
+                'status' => 'failed',
+                'message' => 'Import gagal.',
+                'error' => $e->getMessage(),
+            ]), now()->addHour());
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+                ], 422);
+            }
+
             return back()->with('error', 'Terjadi kesalahan: '.$e->getMessage());
         }
+    }
+
+    public function importDataBackupProgress(string $importId)
+    {
+        return response()->json(
+            Cache::get(
+                BackupImport::progressCacheKey(auth()->id(), $importId),
+                BackupImport::defaultProgress()
+            )
+        );
     }
 
 }

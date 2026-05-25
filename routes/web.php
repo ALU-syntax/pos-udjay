@@ -112,6 +112,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/email-test', [CheckoutController::class, 'sendTestEmail'])->name('email/sendTest');
 
             Route::post('/backup-import', [CheckoutController::class, 'importDataBackup'])->name('checkout/backup-import');
+            Route::get('/backup-import/progress/{importId}', [CheckoutController::class, 'importDataBackupProgress'])->name('checkout/backup-import-progress');
 
         });
 

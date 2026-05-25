@@ -62,10 +62,17 @@ class TransactionsDataTable extends DataTable
                 // sesuaikan dengan relasi milikmu
                 $names = $t->itemTransaction()
                     ->with(['product' => fn($p) => $p->withTrashed()])
+                    ->with(['variant' => fn($v) => $v->withTrashed()])
                     ->get()
                     ->map(function ($it) {
-                        // pakai product->name atau variant->name sesuai datamu
-                        return $it->product?->name ?? $it->variant?->name ?? 'Custom';
+                        $productName = $it->product?->name;
+                        $variantName = $it->variant?->name;
+
+                        if ($productName && $variantName && $productName !== $variantName) {
+                            return "{$productName} ({$variantName})";
+                        }
+
+                        return $productName ?? $variantName ?? 'Custom';
                     });
 
                 return $names->unique()->implode(', ');

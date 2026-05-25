@@ -49,7 +49,7 @@ class Inventory extends Model
 
     public function receivingPurchaseOrders()
     {
-        return $this->hasMany(PurchaseOrders::class, 'receiving_location_id');
+        return $this->hasMany(PurchaseOrders::class, 'receiving_inventory_id');
     }
 
     public function orderedPurchaseOrders()
