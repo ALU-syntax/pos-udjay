@@ -29,6 +29,7 @@ use App\Http\Controllers\PiutangController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PromoController;
+use App\Http\Controllers\RequestOrderController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SalesTypeController;
@@ -480,6 +481,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/{supplier}/raw-materials/{supplierRawMaterial}/edit', [SupplierController::class, 'editRawMaterial'])->name('supplier/raw-materials/edit');
             Route::put('/{supplier}/raw-materials/{supplierRawMaterial}/update', [SupplierController::class, 'updateRawMaterial'])->name('supplier/raw-materials/update');
             Route::delete('/{supplier}/raw-materials/{supplierRawMaterial}/destroy', [SupplierController::class, 'destroyRawMaterial'])->name('supplier/raw-materials/destroy');
+        });
+
+        Route::prefix('supplier')->group(function () {
+            Route::get('/', [RequestOrderController::class, 'index'])->name('request-order');
         });
     });
 

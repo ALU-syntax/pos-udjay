@@ -15,6 +15,9 @@ return new class extends Migration
             $table->id();
 
             $table->string('po_number', 100);
+            $table->unsignedBigInteger('procurement_plan_id')->nullable();
+            $table->unsignedBigInteger('supplier_id');
+            $table->unsignedBigInteger('ordered_by_inventory_id');
             $table->unsignedBigInteger('receiving_inventory_id');
             $table->unsignedBigInteger('status_id')->default(1);
 
@@ -36,8 +39,26 @@ return new class extends Migration
 
             $table->unique('po_number', 'unique_po_number');
 
+            $table->index('procurement_plan_id', 'idx_procurement_plan_id');
+            $table->index('supplier_id', 'idx_supplier_id');
+            $table->index('ordered_by_inventory_id', 'idx_ordered_by_inventory_id');
             $table->index('receiving_inventory_id', 'idx_receiving_inventory_id');
             $table->index('status_id', 'idx_status');
+
+            $table->foreign('procurement_plan_id')
+                ->references('id')
+                ->on('procurement_plans')
+                ->nullOnDelete();
+
+            $table->foreign('supplier_id')
+                ->references('id')
+                ->on('suppliers')
+                ->restrictOnDelete();
+
+            $table->foreign('ordered_by_inventory_id')
+                ->references('id')
+                ->on('inventory')
+                ->restrictOnDelete();
 
             $table->foreign('receiving_inventory_id')
                 ->references('id')

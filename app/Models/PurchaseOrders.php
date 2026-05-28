@@ -26,6 +26,11 @@ class PurchaseOrders extends Model
         return $this->belongsTo(ProcurementPlans::class, 'procurement_plan_id');
     }
 
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
+
     public function orderedByLocation()
     {
         return $this->belongsTo(Inventory::class, 'ordered_by_inventory_id');
@@ -49,16 +54,6 @@ class PurchaseOrders extends Model
     public function items()
     {
         return $this->hasMany(PurchaseOrdersItems::class, 'purchase_order_id');
-    }
-
-    public function suppliers()
-    {
-        return $this->belongsToMany(
-            Supplier::class,
-            'purchase_order_items',
-            'purchase_order_id',
-            'supplier_id'
-        )->distinct();
     }
 
     public function receipts()

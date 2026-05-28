@@ -27,11 +27,6 @@ class PurchaseOrdersItems extends Model
         return $this->belongsTo(PurchaseOrders::class, 'purchase_order_id');
     }
 
-    public function supplier()
-    {
-        return $this->belongsTo(Supplier::class, 'supplier_id');
-    }
-
     public function rawMaterial()
     {
         return $this->belongsTo(RawMaterials::class, 'raw_material_id');

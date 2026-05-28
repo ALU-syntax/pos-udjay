@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
 
             $table->unsignedBigInteger('purchase_order_id');
-            $table->unsignedBigInteger('supplier_id');
             $table->unsignedBigInteger('raw_material_id');
 
             $table->decimal('qty_ordered', 15, 5);
@@ -32,7 +31,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index('purchase_order_id', 'idx_purchase_order_id');
-            $table->index('supplier_id', 'idx_supplier_id');
             $table->index('raw_material_id', 'idx_raw_material_id');
             $table->index('unit_id', 'idx_unit_id');
 
@@ -40,11 +38,6 @@ return new class extends Migration
                 ->references('id')
                 ->on('purchase_orders')
                 ->cascadeOnDelete();
-
-            $table->foreign('supplier_id')
-                ->references('id')
-                ->on('suppliers')
-                ->restrictOnDelete();
 
             $table->foreign('raw_material_id')
                 ->references('id')
