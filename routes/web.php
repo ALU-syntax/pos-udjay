@@ -483,8 +483,15 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{supplier}/raw-materials/{supplierRawMaterial}/destroy', [SupplierController::class, 'destroyRawMaterial'])->name('supplier/raw-materials/destroy');
         });
 
-        Route::prefix('supplier')->group(function () {
+        Route::prefix('request-order')->group(function () {
             Route::get('/', [RequestOrderController::class, 'index'])->name('request-order');
+            Route::get('/create', [RequestOrderController::class, 'create'])->name('request-order/create');
+            Route::post('/store', [RequestOrderController::class, 'store'])->name('request-order/store');
+            Route::get('/detail/{requestOrder}', [RequestOrderController::class, 'detail'])->name('request-order/detail');
+            Route::get('/edit/{requestOrder}', [RequestOrderController::class, 'edit'])->name('request-order/edit');
+            Route::put('/update/{requestOrder}', [RequestOrderController::class, 'update'])->name('request-order/update');
+            Route::delete('/destroy/{requestOrder}', [RequestOrderController::class, 'destroy'])->name('request-order/destroy');
+            Route::post('/submit/{requestOrder}', [RequestOrderController::class, 'submit'])->name('request-order/submit');
         });
     });
 

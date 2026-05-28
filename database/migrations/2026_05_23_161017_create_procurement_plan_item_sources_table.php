@@ -29,12 +29,12 @@ return new class extends Migration
                 'raw_material_request_item_id',
             ], 'proc_plan_item_source_unique');
 
-            $table->foreign('procurement_plan_item_id')
+            $table->foreign('procurement_plan_item_id', 'fk_pp_item')
                 ->references('id')
                 ->on('procurement_plan_items')
                 ->cascadeOnDelete();
 
-            $table->foreign('raw_material_request_item_id')
+            $table->foreign('raw_material_request_item_id', 'fk_request_item')
                 ->references('id')
                 ->on('raw_material_request_items')
                 ->cascadeOnDelete();

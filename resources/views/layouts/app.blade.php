@@ -344,11 +344,18 @@
                             if (errors) {
                                 for (let [key, message] of Object.entries(errors)) {
                                     console.log(message);
-                                    $(`[name=${key}]`).addClass('is-invalid')
-                                        .parent()
-                                        .append(
-                                            `<div class="invalid-feedback">${message}</div>`
-                                        )
+                                    const inputName = key.split('.').reduce(function(name, part, index) {
+                                        return index === 0 ? part : name + '[' + part + ']';
+                                    }, '');
+                                    const field = $(selector).find(`[name="${inputName}"]`);
+
+                                    if (field.length) {
+                                        field.addClass('is-invalid')
+                                            .parent()
+                                            .append(
+                                                `<div class="invalid-feedback">${message}</div>`
+                                            )
+                                    }
                                 }
                             }
 
