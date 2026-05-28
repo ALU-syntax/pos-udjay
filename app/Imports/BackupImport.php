@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Outlets;
 use App\Models\PettyCash;
 use App\Models\Product;
+use App\Models\Taxes;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\VariantProduct;
@@ -34,6 +35,9 @@ class BackupImport
 
     /** @var array<string, int> */
     protected array $priceCache = [];
+
+    /** @var array<int, Taxes> */
+    protected array $taxCache = [];
 
     protected ?Category $historyCategory = null;
 
@@ -278,7 +282,7 @@ class BackupImport
             'category_payment_id' => null,
             'tipe_pembayaran' => null,
             'nama_tipe_pembayaran' => $this->nullableString($row['payment_method'] ?? null) ?: 'MOKA',
-            'total_pajak' => $tax > 0 ? json_encode([['id' => null, 'name' => 'MOKA Tax', 'total' => (int) round($tax)]]) : json_encode([]),
+            'total_pajak' => $this->totalPajakJson($outlet, $tax),
             'total_modifier' => (int) round($this->money($row['gratuity'] ?? 0)),
             'total_diskon' => max(0, (int) round($discount)),
             'diskon_all_item' => json_encode([]),
@@ -378,6 +382,46 @@ class BackupImport
         }
 
         return $this->outletCache[$key] = $outlet;
+    }
+
+    protected function totalPajakJson(Outlets $outlet, float $tax): string
+    {
+        $nominalPajak = max(0, (int) round($tax));
+
+        if ($nominalPajak <= 0) {
+            return json_encode([]);
+        }
+
+        $dataPajak = $this->tax($outlet);
+
+        return json_encode([[
+            'id' => $dataPajak->id,
+            'name' => $dataPajak->name,
+            'amount' => is_numeric($dataPajak->amount) ? (int) $dataPajak->amount : $dataPajak->amount,
+            'satuan' => $dataPajak->satuan,
+            'total' => $nominalPajak,
+        ]]);
+    }
+
+    protected function tax(Outlets $outlet): Taxes
+    {
+        if (isset($this->taxCache[$outlet->id])) {
+            return $this->taxCache[$outlet->id];
+        }
+
+        $taxes = Taxes::where('outlet_id', $outlet->id)
+            ->orderBy('id')
+            ->get();
+
+        $tax = $taxes->first(function (Taxes $tax) {
+            return (float) $tax->amount === 10.0 && trim((string) $tax->satuan) === '%';
+        }) ?? $taxes->first();
+
+        if (!$tax) {
+            throw new \RuntimeException("Data pajak outlet `{$outlet->name}` tidak ditemukan. Buat pajak outlet terlebih dahulu sebelum import backup.");
+        }
+
+        return $this->taxCache[$outlet->id] = $tax;
     }
 
     protected function normalizeOutletName(string $name): string
