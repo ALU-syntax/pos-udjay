@@ -11,6 +11,7 @@ use App\Models\RawMaterialUnitConversions;
 use App\Models\RawMaterialRequests;
 use App\Models\RawMaterials;
 use App\Models\Satuan;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -144,6 +145,79 @@ class RequestOrderController extends Controller
         ]);
 
         return responseSuccess(false, 'Request order berhasil disubmit', $this->stats());
+    }
+
+    public function approve(Request $request, RawMaterialRequests $requestOrder)
+    {
+        $this->ensureSubmitted($requestOrder);
+        $requestOrder->loadMissing('items.rawMaterial');
+
+        if ($requestOrder->items->isEmpty()) {
+            throw ValidationException::withMessages([
+                'items' => 'Request order tidak memiliki item untuk direview.',
+            ]);
+        }
+
+        $validated = $request->validate([
+            'items' => ['required', 'array'],
+            'items.*.qty_base_approved' => ['required', 'numeric', 'min:0'],
+        ], [
+            'items.required' => 'Qty approval wajib dikirim untuk setiap item.',
+            'items.*.qty_base_approved.required' => 'Qty approved wajib diisi.',
+            'items.*.qty_base_approved.numeric' => 'Qty approved harus berupa angka.',
+            'items.*.qty_base_approved.min' => 'Qty approved tidak boleh kurang dari 0.',
+        ]);
+
+        $approvedItems = $validated['items'];
+        $totalApproved = 0;
+
+        foreach ($requestOrder->items as $item) {
+            if (!array_key_exists($item->id, $approvedItems)) {
+                throw ValidationException::withMessages([
+                    "items.{$item->id}.qty_base_approved" => 'Qty approved wajib diisi untuk semua item.',
+                ]);
+            }
+
+            $approvedQty = round((float) $approvedItems[$item->id]['qty_base_approved'], 5);
+
+            if ($approvedQty > (float) $item->qty_base_requested) {
+                $rawMaterialName = $item->rawMaterial?->name ?: 'item ini';
+
+                throw ValidationException::withMessages([
+                    "items.{$item->id}.qty_base_approved" => "Qty approved {$rawMaterialName} tidak boleh melebihi qty base request.",
+                ]);
+            }
+
+            $totalApproved += $approvedQty;
+        }
+
+        if ($totalApproved <= 0) {
+            throw ValidationException::withMessages([
+                'items' => 'Minimal ada satu qty approved yang lebih dari 0 untuk menyetujui request order.',
+            ]);
+        }
+
+        DB::transaction(function () use ($requestOrder, $approvedItems) {
+            foreach ($requestOrder->items as $item) {
+                $item->update([
+                    'qty_base_approved' => round((float) $approvedItems[$item->id]['qty_base_approved'], 5),
+                ]);
+            }
+
+            $requestOrder->update([
+                'status_id' => $this->statusId('approved'),
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
+        });
+
+        if ($request->expectsJson()) {
+            return responseSuccess(false, 'Request order berhasil disetujui', $this->stats());
+        }
+
+        return redirect()
+            ->route('warehouse/request-order/detail', $requestOrder->id)
+            ->with('success', 'Request order berhasil disetujui.');
     }
 
     private function formData(RawMaterialRequests $requestOrder, string $action, string $title): array
@@ -319,6 +393,17 @@ class RequestOrderController extends Controller
         if ($requestOrder->status?->code !== 'draft') {
             throw ValidationException::withMessages([
                 'status' => 'Request order hanya bisa diubah saat masih berstatus draft.',
+            ]);
+        }
+    }
+
+    private function ensureSubmitted(RawMaterialRequests $requestOrder): void
+    {
+        $requestOrder->loadMissing('status');
+
+        if ($requestOrder->status?->code !== 'submitted') {
+            throw ValidationException::withMessages([
+                'status' => 'Request order hanya bisa disetujui saat berstatus submitted.',
             ]);
         }
     }

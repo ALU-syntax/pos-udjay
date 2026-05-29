@@ -492,6 +492,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/update/{requestOrder}', [RequestOrderController::class, 'update'])->name('request-order/update');
             Route::delete('/destroy/{requestOrder}', [RequestOrderController::class, 'destroy'])->name('request-order/destroy');
             Route::post('/submit/{requestOrder}', [RequestOrderController::class, 'submit'])->name('request-order/submit');
+            Route::post('/approve/{requestOrder}', [RequestOrderController::class, 'approve'])->name('request-order/approve');
         });
     });
 

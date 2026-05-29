@@ -3,6 +3,7 @@
     @php
         $statusCode = optional($requestOrder->status)->code;
         $isDraft = $statusCode === 'draft';
+        $isSubmitted = $statusCode === 'submitted';
         $statusClass = match ($statusCode) {
             'draft' => 'bg-secondary',
             'submitted' => 'bg-primary',
@@ -20,6 +21,12 @@
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        @if ($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ $errors->first() }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         @endif
@@ -44,6 +51,11 @@
                     <a href="{{ route('warehouse/request-order/destroy', $requestOrder->id) }}" class="btn btn-outline-danger btn-sm delete-request-order-detail">
                         <i class="fa fa-trash me-1"></i>Hapus
                     </a>
+                @endif
+                @if ($isSubmitted)
+                    <button type="submit" form="approveRequestOrderForm" class="btn btn-success btn-sm">
+                        <i class="fa fa-check-circle me-1"></i>Setujui
+                    </button>
                 @endif
             </div>
         </div>
@@ -138,11 +150,18 @@
             </div>
         </div>
 
+        @if ($isSubmitted)
+            <form id="approveRequestOrderForm" action="{{ route('warehouse/request-order/approve', $requestOrder->id) }}" method="POST">
+                @csrf
+        @endif
+
         <div class="card shadow-sm ro-items-card">
             <div class="card-header bg-white border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
-                    <h5 class="mb-0">Item Request</h5>
-                    <small class="text-muted">Qty base dihitung dari satuan pilihan ke satuan dasar bahan baku.</small>
+                    <h5 class="mb-0">{{ $isSubmitted ? 'Review Item Request' : 'Item Request' }}</h5>
+                    <small class="text-muted">
+                        {{ $isSubmitted ? 'Isi Qty Approved Base sesuai jumlah yang disetujui.' : 'Qty base dihitung dari satuan pilihan ke satuan dasar bahan baku.' }}
+                    </small>
                 </div>
                 <input id="requestItemSearch" type="search" class="form-control form-control-sm ro-detail-search"
                     placeholder="Cari bahan">
@@ -174,7 +193,23 @@
                                         {{ $formatQty($item->qty_base_requested) }}
                                         <small class="text-muted">{{ optional(optional($item->rawMaterial)->baseUnit)->symbol ?: optional(optional($item->rawMaterial)->baseUnit)->name }}</small>
                                     </td>
-                                    <td class="text-end">{{ $item->qty_base_approved !== null ? $formatQty($item->qty_base_approved) : '-' }}</td>
+                                    <td class="text-end">
+                                        @if ($isSubmitted)
+                                            @php
+                                                $approvalField = 'items.' . $item->id . '.qty_base_approved';
+                                                $approvalValue = old($approvalField, $item->qty_base_approved ?? $item->qty_base_requested);
+                                                $maxApprovalValue = number_format((float) $item->qty_base_requested, 5, '.', '');
+                                            @endphp
+                                            <input type="number" name="items[{{ $item->id }}][qty_base_approved]"
+                                                class="form-control form-control-sm text-end ro-approval-input @error($approvalField) is-invalid @enderror"
+                                                value="{{ $approvalValue }}" min="0" max="{{ $maxApprovalValue }}" step="0.00001" required>
+                                            @error($approvalField)
+                                                <div class="invalid-feedback text-start">{{ $message }}</div>
+                                            @enderror
+                                        @else
+                                            {{ $item->qty_base_approved !== null ? $formatQty($item->qty_base_approved) : '-' }}
+                                        @endif
+                                    </td>
                                     <td class="text-end">{{ $formatQty($item->qty_base_fulfilled) }}</td>
                                     <td>{{ $item->notes ?: '-' }}</td>
                                 </tr>
@@ -187,15 +222,35 @@
                     </table>
                 </div>
             </div>
+            @if ($isSubmitted)
+                <div class="card-footer bg-white d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fa fa-check-circle me-1"></i>Setujui Request Order
+                    </button>
+                </div>
+            @endif
         </div>
+
+        @if ($isSubmitted)
+            </form>
+        @endif
     </div>
 
     @push('js')
         <script>
             $(function() {
                 const hasItemRows = $('#request-order-items-detail-table tbody td[colspan]').length === 0;
+                const isSubmitted = @json($isSubmitted);
 
-                if (hasItemRows) {
+                if (hasItemRows && isSubmitted) {
+                    $('#requestItemSearch').on('keyup search', function() {
+                        const keyword = this.value.toLowerCase();
+
+                        $('#request-order-items-detail-table tbody tr').each(function() {
+                            $(this).toggle($(this).text().toLowerCase().includes(keyword));
+                        });
+                    });
+                } else if (hasItemRows) {
                     const itemTable = $('#request-order-items-detail-table').DataTable({
                         pageLength: 10,
                         lengthChange: false,
@@ -279,6 +334,27 @@
                                 showToast('error', err.responseJSON?.message || 'Gagal menghapus request order');
                             }
                         });
+                    });
+                });
+
+                $('#approveRequestOrderForm').on('submit', function(e) {
+                    e.preventDefault();
+                    const form = this;
+
+                    Swal.fire({
+                        title: 'Setujui request order?',
+                        text: 'Qty approved akan disimpan dan status request order berubah menjadi approved.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#15965f',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Ya, setujui'
+                    }).then((result) => {
+                        if (!result.isConfirmed) {
+                            return;
+                        }
+
+                        HTMLFormElement.prototype.submit.call(form);
                     });
                 });
             });
@@ -383,6 +459,11 @@
                 max-width: 360px;
                 overflow-wrap: anywhere;
                 word-break: normal;
+            }
+
+            .ro-approval-input {
+                display: inline-block;
+                width: 150px;
             }
 
             @media (max-width: 768px) {

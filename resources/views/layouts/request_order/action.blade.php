@@ -1,5 +1,6 @@
 @php
     $isDraft = optional($requestOrder->status)->code === 'draft';
+    $isSubmitted = optional($requestOrder->status)->code === 'submitted';
 @endphp
 
 <div class="btn-group" role="group">
@@ -9,7 +10,7 @@
     <ul class="dropdown-menu">
         <li>
             <a class="dropdown-item" href="{{ route('warehouse/request-order/detail', $requestOrder->id) }}">
-                <i class="fa fa-eye me-2"></i>Detail
+                <i class="fa {{ $isSubmitted ? 'fa-user-check' : 'fa-eye' }} me-2"></i>{{ $isSubmitted ? 'Review' : 'Detail' }}
             </a>
         </li>
         @if ($isDraft)
