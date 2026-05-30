@@ -53,8 +53,8 @@ class RequestOrderDataTable extends DataTable
             ->editColumn('needed_at', function (RawMaterialRequests $requestOrder) {
                 return $requestOrder->needed_at ? $requestOrder->needed_at->format('d M Y') : '<span class="text-muted">-</span>';
             })
-            ->editColumn('requested_at', function (RawMaterialRequests $requestOrder) {
-                return $requestOrder->requested_at ? $requestOrder->requested_at->format('d M Y H:i') : '<span class="text-muted">Belum submit</span>';
+            ->editColumn('created_at', function (RawMaterialRequests $requestOrder) {
+                return $requestOrder->created_at ? $requestOrder->created_at->format('d M Y H:i') : '-';
             })
             ->editColumn('updated_at', function (RawMaterialRequests $requestOrder) {
                 return $requestOrder->updated_at ? $requestOrder->updated_at->format('d M Y H:i') : '-';
@@ -84,7 +84,7 @@ class RequestOrderDataTable extends DataTable
                 'fulfillment_name',
                 'items_count_label',
                 'needed_at',
-                'requested_at',
+                'created_at',
             ]);
     }
 
@@ -121,7 +121,7 @@ class RequestOrderDataTable extends DataTable
             Column::make('fulfillment_name')->title('Dipenuhi Oleh')->orderable(false),
             Column::make('needed_at')->title('Dibutuhkan'),
             Column::make('items_count_label')->title('Item')->searchable(false)->orderable(false),
-            Column::make('requested_at')->title('Submit Pada'),
+            Column::make('created_at')->title('Dibuat Pada'),
             Column::make('updated_at')->title('Update Terakhir'),
             Column::computed('action')
                 ->exportable(false)

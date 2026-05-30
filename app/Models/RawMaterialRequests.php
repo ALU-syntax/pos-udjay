@@ -14,7 +14,6 @@ class RawMaterialRequests extends Model
 
     protected $casts = [
         'needed_at' => 'date',
-        'requested_at' => 'datetime',
         'approved_at' => 'datetime',
     ];
 

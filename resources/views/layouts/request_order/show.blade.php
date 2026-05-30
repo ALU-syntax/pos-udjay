@@ -105,8 +105,8 @@
                                 <dd>{{ optional($requestOrder->requestedBy)->name ?? '-' }}</dd>
                             </div>
                             <div>
-                                <dt>Requested At</dt>
-                                <dd>{{ optional($requestOrder->requested_at)->format('d M Y H:i') ?? '-' }}</dd>
+                                <dt>Created At</dt>
+                                <dd>{{ optional($requestOrder->created_at)->format('d M Y H:i') ?? '-' }}</dd>
                             </div>
                             <div>
                                 <dt>Approved By</dt>

@@ -25,7 +25,6 @@ return new class extends Migration
 
         DB::table('inventory_types')->insert([
             ['name' => 'Central Warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Branch Warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'Outlet Warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'Kitchen', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'Bar', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],

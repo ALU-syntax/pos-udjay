@@ -46,7 +46,6 @@ class RequestOrderController extends Controller
                 'request_number' => $validated['request_number'] ?: $this->nextRequestNumber(),
                 'status_id' => $this->statusId('draft'),
                 'requested_by' => auth()->id(),
-                'requested_at' => null,
                 'approved_by' => null,
                 'approved_at' => null,
             ]));
@@ -141,7 +140,6 @@ class RequestOrderController extends Controller
         $requestOrder->update([
             'status_id' => $this->statusId('submitted'),
             'requested_by' => auth()->id(),
-            'requested_at' => now(),
         ]);
 
         return responseSuccess(false, 'Request order berhasil disubmit', $this->stats());

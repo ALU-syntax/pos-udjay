@@ -26,7 +26,6 @@ return new class extends Migration
             $table->unsignedBigInteger('requested_by')->nullable();
             $table->unsignedBigInteger('approved_by')->nullable();
 
-            $table->dateTime('requested_at')->nullable();
             $table->dateTime('approved_at')->nullable();
 
             $table->text('notes')->nullable();

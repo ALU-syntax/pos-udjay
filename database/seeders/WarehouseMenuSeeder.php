@@ -21,7 +21,7 @@ class WarehouseMenuSeeder extends Seeder
             $mm = Menu::firstOrCreate(['url' => 'library'], ['name' => 'Library', 'category' => 'LIBRARY', 'icon' => 'fa-book']);
             $this->attachMenuPermission($mm, null, ['admin']);
             $sm = $mm->subMenus()->updateOrCreate(
-                ['url' => 'warehouse/satuan'],
+                ['url' => 'library/satuan'],
                 [
                     'name' => 'Satuan',
                     'category' => $mm->category,
