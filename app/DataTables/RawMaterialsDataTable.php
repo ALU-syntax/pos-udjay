@@ -18,10 +18,12 @@ class RawMaterialsDataTable extends DataTable
             ->addColumn('action', function (RawMaterials $rawMaterial) {
                 return view('layouts.bahan_baku.action', compact('rawMaterial'))->render();
             })
-            ->editColumn('code', function (RawMaterials $rawMaterial) {
-                return $rawMaterial->code
-                    ? '<span class="badge bg-light text-dark border">' . e($rawMaterial->code) . '</span>'
-                    : '<span class="text-muted">-</span>';
+            ->editColumn('name', function (RawMaterials $rawMaterial) {
+                $code = $rawMaterial->code
+                    ? '<span class="badge bg-light text-dark border mt-1">' . e($rawMaterial->code) . '</span>'
+                    : '<span class="text-muted small d-block mt-1">Tanpa kode</span>';
+
+                return '<div class="fw-semibold">' . e($rawMaterial->name) . '</div>' . $code;
             })
             ->addColumn('category_name', function (RawMaterials $rawMaterial) {
                 return $rawMaterial->category
@@ -61,6 +63,12 @@ class RawMaterialsDataTable extends DataTable
 
                 $query->whereHas('category', fn ($category) => $category->where('name', 'like', "%{$keyword}%"));
             })
+            ->filterColumn('name', function (QueryBuilder $query, $keyword) {
+                $query->where(function (QueryBuilder $query) use ($keyword) {
+                    $query->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('code', 'like', "%{$keyword}%");
+                });
+            })
             ->filterColumn('base_unit_name', function (QueryBuilder $query, $keyword) {
                 $query->whereHas('baseUnit', fn ($unit) => $unit
                     ->where('name', 'like', "%{$keyword}%")
@@ -69,8 +77,7 @@ class RawMaterialsDataTable extends DataTable
             ->filterColumn('storage_type_name', function (QueryBuilder $query, $keyword) {
                 $query->whereHas('storageType', fn ($storageType) => $storageType->where('name', 'like', "%{$keyword}%"));
             })
-            ->addIndexColumn()
-            ->rawColumns(['action', 'code', 'category_name', 'base_unit_name', 'storage_type_name', 'is_active', 'notes']);
+            ->rawColumns(['action', 'name', 'category_name', 'base_unit_name', 'storage_type_name', 'is_active', 'notes']);
     }
 
     public function query(RawMaterials $model): QueryBuilder
@@ -86,15 +93,13 @@ class RawMaterialsDataTable extends DataTable
             ->columns($this->getColumns())
             ->minifiedAjax()
             ->responsive(true)
-            ->orderBy(2);
+            ->orderBy(0);
     }
 
     public function getColumns(): array
     {
         return [
-            Column::make('DT_RowIndex')->title('No')->searchable(false)->orderable(false)->width(48),
-            Column::make('code')->title('Kode'),
-            Column::make('name')->title('Nama Bahan'),
+            Column::make('name')->title('Bahan Baku'),
             Column::make('category_name')->title('Kategori')->orderable(false),
             Column::make('base_unit_name')->title('Satuan Dasar')->orderable(false),
             Column::make('storage_type_name')->title('Penyimpanan')->orderable(false),

@@ -31,7 +31,7 @@ class WarehouseMenuSeeder extends Seeder
             $this->attachMenuPermission($sm, null, ['admin']);
 
             $sm = $mm->subMenus()->updateOrCreate(
-                ['url' => 'library/category-bahan-baku'],
+                ['url' => 'library/kategori-bahan-baku'],
                 [
                     'name' => 'Kategori Bahan Baku',
                     'category' => $mm->category,

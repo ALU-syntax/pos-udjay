@@ -276,7 +276,7 @@ Route::middleware('auth')->group(function () {
             Route::delete('/conversions/{conversion}/destroy', [SatuanController::class, 'destroyConversion'])->name('satuan/conversions/destroy');
         });
 
-        Route::prefix('category-bahan-baku')->group(function () {
+        Route::prefix('kategori-bahan-baku')->group(function () {
             Route::get('/', [KategoriBahanBakuController::class, 'index'])->name('category-bahan-baku');
             Route::get('/create', [KategoriBahanBakuController::class, 'create'])->name('category-bahan-baku/create');
             Route::post('/store', [KategoriBahanBakuController::class, 'store'])->name('category-bahan-baku/store');

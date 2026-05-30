@@ -151,15 +151,15 @@
                     const table = $('#' + datatable).DataTable();
 
                     $('#filterCategory').on('change', function() {
-                        table.column('3:visible').search(this.value).draw();
+                        table.column('1:visible').search(this.value).draw();
                     });
 
                     $('#filterStorage').on('change', function() {
-                        table.column('5:visible').search(this.value).draw();
+                        table.column('3:visible').search(this.value).draw();
                     });
 
                     $('#filterStatus').on('change', function() {
-                        table.column('7:visible').search(this.value).draw();
+                        table.column('4:visible').search(this.value).draw();
                     });
 
                     const wrapper = $('#' + datatable).closest('.dataTables_wrapper');
