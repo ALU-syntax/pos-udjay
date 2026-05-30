@@ -12,10 +12,13 @@ class RawMaterialRequestItems extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'qty_requested' => 'decimal:5',
-        'qty_base_requested' => 'decimal:5',
-        'qty_base_approved' => 'decimal:5',
-        'qty_base_fulfilled' => 'decimal:5',
+        'requested_qty' => 'decimal:5',
+        'requested_conversion_to_base' => 'decimal:6',
+        'requested_base_qty' => 'decimal:5',
+        'approved_qty' => 'decimal:5',
+        'approved_conversion_to_base' => 'decimal:6',
+        'approved_base_qty' => 'decimal:5',
+        'fulfilled_base_qty' => 'decimal:5',
     ];
 
     public function rawMaterialRequest()
@@ -30,7 +33,32 @@ class RawMaterialRequestItems extends Model
 
     public function unit()
     {
-        return $this->belongsTo(Satuan::class, 'unit_id');
+        return $this->requestedSatuan();
+    }
+
+    public function requestedSatuan()
+    {
+        return $this->belongsTo(Satuan::class, 'requested_satuan_id');
+    }
+
+    public function requestedBaseSatuan()
+    {
+        return $this->belongsTo(Satuan::class, 'requested_base_satuan_id');
+    }
+
+    public function approvedSatuan()
+    {
+        return $this->belongsTo(Satuan::class, 'approved_satuan_id');
+    }
+
+    public function approvedBaseSatuan()
+    {
+        return $this->belongsTo(Satuan::class, 'approved_base_satuan_id');
+    }
+
+    public function fulfilledBaseSatuan()
+    {
+        return $this->belongsTo(Satuan::class, 'fulfilled_base_satuan_id');
     }
 
     public function procurementPlanItemSources()

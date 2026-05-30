@@ -237,8 +237,14 @@
                                         <td>{{ optional($requestOrder?->requesterInventory)->name ?? '-' }}</td>
                                         <td>{{ optional($requestOrder?->fulfillmentInventory)->name ?? 'Belum ditentukan' }}</td>
                                         <td>{{ optional($requestItem?->rawMaterial)->name ?? optional($item->rawMaterial)->name ?? '-' }}</td>
-                                        <td class="text-end">{{ $formatQty($requestItem?->qty_base_approved ?? 0) }}</td>
-                                        <td class="text-end">{{ $formatQty($source->qty_base_allocated) }}</td>
+                                        <td class="text-end">
+                                            {{ $formatQty($requestItem?->approved_base_qty ?? 0) }}
+                                            <small class="text-muted">{{ $requestItem?->approved_base_satuan_name }}</small>
+                                        </td>
+                                        <td class="text-end">
+                                            {{ $formatQty($source->qty_base_allocated) }}
+                                            <small class="text-muted">{{ $requestItem?->approved_base_satuan_name }}</small>
+                                        </td>
                                     </tr>
                                 @endforeach
                             @empty

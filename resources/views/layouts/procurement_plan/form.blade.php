@@ -115,7 +115,8 @@
                                         $supplierField = 'supplier_raw_materials.' . $groupId;
                                         $selectedSupplierId = (int) old($supplierField, $defaultSupplierId);
                                         $selectedSupplierOption = collect($supplierOptions)->firstWhere('id', $selectedSupplierId);
-                                        $baseUnit = optional(optional($group->raw_material)->baseUnit)->symbol
+                                        $baseUnit = $group->base_satuan_name
+                                            ?: optional(optional($group->raw_material)->baseUnit)->symbol
                                             ?: optional(optional($group->raw_material)->baseUnit)->name;
                                         $groupSearchText = strtolower(
                                             ($group->raw_material?->name ?? '') . ' ' .

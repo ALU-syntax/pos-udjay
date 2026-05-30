@@ -141,7 +141,7 @@ class ProcurementPlanController extends Controller
                     'qty_available_base' => round($availableQty, 5),
                     'qty_shortage_base' => round($shortageQty, 5),
                     'qty_to_purchase_base' => round($shortageQty, 5),
-                    'unit_id' => $items->first()->rawMaterial->base_unit_id,
+                    'unit_id' => $items->first()->approved_base_satuan_id ?: $items->first()->rawMaterial->base_unit_id,
                     'estimated_unit_price' => $estimatedUnitPrice,
                     'estimated_subtotal' => $estimatedSubtotal !== null ? round($estimatedSubtotal, 2) : null,
                     'notes' => null,
@@ -215,15 +215,15 @@ class ProcurementPlanController extends Controller
                 'rawMaterialRequest.requesterInventory',
                 'rawMaterialRequest.fulfillmentInventory',
             ])
-            ->whereNotNull('qty_base_approved')
-            ->where('qty_base_approved', '>', 0)
+            ->whereNotNull('approved_base_qty')
+            ->where('approved_base_qty', '>', 0)
             ->whereHas('rawMaterialRequest.status', fn ($status) => $status->where('code', 'approved'))
             ->orderBy('raw_material_request_id')
             ->orderBy('raw_material_id')
             ->get()
             ->map(function (RawMaterialRequestItems $item) use ($allocatedQtyByRequestItem) {
                 $allocatedQty = (float) ($allocatedQtyByRequestItem[$item->id] ?? 0);
-                $approvedQty = (float) $item->qty_base_approved;
+                $approvedQty = (float) $item->approved_base_qty;
 
                 $item->allocated_qty_base = round($allocatedQty, 5);
                 $item->remaining_qty_base = round(max($approvedQty - $allocatedQty, 0), 5);
@@ -244,8 +244,9 @@ class ProcurementPlanController extends Controller
                 return (object) [
                     'raw_material_id' => $firstItem->raw_material_id,
                     'raw_material' => $firstItem->rawMaterial,
+                    'base_satuan_name' => $firstItem->approved_base_satuan_name ?: $firstItem->requested_base_satuan_name,
                     'items' => $items->values(),
-                    'total_approved_base' => $items->sum(fn (RawMaterialRequestItems $item) => (float) $item->qty_base_approved),
+                    'total_approved_base' => $items->sum(fn (RawMaterialRequestItems $item) => (float) $item->approved_base_qty),
                     'total_allocated_base' => $items->sum(fn (RawMaterialRequestItems $item) => (float) $item->allocated_qty_base),
                     'total_remaining_base' => $items->sum(fn (RawMaterialRequestItems $item) => (float) $item->remaining_qty_base),
                 ];

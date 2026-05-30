@@ -17,12 +17,25 @@ return new class extends Migration
             $table->unsignedBigInteger('raw_material_request_id');
             $table->unsignedBigInteger('raw_material_id');
 
-            $table->decimal('qty_requested', 15, 5);
-            $table->unsignedBigInteger('unit_id');
-            $table->decimal('qty_base_requested', 15, 5);
+            $table->decimal('requested_qty', 15, 5);
+            $table->unsignedBigInteger('requested_satuan_id');
+            $table->string('requested_satuan_name', 100);
+            $table->decimal('requested_conversion_to_base', 18, 6);
+            $table->decimal('requested_base_qty', 15, 5);
+            $table->unsignedBigInteger('requested_base_satuan_id');
+            $table->string('requested_base_satuan_name', 100);
 
-            $table->decimal('qty_base_approved', 15, 5)->nullable();
-            $table->decimal('qty_base_fulfilled', 15, 5)->default(0);
+            $table->decimal('approved_qty', 15, 5)->nullable();
+            $table->unsignedBigInteger('approved_satuan_id')->nullable();
+            $table->string('approved_satuan_name', 100)->nullable();
+            $table->decimal('approved_conversion_to_base', 18, 6)->nullable();
+            $table->decimal('approved_base_qty', 15, 5)->nullable();
+            $table->unsignedBigInteger('approved_base_satuan_id')->nullable();
+            $table->string('approved_base_satuan_name', 100)->nullable();
+
+            $table->decimal('fulfilled_base_qty', 15, 5)->default(0);
+            $table->unsignedBigInteger('fulfilled_base_satuan_id');
+            $table->string('fulfilled_base_satuan_name', 100);
 
             $table->text('notes')->nullable();
 
@@ -30,7 +43,11 @@ return new class extends Migration
 
             $table->index('raw_material_request_id', 'idx_rm_request_items_request_id');
             $table->index('raw_material_id', 'idx_rm_request_items_raw_material_id');
-            $table->index('unit_id', 'idx_rm_request_items_unit_id');
+            $table->index('requested_satuan_id', 'idx_rm_request_items_requested_satuan_id');
+            $table->index('requested_base_satuan_id', 'idx_rm_request_items_requested_base_satuan_id');
+            $table->index('approved_satuan_id', 'idx_rm_request_items_approved_satuan_id');
+            $table->index('approved_base_satuan_id', 'idx_rm_request_items_approved_base_satuan_id');
+            $table->index('fulfilled_base_satuan_id', 'idx_rm_request_items_fulfilled_base_satuan_id');
 
             $table->foreign('raw_material_request_id', 'rm_request_items_request_id_foreign')
                 ->references('id')
@@ -40,11 +57,6 @@ return new class extends Migration
             $table->foreign('raw_material_id', 'rm_request_items_raw_material_id_foreign')
                 ->references('id')
                 ->on('raw_materials')
-                ->restrictOnDelete();
-
-            $table->foreign('unit_id', 'rm_request_items_unit_id_foreign')
-                ->references('id')
-                ->on('satuans')
                 ->restrictOnDelete();
         });
     }

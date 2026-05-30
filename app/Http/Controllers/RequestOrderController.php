@@ -158,12 +158,12 @@ class RequestOrderController extends Controller
 
         $validated = $request->validate([
             'items' => ['required', 'array'],
-            'items.*.qty_base_approved' => ['required', 'numeric', 'min:0'],
+            'items.*.approved_base_qty' => ['required', 'numeric', 'min:0'],
         ], [
             'items.required' => 'Qty approval wajib dikirim untuk setiap item.',
-            'items.*.qty_base_approved.required' => 'Qty approved wajib diisi.',
-            'items.*.qty_base_approved.numeric' => 'Qty approved harus berupa angka.',
-            'items.*.qty_base_approved.min' => 'Qty approved tidak boleh kurang dari 0.',
+            'items.*.approved_base_qty.required' => 'Qty approved wajib diisi.',
+            'items.*.approved_base_qty.numeric' => 'Qty approved harus berupa angka.',
+            'items.*.approved_base_qty.min' => 'Qty approved tidak boleh kurang dari 0.',
         ]);
 
         $approvedItems = $validated['items'];
@@ -172,17 +172,17 @@ class RequestOrderController extends Controller
         foreach ($requestOrder->items as $item) {
             if (!array_key_exists($item->id, $approvedItems)) {
                 throw ValidationException::withMessages([
-                    "items.{$item->id}.qty_base_approved" => 'Qty approved wajib diisi untuk semua item.',
+                    "items.{$item->id}.approved_base_qty" => 'Qty approved wajib diisi untuk semua item.',
                 ]);
             }
 
-            $approvedQty = round((float) $approvedItems[$item->id]['qty_base_approved'], 5);
+            $approvedQty = round((float) $approvedItems[$item->id]['approved_base_qty'], 5);
 
-            if ($approvedQty > (float) $item->qty_base_requested) {
+            if ($approvedQty > (float) $item->requested_base_qty) {
                 $rawMaterialName = $item->rawMaterial?->name ?: 'item ini';
 
                 throw ValidationException::withMessages([
-                    "items.{$item->id}.qty_base_approved" => "Qty approved {$rawMaterialName} tidak boleh melebihi qty base request.",
+                    "items.{$item->id}.approved_base_qty" => "Qty approved {$rawMaterialName} tidak boleh melebihi qty base request.",
                 ]);
             }
 
@@ -197,8 +197,16 @@ class RequestOrderController extends Controller
 
         DB::transaction(function () use ($requestOrder, $approvedItems) {
             foreach ($requestOrder->items as $item) {
+                $approvedBaseQty = round((float) $approvedItems[$item->id]['approved_base_qty'], 5);
+
                 $item->update([
-                    'qty_base_approved' => round((float) $approvedItems[$item->id]['qty_base_approved'], 5),
+                    'approved_qty' => $approvedBaseQty,
+                    'approved_satuan_id' => $item->requested_base_satuan_id,
+                    'approved_satuan_name' => $item->requested_base_satuan_name,
+                    'approved_conversion_to_base' => 1,
+                    'approved_base_qty' => $approvedBaseQty,
+                    'approved_base_satuan_id' => $item->requested_base_satuan_id,
+                    'approved_base_satuan_name' => $item->requested_base_satuan_name,
                 ]);
             }
 
@@ -264,56 +272,106 @@ class RequestOrderController extends Controller
         $requestOrder->items()->delete();
 
         foreach ($items as $index => $item) {
+            $snapshot = $this->requestedQuantitySnapshot(
+                (float) $item['requested_qty'],
+                (int) $item['raw_material_id'],
+                (int) $item['requested_satuan_id'],
+                $index
+            );
+
             $requestOrder->items()->create([
                 'raw_material_id' => $item['raw_material_id'],
-                'qty_requested' => $item['qty_requested'],
-                'unit_id' => $item['unit_id'],
-                'qty_base_requested' => $this->toBaseQty(
-                    (float) $item['qty_requested'],
-                    (int) $item['raw_material_id'],
-                    (int) $item['unit_id'],
-                    $index
-                ),
-                'qty_base_approved' => null,
-                'qty_base_fulfilled' => 0,
+                'requested_qty' => $snapshot['requested_qty'],
+                'requested_satuan_id' => $snapshot['requested_satuan_id'],
+                'requested_satuan_name' => $snapshot['requested_satuan_name'],
+                'requested_conversion_to_base' => $snapshot['requested_conversion_to_base'],
+                'requested_base_qty' => $snapshot['requested_base_qty'],
+                'requested_base_satuan_id' => $snapshot['requested_base_satuan_id'],
+                'requested_base_satuan_name' => $snapshot['requested_base_satuan_name'],
+                'approved_qty' => null,
+                'approved_satuan_id' => null,
+                'approved_satuan_name' => null,
+                'approved_conversion_to_base' => null,
+                'approved_base_qty' => null,
+                'approved_base_satuan_id' => null,
+                'approved_base_satuan_name' => null,
+                'fulfilled_base_qty' => 0,
+                'fulfilled_base_satuan_id' => $snapshot['requested_base_satuan_id'],
+                'fulfilled_base_satuan_name' => $snapshot['requested_base_satuan_name'],
                 'notes' => $item['notes'] ?? null,
             ]);
         }
     }
 
-    private function toBaseQty(float $qty, int $rawMaterialId, int $unitId, int $index): float
+    private function requestedQuantitySnapshot(float $qty, int $rawMaterialId, int $satuanId, int $index): array
     {
         $rawMaterial = RawMaterials::with('baseUnit')->findOrFail($rawMaterialId);
+        $satuan = Satuan::findOrFail($satuanId);
+        $baseSatuan = $rawMaterial->baseUnit;
 
-        if ((int) $rawMaterial->base_unit_id === $unitId) {
-            return round($qty, 5);
+        if (!$baseSatuan) {
+            throw ValidationException::withMessages([
+                "items.{$index}.raw_material_id" => "{$rawMaterial->name} belum memiliki satuan dasar.",
+            ]);
         }
 
-        $conversion = RawMaterialUnitConversions::where('raw_material_id', $rawMaterialId)
-            ->where('from_unit_id', $unitId)
-            ->where('to_unit_id', $rawMaterial->base_unit_id)
-            ->first();
+        if ((int) $rawMaterial->base_unit_id === $satuanId) {
+            $conversionToBase = 1;
+        } else {
+            $conversion = RawMaterialUnitConversions::where('raw_material_id', $rawMaterialId)
+                ->where('from_unit_id', $satuanId)
+                ->where('to_unit_id', $rawMaterial->base_unit_id)
+                ->first();
 
-        if ($conversion) {
-            return round($qty * (float) $conversion->multiplier, 5);
+            if ($conversion) {
+                $conversionToBase = (float) $conversion->multiplier;
+            } else {
+                $reverseConversion = RawMaterialUnitConversions::where('raw_material_id', $rawMaterialId)
+                    ->where('from_unit_id', $rawMaterial->base_unit_id)
+                    ->where('to_unit_id', $satuanId)
+                    ->first();
+
+                if ($reverseConversion) {
+                    $reverseMultiplier = (float) $reverseConversion->multiplier;
+
+                    if ($reverseMultiplier <= 0) {
+                        throw ValidationException::withMessages([
+                            "items.{$index}.requested_satuan_id" => "Konversi satuan untuk {$rawMaterial->name} tidak valid.",
+                        ]);
+                    }
+
+                    $conversionToBase = 1 / $reverseMultiplier;
+                } else {
+                    $unitLabel = $this->satuanSnapshotName($satuan);
+                    $baseUnitLabel = $this->satuanSnapshotName($baseSatuan);
+
+                    throw ValidationException::withMessages([
+                        "items.{$index}.requested_satuan_id" => "{$unitLabel} belum memiliki konversi ke {$baseUnitLabel} untuk {$rawMaterial->name}.",
+                    ]);
+                }
+            }
         }
 
-        $reverseConversion = RawMaterialUnitConversions::where('raw_material_id', $rawMaterialId)
-            ->where('from_unit_id', $rawMaterial->base_unit_id)
-            ->where('to_unit_id', $unitId)
-            ->first();
-
-        if ($reverseConversion) {
-            return round($qty / (float) $reverseConversion->multiplier, 5);
+        if ($conversionToBase <= 0) {
+            throw ValidationException::withMessages([
+                "items.{$index}.requested_satuan_id" => "Konversi satuan untuk {$rawMaterial->name} tidak valid.",
+            ]);
         }
 
-        $unit = Satuan::find($unitId);
-        $unitLabel = $unit?->symbol ?: $unit?->name ?: 'Satuan terpilih';
-        $baseUnitLabel = $rawMaterial->baseUnit?->symbol ?: $rawMaterial->baseUnit?->name ?: 'satuan dasar';
+        return [
+            'requested_qty' => round($qty, 5),
+            'requested_satuan_id' => $satuan->id,
+            'requested_satuan_name' => $this->satuanSnapshotName($satuan),
+            'requested_conversion_to_base' => round($conversionToBase, 6),
+            'requested_base_qty' => round($qty * $conversionToBase, 5),
+            'requested_base_satuan_id' => $baseSatuan->id,
+            'requested_base_satuan_name' => $this->satuanSnapshotName($baseSatuan),
+        ];
+    }
 
-        throw ValidationException::withMessages([
-            "items.{$index}.unit_id" => "{$unitLabel} belum memiliki konversi ke {$baseUnitLabel} untuk {$rawMaterial->name}.",
-        ]);
+    private function satuanSnapshotName(Satuan $satuan): string
+    {
+        return $satuan->symbol ?: $satuan->name;
     }
 
     private function unitOptionsByRawMaterial($rawMaterials, $units, $conversions): array
@@ -463,8 +521,8 @@ class RequestOrderController extends Controller
 
         return [
             'total_items' => $items->count(),
-            'total_approved_qty_base' => $items->sum(fn ($item) => (float) ($item->qty_base_approved ?? 0)),
-            'total_fulfilled_qty_base' => $items->sum(fn ($item) => (float) ($item->qty_base_fulfilled ?? 0)),
+            'total_approved_qty_base' => $items->sum(fn ($item) => (float) ($item->approved_base_qty ?? 0)),
+            'total_fulfilled_qty_base' => $items->sum(fn ($item) => (float) ($item->fulfilled_base_qty ?? 0)),
         ];
     }
 }

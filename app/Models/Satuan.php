@@ -28,7 +28,7 @@ class Satuan extends Model
 
     public function rawMaterialRequestItems()
     {
-        return $this->hasMany(RawMaterialRequestItems::class, 'unit_id');
+        return $this->hasMany(RawMaterialRequestItems::class, 'requested_satuan_id');
     }
 
     public function procurementPlanItems()

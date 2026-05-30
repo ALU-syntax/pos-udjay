@@ -188,29 +188,38 @@
                                         <div class="fw-semibold">{{ optional($item->rawMaterial)->name ?? '-' }}</div>
                                         <small class="text-muted">{{ optional($item->rawMaterial)->code ?? 'Tanpa kode' }}</small>
                                     </td>
-                                    <td class="text-end">{{ $formatQty($item->qty_requested) }}</td>
                                     <td class="text-end">
-                                        {{ $formatQty($item->qty_base_requested) }}
-                                        <small class="text-muted">{{ optional(optional($item->rawMaterial)->baseUnit)->symbol ?: optional(optional($item->rawMaterial)->baseUnit)->name }}</small>
+                                        {{ $formatQty($item->requested_qty) }}
+                                        <small class="text-muted">{{ $item->requested_satuan_name }}</small>
+                                    </td>
+                                    <td class="text-end">
+                                        {{ $formatQty($item->requested_base_qty) }}
+                                        <small class="text-muted">{{ $item->requested_base_satuan_name }}</small>
                                     </td>
                                     <td class="text-end">
                                         @if ($isSubmitted)
                                             @php
-                                                $approvalField = 'items.' . $item->id . '.qty_base_approved';
-                                                $approvalValue = old($approvalField, $item->qty_base_approved ?? $item->qty_base_requested);
-                                                $maxApprovalValue = number_format((float) $item->qty_base_requested, 5, '.', '');
+                                                $approvalField = 'items.' . $item->id . '.approved_base_qty';
+                                                $approvalValue = old($approvalField, $item->approved_base_qty ?? $item->requested_base_qty);
+                                                $maxApprovalValue = number_format((float) $item->requested_base_qty, 5, '.', '');
                                             @endphp
-                                            <input type="number" name="items[{{ $item->id }}][qty_base_approved]"
+                                            <input type="number" name="items[{{ $item->id }}][approved_base_qty]"
                                                 class="form-control form-control-sm text-end ro-approval-input @error($approvalField) is-invalid @enderror"
                                                 value="{{ $approvalValue }}" min="0" max="{{ $maxApprovalValue }}" step="0.00001" required>
                                             @error($approvalField)
                                                 <div class="invalid-feedback text-start">{{ $message }}</div>
                                             @enderror
                                         @else
-                                            {{ $item->qty_base_approved !== null ? $formatQty($item->qty_base_approved) : '-' }}
+                                            {{ $item->approved_base_qty !== null ? $formatQty($item->approved_base_qty) : '-' }}
+                                            @if ($item->approved_base_qty !== null)
+                                                <small class="text-muted">{{ $item->approved_base_satuan_name }}</small>
+                                            @endif
                                         @endif
                                     </td>
-                                    <td class="text-end">{{ $formatQty($item->qty_base_fulfilled) }}</td>
+                                    <td class="text-end">
+                                        {{ $formatQty($item->fulfilled_base_qty) }}
+                                        <small class="text-muted">{{ $item->fulfilled_base_satuan_name }}</small>
+                                    </td>
                                     <td>{{ $item->notes ?: '-' }}</td>
                                 </tr>
                             @empty

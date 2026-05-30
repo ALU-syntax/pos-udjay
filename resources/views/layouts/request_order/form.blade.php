@@ -7,8 +7,8 @@
             $formItems = $data->exists
                 ? $data->items->map(fn ($item) => [
                     'raw_material_id' => $item->raw_material_id,
-                    'qty_requested' => $item->qty_requested,
-                    'unit_id' => $item->unit_id,
+                    'requested_qty' => $item->requested_qty,
+                    'requested_satuan_id' => $item->requested_satuan_id,
                     'notes' => $item->notes,
                 ])->values()->all()
                 : [];
@@ -206,23 +206,23 @@
                                             <div class="item-stock-info mt-2"></div>
                                         </td>
                                         <td>
-                                            <input name="items[{{ $index }}][qty_requested]" data-field="qty_requested"
-                                                value="{{ $item['qty_requested'] ?? '' }}" type="number" step="0.00001"
+                                            <input name="items[{{ $index }}][requested_qty]" data-field="requested_qty"
+                                                value="{{ $item['requested_qty'] ?? '' }}" type="number" step="0.00001"
                                                 min="0.00001"
-                                                class="form-control form-control-sm text-end @error('items.' . $index . '.qty_requested') is-invalid @enderror"
+                                                class="form-control form-control-sm text-end @error('items.' . $index . '.requested_qty') is-invalid @enderror"
                                                 required>
-                                            @error('items.' . $index . '.qty_requested')
+                                            @error('items.' . $index . '.requested_qty')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </td>
                                         <td>
-                                            <select name="items[{{ $index }}][unit_id]" data-field="unit_id"
-                                                data-selected="{{ $item['unit_id'] ?? '' }}"
-                                                class="form-select form-select-sm select2RequestOrder item-unit @error('items.' . $index . '.unit_id') is-invalid @enderror"
+                                            <select name="items[{{ $index }}][requested_satuan_id]" data-field="requested_satuan_id"
+                                                data-selected="{{ $item['requested_satuan_id'] ?? '' }}"
+                                                class="form-select form-select-sm select2RequestOrder item-unit @error('items.' . $index . '.requested_satuan_id') is-invalid @enderror"
                                                 required>
                                                 <option value="">Pilih bahan dahulu</option>
                                             </select>
-                                            @error('items.' . $index . '.unit_id')
+                                            @error('items.' . $index . '.requested_satuan_id')
                                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                                             @enderror
                                         </td>
@@ -273,11 +273,11 @@
                     <div class="item-stock-info mt-2"></div>
                 </td>
                 <td>
-                    <input name="items[__INDEX__][qty_requested]" data-field="qty_requested" type="number"
+                    <input name="items[__INDEX__][requested_qty]" data-field="requested_qty" type="number"
                         step="0.00001" min="0.00001" class="form-control form-control-sm text-end" required>
                 </td>
                 <td>
-                    <select name="items[__INDEX__][unit_id]" data-field="unit_id"
+                    <select name="items[__INDEX__][requested_satuan_id]" data-field="requested_satuan_id"
                         class="form-select form-select-sm select2RequestOrder item-unit" required>
                         <option value="">Pilih bahan dahulu</option>
                     </select>
