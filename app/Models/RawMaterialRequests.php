@@ -23,9 +23,9 @@ class RawMaterialRequests extends Model
         return $this->belongsTo(Inventory::class, 'requester_inventory_id');
     }
 
-    public function fulfillmentLocation()
+    public function fulfillmentInventory()
     {
-        return $this->belongsTo(Inventory::class, 'fulfillment_location_id');
+        return $this->belongsTo(Inventory::class, 'fulfillment_inventory_id');
     }
 
     public function status()

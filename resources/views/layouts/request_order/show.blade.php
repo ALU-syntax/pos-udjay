@@ -77,8 +77,8 @@
                                 <dd>{{ optional($requestOrder->requesterInventory)->name ?? '-' }}</dd>
                             </div>
                             <div>
-                                <dt>Fulfillment Location</dt>
-                                <dd>{{ optional($requestOrder->fulfillmentLocation)->name ?? 'Belum ditentukan' }}</dd>
+                                <dt>Fulfillment Inventory</dt>
+                                <dd>{{ optional($requestOrder->fulfillmentInventory)->name ?? 'Belum ditentukan' }}</dd>
                             </div>
                             <div>
                                 <dt>Needed At</dt>

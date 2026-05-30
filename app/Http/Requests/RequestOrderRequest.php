@@ -26,7 +26,7 @@ class RequestOrderRequest extends FormRequest
 
         $this->merge([
             'request_number' => $this->filled('request_number') ? trim((string) $this->input('request_number')) : null,
-            'fulfillment_location_id' => $this->filled('fulfillment_location_id') ? $this->input('fulfillment_location_id') : null,
+            'fulfillment_inventory_id' => $this->filled('fulfillment_inventory_id') ? $this->input('fulfillment_inventory_id') : null,
             'needed_at' => $this->filled('needed_at') ? $this->input('needed_at') : null,
             'notes' => $this->filled('notes') ? trim((string) $this->input('notes')) : null,
             'items' => $items,
@@ -45,7 +45,7 @@ class RequestOrderRequest extends FormRequest
                 Rule::unique('raw_material_requests', 'request_number')->ignore($requestOrder?->id),
             ],
             'requester_inventory_id' => ['required', 'exists:inventory,id'],
-            'fulfillment_location_id' => ['nullable', 'exists:inventory,id'],
+            'fulfillment_inventory_id' => ['nullable', 'exists:inventory,id'],
             'needed_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
@@ -62,7 +62,7 @@ class RequestOrderRequest extends FormRequest
             'request_number.unique' => 'Nomor request order sudah digunakan.',
             'requester_inventory_id.required' => 'Lokasi pemohon wajib dipilih.',
             'requester_inventory_id.exists' => 'Lokasi pemohon tidak valid.',
-            'fulfillment_location_id.exists' => 'Lokasi pemenuhan tidak valid.',
+            'fulfillment_inventory_id.exists' => 'Inventory pemenuhan tidak valid.',
             'items.required' => 'Minimal satu bahan baku wajib ditambahkan.',
             'items.min' => 'Minimal satu bahan baku wajib ditambahkan.',
             'items.*.raw_material_id.required' => 'Bahan baku pada item wajib dipilih.',

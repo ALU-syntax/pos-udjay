@@ -176,7 +176,7 @@ class ProcurementPlanController extends Controller
             'items.supplierRawMaterial.purchaseUnit',
             'items.sources.rawMaterialRequestItem.rawMaterial',
             'items.sources.rawMaterialRequestItem.rawMaterialRequest.requesterInventory',
-            'items.sources.rawMaterialRequestItem.rawMaterialRequest.fulfillmentLocation',
+            'items.sources.rawMaterialRequestItem.rawMaterialRequest.fulfillmentInventory',
         ]);
 
         return view('layouts.procurement_plan.show', [
@@ -213,7 +213,7 @@ class ProcurementPlanController extends Controller
                 'unit',
                 'rawMaterialRequest.status',
                 'rawMaterialRequest.requesterInventory',
-                'rawMaterialRequest.fulfillmentLocation',
+                'rawMaterialRequest.fulfillmentInventory',
             ])
             ->whereNotNull('qty_base_approved')
             ->where('qty_base_approved', '>', 0)

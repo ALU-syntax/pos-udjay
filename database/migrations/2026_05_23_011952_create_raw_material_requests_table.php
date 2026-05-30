@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('request_number', 100);
 
             $table->unsignedBigInteger('requester_inventory_id');
-            $table->unsignedBigInteger('fulfillment_location_id')->nullable();
+            $table->unsignedBigInteger('fulfillment_inventory_id')->nullable();
 
             $table->unsignedBigInteger('status_id')->default(1);
 
@@ -37,7 +37,7 @@ return new class extends Migration
             $table->unique('request_number', 'unique_raw_material_request_number');
 
             $table->index('requester_inventory_id', 'idx_rm_requests_requester_inventory_id');
-            $table->index('fulfillment_location_id', 'idx_rm_requests_fulfillment_location_id');
+            $table->index('fulfillment_inventory_id', 'idx_rm_requests_fulfillment_inventory_id');
             $table->index('status_id', 'idx_rm_requests_status_id');
             $table->index('needed_at', 'idx_rm_requests_needed_at');
 
@@ -46,7 +46,7 @@ return new class extends Migration
                 ->on('inventory')
                 ->restrictOnDelete();
 
-            $table->foreign('fulfillment_location_id', 'rm_requests_fulfillment_location_id_foreign')
+            $table->foreign('fulfillment_inventory_id', 'rm_requests_fulfillment_inventory_id_foreign')
                 ->references('id')
                 ->on('inventory')
                 ->nullOnDelete();

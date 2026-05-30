@@ -30,8 +30,6 @@ return new class extends Migration
             ['id' => 1, 'code' => 'draft', 'name' => 'Draft', 'sort_order' => 1, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['id' => 2, 'code' => 'submitted', 'name' => 'Submitted', 'sort_order' => 2, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['id' => 3, 'code' => 'approved', 'name' => 'Approved', 'sort_order' => 3, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 4, 'code' => 'waiting_stock', 'name' => 'Waiting Stock', 'sort_order' => 4, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 5, 'code' => 'waiting_procurement', 'name' => 'Waiting Procurement', 'sort_order' => 5, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['id' => 6, 'code' => 'partially_fulfilled', 'name' => 'Partially Fulfilled', 'sort_order' => 6, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['id' => 7, 'code' => 'fulfilled', 'name' => 'Fulfilled', 'sort_order' => 7, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['id' => 8, 'code' => 'rejected', 'name' => 'Rejected', 'sort_order' => 8, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],

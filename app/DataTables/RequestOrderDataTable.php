@@ -43,8 +43,8 @@ class RequestOrderDataTable extends DataTable
                     : '<span class="text-muted">-</span>';
             })
             ->addColumn('fulfillment_name', function (RawMaterialRequests $requestOrder) {
-                return $requestOrder->fulfillmentLocation
-                    ? e($requestOrder->fulfillmentLocation->name)
+                return $requestOrder->fulfillmentInventory
+                    ? e($requestOrder->fulfillmentInventory->name)
                     : '<span class="text-muted">Belum ditentukan</span>';
             })
             ->addColumn('items_count_label', function (RawMaterialRequests $requestOrder) {
@@ -69,11 +69,11 @@ class RequestOrderDataTable extends DataTable
             })
             ->filterColumn('fulfillment_name', function (QueryBuilder $query, $keyword) {
                 if ($keyword === '__empty__') {
-                    $query->whereNull('fulfillment_location_id');
+                    $query->whereNull('fulfillment_inventory_id');
                     return;
                 }
 
-                $query->whereHas('fulfillmentLocation', fn ($inventory) => $inventory->where('name', 'like', "%{$keyword}%"));
+                $query->whereHas('fulfillmentInventory', fn ($inventory) => $inventory->where('name', 'like', "%{$keyword}%"));
             })
             ->addIndexColumn()
             ->rawColumns([
@@ -91,7 +91,7 @@ class RequestOrderDataTable extends DataTable
     public function query(RawMaterialRequests $model): QueryBuilder
     {
         return $model->newQuery()
-            ->with(['status', 'requesterInventory', 'fulfillmentLocation'])
+            ->with(['status', 'requesterInventory', 'fulfillmentInventory'])
             ->withCount('items')
             ->latest('updated_at');
     }

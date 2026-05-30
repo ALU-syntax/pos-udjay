@@ -108,17 +108,17 @@
 
                         <div class="col-md-6 mb-3">
                             <div class="form-group">
-                                <label>Lokasi Pemenuhan</label>
-                                <select name="fulfillment_location_id" id="fulfillmentLocation"
-                                    class="form-select select2RequestOrder @error('fulfillment_location_id') is-invalid @enderror">
+                                <label>Inventory Pemenuhan</label>
+                                <select name="fulfillment_inventory_id" id="fulfillmentInventory"
+                                    class="form-select select2RequestOrder @error('fulfillment_inventory_id') is-invalid @enderror">
                                     <option value="">Belum ditentukan</option>
                                     @foreach ($inventories as $inventory)
-                                        <option value="{{ $inventory->id }}" @if (old('fulfillment_location_id', $data->fulfillment_location_id) == $inventory->id) selected @endif>
+                                        <option value="{{ $inventory->id }}" @if (old('fulfillment_inventory_id', $data->fulfillment_inventory_id) == $inventory->id) selected @endif>
                                             {{ $inventory->name }}
                                         </option>
                                     @endforeach
                                 </select>
-                                @error('fulfillment_location_id')
+                                @error('fulfillment_inventory_id')
                                     <div class="invalid-feedback d-block">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -335,7 +335,7 @@
 
             function refreshStockInfo(row) {
                 const materialId = row.find('.item-raw-material').val();
-                const fulfillmentLocationId = $('#fulfillmentLocation').val();
+                const fulfillmentInventoryId = $('#fulfillmentInventory').val();
                 const info = rawMaterialStockInfo[materialId];
                 const container = row.find('.item-stock-info');
 
@@ -345,8 +345,8 @@
                 }
 
                 const baseUnit = info.base_unit || 'base';
-                const fulfillmentStock = fulfillmentLocationId
-                    ? (info.locations || []).find((location) => String(location.inventory_id) === String(fulfillmentLocationId))
+                const fulfillmentStock = fulfillmentInventoryId
+                    ? (info.locations || []).find((location) => String(location.inventory_id) === String(fulfillmentInventoryId))
                     : null;
                 const locationRows = (info.locations || []).slice(0, 4).map(function(location) {
                     return `<div class="ro-stock-location">
@@ -363,9 +363,9 @@
                             <span>Reserved: <strong>${formatQty(info.total_reserved)} ${baseUnit}</strong></span>
                             <span>Free: <strong>${formatQty(info.total_free)} ${baseUnit}</strong></span>
                         </div>
-                        ${fulfillmentLocationId ? `
+                        ${fulfillmentInventoryId ? `
                             <div class="ro-stock-focus">
-                                Lokasi pemenuhan:
+                                Inventory pemenuhan:
                                 <strong>${fulfillmentStock ? formatQty(fulfillmentStock.qty_free) + ' ' + baseUnit + ' free' : 'belum ada stok'}</strong>
                             </div>
                         ` : ''}
@@ -418,7 +418,7 @@
                     refreshStockInfo(row);
                 });
 
-                $('#fulfillmentLocation').on('change', refreshAllStockInfo);
+                $('#fulfillmentInventory').on('change', refreshAllStockInfo);
 
                 $('#requestOrderItemsTable').on('click', '.remove-request-order-item', function() {
                     const rows = $('#requestOrderItemsTable tbody tr');

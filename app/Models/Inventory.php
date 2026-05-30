@@ -69,7 +69,7 @@ class Inventory extends Model
 
     public function fulfillmentRawMaterialRequests()
     {
-        return $this->hasMany(RawMaterialRequests::class, 'fulfillment_location_id');
+        return $this->hasMany(RawMaterialRequests::class, 'fulfillment_inventory_id');
     }
 
     public function procurementPlans()

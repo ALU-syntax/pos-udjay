@@ -70,7 +70,7 @@ class RequestOrderController extends Controller
         $requestOrder->load([
             'status',
             'requesterInventory',
-            'fulfillmentLocation',
+            'fulfillmentInventory',
             'requestedBy',
             'approvedBy',
             'items.rawMaterial.baseUnit',
@@ -227,7 +227,7 @@ class RequestOrderController extends Controller
         $selectedRawMaterialIds = $requestOrder->items->pluck('raw_material_id')->filter()->values();
         $selectedInventoryIds = collect([
             $requestOrder->requester_inventory_id,
-            $requestOrder->fulfillment_location_id,
+            $requestOrder->fulfillment_inventory_id,
         ])->filter()->values();
 
         $rawMaterials = RawMaterials::with('baseUnit')
