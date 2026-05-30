@@ -26,6 +26,7 @@ use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PilihanController;
 use App\Http\Controllers\PiutangController;
+use App\Http\Controllers\ProcurementPlanController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PromoController;
@@ -493,6 +494,14 @@ Route::middleware('auth')->group(function () {
             Route::delete('/destroy/{requestOrder}', [RequestOrderController::class, 'destroy'])->name('request-order/destroy');
             Route::post('/submit/{requestOrder}', [RequestOrderController::class, 'submit'])->name('request-order/submit');
             Route::post('/approve/{requestOrder}', [RequestOrderController::class, 'approve'])->name('request-order/approve');
+        });
+
+        Route::prefix('procurement-plan')->group(function () {
+            Route::get('/', [ProcurementPlanController::class, 'index'])->name('procurement-plan');
+            Route::get('/create', [ProcurementPlanController::class, 'create'])->name('procurement-plan/create');
+            Route::post('/store', [ProcurementPlanController::class, 'store'])->name('procurement-plan/store');
+            Route::get('/detail/{procurementPlan}', [ProcurementPlanController::class, 'detail'])->name('procurement-plan/detail');
+            Route::delete('/destroy/{procurementPlan}', [ProcurementPlanController::class, 'destroy'])->name('procurement-plan/destroy');
         });
     });
 

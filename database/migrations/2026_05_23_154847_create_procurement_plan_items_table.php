@@ -16,6 +16,8 @@ return new class extends Migration
 
             $table->unsignedBigInteger('procurement_plan_id');
             $table->unsignedBigInteger('raw_material_id');
+            $table->unsignedBigInteger('supplier_id')->nullable();
+            $table->unsignedBigInteger('supplier_raw_material_id')->nullable();
 
             $table->decimal('qty_required_base', 15, 5)->default(0);
             $table->decimal('qty_available_base', 15, 5)->default(0);
@@ -33,6 +35,8 @@ return new class extends Migration
 
             $table->index('procurement_plan_id', 'idx_procurement_plan_id');
             $table->index('raw_material_id', 'idx_raw_material_id');
+            $table->index('supplier_id', 'idx_supplier_id');
+            $table->index('supplier_raw_material_id', 'idx_supplier_raw_material_id');
             $table->index('unit_id', 'idx_unit_id');
 
             $table->unique([
@@ -49,6 +53,16 @@ return new class extends Migration
                 ->references('id')
                 ->on('raw_materials')
                 ->restrictOnDelete();
+
+            $table->foreign('supplier_id')
+                ->references('id')
+                ->on('suppliers')
+                ->nullOnDelete();
+
+            $table->foreign('supplier_raw_material_id')
+                ->references('id')
+                ->on('supplier_raw_materials')
+                ->nullOnDelete();
 
             $table->foreign('unit_id')
                 ->references('id')
