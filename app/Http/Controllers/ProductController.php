@@ -250,7 +250,7 @@ class ProductController extends Controller
         $convertIdOutlet = json_decode($idOutlet);
 
         $categoryProduct = Category::with(['products' => function ($product) use ($convertIdOutlet) {
-            $product->with(['variants'])->where('outlet_id', $convertIdOutlet[0])->orderBy('name', 'asc');
+            $product->with(['variants'])->where('outlet_id', $convertIdOutlet[0])->where('status', 1)->orderBy('name', 'asc');
 
         }])->orderBy('name', 'asc')->get();
 

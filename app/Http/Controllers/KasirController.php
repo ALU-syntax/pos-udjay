@@ -1298,7 +1298,7 @@ class KasirController extends Controller
     }
 
     public function historyShift($outletid){
-        $shifts = PettyCash::where('outlet_id', $outletid)->limit(30)->orderBy('created_at', 'desc')->get(); // Mengambil 10 data per halaman
+        $shifts = PettyCash::where('outlet_id', $outletid)->limit(30)->orderBy('open', 'desc')->get(); // Mengambil 10 data per halaman
         return response()->json($shifts);
     }
 
