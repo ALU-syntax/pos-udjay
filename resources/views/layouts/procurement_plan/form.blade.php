@@ -81,15 +81,24 @@
 
             <div class="card shadow-sm">
                 <div class="card-header bg-white border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <div>
-                        <h5 class="mb-0">Item Request Order Approved</h5>
-                        <small class="text-muted">Parent row adalah bahan baku. Buka detail untuk memilih request dari masing-masing pemohon.</small>
-                    </div>
-                    <div class="pp-source-tools">
-                        <input type="search" id="sourceSearch" class="form-control form-control-sm" placeholder="Cari bahan/request">
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="selectVisibleSources">
-                            <i class="fa fa-check-square me-1"></i>Pilih Terlihat
-                        </button>
+                    <div class="container ps-0">
+                        <div class="row">
+                            <h5 class="mb-0">Item Request Order Approved</h5>
+                            <small class="text-muted">Parent row adalah bahan baku. Buka detail untuk memilih request dari masing-masing pemohon.</small>
+                        </div>
+                        <div class="row">
+                            <div class="col-8">
+                                <input type="search" id="sourceSearch" class="form-control form-control-sm" placeholder="Cari bahan/request">
+                            </div>
+                            <div class="col-4 d-flex flex-row-reverse">
+                                <button type="button" class="btn btn-outline-primary btn-sm ms-3" id="selectAllSources">
+                                    <i class="fa fa-check-square me-1"></i>Pilih Semua
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="clearAllSources">
+                                    <i class="fa fa-times-circle me-1"></i>Hapus Semua Pilihan
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -124,14 +133,14 @@
                                             $group->items->map(fn ($item) => ($item->rawMaterialRequest?->request_number ?? '') . ' ' . ($item->rawMaterialRequest?->requesterInventory?->name ?? ''))->implode(' ')
                                         );
                                     @endphp
-                                    <tr class="pp-group-row" data-group-id="{{ $groupId }}" data-search-text="{{ $groupSearchText }}">
+                                    <tr class="pp-group-row" data-group-id="{{ $groupId }}" data-collapse-target="#sourceGroup{{ $groupId }}" data-search-text="{{ $groupSearchText }}">
                                         <td class="text-center">
                                             <input type="checkbox" class="form-check-input group-checkbox" data-group-id="{{ $groupId }}" @checked($isGroupSelected)>
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-start gap-2">
                                                 <button class="btn btn-outline-secondary btn-sm pp-collapse-toggle" type="button"
-                                                    data-bs-toggle="collapse" data-bs-target="#sourceGroup{{ $groupId }}"
+                                                    data-bs-target="#sourceGroup{{ $groupId }}"
                                                     aria-expanded="false" aria-controls="sourceGroup{{ $groupId }}">
                                                     <i class="fa fa-chevron-down"></i>
                                                 </button>
@@ -185,7 +194,7 @@
                                     </tr>
                                     <tr class="pp-detail-row" data-group-id="{{ $groupId }}" data-search-text="{{ $groupSearchText }}">
                                         <td colspan="5" class="p-0 border-top-0">
-                                            <div class="collapse" id="sourceGroup{{ $groupId }}">
+                                            <div class="pp-detail-panel" id="sourceGroup{{ $groupId }}">
                                                 <div class="pp-child-wrap">
                                                     <table class="table table-sm mb-0 align-middle pp-child-table">
                                                         <thead>
@@ -351,6 +360,37 @@
                     updateGroupPrice($(this).data('group-id'));
                 });
 
+                function setGroupOpen(groupId, shouldOpen) {
+                    const group = $('.pp-group-row[data-group-id="' + groupId + '"]');
+                    const detail = $('.pp-detail-row[data-group-id="' + groupId + '"]');
+                    const toggle = group.find('.pp-collapse-toggle');
+
+                    group.toggleClass('is-expanded', shouldOpen);
+                    detail.toggleClass('is-open', shouldOpen);
+                    toggle
+                        .toggleClass('is-expanded', shouldOpen)
+                        .attr('aria-expanded', shouldOpen ? 'true' : 'false');
+                }
+
+                function toggleGroup(groupId) {
+                    const detail = $('.pp-detail-row[data-group-id="' + groupId + '"]');
+
+                    setGroupOpen(groupId, !detail.hasClass('is-open'));
+                }
+
+                $('.pp-collapse-toggle').on('click', function(e) {
+                    e.stopPropagation();
+                    toggleGroup($(this).closest('.pp-group-row').data('group-id'));
+                });
+
+                $('.pp-group-row').on('click', function(e) {
+                    if ($(e.target).closest('button, input, select, textarea, label, a, .select2-container').length) {
+                        return;
+                    }
+
+                    toggleGroup($(this).data('group-id'));
+                });
+
                 $('#sourceSearch').on('keyup search', function() {
                     const keyword = this.value.toLowerCase();
 
@@ -374,11 +414,19 @@
                     });
                 });
 
-                $('#selectVisibleSources').on('click', function() {
-                    $('.pp-group-row:visible').each(function() {
-                        const groupId = $(this).data('group-id');
-                        groupChildren(groupId).prop('checked', true);
-                        updateGroupCheckbox(groupId);
+                $('#selectAllSources').on('click', function() {
+                    $('.child-checkbox').prop('checked', true);
+                    $('.group-checkbox').each(function() {
+                        updateGroupCheckbox($(this).data('group-id'));
+                    });
+
+                    updateSelectionSummary();
+                });
+
+                $('#clearAllSources').on('click', function() {
+                    $('.child-checkbox').prop('checked', false);
+                    $('.group-checkbox').each(function() {
+                        updateGroupCheckbox($(this).data('group-id'));
                     });
 
                     updateSelectionSummary();
@@ -432,20 +480,9 @@
                 flex-wrap: wrap;
             }
 
-            .pp-source-tools {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                flex-wrap: wrap;
-            }
-
-            .pp-source-tools .form-control {
-                width: 220px;
-            }
-
             .pp-source-scroll {
                 overflow-x: auto;
-                padding: 16px 0;
+                padding: 8px 0;
             }
 
             .pp-source-table {
@@ -455,6 +492,24 @@
             .pp-source-table th,
             .pp-source-table td {
                 white-space: nowrap;
+            }
+
+            .pp-source-table > :not(caption) > * > * {
+                padding: 0.55rem 0.75rem;
+            }
+
+            .pp-group-row {
+                cursor: pointer;
+                transition: background-color 0.18s ease, box-shadow 0.18s ease;
+            }
+
+            .pp-group-row:hover td,
+            .pp-group-row.is-expanded td {
+                background: #f8fafc;
+            }
+
+            .pp-group-row.is-expanded td {
+                box-shadow: inset 0 1px 0 rgba(18, 38, 63, 0.06), inset 0 -1px 0 rgba(18, 38, 63, 0.06);
             }
 
             .pp-source-table td:nth-child(2) {
@@ -475,19 +530,63 @@
                 flex: 0 0 32px;
             }
 
+            .pp-collapse-toggle i {
+                transition: transform 0.18s ease;
+            }
+
+            .pp-collapse-toggle.is-expanded i,
+            .pp-collapse-toggle[aria-expanded="true"] i {
+                transform: rotate(180deg);
+            }
+
             .pp-child-wrap {
-                padding: 12px 18px 18px 58px;
+                padding: 8px 14px 12px 56px;
+                background: linear-gradient(180deg, #f8fafc 0%, #fbfcfe 100%);
+            }
+
+            .pp-detail-row > td {
                 background: #fbfcfe;
+            }
+
+            .pp-detail-panel {
+                max-height: 0;
+                overflow: hidden;
+                opacity: 0;
+                transform: translateY(-4px);
+                transition: max-height 0.16s ease, opacity 0.12s ease, transform 0.16s ease;
+                will-change: max-height, opacity, transform;
+                contain: layout paint;
+            }
+
+            .pp-detail-row.is-open .pp-detail-panel {
+                max-height: min(58vh, 620px);
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            .pp-detail-row.is-open .pp-child-wrap {
+                max-height: min(58vh, 620px);
+                overflow-y: auto;
             }
 
             .pp-child-table {
                 border: 1px solid rgba(18, 38, 63, 0.08);
+                border-radius: 8px;
                 background: #fff;
+                overflow: hidden;
             }
 
             .pp-child-table th,
             .pp-child-table td {
                 white-space: nowrap;
+                padding: 0.45rem 0.65rem;
+            }
+
+            .pp-child-table thead th {
+                background: #f3f6fb;
+                color: #4b5563;
+                font-size: 0.78rem;
+                font-weight: 700;
             }
 
             .pp-child-table td:nth-child(2),
@@ -499,10 +598,6 @@
             }
 
             @media (max-width: 768px) {
-                .pp-source-tools,
-                .pp-source-tools .form-control {
-                    width: 100%;
-                }
 
                 .pp-child-wrap {
                     padding-left: 12px;
