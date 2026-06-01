@@ -14,7 +14,7 @@
             'cancelled' => 'bg-dark',
             default => 'bg-light text-dark border',
         };
-        $formatQty = fn ($value) => number_format((float) $value, 5, ',', '.');
+        $formatQty = fn ($value) => number_format((float) $value, 1, ',', '.');
     @endphp
 
     <div class="main-content request-order-detail-page">
@@ -200,12 +200,13 @@
                                         @if ($isSubmitted)
                                             @php
                                                 $approvalField = 'items.' . $item->id . '.approved_base_qty';
-                                                $approvalValue = old($approvalField, $item->approved_base_qty ?? $item->requested_base_qty);
-                                                $maxApprovalValue = number_format((float) $item->requested_base_qty, 5, '.', '');
+                                                $approvalValue = old($approvalField);
+                                                $approvalValue ??= number_format((float) ($item->approved_base_qty ?? $item->requested_base_qty), 1, '.', '');
+                                                $maxApprovalValue = number_format((float) $item->requested_base_qty, 1, '.', '');
                                             @endphp
                                             <input type="number" name="items[{{ $item->id }}][approved_base_qty]"
                                                 class="form-control form-control-sm text-end ro-approval-input @error($approvalField) is-invalid @enderror"
-                                                value="{{ $approvalValue }}" min="0" max="{{ $maxApprovalValue }}" step="0.00001" required>
+                                                value="{{ $approvalValue }}" min="0" max="{{ $maxApprovalValue }}" step="0.1" required>
                                             @error($approvalField)
                                                 <div class="invalid-feedback text-start">{{ $message }}</div>
                                             @enderror

@@ -2,7 +2,7 @@
 @section('content')
     @php
         $selectedSources = collect(old('selected_sources', []))->map(fn ($id) => (int) $id)->all();
-        $formatQty = fn ($value) => number_format((float) $value, 5, ',', '.');
+        $formatQty = fn ($value) => number_format((float) $value, 1, ',', '.');
         $formatMoney = fn ($value) => $value === null ? '-' : 'Rp ' . number_format((float) $value, 2, ',', '.');
     @endphp
 
@@ -64,7 +64,7 @@
                             <div class="pp-selection-summary">
                                 <span><strong id="selectedSourceCount">0</strong> request</span>
                                 <span><strong id="selectedMaterialCount">0</strong> bahan</span>
-                                <span><strong id="selectedAllocationTotal">0,00000</strong> base</span>
+                                <span><strong id="selectedAllocationTotal">0,0</strong> base</span>
                             </div>
                         </div>
                         <div class="col-12">
@@ -266,8 +266,8 @@
             $(function() {
                 function formatQty(value) {
                     return Number(value || 0).toLocaleString('id-ID', {
-                        minimumFractionDigits: 5,
-                        maximumFractionDigits: 5
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1
                     });
                 }
 

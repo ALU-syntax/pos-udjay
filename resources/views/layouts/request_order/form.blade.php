@@ -207,8 +207,8 @@
                                         </td>
                                         <td>
                                             <input name="items[{{ $index }}][requested_qty]" data-field="requested_qty"
-                                                value="{{ $item['requested_qty'] ?? '' }}" type="number" step="0.00001"
-                                                min="0.00001"
+                                                value="{{ $item['requested_qty'] ?? '' }}" type="number" step="0.1"
+                                                min="0.1"
                                                 class="form-control form-control-sm text-end @error('items.' . $index . '.requested_qty') is-invalid @enderror"
                                                 required>
                                             @error('items.' . $index . '.requested_qty')
@@ -274,7 +274,7 @@
                 </td>
                 <td>
                     <input name="items[__INDEX__][requested_qty]" data-field="requested_qty" type="number"
-                        step="0.00001" min="0.00001" class="form-control form-control-sm text-end" required>
+                        step="0.1" min="0.1" class="form-control form-control-sm text-end" required>
                 </td>
                 <td>
                     <select name="items[__INDEX__][requested_satuan_id]" data-field="requested_satuan_id"
@@ -303,8 +303,8 @@
 
             function formatQty(value) {
                 return Number(value || 0).toLocaleString('id-ID', {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 5
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1
                 });
             }
 

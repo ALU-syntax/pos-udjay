@@ -44,10 +44,10 @@ class ProcurementPlanDataTable extends DataTable
                 return '<strong>' . (int) ($procurementPlan->items_count ?? 0) . '</strong> item';
             })
             ->editColumn('items_sum_qty_required_base', function (ProcurementPlans $procurementPlan) {
-                return number_format((float) ($procurementPlan->items_sum_qty_required_base ?? 0), 5, ',', '.');
+                return number_format((float) ($procurementPlan->items_sum_qty_required_base ?? 0), 1, ',', '.');
             })
             ->editColumn('items_sum_qty_to_purchase_base', function (ProcurementPlans $procurementPlan) {
-                return number_format((float) ($procurementPlan->items_sum_qty_to_purchase_base ?? 0), 5, ',', '.');
+                return number_format((float) ($procurementPlan->items_sum_qty_to_purchase_base ?? 0), 1, ',', '.');
             })
             ->addColumn('planned_by_name', function (ProcurementPlans $procurementPlan) {
                 return $procurementPlan->plannedBy

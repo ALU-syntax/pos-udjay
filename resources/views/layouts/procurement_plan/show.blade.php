@@ -11,7 +11,7 @@
             'cancelled' => 'bg-dark',
             default => 'bg-light text-dark border',
         };
-        $formatQty = fn ($value) => number_format((float) $value, 5, ',', '.');
+        $formatQty = fn ($value) => number_format((float) $value, 1, ',', '.');
         $formatMoney = fn ($value) => $value === null ? '-' : number_format((float) $value, 2, ',', '.');
     @endphp
 
