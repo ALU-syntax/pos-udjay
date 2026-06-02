@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\TransactionsDataTable;
+use App\Exports\RushHourExport;
 use App\Exports\TransactionsPosFormatExport;
 use App\Mail\ResendReceiptMail;
 use App\Models\Customer;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class TransactionsController extends Controller
 {
@@ -239,6 +241,53 @@ class TransactionsController extends Controller
             'ok'           => true,
             'message'      => 'Export dimulai di background. Anda akan dapat file ketika proses selesai.',
             'path'         => $path,
+            'download_url' => Storage::disk('public')->url($path),
+        ]);
+    }
+
+    public function exportRushHour(Request $r)
+    {
+        $r->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
+            'outlet_id' => ['nullable', 'array'],
+        ]);
+
+        $allowedOutletIds = collect(json_decode(auth()->user()->outlet_id ?? '[]', true) ?: [])
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->values();
+
+        $requestedOutletIds = collect((array) $r->input('outlet_id', []))
+            ->flatten()
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->values();
+
+        $outletIds = $requestedOutletIds->isNotEmpty()
+            ? $requestedOutletIds->intersect($allowedOutletIds)->values()->all()
+            : $allowedOutletIds->all();
+
+        abort_if(empty($outletIds), 403);
+
+        $outletName = 'selected_outlets';
+
+        if (count($outletIds) === 1) {
+            $outletName = Str::slug(Outlets::find($outletIds[0])?->name ?? 'outlet', '_');
+        }
+
+        $path = 'exports/' . 'rush_hour_' . $outletName . '_' . now()->format('Ymd_His') . '.xlsx';
+
+        (new RushHourExport(
+            from: $r->input('from'),
+            to: $r->input('to'),
+            outletIds: $outletIds
+        ))->queue($path, 'public');
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Export Rush Hour dimulai di background. File akan tersedia ketika proses selesai.',
+            'path' => $path,
             'download_url' => Storage::disk('public')->url($path),
         ]);
     }

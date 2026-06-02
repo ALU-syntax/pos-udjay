@@ -34,6 +34,10 @@
             transform: translateY(-1px);
             box-shadow: 0 10px 18px rgba(0, 0, 0, .12);
         }
+
+        .btn-modern-success {
+            background-color: #198754 !important;
+        }
     </style>
     <div class="main-content">
         <div class="card text-center">
@@ -94,8 +98,9 @@
                         </div>
                     </div>
 
-                    <div class="col-4 mt-0 mb-2 pe-4 d-flex align-items-center justify-content-end">
+                    <div class="col-4 mt-0 mb-2 pe-4 d-flex align-items-center justify-content-end gap-2 flex-wrap">
                         <button id="btnExport" class="btn btn-primary btn-modern">Export Transaksi</button>
+                        <button id="btnExportRushHour" class="btn btn-success btn-modern btn-modern-success">Export Rush Hour</button>
                     </div>
 
                 </div>
@@ -326,6 +331,7 @@
             const $outlet = $('#filter-outlet');
             const $date = $('#date_range_transaction');
             const $btn = $('#btnExport');
+            const $btnRushHour = $('#btnExportRushHour');
             const $status = $('#exportStatus');
 
             function getNewData() {
@@ -744,7 +750,6 @@
                 };
             }
 
-
             $(document).ready(function() {
                 $('#btn-close-detail').off().on('click', function() {
                     removeDetailCard(detailCard, tableContainer, transactionTable);
@@ -970,6 +975,69 @@
                         })
                         .always(function() {
                             $btn.prop('disabled', false).text('Export Transaksi');
+                        });
+                });
+
+                $('#btnExportRushHour').on('click', function(e) {
+                    e.preventDefault();
+
+                    const range = parseDateRange($('#date_range_transaction').val());
+                    if (!range) {
+                        iziToast.error({
+                            title: 'Gagal',
+                            message: "Isi tanggal dengan format <b>YYYY-MM-DD - YYYY-MM-DD</b>."
+                        });
+                        return;
+                    }
+
+                    const ov = $outlet.val();
+                    const payload = {
+                        from: range.from,
+                        to: range.to,
+                    };
+
+                    if (Array.isArray(ov)) ov.forEach(id => (payload['outlet_id[]'] = (payload['outlet_id[]'] ||
+                        []), payload['outlet_id[]'].push(id)));
+                    else if (ov) payload['outlet_id[]'] = ov;
+
+                    $btnRushHour.prop('disabled', true).html(
+                        '<span class="spinner-border spinner-border-sm mr-1"></span>Memproses…');
+
+                    $.ajax({
+                            url: "{{ route('report/transaction/exportRushHour') }}",
+                            method: 'POST',
+                            data: payload,
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                            }
+                        })
+                        .done(function(resp) {
+                            if (resp && resp.ok && resp.download_url) {
+                                const filename = (resp.path || 'rush_hour.xlsx').split('/').pop();
+                                waitUntilReadyWithIziToast(resp.download_url, filename, {
+                                    intervalMs: 3000,
+                                    timeoutMs: 10 * 60 * 1000
+                                });
+                            } else {
+                                iziToast.error({
+                                    title: 'Gagal',
+                                    message: (resp && resp.message) || 'Export Rush Hour gagal dimulai.'
+                                });
+                            }
+                        })
+                        .fail(function(xhr) {
+                            let msg = 'Export Rush Hour gagal.';
+                            try {
+                                msg = (JSON.parse(xhr.responseText)).message || msg;
+                            } catch (_) {}
+
+                            iziToast.warning({
+                                title: 'Gagal',
+                                message: msg
+                            });
+                        })
+                        .always(function() {
+                            $btnRushHour.prop('disabled', false).text('Export Rush Hour');
                         });
                 });
 
