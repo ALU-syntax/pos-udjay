@@ -1,4 +1,12 @@
 @extends('layouts.app')
+@push('css')
+    <style>
+        .hak-akses-avatar-group .avatar-sm + .avatar-sm {
+            margin-left: -.85rem;
+        }
+    </style>
+@endpush
+
 @section('content')
     <div class="main-content">
         <div class="card text-center">
@@ -23,12 +31,29 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between mb-2">
                                 <h6 class="fw-normal">Total {{ count($data->users) }} User</h6>
-                                <ul class="list-unstyled d-flex align-items-center avatar-group mb-0">
-                                    <li data-bs-toggle="tooltip" data-popup="tooltip-custom" data-bs-placement="top"
-                                        class="avatar avatar-sm pull-up" aria-label="Vinnie Mostowy"
-                                        data-bs-original-title="Vinnie Mostowy">
-                                        <img class="rounded-circle" src="/img/avatars/1.png" alt="Avatar">
-                                    </li>
+                                @php
+                                    $avatarColors = ['bg-primary', 'bg-success', 'bg-warning'];
+                                @endphp
+                                <ul class="list-unstyled d-flex align-items-center avatar-group hak-akses-avatar-group mb-0">
+                                    @foreach ($data->users->take(3) as $user)
+                                        @php
+                                            $userName = trim($user->name ?? '');
+                                            $initials = collect(preg_split('/\s+/', $userName))
+                                                ->filter()
+                                                ->take(2)
+                                                ->map(fn($word) => mb_substr($word, 0, 1))
+                                                ->implode('');
+                                            $initials = strtoupper($initials ?: '?');
+                                        @endphp
+                                        <li data-bs-toggle="tooltip" data-popup="tooltip-custom" data-bs-placement="top"
+                                            class="avatar avatar-sm pull-up" aria-label="{{ $userName ?: 'User' }}"
+                                            data-bs-original-title="{{ $userName ?: 'User' }}">
+                                            <span
+                                                class="avatar-title rounded-circle border border-white {{ $avatarColors[$loop->index % count($avatarColors)] }}">
+                                                {{ $initials }}
+                                            </span>
+                                        </li>
+                                    @endforeach
                                 </ul>
                             </div>
                             <div class="d-flex justify-content-between align-items-end">
