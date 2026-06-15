@@ -56,6 +56,8 @@ class RushHourController extends Controller
             $selectedPaymentMethodIds = $paymentMethods->pluck('id')->values();
         }
 
+        $selectedDayOfWeek = $this->normalizeDayOfWeek($request->input('day_of_week'));
+
         return view('layouts.reports.rush-hour', [
             'outlets' => $outlets,
             'paymentMethods' => $paymentMethods,
@@ -63,6 +65,8 @@ class RushHourController extends Controller
             'selectedTo' => $to,
             'selectedOutletIds' => $selectedOutletIds->all(),
             'selectedPaymentMethodIds' => $selectedPaymentMethodIds->all(),
+            'dayOfWeekOptions' => $this->dayOfWeekOptions(),
+            'selectedDayOfWeek' => $selectedDayOfWeek,
         ]);
     }
 
@@ -72,9 +76,11 @@ class RushHourController extends Controller
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d'],
             'outlet_id' => ['nullable', 'array'],
+            'day_of_week' => ['nullable', 'integer', 'between:1,7'],
         ]);
 
         $allowedOutletIds = $this->allowedOutletIds();
+        $dayOfWeek = $this->normalizeDayOfWeek($r->input('day_of_week'));
 
         $requestedOutletIds = collect((array) $r->input('outlet_id', []))
             ->flatten()
@@ -99,7 +105,8 @@ class RushHourController extends Controller
         (new RushHourExport(
             from: $r->input('from'),
             to: $r->input('to'),
-            outletIds: $outletIds
+            outletIds: $outletIds,
+            dayOfWeek: $dayOfWeek
         ))->queue($path, 'public');
 
         return response()->json([
@@ -117,11 +124,13 @@ class RushHourController extends Controller
             'to' => ['nullable', 'date_format:Y-m-d'],
             'outlet_id' => ['nullable', 'array'],
             'payment_method' => ['nullable', 'array'],
+            'day_of_week' => ['nullable', 'integer', 'between:1,7'],
         ]);
 
         [$startDate, $endDate] = $this->dateRangeFromRequest($request);
         $outletIds = $this->filteredOutletIds($request);
         $paymentFilter = $this->filteredPaymentMethods($request);
+        $dayOfWeek = $this->normalizeDayOfWeek($request->input('day_of_week'));
 
         abort_if(empty($outletIds), 403);
 
@@ -144,6 +153,7 @@ class RushHourController extends Controller
             ->whereNull('t.deleted_at')
             ->whereBetween('t.created_at', [$startDate, $endDate])
             ->whereIn('t.outlet_id', $outletIds)
+            ->when($dayOfWeek, fn ($query) => $this->applyDayOfWeekFilter($query, $dayOfWeek))
             ->when(!$paymentFilter['all'], function ($query) use ($paymentFilter) {
                 $query->where(function ($paymentQuery) use ($paymentFilter) {
                     $paymentQuery->whereIn('t.tipe_pembayaran', $paymentFilter['ids']);
@@ -339,6 +349,50 @@ class RushHourController extends Controller
             ->filter()
             ->unique()
             ->values();
+    }
+
+    private function dayOfWeekOptions(): array
+    {
+        return [
+            1 => 'Senin',
+            2 => 'Selasa',
+            3 => 'Rabu',
+            4 => 'Kamis',
+            5 => 'Jumat',
+            6 => 'Sabtu',
+            7 => 'Minggu',
+        ];
+    }
+
+    private function normalizeDayOfWeek($dayOfWeek): ?int
+    {
+        if ($dayOfWeek === null || $dayOfWeek === '' || $dayOfWeek === 'all') {
+            return null;
+        }
+
+        $dayOfWeek = (int) $dayOfWeek;
+
+        return array_key_exists($dayOfWeek, $this->dayOfWeekOptions())
+            ? $dayOfWeek
+            : null;
+    }
+
+    private function applyDayOfWeekFilter($query, ?int $dayOfWeek, string $column = 't.created_at')
+    {
+        if (!$dayOfWeek) {
+            return $query;
+        }
+
+        return $query->whereRaw($this->dayOfWeekExpression($column) . ' = ?', [$dayOfWeek]);
+    }
+
+    private function dayOfWeekExpression(string $column): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'pgsql' => "EXTRACT(ISODOW FROM {$column})",
+            'sqlite' => "CASE WHEN strftime('%w', {$column}) = '0' THEN 7 ELSE CAST(strftime('%w', {$column}) AS INTEGER) END",
+            default => "WEEKDAY({$column}) + 1",
+        };
     }
 
     private function dateOrDefault(?string $date, string $default): string

@@ -151,6 +151,54 @@
             white-space: nowrap;
         }
 
+        .rush-hour-day-filter {
+            grid-column: 1 / -1;
+        }
+
+        .rush-day-options {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .rush-day-option {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            color: #4b5563;
+            font-size: 13px;
+            font-weight: 700;
+            min-height: 34px;
+            padding: 7px 12px;
+            transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, color .15s ease;
+            white-space: nowrap;
+        }
+
+        .rush-day-option:hover {
+            background: #f8fafc;
+            border-color: #d8dee8;
+            color: #1f2937;
+        }
+
+        .rush-day-option:focus {
+            box-shadow: 0 0 0 3px rgba(208, 60, 60, .16);
+            outline: none;
+        }
+
+        .rush-day-option.is-active {
+            background: #d03c3c;
+            border-color: #d03c3c;
+            box-shadow: 0 8px 16px rgba(208, 60, 60, .18);
+            color: #fff;
+        }
+
+        .rush-day-option.is-active:hover {
+            background: #c23636;
+            border-color: #c23636;
+            color: #fff;
+        }
+
         .btn-rush-primary {
             background-color: #d03c3c !important;
             border-color: #d03c3c !important;
@@ -780,6 +828,15 @@
                 width: 100%;
             }
 
+            .rush-day-options {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .rush-day-option {
+                width: 100%;
+            }
+
             .rush-payment-list {
                 grid-template-columns: 1fr;
             }
@@ -853,6 +910,27 @@
                                 <i class="fas fa-file-excel me-1"></i>
                                 Export
                             </button>
+                        </div>
+
+                        <div class="rush-hour-filter-control rush-hour-day-filter">
+                            <span class="rush-hour-filter-label">Day of Week</span>
+                            <input type="hidden" id="filter-day-of-week" value="{{ $selectedDayOfWeek }}">
+                            <div class="rush-day-options" role="group" aria-label="Day of week filter">
+                                <button type="button"
+                                    class="rush-day-option{{ empty($selectedDayOfWeek) ? ' is-active' : '' }}"
+                                    data-day-of-week=""
+                                    aria-pressed="{{ empty($selectedDayOfWeek) ? 'true' : 'false' }}">
+                                    All Day
+                                </button>
+                                @foreach ($dayOfWeekOptions as $dayValue => $dayLabel)
+                                    <button type="button"
+                                        class="rush-day-option{{ (int) $selectedDayOfWeek === (int) $dayValue ? ' is-active' : '' }}"
+                                        data-day-of-week="{{ $dayValue }}"
+                                        aria-pressed="{{ (int) $selectedDayOfWeek === (int) $dayValue ? 'true' : 'false' }}">
+                                        {{ $dayLabel }}
+                                    </button>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -1024,6 +1102,8 @@
             const $to = $('#filter-to');
             const $outlet = $('#filter-outlet');
             const $paymentMethod = $('#filter-payment-method');
+            const $dayOfWeek = $('#filter-day-of-week');
+            const $dayButtons = $('.rush-day-option');
             const $btnExportRushHour = $('#btnExportRushHour');
             const outletOptions = @json($outlets->pluck('id')->map(fn ($id) => (string) $id)->values());
             const paymentMethodOptions = @json($paymentMethods->pluck('id')->map(fn ($id) => (string) $id)->values());
@@ -1110,6 +1190,34 @@
             bindMinimumSelection($outlet, outletOptions);
             bindMinimumSelection($paymentMethod, paymentMethodOptions);
 
+            function setDayOfWeekFilter(dayOfWeek) {
+                const value = String(dayOfWeek || '');
+
+                $dayOfWeek.val(value);
+
+                $dayButtons.each(function() {
+                    const $button = $(this);
+                    const buttonValue = String($button.attr('data-day-of-week') || '');
+                    const isActive = buttonValue === value;
+
+                    $button.toggleClass('is-active', isActive);
+                    $button.attr('aria-pressed', String(isActive));
+                });
+            }
+
+            $dayButtons.on('click', function() {
+                setDayOfWeekFilter($(this).attr('data-day-of-week'));
+                const picker = $dateRange.data('daterangepicker');
+
+                if (picker) {
+                    syncDateRange(picker.startDate, picker.endDate);
+                }
+
+                loadRushHourSummary();
+            });
+
+            setDayOfWeekFilter($dayOfWeek.val());
+
             function makeOverflowBadge(count) {
                 return $('<li>', {
                     class: 'select2-selection__choice rush-select2-overflow-count',
@@ -1195,6 +1303,11 @@
                     from: $from.val(),
                     to: $to.val()
                 };
+                const dayOfWeek = String($dayOfWeek.val() || '');
+
+                if (dayOfWeek) {
+                    payload.day_of_week = dayOfWeek;
+                }
 
                 const outletIds = $outlet.val();
                 if (Array.isArray(outletIds)) {

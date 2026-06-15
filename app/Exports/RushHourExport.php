@@ -33,6 +33,7 @@ class RushHourExport implements
         public readonly ?string $from = null,
         public readonly ?string $to = null,
         public readonly array $outletIds = [],
+        public readonly ?int $dayOfWeek = null,
     ) {}
 
     public function collection(): Collection
@@ -175,6 +176,7 @@ class RushHourExport implements
             ->whereNull('t.deleted_at')
             ->whereBetween('t.created_at', [$startDate, $endDate])
             ->when(!empty($this->outletIds), fn ($query) => $query->whereIn('t.outlet_id', $this->outletIds))
+            ->when($this->dayOfWeek, fn ($query) => $this->applyDayOfWeekFilter($query))
             ->orderBy('t.created_at')
             ->select([
                 't.id',
@@ -237,6 +239,7 @@ class RushHourExport implements
             ->whereNull('t.deleted_at')
             ->whereBetween('t.created_at', [$startDate, $endDate])
             ->when(!empty($this->outletIds), fn ($query) => $query->whereIn('t.outlet_id', $this->outletIds))
+            ->when($this->dayOfWeek, fn ($query) => $this->applyDayOfWeekFilter($query))
             ->selectRaw("DISTINCT COALESCE(t.nama_tipe_pembayaran, p.name, cp.name, 'Unknown') AS payment_method")
             ->pluck('payment_method')
             ->map(fn ($method) => $this->normalizePaymentMethod($method))
@@ -247,6 +250,20 @@ class RushHourExport implements
             ->all();
 
         return $this->paymentMethods;
+    }
+
+    private function applyDayOfWeekFilter($query, string $column = 't.created_at')
+    {
+        return $query->whereRaw($this->dayOfWeekExpression($column) . ' = ?', [$this->dayOfWeek]);
+    }
+
+    private function dayOfWeekExpression(string $column): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'pgsql' => "EXTRACT(ISODOW FROM {$column})",
+            'sqlite' => "CASE WHEN strftime('%w', {$column}) = '0' THEN 7 ELSE CAST(strftime('%w', {$column}) AS INTEGER) END",
+            default => "WEEKDAY({$column}) + 1",
+        };
     }
 
     private function dateRange(): array
