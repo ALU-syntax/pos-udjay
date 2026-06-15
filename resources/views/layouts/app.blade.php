@@ -119,6 +119,9 @@
     <!-- Chart JS -->
     <script src="{{ asset('js/plugin/chart.js/chart.min.js') }}"></script>
 
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
     <!-- jQuery Sparkline -->
     <script src="{{ asset('js/plugin/jquery.sparkline/jquery.sparkline.min.js') }}"></script>
 

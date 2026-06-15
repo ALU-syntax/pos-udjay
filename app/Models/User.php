@@ -66,6 +66,28 @@ class User extends Authenticatable
         return $this->belongsToMany('outlet_id', Outlets::class, 'id');
     }
 
+    public function outletIds(): array
+    {
+        $outletIds = $this->outlet_id ?? [];
+
+        if (is_string($outletIds)) {
+            $decodedOutletIds = json_decode($outletIds, true);
+            $outletIds = json_last_error() === JSON_ERROR_NONE ? $decodedOutletIds : [$outletIds];
+        }
+
+        if (!is_array($outletIds)) {
+            $outletIds = [$outletIds];
+        }
+
+        return collect($outletIds)
+            ->flatten()
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     public function transaction(){
         return $this->hasMany(Transaction::class, 'user_id', 'id');
     }

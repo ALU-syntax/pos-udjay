@@ -32,6 +32,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\RequestOrderController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RushHourController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SalesTypeController;
 use App\Http\Controllers\SatuanController;
@@ -437,7 +438,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/modalResendReceipt/{idTransaction}', [TransactionsController::class, 'modalResendReceipt'])->name('transaction/modalResendReceipt');
             Route::post('/resendReceipt/{idTransaction}', [TransactionsController::class, 'resendReceipt'])->name('transaction/resendReceipt');
             Route::post('/exportTransction', [TransactionsController::class, 'exportPosFormat'])->name('transaction/exportPosFormat');
-            Route::post('/exportRushHour', [TransactionsController::class, 'exportRushHour'])->name('transaction/exportRushHour');
+            Route::post('/exportRushHour', [RushHourController::class, 'exportRushHour'])->name('transaction/exportRushHour');
             Route::post('/kaitkanCustomer', [TransactionsController::class, 'kaitkanCustomer'])->name('transaction/kaitkanCustomer');
             Route::delete('/destroy/{idTransaction}', [TransactionsController::class, 'destroy'])->name('transaction/destroy');
         });
@@ -451,6 +452,12 @@ Route::middleware('auth')->group(function () {
             Route::post('/restoreOpenBill', [OpenBillController::class, 'restoreOpenBill'])->name('openbill/restoreOpenBill');
             Route::post('/deleteOpenBill/{idOpenBill}', [OpenBillController::class, 'deleteOpenBill'])->name('openbill/deleteOpenBill');
 
+        });
+
+        Route::prefix('rush-hour')->group(function () {
+            Route::get('/', [RushHourController::class, 'index'])->name('rush-hour');
+            Route::get('/summary', [RushHourController::class, 'summary'])->name('rush-hour/summary');
+            Route::post('/exportRushHour', [RushHourController::class, 'exportRushHour'])->name('rush-hour/exportRushHour');
         });
     });
 
