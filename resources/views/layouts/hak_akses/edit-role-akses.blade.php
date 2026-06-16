@@ -40,7 +40,16 @@
                                 </tr>
                                 @foreach ($menus as $mm)
                                     <tr>
-                                        <td class="text-nowrap fw-medium">{{ $mm->name }} <br> <small>(Parent)</small>
+                                        <td class="text-nowrap fw-medium">
+                                            <div class="form-check mb-0">
+                                                <input class="form-check-input permission-parent-check" type="checkbox"
+                                                    id="permission-parent-{{ $mm->id }}"
+                                                    data-parent-id="{{ $mm->id }}">
+                                                <label class="form-check-label fw-medium"
+                                                    for="permission-parent-{{ $mm->id }}">
+                                                    {{ $mm->name }} <br> <small>(Parent)</small>
+                                                </label>
+                                            </div>
                                         </td>
                                         <td>
                                             <div class="d-flex">
@@ -48,10 +57,12 @@
                                                     <div class="form-check me-3 me-lg-5">
                                                         <input class="form-check-input checkbox-item" type="checkbox"
                                                             name="permissions[]" value="{{ $permission->name }}"
-                                                            @checked($data->hasPermissionTo($permission->name)) type="checkbox"
+                                                            data-parent-id="{{ $mm->id }}"
+                                                            data-row-id="menu-{{ $mm->id }}"
+                                                            @checked($data->hasPermissionTo($permission->name))
                                                             id="permission-{{ $mm->id . '-' . $permission->id }}">
                                                         <label class="form-check-label"
-                                                            for="{{ $mm->id . '-' . $permission->id }}">
+                                                            for="permission-{{ $mm->id . '-' . $permission->id }}">
                                                             {{ explode(' ', $permission->name)[0] }}
                                                         </label>
                                                     </div>
@@ -61,28 +72,35 @@
                                     </tr>
                                     @foreach ($mm->subMenus as $sm)
                                         <tr>
-                                            {{-- <td>&nbsp; &nbsp; &nbsp; &nbsp; <x-form.checkbox
-                            id="parent{{ $mm->id . $sm->id }}" label="{{ $sm->name }}"
-                            class="parent" /></td>
-                    <td> --}}
-                                            <td class="text-nowrap fw-medium ps-4">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; •
-                                                {{ $sm->name }}</td>
+                                            <td class="text-nowrap fw-medium ps-4">
+                                                <div class="form-check mb-0">
+                                                    <input class="form-check-input permission-row-check" type="checkbox"
+                                                        id="permission-row-{{ $sm->id }}"
+                                                        data-parent-id="{{ $mm->id }}"
+                                                        data-row-id="submenu-{{ $sm->id }}">
+                                                    <label class="form-check-label fw-medium"
+                                                        for="permission-row-{{ $sm->id }}">
+                                                        • {{ $sm->name }}
+                                                    </label>
+                                                </div>
+                                            </td>
                                             <td>
                                                 <div class="d-flex">
                                                     @foreach ($sm->permissions as $permission)
                                                         <div class="form-check me-3 me-lg-5">
                                                             <input class="form-check-input checkbox-item" type="checkbox"
                                                                 name="permissions[]" value="{{ $permission->name }}"
-                                                                @checked($data->hasPermissionTo($permission->name)) type="checkbox"
+                                                                data-parent-id="{{ $mm->id }}"
+                                                                data-row-id="submenu-{{ $sm->id }}"
+                                                                @checked($data->hasPermissionTo($permission->name))
                                                                 id="permission-{{ $sm->id . '-' . $permission->id }}">
                                                             <label class="form-check-label"
-                                                                for="{{ $sm->id . '-' . $permission->id }}">
+                                                                for="permission-{{ $sm->id . '-' . $permission->id }}">
                                                                 {{ explode(' ', $permission->name)[0] }}
                                                             </label>
                                                         </div>
                                                     @endforeach
                                                 </div>
-                                            </td>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -104,40 +122,80 @@
     @push('js')
         <script>
             $(document).ready(function() {
+                const $selectAll = $('#selectAll');
 
-                // init pertama check setelah buka halaman pertama kali
-                if ($('.checkbox-item:checked').length == $('.checkbox-item').length) {
-                    // Jika semua checkbox telah di-check, check checkbox "check all"
-                    $('#selectAll').prop('checked', true);
+                function permissionItemsBy(key, value) {
+                    return $('.checkbox-item').filter(function() {
+                        return String($(this).attr('data-' + key)) === String(value);
+                    });
                 }
 
-                // Ketika checkbox "check all" diubah statusnya
-                $('#selectAll').change(function() {
-                    // Jika checkbox "check all" di-check
-                    if (this.checked) {
-                        // Set semua checkbox dengan kelas .checkbox-item menjadi checked
-                        $('.checkbox-item').each(function() {
-                            this.checked = true;
-                        });
-                    } else { // Jika checkbox "check all" tidak di-check
-                        // Set semua checkbox dengan kelas .checkbox-item menjadi unchecked
-                        $('.checkbox-item').each(function() {
-                            this.checked = false;
-                        });
-                    }
+                function setCheckState($checkbox, $items) {
+                    const total = $items.length;
+                    const checked = $items.filter(':checked').length;
+
+                    $checkbox.prop('checked', total > 0 && checked === total);
+                    $checkbox.prop('indeterminate', checked > 0 && checked < total);
+                }
+
+                function updateSelectAll() {
+                    setCheckState($selectAll, $('.checkbox-item'));
+                }
+
+                function updateRowCheck(rowId) {
+                    const $rowCheck = $('.permission-row-check').filter(function() {
+                        return String($(this).attr('data-row-id')) === String(rowId);
+                    });
+
+                    setCheckState($rowCheck, permissionItemsBy('row-id', rowId));
+                }
+
+                function updateParentCheck(parentId) {
+                    const $parentCheck = $('.permission-parent-check').filter(function() {
+                        return String($(this).attr('data-parent-id')) === String(parentId);
+                    });
+
+                    setCheckState($parentCheck, permissionItemsBy('parent-id', parentId));
+                }
+
+                function refreshPermissionUtilities() {
+                    $('.permission-row-check').each(function() {
+                        updateRowCheck($(this).attr('data-row-id'));
+                    });
+
+                    $('.permission-parent-check').each(function() {
+                        updateParentCheck($(this).attr('data-parent-id'));
+                    });
+
+                    updateSelectAll();
+                }
+
+                $('.checkbox-item').change(function() {
+                    updateRowCheck($(this).attr('data-row-id'));
+                    updateParentCheck($(this).attr('data-parent-id'));
+                    updateSelectAll();
                 });
 
-                // Ketika salah satu checkbox dengan kelas .checkbox-item diubah statusnya
-                $('.checkbox-item').change(function() {
-                    // Cek apakah semua checkbox dengan kelas .checkbox-item telah di-check
-                    if ($('.checkbox-item:checked').length == $('.checkbox-item').length) {
-                        // Jika semua checkbox telah di-check, check checkbox "check all"
-                        $('#selectAll').prop('checked', true);
-                    } else {
-                        // Jika tidak semua checkbox di-check, uncheck checkbox "check all"
-                        $('#selectAll').prop('checked', false);
-                    }
+                $('.permission-row-check').change(function() {
+                    permissionItemsBy('row-id', $(this).attr('data-row-id')).prop('checked', this.checked);
+                    refreshPermissionUtilities();
                 });
+
+                $('.permission-parent-check').change(function() {
+                    permissionItemsBy('parent-id', $(this).attr('data-parent-id')).prop('checked', this.checked);
+                    refreshPermissionUtilities();
+                });
+
+                $selectAll.change(function() {
+                    $('.checkbox-item').prop('checked', this.checked);
+                    refreshPermissionUtilities();
+                });
+
+                $('form').on('reset', function() {
+                    setTimeout(refreshPermissionUtilities, 0);
+                });
+
+                refreshPermissionUtilities();
             });
         </script>
     @endpush
