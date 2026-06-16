@@ -29,7 +29,7 @@
                     <div class="card border-start border-success h-100 shadow-sm">
                         <div class="card-body">
                             <p class="text-muted small mb-1">Mode Procurement</p>
-                            <h5 class="mb-0 text-capitalize">{{ $supplier->procurement_mode }}</h5>
+                            <h5 class="mb-0">{{ $supplier->procurement_mode_label }}</h5>
                         </div>
                     </div>
                 </div>
@@ -67,7 +67,7 @@
                             <dd class="col-7">{{ $supplier->name }}</dd>
 
                             <dt class="col-5 text-muted">Mode Pembelian</dt>
-                            <dd class="col-7 text-capitalize">{{ $supplier->procurement_mode }}</dd>
+                            <dd class="col-7">{{ $supplier->procurement_mode_label }}</dd>
 
                             <dt class="col-5 text-muted">Terakhir Diubah</dt>
                             <dd class="col-7">{{ optional($supplier->updated_at)->format('d M Y H:i') }}</dd>

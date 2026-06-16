@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ProcurementMode;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -13,14 +14,20 @@ class Supplier extends Model
     protected $guarded = ['id'];
 
     public $procurementMode = [
-        'ONLINE' => 'online',
-        'OFFLINE'=> 'offline',
-        'BOTH' => 'both'
+        'OFFLINE' => ProcurementMode::OFFLINE->value,
+        'ONLINE' => ProcurementMode::ONLINE->value,
+        'BOTH' => ProcurementMode::BOTH->value,
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'procurement_mode' => 'integer',
     ];
+
+    public function getProcurementModeLabelAttribute(): string
+    {
+        return ProcurementMode::labelFor($this->procurement_mode);
+    }
 
     public function contacts(){
         return $this->hasMany(SupplierContacts::class);

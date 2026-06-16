@@ -22,10 +22,15 @@
     <div class="col-sm-12 mb-3">
         <div class="form-group">
             <label>Mode Procurement</label>
+            @php
+                $selectedProcurementMode = (string) old('procurement_mode', $data->procurement_mode ?? \App\Enums\ProcurementMode::BOTH->value);
+            @endphp
             <select name="procurement_mode" class="form-select" required>
-                <option value="online" {{ old('procurement_mode', $data->procurement_mode) === 'online' ? 'selected' : '' }}>Online</option>
-                <option value="offline" {{ old('procurement_mode', $data->procurement_mode) === 'offline' ? 'selected' : '' }}>Offline</option>
-                <option value="both" {{ old('procurement_mode', $data->procurement_mode) === 'both' ? 'selected' : '' }}>Keduanya</option>
+                @foreach (\App\Enums\ProcurementMode::options() as $value => $label)
+                    <option value="{{ $value }}" {{ $selectedProcurementMode === (string) $value ? 'selected' : '' }}>
+                        {{ $label }}
+                    </option>
+                @endforeach
             </select>
         </div>
     </div>

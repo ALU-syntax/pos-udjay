@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DataTables\SupplierDataTable;
+use App\Enums\ProcurementMode;
 use App\Models\RawMaterials;
 use App\Models\Satuan;
 use App\Models\Supplier;
@@ -38,10 +39,12 @@ class SupplierController extends Controller
         $validated = $request->validate([
             'code' => ['nullable', 'string', 'max:50', Rule::unique('suppliers', 'code')],
             'name' => ['required', 'string', 'max:255', Rule::unique('suppliers', 'name')],
-            'procurement_mode' => ['required', Rule::in(['online', 'offline', 'both'])],
+            'procurement_mode' => ['required', 'integer', Rule::in(ProcurementMode::values())],
             'is_active' => ['required', 'boolean'],
             'notes' => ['nullable', 'string'],
         ]);
+
+        $validated['procurement_mode'] = (int) $validated['procurement_mode'];
 
         Supplier::create($validated);
 
@@ -68,10 +71,12 @@ class SupplierController extends Controller
         $validated = $request->validate([
             'code' => ['nullable', 'string', 'max:50', Rule::unique('suppliers', 'code')->ignore($supplier->id)],
             'name' => ['required', 'string', 'max:255', Rule::unique('suppliers', 'name')->ignore($supplier->id)],
-            'procurement_mode' => ['required', Rule::in(['online', 'offline', 'both'])],
+            'procurement_mode' => ['required', 'integer', Rule::in(ProcurementMode::values())],
             'is_active' => ['required', 'boolean'],
             'notes' => ['nullable', 'string'],
         ]);
+
+        $validated['procurement_mode'] = (int) $validated['procurement_mode'];
 
         $supplier->update($validated);
 

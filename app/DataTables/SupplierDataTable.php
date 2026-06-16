@@ -26,6 +26,9 @@ class SupplierDataTable extends DataTable
             ->editColumn('is_active', function (Supplier $supplier) {
                 return $supplier->is_active ? '<span class="badge bg-success">Aktif</span>' : '<span class="badge bg-secondary">Nonaktif</span>';
             })
+            ->editColumn('procurement_mode', function (Supplier $supplier) {
+                return $supplier->procurement_mode_label;
+            })
             ->editColumn('created_at', function (Supplier $supplier) {
                 return $supplier->created_at ? $supplier->created_at->format('d M Y') : '-';
             })

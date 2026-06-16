@@ -18,11 +18,11 @@ return new class extends Migration
             $table->string('name')->unique();
 
             /*
-             * online  = pembelian hanya bisa online
-             * offline = pembelian hanya bisa offline
-             * both    = bisa online dan offline
+             * 1 = pembelian hanya bisa offline
+             * 2 = pembelian hanya bisa online
+             * 3 = bisa online dan offline
              */
-            $table->string('procurement_mode', 20)->default('both');
+            $table->enum('procurement_mode', [1, 2, 3])->default(3);
 
             $table->boolean('is_active')->default(true);
             $table->text('notes')->nullable();
