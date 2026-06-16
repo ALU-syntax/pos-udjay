@@ -94,7 +94,14 @@ class SupplierController extends Controller
     {
         $supplier->delete();
 
-        return responseSuccessDelete();
+        $stats = [
+            'total' => Supplier::count(),
+            'active' => Supplier::where('is_active', 1)->count(),
+            'inactive' => Supplier::where('is_active', 0)->count(),
+            'supplied_materials' => SupplierRawMaterials::count(),
+        ];
+
+        return responseSuccess(false, 'Supplier berhasil dihapus', $stats);
     }
 
     public function show(Supplier $supplier)

@@ -1,11 +1,23 @@
-<div class="btn-group" role="group">
-    <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm" data-bs-toggle="dropdown"
-        aria-expanded="false">
-        Action
-    </button>
-    <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-        <li><a class="dropdown-item" href="{{ route('warehouse/supplier/show', $supplier->id) }}">Detail Supplier</a></li>
-        <li><a class="dropdown-item action" href="{{ route('warehouse/supplier/edit', $supplier->id) }}">Edit</a></li>
-        <li><a class="dropdown-item delete" href="{{ route('warehouse/supplier/destroy', $supplier->id) }}" style="color:red">Hapus</a></li>
-    </ul>
+<div class="supplier-action-group" role="group" aria-label="Aksi Supplier">
+    <a class="supplier-action-btn"
+        href="{{ route('warehouse/supplier/show', $supplier->id) }}"
+        data-bs-toggle="tooltip"
+        data-bs-placement="top"
+        title="Detail supplier">
+        <i class="fa fa-eye"></i>
+    </a>
+    <a class="supplier-action-btn action"
+        href="{{ route('warehouse/supplier/edit', $supplier->id) }}"
+        data-bs-toggle="tooltip"
+        data-bs-placement="top"
+        title="Edit supplier">
+        <i class="fa fa-pen"></i>
+    </a>
+    <a class="supplier-action-btn danger delete"
+        href="{{ route('warehouse/supplier/destroy', $supplier->id) }}"
+        data-bs-toggle="tooltip"
+        data-bs-placement="top"
+        title="Hapus supplier">
+        <i class="fa fa-trash"></i>
+    </a>
 </div>
