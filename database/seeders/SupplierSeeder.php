@@ -4,14 +4,44 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class SupplierSeeder extends Seeder
 {
+    /**
+     * suppliers.procurement_mode:
+     * 1 = pembelian hanya bisa offline
+     * 2 = pembelian hanya bisa online
+     * 3 = bisa online dan offline
+     */
+    private const PROCUREMENT_OFFLINE = '1';
+    private const PROCUREMENT_ONLINE = '2';
+    private const PROCUREMENT_BOTH = '3';
+
+    /**
+     * Ubah nilai ini kalau kamu ingin memaksa pakai id tertentu.
+     * Jika null, seeder akan mencari satuan by name/code/symbol, lalu mencoba membuat default satuan.
+     */
+    private const DEFAULT_UNIT_ID = null;
+    private const DEFAULT_UNIT_SEARCH_VALUES = ['pcs', 'pc', 'piece', 'unit', 'buah'];
+    private const DEFAULT_UNIT_NAME = 'pcs';
+
+    /**
+     * Ubah nilai ini kalau kamu ingin memaksa pakai id raw_storage_types tertentu.
+     * Jika null, seeder akan mencari raw_storage_types other/dry/chilled/frozen sesuai kebutuhan.
+     */
+    private const DEFAULT_STORAGE_TYPE_ID = null;
+    private const DEFAULT_STORAGE_TYPE_SEARCH_VALUES = ['other', 'lainnya', 'default'];
+    private const DEFAULT_STORAGE_TYPE_NAME = 'other';
+
     public function run(): void
     {
         DB::transaction(function (): void {
             $now = now();
+
+            $defaultRefs = $this->resolveDefaultReferences($now);
             $channelTypeIds = $this->seedChannelTypes($now);
 
             $rows = array_merge(
@@ -50,10 +80,10 @@ class SupplierSeeder extends Seeder
                     }
 
                     if ($mode !== null) {
-                        $supplierMeta[$supplierName]['modes'][$mode] = true;
+                        $supplierMeta[$supplierName]['modes'][(string) $mode] = true;
                     }
 
-                    $materialName = $this->clean($row['material_name'] ?? '');
+                    $materialName = $this->canonicalRawMaterialName($row['material_name'] ?? '');
                     if ($materialName !== '') {
                         $supplierMeta[$supplierName]['materials'][$materialName] = true;
                     }
@@ -81,6 +111,7 @@ class SupplierSeeder extends Seeder
                 foreach ($rowsForSupplier as $row) {
                     $this->seedContactFromRow($supplierId, $row, $now);
                     $this->seedChannelFromRow($supplierId, $row, $channelTypeIds, $now);
+                    $this->seedSupplierRawMaterialFromRow($supplierId, $row, $defaultRefs, $now);
                 }
             }
 
@@ -102,21 +133,14 @@ class SupplierSeeder extends Seeder
         $ids = [];
 
         foreach ($names as $name) {
-            $existing = DB::table('supplier_channel_types')->where('name', $name)->first();
+            $record = $this->firstOrCreateRecord(
+                'supplier_channel_types',
+                ['name' => $name],
+                [],
+                $now
+            );
 
-            if ($existing) {
-                DB::table('supplier_channel_types')
-                    ->where('id', $existing->id)
-                    ->update(['updated_at' => $now]);
-
-                $ids[$name] = $existing->id;
-            } else {
-                $ids[$name] = DB::table('supplier_channel_types')->insertGetId([
-                    'name' => $name,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-            }
+            $ids[$name] = (int) $record->id;
         }
 
         return $ids;
@@ -124,12 +148,14 @@ class SupplierSeeder extends Seeder
 
     private function upsertSupplier(string $name, string $mode, array $materials, $now): int
     {
+        $mode = $this->assertValidProcurementMode($mode);
+
         $existing = DB::table('suppliers')->where('name', $name)->first();
         $notes = 'Import awal dari spreadsheet supplier bahan baku. Bahan terkait: '
             . Str::limit(implode(', ', $materials), 1800, '...');
 
         $payload = [
-            'procurement_mode' => $mode,
+            'procurement_mode' => (string) $mode,
             'is_active' => true,
             'updated_at' => $now,
             'deleted_at' => null,
@@ -142,6 +168,8 @@ class SupplierSeeder extends Seeder
         if (!$existing || blank($existing->notes)) {
             $payload['notes'] = $notes;
         }
+
+        $payload['procurement_mode'] = $this->assertValidProcurementMode($payload['procurement_mode']);
 
         if ($existing) {
             DB::table('suppliers')->where('id', $existing->id)->update($payload);
@@ -157,6 +185,182 @@ class SupplierSeeder extends Seeder
     private function makeSupplierCode(string $supplierName): string
     {
         return 'SUP-' . strtoupper(substr(md5(Str::lower($supplierName)), 0, 8));
+    }
+
+    private function assertValidProcurementMode($mode): string
+    {
+        $mode = (string) $this->coerceProcurementMode($mode);
+
+        if (!in_array($mode, [self::PROCUREMENT_OFFLINE, self::PROCUREMENT_ONLINE, self::PROCUREMENT_BOTH], true)) {
+            throw new RuntimeException('Invalid procurement_mode generated by SupplierSeeder: ' . var_export($mode, true));
+        }
+
+        return $mode;
+    }
+
+    private function seedSupplierRawMaterialFromRow(int $supplierId, array $row, array $defaultRefs, $now): void
+    {
+        $materialName = $this->canonicalRawMaterialName($row['material_name'] ?? '');
+
+        if ($materialName === '') {
+            return;
+        }
+
+        $brand = $this->clean($row['brand'] ?? '');
+        $supplierMaterialName = $brand !== ''
+            ? trim($materialName . ' ' . $brand)
+            : $materialName;
+
+        $categoryId = $this->firstOrCreateRawMaterialCategory(
+            $this->inferRawMaterialCategoryName($materialName),
+            $now
+        );
+
+        $storageTypeId = $this->resolveStorageTypeIdForMaterial($materialName, (int) $defaultRefs['storage_type_id'], $now);
+
+        $rawMaterialId = $this->firstOrCreateRawMaterial(
+            $materialName,
+            $categoryId,
+            (int) $defaultRefs['unit_id'],
+            $storageTypeId,
+            $now
+        );
+
+        $this->firstOrCreateSupplierRawMaterial(
+            $supplierId,
+            $rawMaterialId,
+            (int) $defaultRefs['unit_id'],
+            $supplierMaterialName,
+            $row,
+            $now
+        );
+    }
+
+    private function firstOrCreateRawMaterialCategory(string $name, $now): int
+    {
+        $normalized = $this->normalizeKey($name);
+
+        $existing = DB::table('raw_material_categories')
+            ->whereRaw('LOWER(TRIM(`name`)) = ?', [$normalized])
+            ->first();
+
+        $payload = [
+            'name' => $name,
+            'is_active' => true,
+            'notes' => null,
+            'updated_at' => $now,
+            'deleted_at' => null,
+        ];
+
+        if ($existing) {
+            DB::table('raw_material_categories')->where('id', $existing->id)->update($payload);
+            return (int) $existing->id;
+        }
+
+        $payload['created_at'] = $now;
+
+        return (int) DB::table('raw_material_categories')->insertGetId($payload);
+    }
+
+    private function firstOrCreateRawMaterial(string $name, int $categoryId, int $baseUnitId, int $storageTypeId, $now): int
+    {
+        $normalized = $this->normalizeKey($name);
+
+        $existing = DB::table('raw_materials')
+            ->whereRaw('LOWER(TRIM(`name`)) = ?', [$normalized])
+            ->first();
+
+        $payload = [
+            'raw_material_category_id' => $categoryId,
+            'base_unit_id' => $baseUnitId,
+            'storage_type_id' => $storageTypeId,
+            'is_active' => true,
+            'updated_at' => $now,
+            'deleted_at' => null,
+        ];
+
+        if ($existing) {
+            // Jangan overwrite code/name lama, cukup aktifkan dan lengkapi kategori/unit/storage jika data lama kosong.
+            $payloadForExisting = [
+                'is_active' => true,
+                'updated_at' => $now,
+                'deleted_at' => null,
+            ];
+
+            if (blank($existing->raw_material_category_id ?? null)) {
+                $payloadForExisting['raw_material_category_id'] = $categoryId;
+            }
+
+            if (blank($existing->base_unit_id ?? null)) {
+                $payloadForExisting['base_unit_id'] = $baseUnitId;
+            }
+
+            if (blank($existing->storage_type_id ?? null)) {
+                $payloadForExisting['storage_type_id'] = $storageTypeId;
+            }
+
+            DB::table('raw_materials')->where('id', $existing->id)->update($payloadForExisting);
+            return (int) $existing->id;
+        }
+
+        $payload['code'] = $this->makeRawMaterialCode($name);
+        $payload['name'] = $name;
+        $payload['notes'] = 'Import awal dari spreadsheet supplier.';
+        $payload['created_at'] = $now;
+
+        return (int) DB::table('raw_materials')->insertGetId($payload);
+    }
+
+    private function firstOrCreateSupplierRawMaterial(
+        int $supplierId,
+        int $rawMaterialId,
+        int $purchaseUnitId,
+        string $supplierMaterialName,
+        array $row,
+        $now
+    ): int {
+        $existing = DB::table('supplier_raw_materials')
+            ->where('supplier_id', $supplierId)
+            ->where('raw_material_id', $rawMaterialId)
+            ->where('purchase_unit_id', $purchaseUnitId)
+            ->first();
+
+        $notes = trim(sprintf(
+            'Import awal dari spreadsheet supplier. Source: %s line %s.',
+            $row['source'] ?? '-',
+            $row['line'] ?? '-'
+        ));
+
+        $payload = [
+            'supplier_material_name' => $supplierMaterialName,
+            'supplier_sku' => null,
+            'minimum_order_qty' => 0,
+            'lead_time_days' => 0,
+            'current_price' => null,
+            'price_updated_at' => null,
+            'is_active' => true,
+            'notes' => $notes,
+            'updated_at' => $now,
+            'deleted_at' => null,
+        ];
+
+        if ($existing) {
+            DB::table('supplier_raw_materials')->where('id', $existing->id)->update($payload);
+            return (int) $existing->id;
+        }
+
+        $payload['supplier_id'] = $supplierId;
+        $payload['raw_material_id'] = $rawMaterialId;
+        $payload['purchase_unit_id'] = $purchaseUnitId;
+        $payload['is_preferred'] = false;
+        $payload['created_at'] = $now;
+
+        return (int) DB::table('supplier_raw_materials')->insertGetId($payload);
+    }
+
+    private function makeRawMaterialCode(string $materialName): string
+    {
+        return 'RM-' . strtoupper(substr(md5(Str::lower($materialName)), 0, 8));
     }
 
     private function seedContactFromRow(int $supplierId, array $row, $now): void
@@ -234,13 +438,13 @@ class SupplierSeeder extends Seeder
 
         if (empty($phones)) {
             $this->upsertChannel(
-                supplierId: $supplierId,
-                channelTypeId: $channelTypeId,
-                channelName: $channelName,
-                identifier: $url ? null : ($cp !== '' && $cp !== '-' ? $cp : null),
-                url: $url,
-                address: $channelTypeName === 'Offline Store' ? $channelName : null,
-                now: $now
+                $supplierId,
+                $channelTypeId,
+                $channelName,
+                $url ? null : ($cp !== '' && $cp !== '-' ? $cp : null),
+                $url,
+                $channelTypeName === 'Offline Store' ? $channelName : null,
+                $now
             );
 
             return;
@@ -248,13 +452,13 @@ class SupplierSeeder extends Seeder
 
         foreach ($phones as $phone) {
             $this->upsertChannel(
-                supplierId: $supplierId,
-                channelTypeId: $channelTypeId,
-                channelName: $channelName,
-                identifier: $phone,
-                url: $url,
-                address: $channelTypeName === 'Offline Store' ? $channelName : null,
-                now: $now
+                $supplierId,
+                $channelTypeId,
+                $channelName,
+                $phone,
+                $url,
+                $channelTypeName === 'Offline Store' ? $channelName : null,
+                $now
             );
         }
     }
@@ -373,6 +577,285 @@ class SupplierSeeder extends Seeder
                 }
             }
         }
+    }
+
+    private function resolveDefaultReferences($now): array
+    {
+        return [
+            'unit_id' => $this->resolveDefaultUnitId($now),
+            'storage_type_id' => $this->resolveDefaultStorageTypeId($now),
+        ];
+    }
+
+    private function resolveDefaultUnitId($now): int
+    {
+        if (self::DEFAULT_UNIT_ID !== null) {
+            return (int) self::DEFAULT_UNIT_ID;
+        }
+
+        if (!Schema::hasTable('satuans')) {
+            throw new RuntimeException('Table satuans belum ada. Jalankan migration satuans lebih dulu.');
+        }
+
+        $id = $this->findIdByAnyColumn('satuans', ['name', 'nama', 'satuan', 'unit_name', 'symbol', 'code'], self::DEFAULT_UNIT_SEARCH_VALUES);
+
+        if ($id !== null) {
+            return $id;
+        }
+
+        return $this->tryCreateDefaultUnit($now);
+    }
+
+    private function resolveDefaultStorageTypeId($now): int
+    {
+        if (self::DEFAULT_STORAGE_TYPE_ID !== null) {
+            return (int) self::DEFAULT_STORAGE_TYPE_ID;
+        }
+
+        if (!Schema::hasTable('raw_storage_types')) {
+            throw new RuntimeException('Table raw_storage_types belum ada. Jalankan migration/seeder raw_storage_types lebih dulu.');
+        }
+
+        $id = $this->findIdByAnyColumn('raw_storage_types', ['name', 'code', 'slug'], self::DEFAULT_STORAGE_TYPE_SEARCH_VALUES);
+
+        if ($id !== null) {
+            return $id;
+        }
+
+        return $this->tryCreateDefaultStorageType($now);
+    }
+
+    private function resolveStorageTypeIdForMaterial(string $materialName, int $defaultStorageTypeId, $now): int
+    {
+        $storageCode = $this->inferStorageTypeKey($materialName);
+
+        if ($storageCode === null) {
+            return $defaultStorageTypeId;
+        }
+
+        $id = $this->findIdByAnyColumn('raw_storage_types', ['name', 'code', 'slug'], [$storageCode]);
+
+        return $id ?? $defaultStorageTypeId;
+    }
+
+    private function tryCreateDefaultUnit($now): int
+    {
+        $payload = [];
+
+        if (Schema::hasColumn('satuans', 'name')) {
+            $payload['name'] = self::DEFAULT_UNIT_NAME;
+        } elseif (Schema::hasColumn('satuans', 'nama')) {
+            $payload['nama'] = self::DEFAULT_UNIT_NAME;
+        } elseif (Schema::hasColumn('satuans', 'satuan')) {
+            $payload['satuan'] = self::DEFAULT_UNIT_NAME;
+        } elseif (Schema::hasColumn('satuans', 'unit_name')) {
+            $payload['unit_name'] = self::DEFAULT_UNIT_NAME;
+        }
+
+        if (Schema::hasColumn('satuans', 'code')) {
+            $payload['code'] = strtoupper(self::DEFAULT_UNIT_NAME);
+        }
+
+        if (Schema::hasColumn('satuans', 'symbol')) {
+            $payload['symbol'] = self::DEFAULT_UNIT_NAME;
+        }
+
+        if (Schema::hasColumn('satuans', 'is_active')) {
+            $payload['is_active'] = true;
+        }
+
+        if (Schema::hasColumn('satuans', 'created_at')) {
+            $payload['created_at'] = $now;
+        }
+
+        if (Schema::hasColumn('satuans', 'updated_at')) {
+            $payload['updated_at'] = $now;
+        }
+
+        if (empty($payload)) {
+            throw new RuntimeException('Seeder tidak bisa membuat default satuan karena struktur table satuans tidak dikenali. Isi DEFAULT_UNIT_ID secara manual.');
+        }
+
+        try {
+            return (int) DB::table('satuans')->insertGetId($payload);
+        } catch (\Throwable $e) {
+            throw new RuntimeException(
+                'Seeder tidak menemukan satuan default dan gagal membuat satuan default. Isi DEFAULT_UNIT_ID sesuai id satuan yang sudah ada. Error: ' . $e->getMessage(),
+                previous: $e
+            );
+        }
+    }
+
+    private function tryCreateDefaultStorageType($now): int
+    {
+        $payload = [];
+
+        if (Schema::hasColumn('raw_storage_types', 'name')) {
+            $payload['name'] = self::DEFAULT_STORAGE_TYPE_NAME;
+        }
+
+        if (Schema::hasColumn('raw_storage_types', 'code')) {
+            $payload['code'] = self::DEFAULT_STORAGE_TYPE_NAME;
+        }
+
+        if (Schema::hasColumn('raw_storage_types', 'slug')) {
+            $payload['slug'] = self::DEFAULT_STORAGE_TYPE_NAME;
+        }
+
+        if (Schema::hasColumn('raw_storage_types', 'description')) {
+            $payload['description'] = 'Default storage type untuk import awal supplier.';
+        }
+
+        if (Schema::hasColumn('raw_storage_types', 'notes')) {
+            $payload['notes'] = 'Default storage type untuk import awal supplier.';
+        }
+
+        if (Schema::hasColumn('raw_storage_types', 'is_active')) {
+            $payload['is_active'] = true;
+        }
+
+        if (Schema::hasColumn('raw_storage_types', 'created_at')) {
+            $payload['created_at'] = $now;
+        }
+
+        if (Schema::hasColumn('raw_storage_types', 'updated_at')) {
+            $payload['updated_at'] = $now;
+        }
+
+        if (empty($payload)) {
+            throw new RuntimeException('Seeder tidak bisa membuat default raw_storage_types karena struktur table raw_storage_types tidak dikenali. Isi DEFAULT_STORAGE_TYPE_ID secara manual.');
+        }
+
+        try {
+            return (int) DB::table('raw_storage_types')->insertGetId($payload);
+        } catch (\Throwable $e) {
+            throw new RuntimeException(
+                'Seeder tidak menemukan storage type default dan gagal membuat storage type default. Isi DEFAULT_STORAGE_TYPE_ID sesuai id raw_storage_types yang sudah ada. Error: ' . $e->getMessage(),
+                previous: $e
+            );
+        }
+    }
+
+    private function firstOrCreateRecord(string $table, array $attributes, array $values, $now): object
+    {
+        $query = DB::table($table);
+
+        foreach ($attributes as $column => $value) {
+            $value === null ? $query->whereNull($column) : $query->where($column, $value);
+        }
+
+        $existing = $query->first();
+
+        if ($existing) {
+            $payload = $values;
+            $this->appendTimestamps($payload, $now, false);
+
+            if (!empty($payload)) {
+                DB::table($table)->where('id', $existing->id)->update($payload);
+            }
+
+            return DB::table($table)->where('id', $existing->id)->first();
+        }
+
+        $payload = array_merge($attributes, $values);
+        $this->appendTimestamps($payload, $now, true);
+        $id = DB::table($table)->insertGetId($payload);
+
+        return DB::table($table)->where('id', $id)->first();
+    }
+
+    private function appendTimestamps(array &$payload, $now, bool $withCreatedAt): void
+    {
+        if ($withCreatedAt) {
+            $payload['created_at'] = $now;
+        }
+
+        $payload['updated_at'] = $now;
+    }
+
+    private function findIdByAnyColumn(string $table, array $columns, array $values): ?int
+    {
+        foreach ($columns as $column) {
+            if (!Schema::hasColumn($table, $column)) {
+                continue;
+            }
+
+            foreach ($values as $value) {
+                $normalized = $this->normalizeKey($value);
+
+                $record = DB::table($table)
+                    ->whereRaw('LOWER(TRIM(`' . $column . '`)) = ?', [$normalized])
+                    ->first();
+
+                if ($record) {
+                    return (int) $record->id;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function inferRawMaterialCategoryName(string $materialName): string
+    {
+        $name = Str::lower($materialName);
+
+        if (Str::contains($name, ['box', 'cup', 'paperbag', 'plastik', 'kertas', 'ketas', 'sedotan', 'tray', 'botolan', 'sendok', 'spoons', 'wrapping', 'handglove'])) {
+            return 'Packaging';
+        }
+
+        if (Str::contains($name, ['tissue', 'trashbag', 'sabun', 'clink', 'karbol', 'kamper', 'harpic', 'pengharum', 'solatip', 'amplop'])) {
+            return 'Cleaning & Utility';
+        }
+
+        if (Str::contains($name, ['brownies', 'cookies', 'croissant', 'danish', 'cheesecake', 'churros', 'roti', 'risol', 'pastry', 'bacang', 'ubi', 'makaroni', 'kulit pangsit', 'kulit tortila'])) {
+            return 'Bakery & Pastry';
+        }
+
+        if (Str::contains($name, ['milk', 'cream', 'creamer', 'keju', 'cheese', 'butter', 'mentega', 'yogurt', 'skm', 'uht', 'oatside', 'millac', 'brookfarm', 'richotta'])) {
+            return 'Dairy';
+        }
+
+        if (Str::contains($name, ['beans', 'tea', 'syrup', 'juice', 'schweppes', 'pristine', 'aqua', 'matcha', 'coklat', 'chocolate', 'greentea', 'powder'])) {
+            return 'Beverage';
+        }
+
+        if (Str::contains($name, ['buah', 'lemon', 'lychee', 'strawberry', 'blueberry', 'sunkist', 'daun', 'bawang', 'cabe', 'tomat', 'timun', 'kol', 'wortel', 'paprika', 'jagung', 'jahe', 'jeruk', 'sereh', 'selada', 'mint', 'basil', 'flower', 'romaine'])) {
+            return 'Fruit & Vegetable';
+        }
+
+        if (Str::contains($name, ['ayam', 'beef', 'daging', 'ikan', 'udang', 'smoked', 'saikoro', 'dori', 'telur'])) {
+            return 'Meat, Seafood & Egg';
+        }
+
+        if (Str::contains($name, ['gas'])) {
+            return 'Utility';
+        }
+
+        if (Str::contains($name, ['tepung', 'gula', 'garam', 'lada', 'nori', 'sasa', 'totole', 'kaldu', 'kacang', 'minyak', 'olive', 'vanila', 'baking', 'biji', 'terasi', 'kecap', 'cuka', 'madu', 'saus', 'sauce', 'mayonais', 'mayonaise', 'dressing', 'nutmeg', 'pala', 'beras'])) {
+            return 'Dry Goods';
+        }
+
+        return 'Other';
+    }
+
+    private function inferStorageTypeKey(string $materialName): ?string
+    {
+        $name = Str::lower($materialName);
+
+        if (Str::contains($name, ['ice cream', 'frozen', 'dori', 'udang', 'french fries', 'potato wedges'])) {
+            return 'frozen';
+        }
+
+        if (Str::contains($name, ['fresh milk', 'uht', 'yogurt', 'cream', 'cheese', 'ayam', 'beef', 'daging', 'telur', 'sayur', 'buah', 'lemon', 'strawberry', 'selada', 'tomat'])) {
+            return 'chilled';
+        }
+
+        if (Str::contains($name, ['tepung', 'gula', 'garam', 'lada', 'beras', 'powder', 'syrup', 'tea', 'beans', 'kertas', 'plastik', 'cup', 'box'])) {
+            return 'dry';
+        }
+
+        return null;
     }
 
     private function parseFirstSheet(string $raw): array
@@ -531,61 +1014,107 @@ class SupplierSeeder extends Seeder
 
         $aliases = [
             'Anuggrah Rempah' => 'Anugrah Rempah',
+            'Dillco Sales Service' => 'Dillco',
+            'Dillco ' => 'Dillco',
+            'Dilco' => 'Dillco',
+            'Kelana' => 'Kelana Roastery',
             'Lotte' => 'Lotte Mart',
+            'Grand/Lotte' => 'Grand/Lotte Mart',
             'Allfresh' => 'All Fresh',
+            'Imah Kopi Croissanterie' => 'Imah Kopi Bandung',
             'Suplier Trashbag (Dimas)' => 'Supplier Trashbag (Dimas)',
+            'Production' => 'Production',
         ];
 
         return $aliases[$name] ?? $name;
     }
 
+    private function canonicalRawMaterialName(?string $name): string
+    {
+        $name = $this->clean($name);
+
+        $aliases = [
+            'Ketas Thermall Bar' => 'Kertas Thermal Bar',
+            'Kertas Thermall Pastry' => 'Kertas Thermal Pastry',
+            'TIssue Multifold' => 'Tissue Multifold',
+            'FreshFries' => 'French Fries',
+            'Totole (kaldu jamur)' => 'Kaldu Jamur Totole',
+        ];
+
+        return $aliases[$name] ?? $name;
+    }
+
+    private function coerceProcurementMode($mode): string
+    {
+        $value = Str::of((string) $mode)
+            ->lower()
+            ->trim()
+            ->replace(' ', '')
+            ->replace('offiline', 'offline')
+            ->toString();
+
+        return match ($value) {
+            '1', 'offline' => self::PROCUREMENT_OFFLINE,
+            '2', 'online' => self::PROCUREMENT_ONLINE,
+            '3', 'both', 'online/offline', 'offline/online', 'online/offline/offline' => self::PROCUREMENT_BOTH,
+            default => self::PROCUREMENT_BOTH,
+        };
+    }
+
     private function resolveSupplierMode(array $modes): string
     {
-        $modes = array_values(array_unique(array_filter($modes)));
+        $modes = array_values(array_unique(array_filter(array_map('strval', $modes))));
 
-        if (in_array('both', $modes, true)) {
-            return 'both';
+        if (in_array(self::PROCUREMENT_BOTH, $modes, true)) {
+            return self::PROCUREMENT_BOTH;
         }
 
-        if (in_array('online', $modes, true) && in_array('offline', $modes, true)) {
-            return 'both';
+        if (
+            in_array(self::PROCUREMENT_ONLINE, $modes, true)
+            && in_array(self::PROCUREMENT_OFFLINE, $modes, true)
+        ) {
+            return self::PROCUREMENT_BOTH;
         }
 
-        if (in_array('online', $modes, true)) {
-            return 'online';
+        if (in_array(self::PROCUREMENT_ONLINE, $modes, true)) {
+            return self::PROCUREMENT_ONLINE;
         }
 
-        if (in_array('offline', $modes, true)) {
-            return 'offline';
+        if (in_array(self::PROCUREMENT_OFFLINE, $modes, true)) {
+            return self::PROCUREMENT_OFFLINE;
         }
 
-        return 'both';
+        return self::PROCUREMENT_BOTH;
     }
 
     private function normalizeMode(?string $rawMode, ?string $orderPlace = null): ?string
     {
-        $rawMode = Str::of($this->clean($rawMode))->lower()->replace(' ', '')->replace('offiline', 'offline')->toString();
+        $rawMode = Str::of($this->clean($rawMode))
+            ->lower()
+            ->replace(' ', '')
+            ->replace('offiline', 'offline')
+            ->toString();
 
-        if ($rawMode === 'online/offline' || $rawMode === 'online/offline/offline') {
-            return 'both';
+        if ($rawMode === 'online/offline' || $rawMode === 'offline/online' || $rawMode === 'online/offline/offline') {
+            return self::PROCUREMENT_BOTH;
         }
 
         if ($rawMode === 'online') {
-            return 'online';
+            return self::PROCUREMENT_ONLINE;
         }
 
         if ($rawMode === 'offline') {
-            return 'offline';
+            return self::PROCUREMENT_OFFLINE;
         }
 
         $orderPlace = Str::lower($this->clean($orderPlace));
 
         if (Str::contains($orderPlace, ['whatsapp', 'wa', 'aplikasi', 'tokopedia', 'shopee', 'request'])) {
-            return 'online';
+            return self::PROCUREMENT_ONLINE;
         }
 
         if ($orderPlace !== '' && $orderPlace !== '-') {
-            return 'offline';
+            return self::PROCUREMENT_OFFLINE;
         }
 
         return null;
@@ -595,7 +1124,7 @@ class SupplierSeeder extends Seeder
     {
         $value = Str::of($this->clean($value))->lower()->replace(' ', '')->replace('offiline', 'offline')->toString();
 
-        return in_array($value, ['online', 'offline', 'online/offline', 'online/offline/offline'], true);
+        return in_array($value, ['online', 'offline', 'online/offline', 'offline/online', 'online/offline/offline'], true);
     }
 
     private function detectChannelType(?string $orderPlace, ?string $cp, ?string $mode): string
@@ -620,60 +1149,87 @@ class SupplierSeeder extends Seeder
         }
 
         if ($orderPlace !== '' && $orderPlace !== '-') {
-            return $mode === 'offline' ? 'Offline Store' : 'Other';
+            return (string) $mode === self::PROCUREMENT_OFFLINE ? 'Offline Store' : 'Other';
         }
 
-        return $mode === 'offline' ? 'Offline Store' : 'Other';
+        return (string) $mode === self::PROCUREMENT_OFFLINE ? 'Offline Store' : 'Other';
     }
 
     private function normalizeChannelName(?string $orderPlace, string $channelTypeName, string $supplierName): ?string
     {
         $orderPlace = $this->clean($orderPlace);
 
-        if ($orderPlace === '' || $orderPlace === '-') {
-            return $channelTypeName === 'Offline Store' ? $supplierName : $channelTypeName;
+        if ($channelTypeName === 'WhatsApp') {
+            return 'WhatsApp ' . $supplierName;
         }
 
-        if (Str::lower($orderPlace) === 'whatsapp') {
-            return 'WhatsApp';
+        if ($channelTypeName === 'Application' || $channelTypeName === 'Marketplace' || $channelTypeName === 'Offline Store' || $channelTypeName === 'By Request') {
+            return $orderPlace !== '' && $orderPlace !== '-' ? $orderPlace : $supplierName;
         }
 
-        return $orderPlace;
+        return $orderPlace !== '' && $orderPlace !== '-' ? $orderPlace : null;
     }
 
     private function splitPhones(?string $raw): array
     {
         $raw = $this->clean($raw);
 
-        if ($raw === '' || $raw === '-' || Str::startsWith(Str::lower($raw), 'http')) {
+        if ($raw === '' || $raw === '-') {
             return [];
         }
 
-        $chunks = preg_split('/[\/,;]|\bor\b|\bdan\b/i', $raw) ?: [];
-        $phones = [];
-
-        foreach ($chunks as $chunk) {
-            $phone = preg_replace('/\D+/', '', $chunk);
-
-            if (!$phone || strlen($phone) < 7) {
-                continue;
-            }
-
-            if (Str::startsWith($phone, '0')) {
-                $phone = '62' . substr($phone, 1);
-            }
-
-            $phones[] = $phone;
+        if (Str::contains(Str::lower($raw), ['http://', 'https://', 'tokopedia', 'shp.ee'])) {
+            return [];
         }
 
-        return array_values(array_unique($phones));
+        $parts = preg_split('/[\/;,]+/', $raw) ?: [];
+
+        return collect($parts)
+            ->map(fn ($part) => $this->normalizePhone($part))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
-    private function extractUrl(?string $value): ?string
+    private function normalizePhone(?string $phone): ?string
     {
-        $value = $this->clean($value);
+        $phone = $this->clean($phone);
 
-        if (preg_match('/https?:\/\/\S+/i', $value, $matches)) {
+        if ($phone === '' || $phone === '-') {
+            return null;
+        }
+
+        $phone = preg_replace('/[^0-9+]/', '', $phone);
+
+        if (!$phone) {
+            return null;
+        }
+
+        if (str_starts_with($phone, '+62')) {
+            return '62' . substr($phone, 3);
+        }
+
+        if (str_starts_with($phone, '62')) {
+            return $phone;
+        }
+
+        if (str_starts_with($phone, '0')) {
+            return '62' . substr($phone, 1);
+        }
+
+        if (str_starts_with($phone, '8')) {
+            return '62' . $phone;
+        }
+
+        return $phone;
+    }
+
+    private function extractUrl(?string $raw): ?string
+    {
+        $raw = $this->clean($raw);
+
+        if (preg_match('/https?:\/\/\S+/i', $raw, $matches)) {
             return $matches[0];
         }
 
@@ -682,9 +1238,14 @@ class SupplierSeeder extends Seeder
 
     private function daysFromSchedule(?string $schedule): array
     {
-        $schedule = Str::of($this->clean($schedule))->lower()->replace(' ', '')->toString();
+        $schedule = Str::of($this->clean($schedule))
+            ->lower()
+            ->replace('s/d', '-')
+            ->replace('sd', '-')
+            ->replace('setiap hari', 'setiaphari')
+            ->toString();
 
-        if ($schedule === '') {
+        if ($schedule === '' || $schedule === '-') {
             return [];
         }
 
@@ -692,52 +1253,90 @@ class SupplierSeeder extends Seeder
             return [1, 2, 3, 4, 5, 6, 7];
         }
 
-        if (Str::contains($schedule, 'senin-sabtu')) {
+        if (Str::contains($schedule, 'senin') && Str::contains($schedule, 'sabtu')) {
             return [1, 2, 3, 4, 5, 6];
         }
 
-        if (Str::contains($schedule, 'senin-jumat')) {
+        if (Str::contains($schedule, 'senin') && Str::contains($schedule, 'jumat')) {
             return [1, 2, 3, 4, 5];
         }
 
-        return [];
+        $map = [
+            'senin' => 1,
+            'selasa' => 2,
+            'rabu' => 3,
+            'kamis' => 4,
+            'jumat' => 5,
+            'sabtu' => 6,
+            'minggu' => 7,
+        ];
+
+        $days = [];
+        foreach ($map as $name => $day) {
+            if (Str::contains($schedule, $name)) {
+                $days[] = $day;
+            }
+        }
+
+        return array_values(array_unique($days));
     }
 
-    private function parseTimeRange(?string $rawHours): array
+    private function parseTimeRange(?string $hours): array
     {
-        $rawHours = $this->clean($rawHours);
+        $hours = $this->clean($hours);
 
-        if (Str::contains(Str::lower($rawHours), ['24 jam', '24hours', '24 hours'])) {
+        if ($hours === '' || $hours === '-') {
+            return [null, null, false];
+        }
+
+        if (Str::contains(Str::lower($hours), ['24 jam', '24 hours'])) {
             return [null, null, true];
         }
 
-        if (!preg_match('/(\d{1,2})[\.:](\d{2})\s*-\s*(\d{1,2})[\.:](\d{2})/', $rawHours, $matches)) {
+        $normalized = str_replace('.', ':', $hours);
+
+        if (!preg_match('/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/', $normalized, $matches)) {
             return [null, null, false];
         }
 
         return [
-            sprintf('%02d:%02d:00', (int) $matches[1], (int) $matches[2]),
-            sprintf('%02d:%02d:00', (int) $matches[3], (int) $matches[4]),
+            $this->normalizeTime($matches[1]),
+            $this->normalizeTime($matches[2]),
             false,
         ];
     }
 
     private function looksLikeTimeRange(?string $value): bool
     {
-        return preg_match('/\d{1,2}[\.:]\d{2}\s*-\s*\d{1,2}[\.:]\d{2}/', $this->clean($value)) === 1;
+        $value = $this->clean($value);
+
+        return (bool) preg_match('/\d{1,2}[\.:]\d{2}\s*-\s*\d{1,2}[\.:]\d{2}/', $value);
+    }
+
+    private function normalizeTime(string $time): string
+    {
+        [$hour, $minute] = array_pad(explode(':', $time), 2, '00');
+
+        return sprintf('%02d:%02d:00', (int) $hour, (int) $minute);
     }
 
     private function clean(?string $value): string
     {
-        $value = str_replace("\xC2\xA0", ' ', (string) $value);
-        $value = trim($value);
+        $value = (string) $value;
+        $value = str_replace(["\xc2\xa0", "\u{00A0}"], ' ', $value);
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
 
-        return preg_replace('/\s+/', ' ', $value) ?? '';
+        return trim($value);
+    }
+
+    private function normalizeKey(?string $value): string
+    {
+        return Str::of($this->clean($value))->lower()->toString();
     }
 
     private function rawSheetOne(): string
     {
-        return <<<'RAW_SUPPLIER_SHEET_1'
+        return <<<'TSV'
 No	Nama Bahan Baku	Tempat Pembelian/Supplier	Online/Offline	Jadwal Operasional	Jam Operasional	Tempat Pemesanan	CP
 1	Beans Filter	Budiman Roastery	Online/Offline	Setiap Hari	-	By Request	-
 2	Beans Filter Special	Budiman Roastery	Online/Offline	Setiap Hari	-	By Request	-
@@ -1777,12 +2376,12 @@ No	Nama Bahan Baku	Tempat Pembelian/Supplier	Online/Offline	Jadwal Operasional	J
 
 
 
-RAW_SUPPLIER_SHEET_1;
+TSV;
     }
 
     private function rawSheetTwo(): string
     {
-        return <<<'RAW_SUPPLIER_SHEET_2'
+        return <<<'TSV'
 No	Nama Bahan Baku	Tempat Pembelian/Supplier	Online/Offline	Jadwal Operasional	Jam Operasional	Tempat Pemesanan	CP
 1	Fresh Milk	Greenfields	Surya Anugrah Sentosa PT	Senin - Sabtu	09.00 - 17.00	Whatsapp	83824567910	Feny
 2	Salted Caramel Sauce	Davinci	Toffin	Senin - Sabtu	09.00 - 17.00	Whatsapp	85217169123
@@ -2658,6 +3257,6 @@ No	Nama Bahan Baku	Tempat Pembelian/Supplier	Online/Offline	Jadwal Operasional	J
 
 
 
-RAW_SUPPLIER_SHEET_2;
+TSV;
     }
 }
