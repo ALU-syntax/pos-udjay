@@ -11,6 +11,12 @@ class SupplierRawMaterialPriceHistories extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'effective_from' => 'date',
+        'effective_until' => 'date',
+        'price' => 'decimal:2',
+    ];
+
     public function supplierRawMaterial()
     {
         return $this->belongsTo(SupplierRawMaterials::class, 'supplier_raw_material_id');

@@ -160,17 +160,20 @@ class SupplierController extends Controller
             'raw_material_id' => [$uniqueRule],
         ]);
 
+        $currentPrice = $validated['current_price'] ?? null;
+
         $supplierRawMaterial = SupplierRawMaterials::create(array_merge($validated, [
             'supplier_id' => $supplier->id,
-            'current_price' => $validated['current_price'] ?? null,
-            'price_updated_at' => $validated['current_price'] !== null ? now() : null,
+            'current_price' => $currentPrice,
+            'price_updated_at' => $currentPrice !== null ? now() : null,
         ]));
 
-        if (!empty($validated['current_price'])) {
+        if ($currentPrice !== null) {
             SupplierRawMaterialPriceHistories::create([
                 'supplier_raw_material_id' => $supplierRawMaterial->id,
-                'price' => $validated['current_price'],
+                'price' => $currentPrice,
                 'effective_from' => now()->toDateString(),
+                'updated_by' => $request->user()->id,
                 'tax_type' => 'non_tax',
                 'notes' => 'Initial price set',
             ]);
@@ -205,16 +208,19 @@ class SupplierController extends Controller
         ]);
 
         $oldPrice = $supplierRawMaterial->current_price;
+        $currentPrice = $validated['current_price'] ?? null;
+
         $supplierRawMaterial->update(array_merge($validated, [
-            'current_price' => $validated['current_price'] ?? null,
-            'price_updated_at' => $validated['current_price'] !== null ? now() : null,
+            'current_price' => $currentPrice,
+            'price_updated_at' => $currentPrice !== null ? now() : null,
         ]));
 
-        if (!empty($validated['current_price']) && $validated['current_price'] != $oldPrice) {
+        if ($currentPrice !== null && $currentPrice != $oldPrice) {
             SupplierRawMaterialPriceHistories::create([
                 'supplier_raw_material_id' => $supplierRawMaterial->id,
-                'price' => $validated['current_price'],
+                'price' => $currentPrice,
                 'effective_from' => now()->toDateString(),
+                'updated_by' => $request->user()->id,
                 'tax_type' => 'non_tax',
                 'notes' => 'Price updated from ' . ($oldPrice ?? 'N/A'),
             ]);

@@ -36,6 +36,6 @@ class SupplierRawMaterials extends Model
 
     public function priceHistories()
     {
-        return $this->hasMany(SupplierRawMaterialPriceHistories::class);
+        return $this->hasMany(SupplierRawMaterialPriceHistories::class, 'supplier_raw_material_id');
     }
 }
