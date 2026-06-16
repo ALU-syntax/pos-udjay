@@ -8,6 +8,8 @@ use App\Models\InventoryRawMaterialStockBalance;
 use App\Models\ProcurementPlanItemSources;
 use App\Models\ProcurementPlanStatus;
 use App\Models\ProcurementPlans;
+use App\Models\PurchaseOrders;
+use App\Models\PurchaseOrderStatus;
 use App\Models\RawMaterialRequestItems;
 use App\Models\SupplierRawMaterials;
 use Illuminate\Http\Request;
@@ -155,12 +157,14 @@ class ProcurementPlanController extends Controller
                 }
             }
 
+            $this->generatePurchaseOrdersForPlan($procurementPlan);
+
             return $procurementPlan;
         });
 
         return redirect()
-            ->route('warehouse/procurement-plan/detail', $procurementPlan->id)
-            ->with('success', 'Procurement plan berhasil dibuat sebagai draft.');
+            ->route('warehouse/procurement-plan/purchase-orders', $procurementPlan->id)
+            ->with('success', 'Procurement plan dan purchase order berhasil dibuat.');
     }
 
     public function detail(ProcurementPlans $procurementPlan)
@@ -182,6 +186,45 @@ class ProcurementPlanController extends Controller
         return view('layouts.procurement_plan.show', [
             'procurementPlan' => $procurementPlan,
             'stats' => $this->planStats($procurementPlan),
+        ]);
+    }
+
+    public function purchaseOrderDetail(ProcurementPlans $procurementPlan)
+    {
+        $procurementPlan->load([
+            'status',
+            'planningLocation',
+            'plannedBy',
+            'approvedBy',
+            'purchaseOrders.status',
+            'purchaseOrders.supplier.primaryContact',
+            'purchaseOrders.supplier.primaryOrderChannel',
+            'purchaseOrders.orderedByLocation',
+            'purchaseOrders.receivingLocation',
+            'purchaseOrders.requestedBy',
+            'purchaseOrders.approvedBy',
+            'purchaseOrders.orderedBy',
+            'purchaseOrders.items.rawMaterial.baseUnit',
+            'purchaseOrders.items.unit',
+            'purchaseOrders.receipts.status',
+            'purchaseOrders.receipts.receivedInventory',
+            'purchaseOrders.receipts.receivedBy',
+            'purchaseOrders.receipts.postedBy',
+            'purchaseOrders.receipts.items.rawMaterial',
+            'purchaseOrders.receipts.items.unit',
+            'purchaseOrders.cancellations.cancelledBy',
+            'purchaseOrders.cancellations.items.rawMaterial',
+            'purchaseOrders.cancellations.items.unit',
+        ]);
+
+        $purchaseOrders = $procurementPlan->purchaseOrders
+            ->sortBy(fn (PurchaseOrders $purchaseOrder) => $purchaseOrder->supplier?->name ?: $purchaseOrder->po_number)
+            ->values();
+
+        return view('layouts.procurement_plan.purchase_orders', [
+            'procurementPlan' => $procurementPlan,
+            'purchaseOrders' => $purchaseOrders,
+            'stats' => $this->purchaseOrderStats($purchaseOrders),
         ]);
     }
 
@@ -319,6 +362,107 @@ class ProcurementPlanController extends Controller
         return (int) $statusId;
     }
 
+    private function purchaseOrderStatusId(string $code): int
+    {
+        $statusId = PurchaseOrderStatus::where('code', $code)->value('id');
+
+        if (!$statusId) {
+            throw ValidationException::withMessages([
+                'status' => "Status {$code} belum tersedia di purchase_order_statuses.",
+            ]);
+        }
+
+        return (int) $statusId;
+    }
+
+    private function generatePurchaseOrdersForPlan(ProcurementPlans $procurementPlan): Collection
+    {
+        if ($procurementPlan->purchaseOrders()->exists()) {
+            return $procurementPlan->purchaseOrders()->with('items')->get();
+        }
+
+        $procurementPlan->loadMissing(['items.rawMaterial', 'items.unit', 'items.supplier']);
+
+        $itemsBySupplier = $procurementPlan->items
+            ->filter(fn ($item) => $item->supplier_id && (float) $item->qty_to_purchase_base > 0)
+            ->groupBy('supplier_id');
+
+        if ($itemsBySupplier->isEmpty()) {
+            return collect();
+        }
+
+        $statusId = $this->purchaseOrderStatusId(PurchaseOrderStatus::DRAFT);
+        $purchaseOrders = collect();
+
+        foreach ($itemsBySupplier as $supplierId => $items) {
+            $purchaseOrder = $procurementPlan->purchaseOrders()->create([
+                'po_number' => $this->nextPoNumber(),
+                'supplier_id' => $supplierId,
+                'ordered_by_inventory_id' => $procurementPlan->planning_location_id,
+                'receiving_inventory_id' => $procurementPlan->planning_location_id,
+                'status_id' => $statusId,
+                'order_date' => now()->toDateString(),
+                'expected_delivery_date' => null,
+                'requested_by' => auth()->id(),
+                'approved_by' => null,
+                'ordered_by' => null,
+                'requested_at' => now(),
+                'approved_at' => null,
+                'ordered_at' => null,
+                'notes' => 'Generated dari Procurement Plan ' . $procurementPlan->plan_number,
+            ]);
+
+            foreach ($items as $item) {
+                $qtyToPurchase = round((float) $item->qty_to_purchase_base, 5);
+                $unitPrice = $item->estimated_unit_price !== null ? (float) $item->estimated_unit_price : null;
+                $subtotal = $item->estimated_subtotal !== null
+                    ? (float) $item->estimated_subtotal
+                    : ($unitPrice !== null ? $qtyToPurchase * $unitPrice : null);
+
+                $purchaseOrder->items()->create([
+                    'raw_material_id' => $item->raw_material_id,
+                    'qty_ordered' => $qtyToPurchase,
+                    'unit_id' => $item->unit_id,
+                    'qty_base_ordered' => $qtyToPurchase,
+                    'qty_base_received' => 0,
+                    'qty_base_rejected' => 0,
+                    'qty_base_cancelled' => 0,
+                    'unit_price' => $unitPrice,
+                    'subtotal' => $subtotal !== null ? round($subtotal, 2) : null,
+                    'notes' => $item->notes,
+                ]);
+            }
+
+            $purchaseOrders->push($purchaseOrder);
+        }
+
+        $procurementPlan->forceFill([
+            'status_id' => $this->statusId(ProcurementPlanStatus::CONVERTED_TO_PO),
+            'approved_by' => auth()->id(),
+            'approved_at' => now(),
+        ])->save();
+
+        return $purchaseOrders;
+    }
+
+    private function nextPoNumber(): string
+    {
+        $prefix = 'PO-' . now()->format('Ymd') . '-';
+        $latestNumber = PurchaseOrders::withTrashed()
+            ->where('po_number', 'like', $prefix . '%')
+            ->orderByDesc('po_number')
+            ->value('po_number');
+
+        $nextNumber = $latestNumber ? ((int) substr($latestNumber, -4)) + 1 : 1;
+
+        do {
+            $poNumber = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            $nextNumber++;
+        } while (PurchaseOrders::withTrashed()->where('po_number', $poNumber)->exists());
+
+        return $poNumber;
+    }
+
     private function nextPlanNumber(): string
     {
         $prefix = 'PP-' . now()->format('Ymd') . '-';
@@ -368,6 +512,26 @@ class ProcurementPlanController extends Controller
             'qty_shortage_base' => $items->sum(fn ($item) => (float) $item->qty_shortage_base),
             'qty_to_purchase_base' => $items->sum(fn ($item) => (float) $item->qty_to_purchase_base),
             'estimated_total' => $items->sum(fn ($item) => (float) ($item->estimated_subtotal ?? 0)),
+        ];
+    }
+
+    private function purchaseOrderStats(Collection $purchaseOrders): array
+    {
+        $items = $purchaseOrders->flatMap(fn (PurchaseOrders $purchaseOrder) => $purchaseOrder->items);
+        $receipts = $purchaseOrders->flatMap(fn (PurchaseOrders $purchaseOrder) => $purchaseOrder->receipts);
+        $cancellations = $purchaseOrders->flatMap(fn (PurchaseOrders $purchaseOrder) => $purchaseOrder->cancellations);
+
+        return [
+            'total_purchase_orders' => $purchaseOrders->count(),
+            'total_suppliers' => $purchaseOrders->pluck('supplier_id')->unique()->count(),
+            'total_items' => $items->count(),
+            'qty_base_ordered' => $items->sum(fn ($item) => (float) $item->qty_base_ordered),
+            'qty_base_received' => $items->sum(fn ($item) => (float) $item->qty_base_received),
+            'qty_base_rejected' => $items->sum(fn ($item) => (float) $item->qty_base_rejected),
+            'qty_base_cancelled' => $items->sum(fn ($item) => (float) $item->qty_base_cancelled),
+            'estimated_total' => $items->sum(fn ($item) => (float) ($item->subtotal ?? 0)),
+            'total_receipts' => $receipts->count(),
+            'total_cancellations' => $cancellations->count(),
         ];
     }
 }

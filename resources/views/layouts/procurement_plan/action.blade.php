@@ -12,7 +12,13 @@
                 <i class="fa fa-eye me-2"></i>Detail
             </a>
         </li>
+        <li>
+            <a class="dropdown-item" href="{{ route('warehouse/procurement-plan/purchase-orders', $procurementPlan->id) }}">
+                <i class="fa fa-file-invoice me-2"></i>Detail PO
+            </a>
+        </li>
         @if ($isDraft)
+            <li><hr class="dropdown-divider"></li>
             <li>
                 <a class="dropdown-item delete text-danger" href="{{ route('warehouse/procurement-plan/destroy', $procurementPlan->id) }}">
                     <i class="fa fa-trash me-2"></i>Hapus

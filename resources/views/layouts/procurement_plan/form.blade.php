@@ -263,7 +263,7 @@
                         Batal
                     </a>
                     <button type="submit" class="btn btn-primary" @disabled($sourceGroups->isEmpty())>
-                        <i class="fa fa-save me-1"></i>Simpan Draft
+                        <i class="fa fa-file-invoice me-1"></i>Simpan & Generate PO
                     </button>
                 </div>
             </div>

@@ -14,7 +14,7 @@
                     <h2 class="h4 mb-0 font-weight-bold">
                         <i class="fa fa-clipboard-check me-2"></i>Procurement Plan
                     </h2>
-                    <p class="text-muted small mt-1 mb-0">Kumpulkan item Request Order yang sudah approved sebelum digenerate menjadi Purchase Order.</p>
+                    <p class="text-muted small mt-1 mb-0">Kumpulkan item Request Order yang sudah approved dan generate Purchase Order per supplier.</p>
                 </div>
                 <a href="{{ route('warehouse/procurement-plan/create') }}" class="btn btn-primary btn-round">
                     <i class="fa fa-plus me-2"></i>Tambah Plan
@@ -95,7 +95,7 @@
             <div class="pp-table-toolbar">
                 <div>
                     <h5 class="mb-1">Daftar Procurement Plan</h5>
-                    <small class="text-muted">Draft berasal dari item Request Order approved yang dipilih saat membuat plan.</small>
+                    <small class="text-muted">Plan dibuat dari item Request Order approved dan langsung disiapkan menjadi PO supplier.</small>
                 </div>
                 <div class="pp-toolbar-actions">
                     <select id="filterStatus" class="form-select form-select-sm bg-light">

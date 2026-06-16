@@ -509,6 +509,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [ProcurementPlanController::class, 'create'])->name('procurement-plan/create');
             Route::post('/store', [ProcurementPlanController::class, 'store'])->name('procurement-plan/store');
             Route::get('/detail/{procurementPlan}', [ProcurementPlanController::class, 'detail'])->name('procurement-plan/detail');
+            Route::get('/purchase-orders/{procurementPlan}', [ProcurementPlanController::class, 'purchaseOrderDetail'])->name('procurement-plan/purchase-orders');
             Route::delete('/destroy/{procurementPlan}', [ProcurementPlanController::class, 'destroy'])->name('procurement-plan/destroy');
         });
     });

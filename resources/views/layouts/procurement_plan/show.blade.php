@@ -33,6 +33,9 @@
                 <a href="{{ route('warehouse/procurement-plan') }}" class="btn btn-outline-secondary btn-sm">
                     <i class="fa fa-arrow-left me-1"></i>Kembali
                 </a>
+                <a href="{{ route('warehouse/procurement-plan/purchase-orders', $procurementPlan->id) }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fa fa-file-invoice me-1"></i>Detail PO
+                </a>
                 @if ($isDraft)
                     <a href="{{ route('warehouse/procurement-plan/destroy', $procurementPlan->id) }}" class="btn btn-outline-danger btn-sm delete-procurement-plan-detail">
                         <i class="fa fa-trash me-1"></i>Hapus
