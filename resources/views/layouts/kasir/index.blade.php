@@ -5445,7 +5445,8 @@
                                 let diskonExist = dataItem.diskon.find((diskon) => diskon.id ==
                                     idDiskon);
                                 if (!diskonExist) {
-                                    let hasilDiskon = dataItem.harga / amount;
+                                    let hitungDiskon = dataItem.harga * amount;
+                                    let hasilDiskon = hitungDiskon / 100;
                                     let tmpDataDiskon = {
                                         id: idDiskon,
                                         nama: name,
