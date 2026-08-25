@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\ShiftSession;
 
 class PettyCash extends Model
 {
@@ -21,5 +22,9 @@ class PettyCash extends Model
 
     public function outlet(){
         return $this->belongsTo(Outlets::class, 'outlet_id', 'id');
+    }
+
+    public function shiftSessions(){
+        return $this->hasMany(ShiftSession::class, 'petty_cash_id', 'id');
     }
 }
