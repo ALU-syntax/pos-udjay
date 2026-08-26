@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ShiftSessionController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\ModifiersController;
@@ -46,6 +47,15 @@ Route::prefix('v1')->group(function () {
             Route::get('/petty-cash/active', [ShiftSessionController::class, 'checkActivePettyCash'])->name('api.v1.shift.petty-cash.active');
             Route::post('/petty-cash', [ShiftSessionController::class, 'storePettyCash'])->name('api.v1.shift.petty-cash.store');
             Route::patch('/session/{id}/close', [ShiftSessionController::class, 'closeSession'])->name('api.v1.shift.session.close');
+        });
+
+        // Catalog
+        Route::prefix('catalog')->group(function () {
+            Route::get('/categories', [CatalogController::class, 'categories'])->name('api.v1.catalog.categories');
+            Route::get('/modifiers', [CatalogController::class, 'modifiers'])->name('api.v1.catalog.modifiers');
+            Route::get('/discounts', [CatalogController::class, 'discounts'])->name('api.v1.catalog.discounts');
+            Route::get('/sales-types', [CatalogController::class, 'salesTypes'])->name('api.v1.catalog.sales-types');
+            Route::get('/pilihans', [CatalogController::class, 'pilihans'])->name('api.v1.catalog.pilihans');
         });
     });
 

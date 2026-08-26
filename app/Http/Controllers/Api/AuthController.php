@@ -118,12 +118,8 @@ class AuthController extends Controller
         // Clear rate limiter on success
         RateLimiter::clear($throttleKey);
 
-        // Revoke previous android-kasir tokens to keep only 1 active token
-        $user->tokens()->where('name', 'android-kasir')->delete();
-
         // Generate new Sanctum token — expires in 24 hours
-        // expires_at is stored in personal_access_tokens.expires_at
-        // Expiry is checked in PHP by Sanctum on every request, not by DB TTL
+        // Tidak me-revoke token lama, satu akun bisa aktif di banyak device sekaligus
         $token = $user->createToken(
             'android-kasir',
             ['*'],
