@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CatalogController;
+use App\Http\Controllers\Api\OpenBillController;
 use App\Http\Controllers\Api\ShiftSessionController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\ModifiersController;
@@ -39,7 +40,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('api.v1.login');
 
     // Protected routes (Sanctum token required)
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'token.expiry'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('api.v1.logout');
 
         // Shift session
@@ -56,6 +57,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/discounts', [CatalogController::class, 'discounts'])->name('api.v1.catalog.discounts');
             Route::get('/sales-types', [CatalogController::class, 'salesTypes'])->name('api.v1.catalog.sales-types');
             Route::get('/pilihans', [CatalogController::class, 'pilihans'])->name('api.v1.catalog.pilihans');
+        });
+
+        // Open bill
+        Route::prefix('open-bills')->group(function () {
+            Route::get('/', [OpenBillController::class, 'index'])->name('api.v1.open-bills.index');
+            Route::get('/{id}', [OpenBillController::class, 'show'])->name('api.v1.open-bills.show');
         });
     });
 
