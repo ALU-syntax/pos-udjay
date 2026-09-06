@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CatalogController;
+use App\Http\Controllers\Api\CommunityController;
+use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\OpenBillController;
 use App\Http\Controllers\Api\ShiftSessionController;
 use App\Http\Controllers\DiscountController;
@@ -64,6 +66,17 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [OpenBillController::class, 'index'])->name('api.v1.open-bills.index');
             Route::get('/{id}', [OpenBillController::class, 'show'])->name('api.v1.open-bills.show');
         });
+
+        // Customer
+        Route::prefix('customers')->group(function () {
+            Route::get('/', [CustomerController::class, 'index'])->name('api.v1.customers.index');
+            Route::get('/referrals', [CustomerController::class, 'referrals'])->name('api.v1.customers.referrals');
+            Route::post('/', [CustomerController::class, 'store'])->name('api.v1.customers.store');
+            Route::get('/{id}', [CustomerController::class, 'show'])->name('api.v1.customers.show');
+        });
+
+        // Community (dropdown form "Tambah Member")
+        Route::get('/communities', [CommunityController::class, 'index'])->name('api.v1.communities.index');
     });
 
 });
