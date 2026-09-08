@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\CategoryPayment;
 use App\Models\ModifierGroup;
 use App\Models\Discount;
+use App\Models\Payment;
 use App\Models\SalesType;
 use App\Models\PilihanGroup;
+use App\Models\Taxes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -191,6 +194,60 @@ class CatalogController extends Controller
         return response()->json([
             'status' => 'success',
             'data'   => $pilihanGroups,
+        ]);
+    }
+
+    /**
+     * Ambil semua data pajak (taxes) untuk outlet user.
+     *
+     * - Outlet diambil otomatis dari token user yang login
+     * - Diurutkan berdasarkan nama ascending
+     *
+     * GET /api/v1/catalog/taxes
+     */
+    public function taxes(Request $request): JsonResponse
+    {
+        $outletIds = $request->user()->outletIds();
+
+        if (empty($outletIds)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User tidak memiliki outlet yang terdaftar.',
+            ], 422);
+        }
+
+        $outletId = $outletIds[0];
+
+        $taxes = Taxes::where('outlet_id', $outletId)
+            ->orderBy('name', 'asc')
+            ->get(['id', 'name', 'amount', 'satuan', 'outlet_id']);
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $taxes,
+        ]);
+    }
+
+    /**
+     * Ambil semua kategori pembayaran beserta metode pembayaran aktif.
+     *
+     * GET /api/v1/catalog/payment-methods
+     */
+    public function paymentMethods(Request $request): JsonResponse
+    {
+        $categories = CategoryPayment::with(['payment' => function ($query) {
+            $query->where('status', true)
+                ->orderBy('name', 'asc')
+                ->select('id', 'name', 'category_payment_id', 'status');
+        }])
+        ->where('status', true)
+        ->orderBy('name', 'asc')
+        ->get(['id', 'name', 'status'])
+        ->values();
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $categories,
         ]);
     }
 }

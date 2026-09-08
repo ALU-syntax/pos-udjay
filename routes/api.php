@@ -59,6 +59,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/discounts', [CatalogController::class, 'discounts'])->name('api.v1.catalog.discounts');
             Route::get('/sales-types', [CatalogController::class, 'salesTypes'])->name('api.v1.catalog.sales-types');
             Route::get('/pilihans', [CatalogController::class, 'pilihans'])->name('api.v1.catalog.pilihans');
+            Route::get('/taxes', [CatalogController::class, 'taxes'])->name('api.v1.catalog.taxes');
+            Route::get('/payment-methods', [CatalogController::class, 'paymentMethods'])->name('api.v1.catalog.payment-methods');
         });
 
         // Open bill
