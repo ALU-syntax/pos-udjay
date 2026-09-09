@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\OpenBillController;
 use App\Http\Controllers\Api\ShiftSessionController;
+use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\ModifiersController;
 use App\Http\Controllers\PilihanController;
@@ -79,6 +80,9 @@ Route::prefix('v1')->group(function () {
 
         // Community (dropdown form "Tambah Member")
         Route::get('/communities', [CommunityController::class, 'index'])->name('api.v1.communities.index');
+
+        // Transactions / Checkout
+        Route::post('/transactions/pay', [TransactionController::class, 'pay'])->name('api.v1.transactions.pay');
     });
 
 });
