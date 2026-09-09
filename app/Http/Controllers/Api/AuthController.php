@@ -118,6 +118,9 @@ class AuthController extends Controller
         // Clear rate limiter on success
         RateLimiter::clear($throttleKey);
 
+        $outletId = $user->outletIds()[0] ?? null;
+        $outlet = $outletId ? Outlets::find($outletId) : null;
+
         // Generate new Sanctum token — expires in 24 hours
         // Tidak me-revoke token lama, satu akun bisa aktif di banyak device sekaligus
         $token = $user->createToken(
@@ -134,8 +137,16 @@ class AuthController extends Controller
                     'id'        => $user->id,
                     'name'      => $user->name,
                     'username'  => $user->username,
-                    'outlet_id' => $user->outletIds()[0] ?? null,
+                    'outlet_id' => $outletId,
                 ],
+                'outlet' => $outlet ? [
+                    'id'            => $outlet->id,
+                    'name'          => $outlet->name,
+                    'address'       => $outlet->address,
+                    'phone'         => $outlet->phone,
+                    'catatan_nota'  => $outlet->catatan_nota,
+                    'logo_filename' => $outlet->logo_filename,
+                ] : null,
             ],
         ]);
     }
