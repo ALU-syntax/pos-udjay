@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\CategoryPayment;
 use App\Models\ModifierGroup;
 use App\Models\Discount;
+use App\Models\NoteReceiptScheduling;
 use App\Models\Payment;
 use App\Models\SalesType;
 use App\Models\PilihanGroup;
@@ -248,6 +249,41 @@ class CatalogController extends Controller
         return response()->json([
             'status' => 'success',
             'data'   => $categories,
+        ]);
+    }
+
+    /**
+     * Ambil semua note receipt scheduling aktif untuk outlet user.
+     *
+     * - Outlet diambil otomatis dari token user yang login
+     * - Hanya mengembalikan data dengan status = true dan belum dihapus (soft delete)
+     * - Data start & end waktu dikembalikan lengkap agar mobile yang menentukan
+     *   apakah note perlu ditampilkan saat print, tanpa perlu hit API ini setiap print
+     * - product_id adalah JSON array ID produk yang terkait (null = berlaku untuk semua produk)
+     *
+     * GET /api/v1/catalog/note-receipt-schedulings
+     */
+    public function noteReceiptSchedulings(Request $request): JsonResponse
+    {
+        $outletIds = $request->user()->outletIds();
+
+        if (empty($outletIds)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User tidak memiliki outlet yang terdaftar.',
+            ], 422);
+        }
+
+        $outletId = $outletIds[0];
+
+        $notes = NoteReceiptScheduling::where('outlet_id', $outletId)
+            ->where('status', true)
+            ->orderBy('start', 'asc')
+            ->get(['id', 'name', 'message', 'start', 'end', 'outlet_id', 'product_id', 'status', 'updated_at']);
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $notes,
         ]);
     }
 }
