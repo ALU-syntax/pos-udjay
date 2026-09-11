@@ -146,4 +146,67 @@ class OpenBillTest extends TestCase
             'harga' => 12000,
         ]);
     }
+
+    public function test_can_update_open_bill_with_new_items()
+    {
+        $outlet = Outlets::first() ?? Outlets::create([
+            'name' => 'Outlet Test',
+            'address' => 'Alamat Test',
+            'phone' => '08123456789',
+        ]);
+
+        $user = User::factory()->create([
+            'username' => 'testuser_' . uniqid(),
+            'status' => '1',
+            'role' => 1,
+            'outlet_id' => json_encode([$outlet->id]),
+        ]);
+
+        $openBill = OpenBill::create([
+            'name' => 'Meja Update',
+            'user_id' => $user->id,
+            'outlet_id' => $outlet->id,
+            'queue_order' => 1,
+        ]);
+
+        $payload = [
+            'items' => [
+                [
+                    'product_id' => 2,
+                    'variant_id' => 2,
+                    'nama_product' => 'Roti Bakar',
+                    'nama_variant' => 'Cokelat',
+                    'harga' => 20000,
+                    'quantity' => 1,
+                    'result_total' => 20000,
+                    'sales_type' => 'Dine In',
+                    'tmp_id' => 'tmp_item_update_1',
+                    'exclude_tax' => false,
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')->putJson("/api/v1/open-bills/{$openBill->id}", $payload);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'data' => [
+                    'id' => $openBill->id,
+                    'queue_order' => 2,
+                    'total' => 20000,
+                ],
+            ]);
+
+        $this->assertDatabaseHas('open_bills', [
+            'id' => $openBill->id,
+            'queue_order' => 2,
+        ]);
+
+        $this->assertDatabaseHas('item_open_bills', [
+            'open_bill_id' => $openBill->id,
+            'nama_product' => 'Roti Bakar',
+            'queue_order' => 2,
+        ]);
+    }
 }

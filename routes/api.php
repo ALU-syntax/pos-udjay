@@ -69,6 +69,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('open-bills')->group(function () {
             Route::get('/', [OpenBillController::class, 'index'])->name('api.v1.open-bills.index');
             Route::post('/', [OpenBillController::class, 'store'])->name('api.v1.open-bills.store');
+            Route::put('/{id}', [OpenBillController::class, 'update'])->name('api.v1.open-bills.update');
             Route::get('/{id}', [OpenBillController::class, 'show'])->name('api.v1.open-bills.show');
         });
 
