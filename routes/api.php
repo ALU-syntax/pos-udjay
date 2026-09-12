@@ -88,6 +88,8 @@ Route::prefix('v1')->group(function () {
 
         // Transactions / Checkout
         Route::post('/transactions/pay', [TransactionController::class, 'pay'])->name('api.v1.transactions.pay');
+        Route::post('/transactions/refund', [TransactionController::class, 'refund'])->name('api.v1.transactions.refund');
+        Route::post('/transactions/{id}/resend-receipt', [TransactionController::class, 'resendReceipt'])->name('api.v1.transactions.resend-receipt');
     });
 
 });

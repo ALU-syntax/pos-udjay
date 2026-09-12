@@ -8,6 +8,8 @@ use App\Mail\KenaikanLevelMember;
 use App\Mail\PenambahanPoinMembershipKomunitas;
 use App\Mail\PenambahanPointExpMembership;
 use App\Mail\PenukaranPoin;
+use App\Mail\ResendReceiptMail;
+use App\Models\RefundTransaction;
 use App\Models\BirthdayRewardClaims;
 use App\Models\Community;
 use App\Models\Customer;
@@ -645,5 +647,278 @@ class TransactionController extends Controller
             'pelanggan' => $transaction->customer,
             'dataStruk' => $dataStruk
         ]);
+    }
+
+    /**
+     * Resend receipt transaksi ke email tertentu.
+     *
+     * POST /api/v1/transactions/{id}/resend-receipt
+     */
+    public function resendReceipt(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $outletIds = $user->outletIds();
+
+        if (empty($outletIds)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User tidak memiliki outlet yang terdaftar.',
+            ], 422);
+        }
+
+        $outletId = $outletIds[0];
+
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $transaction = Transaction::where('id', $id)
+            ->where('outlet_id', $outletId)
+            ->first();
+
+        if (!$transaction) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Transaksi tidak ditemukan.',
+            ], 404);
+        }
+
+        try {
+            $transaction->total_pajak = is_string($transaction->total_pajak) ? json_decode($transaction->total_pajak) : ($transaction->total_pajak ?? []);
+            $transaction->diskon_all_item = is_string($transaction->diskon_all_item) ? json_decode($transaction->diskon_all_item) : ($transaction->diskon_all_item ?? []);
+
+            $transaction->load(['outlet', 'user', 'customer', 'itemTransaction' => function ($itemTransaction) {
+                $itemTransaction->select(
+                    'variant_id',
+                    DB::raw('COUNT(*) as total_count'),
+                    'product_id',
+                    'discount_id',
+                    'modifier_id',
+                    'promo_id',
+                    'sales_type_id',
+                    'transaction_id',
+                    'catatan',
+                    'reward_item'
+                )
+                ->with(['variant', 'product'])
+                ->groupBy('variant_id', 'product_id', 'discount_id', 'modifier_id', 'promo_id', 'sales_type_id', 'transaction_id', 'catatan', 'reward_item');
+            }]);
+
+            $transaction->tanggal_beli = Carbon::parse($transaction->created_at)->format('d M Y');
+            $transaction->waktu_beli = Carbon::parse($transaction->created_at)->format('H:i');
+
+            $totalNominalPajak = 0;
+            $totalNominalDiskon = 0;
+            $totalNominalModifier = 0;
+            $subTotal = 0;
+
+            if (is_iterable($transaction->total_pajak)) {
+                foreach ($transaction->total_pajak as $pajak) {
+                    $totalNominalPajak += $pajak->total ?? 0;
+                }
+            }
+            $transaction->total_nominal_pajak = $totalNominalPajak;
+
+            if (is_iterable($transaction->diskon_all_item)) {
+                foreach ($transaction->diskon_all_item as $diskonAllItem) {
+                    $totalNominalDiskon += $diskonAllItem->value ?? 0;
+                }
+            }
+
+            $allItems = $transaction->itemTransaction()->with(['variant'])->get();
+            foreach ($allItems as $item) {
+                $tmpDataDiskonItem = is_string($item->discount_id) ? json_decode($item->discount_id) : ($item->discount_id ?? []);
+                $tmpDataModifierItem = is_string($item->modifier_id) ? json_decode($item->modifier_id) : ($item->modifier_id ?? []);
+
+                $subTotal += $item->variant ? (float) $item->variant->harga : ($item->harga ? (float) $item->harga : 0);
+
+                if (is_iterable($tmpDataModifierItem)) {
+                    foreach ($tmpDataModifierItem as $modifier) {
+                        $modHarga = $modifier->harga ?? 0;
+                        $totalNominalModifier += $modHarga;
+                        $subTotal += $modHarga;
+                    }
+                }
+
+                if (is_iterable($tmpDataDiskonItem)) {
+                    foreach ($tmpDataDiskonItem as $diskonItem) {
+                        $totalNominalDiskon += $diskonItem->result ?? 0;
+                    }
+                }
+            }
+
+            $transaction->total_nominal_diskon = $totalNominalDiskon;
+            $transaction->sub_total = $subTotal;
+            $transaction->total_nominal_modifier = $totalNominalModifier;
+
+            $email = $request->input('email');
+            Mail::to($email)->send(new ResendReceiptMail($transaction));
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Receipt berhasil dikirim ke ' . $email,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal mengirim receipt: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Endpoint untuk refund item transaksi.
+     *
+     * POST /api/v1/transactions/refund
+     */
+    public function refund(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $outletIds = $user->outletIds();
+
+        if (empty($outletIds)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User tidak memiliki outlet yang terdaftar.',
+            ], 422);
+        }
+
+        $outletId = $outletIds[0];
+
+        $validated = $request->validate([
+            'transaction_id' => ['required', 'integer'],
+            'payment_method' => ['required'],
+            'nominal_refund' => ['required', 'numeric', 'min:0'],
+            'catatan'        => ['required', 'string'],
+
+            // Mendukung array of objects `list_item` (JSON terstruktur) atau JSON String
+            'list_item'      => ['required'],
+        ]);
+
+        $transactionId = (int) $validated['transaction_id'];
+
+        $transaction = Transaction::where('id', $transactionId)
+            ->where('outlet_id', $outletId)
+            ->first();
+
+        if (!$transaction) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Transaksi tidak ditemukan.',
+            ], 404);
+        }
+
+        $listItemRaw = $validated['list_item'];
+        $listItem = is_string($listItemRaw) ? json_decode($listItemRaw, true) : $listItemRaw;
+
+        if (!is_array($listItem) || empty($listItem)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'list_item wajib diisi.',
+            ], 422);
+        }
+
+        try {
+            $resultTransaction = DB::transaction(function () use ($validated, $transactionId, $listItem) {
+                $dataTransaction = Transaction::where('id', $transactionId)
+                    ->with(['itemTransaction' => function ($item) {
+                        $item->whereNull('refund_at');
+                    }])
+                    ->first();
+
+                $refundTransaction = RefundTransaction::create([
+                    'transaction_id' => $transactionId,
+                    'payment_method' => $validated['payment_method'],
+                    'nominal_refund' => $validated['nominal_refund'],
+                    'catatan'        => $validated['catatan'],
+                ]);
+
+                foreach ($listItem as $itemRefund) {
+                    $itemRefund = (array) $itemRefund;
+                    $qty = isset($itemRefund['quantity']) ? (int) $itemRefund['quantity'] : 1;
+
+                    $variantId = $itemRefund['variant_id'] ?? null;
+                    $modifierVal = $itemRefund['modifier'] ?? ($itemRefund['modifier_id'] ?? null);
+                    $discountVal = $itemRefund['discount'] ?? ($itemRefund['discount_id'] ?? null);
+                    $catatanVal  = $itemRefund['catatan'] ?? null;
+                    $hargaVal    = $itemRefund['harga'] ?? null;
+
+                    $modifierJson = is_string($modifierVal) ? $modifierVal : json_encode($modifierVal ?: []);
+                    $discountJson = is_string($discountVal) ? $discountVal : json_encode($discountVal ?: []);
+
+                    for ($x = 0; $x < $qty; $x++) {
+                        foreach ($dataTransaction->itemTransaction as $itemTx) {
+                            if (is_null($itemTx->refund_at)) {
+                                if (!is_null($variantId)) {
+                                    $matchVariant  = (string) $variantId === (string) $itemTx->variant_id;
+                                    $matchModifier = $modifierJson === (string) $itemTx->modifier_id;
+                                    $matchDiscount = $discountJson === (string) $itemTx->discount_id;
+                                    $matchCatatan  = (string) $catatanVal === (string) $itemTx->catatan;
+
+                                    if ($matchVariant && $matchModifier && $matchDiscount && $matchCatatan) {
+                                        $itemTx->refund_at = Carbon::now();
+                                        $itemTx->refund_transaction_id = $refundTransaction->id;
+                                        $itemTx->save();
+                                        break;
+                                    }
+                                } else {
+                                    $matchHarga   = (float) $hargaVal === (float) $itemTx->harga;
+                                    $matchCatatan = (string) $catatanVal === (string) $itemTx->catatan;
+
+                                    if ($matchHarga && $matchCatatan) {
+                                        $itemTx->refund_at = Carbon::now();
+                                        $itemTx->refund_transaction_id = $refundTransaction->id;
+                                        $itemTx->save();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                $updatedTransaction = Transaction::with([
+                    'itemTransaction' => function ($itemTx) {
+                        $itemTx->with(['product', 'variant']);
+                    },
+                    'refundTransactions' => function ($refundTx) {
+                        $refundTx->with(['itemTransaction' => function ($itemTx) {
+                            $itemTx->with(['product', 'variant']);
+                        }]);
+                    },
+                ])
+                ->where('id', $transactionId)
+                ->first();
+
+                if ($updatedTransaction) {
+                    $updatedTransaction->created_time = Carbon::parse($updatedTransaction->created_at)->format('H:i');
+                    $updatedTransaction->created_tanggal = Carbon::parse($updatedTransaction->created_at)->format('d-m-Y');
+
+                    if ($updatedTransaction->refundTransactions->count()) {
+                        foreach ($updatedTransaction->refundTransactions as $refund) {
+                            $refund->created_time = Carbon::parse($refund->created_at)->format('H:i');
+                            $refund->created_tanggal = Carbon::parse($refund->created_at)->format('d-m-Y');
+                        }
+                    }
+                }
+
+                return $updatedTransaction;
+            });
+
+            return response()->json([
+                'status'      => 'success',
+                'message'     => 'Refund berhasil diproses.',
+                'transaction' => $resultTransaction,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('TransactionController@refund Error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal memproses refund: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }
