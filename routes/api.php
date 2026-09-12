@@ -48,6 +48,8 @@ Route::prefix('v1')->group(function () {
 
         // Shift session
         Route::prefix('shift')->group(function () {
+            Route::get('/history', [ShiftSessionController::class, 'history'])->name('api.v1.shift.history');
+            Route::get('/history/{id}', [ShiftSessionController::class, 'historyDetail'])->name('api.v1.shift.history.detail');
             Route::get('/petty-cash/active', [ShiftSessionController::class, 'checkActivePettyCash'])->name('api.v1.shift.petty-cash.active');
             Route::post('/petty-cash', [ShiftSessionController::class, 'storePettyCash'])->name('api.v1.shift.petty-cash.store');
             Route::patch('/session/{id}/close', [ShiftSessionController::class, 'closeSession'])->name('api.v1.shift.session.close');

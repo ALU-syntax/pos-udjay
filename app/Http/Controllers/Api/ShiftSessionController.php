@@ -12,6 +12,202 @@ use Illuminate\Support\Facades\DB;
 class ShiftSessionController extends Controller
 {
     /**
+     * Ambil detail shift / petty cash (ringkasan shift, metode pembayaran, item terjual).
+     *
+     * GET /api/v1/shift/history/{id}
+     */
+    public function historyDetail(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $outletIds = $user->outletIds();
+
+        if (empty($outletIds)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User tidak memiliki outlet yang terdaftar.',
+            ], 422);
+        }
+
+        $outletId = $outletIds[0];
+
+        $shift = PettyCash::with(['userStarted', 'userEnded', 'outlet'])
+            ->where('id', $id)
+            ->where('outlet_id', (string) $outletId)
+            ->first();
+
+        if (!$shift) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Shift history tidak ditemukan.',
+            ], 404);
+        }
+
+        $listCategoryPayment = \App\Models\CategoryPayment::with(['transactions' => function ($transaction) use ($shift) {
+            $transaction->with(['payments'])->where('patty_cash_id', $shift->id);
+        }, 'payment' => function ($payment) use ($shift) {
+            $payment->with(['transactions' => function ($transaction) use ($shift) {
+                $transaction->where('patty_cash_id', $shift->id);
+            }]);
+        }])->get();
+
+        $soldItem = \App\Models\VariantProduct::with(['itemTransaction' => function($itemTransaction) use($shift) {
+            $itemTransaction->whereHas('transaction', function($transaction) use($shift) {
+                $transaction->where('patty_cash_id', $shift->id);
+            });
+        }, 'product.category'])
+        ->whereHas('itemTransaction.transaction', function($transaction) use($shift) {
+            $transaction->where('patty_cash_id', $shift->id);
+        })
+        ->whereHas('itemTransaction', function($itemTransaction) {
+            $itemTransaction->whereHas('transaction');
+        })
+        ->whereHas('product')
+        ->get()
+        ->map(function($item) {
+            $totalTx = count($item->itemTransaction);
+            return [
+                'variant_id'        => $item->id,
+                'name'              => $item->name,
+                'harga'             => (int) $item->harga,
+                'total_transaction' => $totalTx,
+                'total_amount'      => (int) ($item->harga * $totalTx),
+                'product'           => $item->product ? [
+                    'id'           => $item->product->id,
+                    'nama_product' => $item->product->nama_product,
+                    'category'     => $item->product->category ? [
+                        'id'   => $item->product->category->id,
+                        'name' => $item->product->category->name,
+                    ] : null,
+                ] : null,
+            ];
+        });
+
+        // Format kualitatif pembayaran per kategori & payment method
+        $paymentSummary = $listCategoryPayment->map(function ($cat) use ($shift) {
+            $payments = $cat->payment->map(function ($p) use ($shift) {
+                $totalNominal = $p->transactions
+                    ->where('patty_cash_id', $shift->id)
+                    ->sum('total');
+                $countTx = $p->transactions
+                    ->where('patty_cash_id', $shift->id)
+                    ->count();
+
+                return [
+                    'id'            => $p->id,
+                    'name'          => $p->name,
+                    'transaction_count' => $countTx,
+                    'total_amount'  => (int) $totalNominal,
+                ];
+            })->filter(fn ($p) => $p['transaction_count'] > 0)->values();
+
+            $totalCategoryAmount = $payments->sum('total_amount');
+            $totalCategoryTx = $payments->sum('transaction_count');
+
+            return [
+                'category_id'       => $cat->id,
+                'category_name'     => $cat->name,
+                'total_amount'      => (int) $totalCategoryAmount,
+                'transaction_count' => $totalCategoryTx,
+                'payments'          => $payments,
+            ];
+        })->filter(fn ($cat) => $cat['transaction_count'] > 0)->values();
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => [
+                'shift' => [
+                    'id'           => $shift->id,
+                    'outlet_id'    => $shift->outlet_id,
+                    'amount_awal'  => (int) $shift->amount_awal,
+                    'amount_akhir' => $shift->amount_akhir !== null ? (int) $shift->amount_akhir : null,
+                    'user_started' => $shift->userStarted ? [
+                        'id'   => $shift->userStarted->id,
+                        'name' => $shift->userStarted->name,
+                    ] : null,
+                    'user_ended'   => $shift->userEnded ? [
+                        'id'   => $shift->userEnded->id,
+                        'name' => $shift->userEnded->name,
+                    ] : null,
+                    'open'         => $shift->open,
+                    'close'        => $shift->close,
+                    'is_active'    => is_null($shift->close),
+                    'status_label' => is_null($shift->close) ? 'Masih Berjalan' : 'Selesai',
+                    'created_at'   => $shift->created_at,
+                ],
+                'payment_summary' => $paymentSummary,
+                'sold_items'      => $soldItem,
+                'raw'             => [
+                    'listCategoryPayment' => $listCategoryPayment,
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Ambil daftar history shift / petty cash untuk outlet user yang sedang login.
+     *
+     * - Outlet diambil otomatis dari token user yang login (atau opsi outlet_id jika diberikan)
+     * - Mendukung pagination via query param ?limit= & ?page=
+     * - Disertai info user yang memulai (open) dan menutup (close) shift
+     * - Diurutkan dari shift yang terbaru
+     *
+     * GET /api/v1/shift/history
+     */
+    public function history(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $outletIds = $user->outletIds();
+
+        if (empty($outletIds)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User tidak memiliki outlet yang terdaftar.',
+            ], 422);
+        }
+
+        $outletId = $outletIds[0];
+        $limit = min((int) $request->query('limit', 30), 100);
+
+        $shifts = PettyCash::with(['userStarted', 'userEnded'])
+            ->where('outlet_id', (string) $outletId)
+            ->orderBy('open', 'desc')
+            ->paginate($limit);
+
+        $data = collect($shifts->items())->map(function ($shift) {
+            return [
+                'id'              => $shift->id,
+                'outlet_id'       => $shift->outlet_id,
+                'amount_awal'     => (int) $shift->amount_awal,
+                'amount_akhir'    => $shift->amount_akhir !== null ? (int) $shift->amount_akhir : null,
+                'user_started'    => $shift->userStarted ? [
+                    'id'   => $shift->userStarted->id,
+                    'name' => $shift->userStarted->name,
+                ] : null,
+                'user_ended'      => $shift->userEnded ? [
+                    'id'   => $shift->userEnded->id,
+                    'name' => $shift->userEnded->name,
+                ] : null,
+                'open'            => $shift->open,
+                'close'           => $shift->close,
+                'is_active'       => is_null($shift->close),
+                'status_label'    => is_null($shift->close) ? 'Masih Berjalan' : 'Selesai',
+                'created_at'      => $shift->created_at,
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $data,
+            'meta'   => [
+                'current_page' => $shifts->currentPage(),
+                'last_page'    => $shifts->lastPage(),
+                'per_page'     => $shifts->perPage(),
+                'total'        => $shifts->total(),
+            ],
+        ]);
+    }
+
+    /**
      * Cek petty cash aktif di outlet user, lalu pastikan device memiliki
      * shift session untuk petty cash tersebut.
      *
