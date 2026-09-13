@@ -32,6 +32,10 @@ class Transaction extends Model
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
+    public function shiftSession(){
+        return $this->belongsTo(ShiftSession::class, 'shift_session_id', 'id');
+    }
+
     public function pajak(){
         $pajakIds = json_decode($this->total_pajak, true);
 

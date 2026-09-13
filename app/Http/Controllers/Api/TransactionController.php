@@ -21,6 +21,7 @@ use App\Models\OpenBill;
 use App\Models\PettyCash;
 use App\Models\RewardConfirmation;
 use App\Models\RewardMembership;
+use App\Models\ShiftSession;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
@@ -67,6 +68,7 @@ class TransactionController extends Controller
         $validated = $request->validate([
             'reference_id'           => ['nullable', 'string', 'max:100'],
             'patty_cash_id'          => ['required', 'integer'],
+            'shift_session_id'       => ['nullable', 'integer'],
             'customer_id'            => ['nullable', 'integer'],
             'bill_id'                => ['nullable', 'integer'],
             'split_bill'             => ['nullable', 'boolean'],
@@ -98,6 +100,25 @@ class TransactionController extends Controller
             'items.*.modifier_id'    => ['nullable'], // array or json string
         ]);
 
+        // Resolusi shift session (opsional) — menandai device asal transaksi.
+        // Divalidasi agar session benar-benar milik petty cash & outlet yang sama.
+        $shiftSessionId = null;
+        if (!empty($validated['shift_session_id'])) {
+            $shiftSession = ShiftSession::where('id', $validated['shift_session_id'])
+                ->where('petty_cash_id', $validated['patty_cash_id'])
+                ->where('outlet_id', $outletId)
+                ->first();
+
+            if (!$shiftSession) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Shift session tidak valid untuk petty cash/outlet ini.',
+                ], 422);
+            }
+
+            $shiftSessionId = $shiftSession->id;
+        }
+
         // 1. Cek Idempotency berdasarkan reference_id
         $referenceId = $validated['reference_id'] ?? null;
         if ($referenceId) {
@@ -122,7 +143,7 @@ class TransactionController extends Controller
 
         // Jalankan transaksi dalam DB Transaction
         try {
-            $transactionResult = DB::transaction(function () use ($validated, $user, $outletId, $referenceId) {
+            $transactionResult = DB::transaction(function () use ($validated, $user, $outletId, $referenceId, $shiftSessionId) {
 
                 $billId = isset($validated['bill_id']) && (int)$validated['bill_id'] !== 0 ? (int)$validated['bill_id'] : null;
                 $isSplitBill = filter_var($validated['split_bill'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -419,6 +440,7 @@ class TransactionController extends Controller
                     'rounding_amount'      => $validated['rounding'] ?? 0,
                     'tanda_rounding'       => $validated['tanda_rounding'] ?? null,
                     'patty_cash_id'        => $validated['patty_cash_id'],
+                    'shift_session_id'     => $shiftSessionId,
                     'catatan'              => $validated['catatan_transaksi'] ?? null,
                     'potongan_point'       => (int)($validated['potongan_point'] ?? 0),
                     'reference_id'         => $referenceId,
@@ -877,6 +899,10 @@ class TransactionController extends Controller
                     }
                 }
 
+                // Propagasi perubahan refund ke parent transaction agar delta sync
+                // (transactions/sync) ikut menangkap transaksi yang di-refund.
+                Transaction::where('id', $transactionId)->update(['updated_at' => Carbon::now()]);
+
                 $updatedTransaction = Transaction::with([
                     'itemTransaction' => function ($itemTx) {
                         $itemTx->with(['product', 'variant']);
@@ -920,5 +946,256 @@ class TransactionController extends Controller
                 'message' => 'Gagal memproses refund: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Delta sync transaksi per-shift untuk cache lokal mobile (Room / SQLite).
+     *
+     * Tujuan: agar transaksi dari SEMUA device dalam 1 shift (petty cash) yang sama
+     * dapat tersimpan di lokal masing-masing device.
+     *
+     * Cara pakai:
+     * 1. Sync awal  : panggil dengan `patty_cash_id`, ikuti `next_cursor` sampai `has_more` = false.
+     * 2. Sync berkala: simpan `server_time` terakhir, kirim sebagai `updated_since`.
+     *
+     * - Scope: 1 shift (patty_cash_id), mencakup semua shift session/device di dalamnya
+     * - `shift_session_id` pada tiap transaksi menandai device asal transaksi
+     * - Baris soft-deleted tetap dikirim dengan `is_deleted` = true
+     * - Item yang sudah di-refund (refund_at != null) menyertakan data refund secara inline
+     *
+     * GET /api/v1/transactions/sync?patty_cash_id=&updated_since=&cursor=&limit=
+     */
+    public function sync(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $outletIds = $user->outletIds();
+
+        if (empty($outletIds)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User tidak memiliki outlet yang terdaftar.',
+            ], 422);
+        }
+
+        $outletId = $outletIds[0];
+
+        $validated = $request->validate([
+            'patty_cash_id' => ['required', 'integer'],
+            'updated_since' => ['nullable', 'string'],
+            'cursor'        => ['nullable', 'string'],
+        ]);
+
+        $limit = (int) $request->query('limit', 100);
+        $limit = max(1, min($limit, 500));
+
+        // Pastikan shift (petty cash) ini milik outlet user
+        $pettyCash = PettyCash::where('id', $validated['patty_cash_id'])
+            ->where('outlet_id', (string) $outletId)
+            ->first();
+
+        if (!$pettyCash) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Shift (petty cash) tidak ditemukan untuk outlet ini.',
+            ], 404);
+        }
+
+        $cursor = null;
+        if (!empty($validated['cursor'])) {
+            $cursor = $this->decodeSyncCursor((string) $validated['cursor']);
+
+            if ($cursor === null) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Cursor tidak valid. Silakan mulai ulang sync tanpa cursor.',
+                ], 422);
+            }
+        }
+
+        $query = Transaction::withTrashed()
+            ->where('patty_cash_id', $pettyCash->id)
+            ->with([
+                'itemTransactionWithTrash' => function ($q) {
+                    $q->with([
+                        'product' => fn ($p) => $p->select('id', 'name'),
+                        'variant' => fn ($v) => $v->select('id', 'name', 'harga'),
+                        'refundTransaction',
+                    ]);
+                },
+            ]);
+
+        // Prioritas: cursor (keyset pagination) > updated_since (delta) > full shift
+        if ($cursor !== null) {
+            $query->where(function ($q) use ($cursor) {
+                $q->where('updated_at', '>', $cursor['updated_at'])
+                    ->orWhere(function ($q2) use ($cursor) {
+                        $q2->where('updated_at', '=', $cursor['updated_at'])
+                            ->where('id', '>', $cursor['id']);
+                    });
+            });
+        } elseif (!empty($validated['updated_since'])) {
+            try {
+                $since = Carbon::parse($validated['updated_since'])->utc();
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Format updated_since tidak valid. Gunakan ISO-8601 (contoh: 2026-09-11T10:00:00Z).',
+                ], 422);
+            }
+
+            // Gunakan >= agar baris yang berubah tepat pada server_time terakhir tidak terlewat.
+            // Duplikasi aman karena device melakukan upsert berdasarkan id.
+            $query->where('updated_at', '>=', $since);
+        }
+
+        $rows = $query->orderBy('updated_at', 'asc')
+            ->orderBy('id', 'asc')
+            ->limit($limit + 1)
+            ->get();
+
+        $hasMore = $rows->count() > $limit;
+        $rows    = $rows->take($limit)->values();
+
+        $data = $rows->map(function (Transaction $transaction) {
+            $items = $transaction->itemTransactionWithTrash->map(function ($item) {
+                $refund = null;
+                if ($item->refund_at !== null) {
+                    $refund = [
+                        'id'             => $item->refundTransaction?->id,
+                        'transaction_id' => $item->refundTransaction?->transaction_id,
+                        'payment_method' => $item->refundTransaction?->payment_method,
+                        'nominal_refund' => $item->refundTransaction?->nominal_refund !== null
+                            ? (float) $item->refundTransaction->nominal_refund
+                            : null,
+                        'catatan'        => $item->refundTransaction?->catatan,
+                        'created_at'     => $item->refundTransaction?->created_at,
+                    ];
+                }
+
+                return [
+                    'id'                   => $item->id,
+                    'transaction_id'       => $item->transaction_id,
+                    'product_id'           => $item->product_id,
+                    'variant_id'           => $item->variant_id,
+                    'harga'                => (float) $item->harga,
+                    'catatan'              => $item->catatan,
+                    'sales_type_id'        => $item->sales_type_id,
+                    'reward_item'          => (bool) $item->reward_item,
+                    'item_open_bill_id'    => $item->item_open_bill_id,
+                    'discount_id'          => json_decode($item->discount_id, true),
+                    'modifier_id'          => json_decode($item->modifier_id, true),
+                    'promo_id'             => json_decode($item->promo_id, true),
+                    'product'              => $item->product ? [
+                        'id'   => $item->product->id,
+                        'name' => $item->product->name,
+                    ] : null,
+                    'variant'              => $item->variant ? [
+                        'id'    => $item->variant->id,
+                        'name'  => $item->variant->name,
+                        'harga' => (float) $item->variant->harga,
+                    ] : null,
+                    'refund_at'            => $item->refund_at,
+                    'refund_transaction_id'=> $item->refund_transaction_id,
+                    'refund'               => $refund,
+                    'is_deleted'           => $item->deleted_at !== null,
+                    'deleted_at'           => $item->deleted_at,
+                    'created_at'           => $item->created_at,
+                    'updated_at'           => $item->updated_at,
+                ];
+            })->values();
+
+            return [
+                'id'                   => $transaction->id,
+                'outlet_id'            => $transaction->outlet_id,
+                'user_id'              => $transaction->user_id,
+                'shift_session_id'     => $transaction->shift_session_id,
+                'customer_id'          => $transaction->customer_id,
+                'patty_cash_id'        => $transaction->patty_cash_id,
+                'total'                => (float) $transaction->total,
+                'nominal_bayar'        => (float) $transaction->nominal_bayar,
+                'change'               => (float) $transaction->change,
+                'category_payment_id'  => $transaction->category_payment_id,
+                'tipe_pembayaran'      => $transaction->tipe_pembayaran,
+                'nama_tipe_pembayaran' => $transaction->nama_tipe_pembayaran,
+                'total_pajak'          => json_decode($transaction->total_pajak, true),
+                'total_modifier'       => (float) $transaction->total_modifier,
+                'total_diskon'         => (float) $transaction->total_diskon,
+                'diskon_all_item'      => json_decode($transaction->diskon_all_item, true),
+                'rounding_amount'      => (float) $transaction->rounding_amount,
+                'tanda_rounding'       => $transaction->tanda_rounding,
+                'catatan'              => $transaction->catatan,
+                'potongan_point'       => (float) $transaction->potongan_point,
+                'open_bill_id'         => $transaction->open_bill_id,
+                'reference_id'         => $transaction->reference_id,
+                'receipt_number'       => $transaction->receipt_number,
+                'is_deleted'           => $transaction->deleted_at !== null,
+                'deleted_at'           => $transaction->deleted_at,
+                'created_at'           => $transaction->created_at,
+                'updated_at'           => $transaction->updated_at,
+                'items'                => $items,
+            ];
+        });
+
+        $nextCursor = null;
+        if ($hasMore && $rows->isNotEmpty()) {
+            $last = $rows->last();
+            $nextCursor = $this->encodeSyncCursor($last->updated_at, $last->id);
+        }
+
+        return response()->json([
+            'status'      => 'success',
+            'data'        => $data,
+            'has_more'    => $hasMore,
+            'next_cursor' => $nextCursor,
+            'server_time' => Carbon::now()->utc()->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * Encode cursor sync menjadi opaque base64 (URL-safe).
+     */
+    private function encodeSyncCursor($updatedAt, int $id): string
+    {
+        $payload = json_encode([
+            'updated_at' => Carbon::parse($updatedAt)->toIso8601String(),
+            'id'         => $id,
+        ]);
+
+        return rtrim(strtr(base64_encode($payload), '+/', '-_'), '=');
+    }
+
+    /**
+     * Decode cursor sync. Mengembalikan null jika tidak valid.
+     */
+    private function decodeSyncCursor(string $cursor): ?array
+    {
+        $normalized = strtr($cursor, '-_', '+/');
+        $padding    = strlen($normalized) % 4;
+        if ($padding > 0) {
+            $normalized .= str_repeat('=', 4 - $padding);
+        }
+
+        $decoded = base64_decode($normalized, true);
+        if ($decoded === false) {
+            return null;
+        }
+
+        $payload = json_decode($decoded, true);
+        if (!is_array($payload) || !isset($payload['updated_at'], $payload['id'])) {
+            return null;
+        }
+
+        try {
+            // toIso8601String() sudah memuat offset timezone, jadi TIDAK boleh
+            // dipanggil ->utc() lagi (akan menggeser waktu dua kali).
+            $updatedAt = Carbon::parse($payload['updated_at']);
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return [
+            'updated_at' => $updatedAt->toDateTimeString(),
+            'id'         => (int) $payload['id'],
+        ];
     }
 }

@@ -42,4 +42,8 @@ class TransactionItem extends Model
     public function variant(){
         return $this->belongsTo(VariantProduct::class, 'variant_id', 'id');
     }
+
+    public function refundTransaction(){
+        return $this->belongsTo(RefundTransaction::class, 'refund_transaction_id', 'id');
+    }
 }
