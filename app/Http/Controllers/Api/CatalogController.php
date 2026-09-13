@@ -51,10 +51,18 @@ class CatalogController extends Controller
                 ->select('id', 'name', 'category_id', 'photo', 'description', 'exclude_tax', 'outlet_id');
         }])
         ->orderBy('name', 'asc')
-        ->get(['id', 'name'])
+        ->get(['id', 'name', 'reward_categories'])
         // Saring kategori yang tidak punya produk aktif
         ->filter(fn($category) => $category->products->isNotEmpty())
-        ->values();
+        ->values()
+        ->map(function ($category) {
+            return [
+                'id'                => $category->id,
+                'name'              => $category->name,
+                'reward_categories' => (bool) $category->reward_categories,
+                'products'          => $category->products,
+            ];
+        });
 
         return response()->json([
             'status' => 'success',
