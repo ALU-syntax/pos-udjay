@@ -12,6 +12,7 @@ use App\Models\CustomerReferral;
 use App\Models\ExpRewardClaims;
 use App\Models\HistoryExpMembershipLevel;
 use App\Models\LevelMembership;
+use App\Models\Outlets;
 use App\Models\ProductBirthdayReward;
 use App\Models\ProductExpReward;
 use Carbon\Carbon;
@@ -78,6 +79,201 @@ class CustomerController extends Controller
             'status' => 'success',
             'data'   => $data,
         ]);
+    }
+
+    /**
+     * Delta sync customer untuk cache lokal mobile (Room / SQLite).
+     *
+     * Scope data GLOBAL (semua customer, tidak difilter per outlet).
+     *
+     * Cara pakai:
+     * 1. Sync awal  : panggil tanpa `updated_since` & tanpa `cursor`, lalu ikuti
+     *                 `next_cursor` sampai `has_more` = false.
+     * 2. Sync berkala: simpan `server_time` dari response terakhir, kirim sebagai
+     *                 `updated_since` pada sync berikutnya.
+     *
+     * - `cursor` adalah opaque base64 (jangan diparse client, cukup disimpan & dikirim balik)
+     * - Baris soft-deleted tetap dikirim dengan `is_deleted` = true agar device
+     *   dapat menghapus data lokalnya
+     * - Hasil diurutkan `updated_at ASC, id ASC` (memakai index customers_updated_at_id_index)
+     *
+     * GET /api/v1/customers/sync?updated_since=&cursor=&limit=
+     */
+    public function sync(Request $request): JsonResponse
+    {
+        $limit = (int) $request->query('limit', 500);
+        $limit = max(1, min($limit, 1000));
+
+        $updatedSince = $request->query('updated_since');
+        $cursorRaw     = $request->query('cursor');
+
+        $cursor = null;
+        if (!empty($cursorRaw)) {
+            $cursor = $this->decodeSyncCursor((string) $cursorRaw);
+
+            if ($cursor === null) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Cursor tidak valid. Silakan mulai ulang sync tanpa cursor.',
+                ], 422);
+            }
+        }
+
+        $query = Customer::withTrashed()->with([
+            'levelMembership' => function ($q) {
+                $q->select('id', 'name', 'color');
+            },
+            'createdBy' => function ($q) {
+                $q->select('id', 'name', 'outlet_id');
+            },
+        ]);
+
+        // Prioritas: cursor (keyset pagination) > updated_since (delta) > full sync
+        if ($cursor !== null) {
+            $query->where(function ($q) use ($cursor) {
+                $q->where('updated_at', '>', $cursor['updated_at'])
+                    ->orWhere(function ($q2) use ($cursor) {
+                        $q2->where('updated_at', '=', $cursor['updated_at'])
+                            ->where('id', '>', $cursor['id']);
+                    });
+            });
+        } elseif (!empty($updatedSince)) {
+            try {
+                $since = Carbon::parse($updatedSince)->utc();
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Format updated_since tidak valid. Gunakan ISO-8601 (contoh: 2026-09-11T10:00:00Z).',
+                ], 422);
+            }
+
+            // Gunakan >= agar baris yang berubah tepat pada server_time terakhir tidak terlewat.
+            // Duplikasi aman karena device melakukan upsert berdasarkan id.
+            $query->where('updated_at', '>=', $since);
+        }
+
+        // Ambil limit + 1 untuk mengetahui apakah masih ada halaman berikutnya
+        $rows = $query->orderBy('updated_at', 'asc')
+            ->orderBy('id', 'asc')
+            ->limit($limit + 1)
+            ->get();
+
+        $hasMore = $rows->count() > $limit;
+        $rows    = $rows->take($limit)->values();
+
+        // Kumpulkan outlet_id dari user pembuat (index pertama outlet user),
+        // lalu ambil semua outlet dalam satu query untuk menghindari N+1.
+        $outletIds = $rows
+            ->map(function (Customer $customer) {
+                $ids = $customer->createdBy?->outletIds() ?? [];
+                return $ids[0] ?? null;
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
+        $outlets = $outletIds->isNotEmpty()
+            ? Outlets::whereIn('id', $outletIds)->pluck('name', 'id')
+            : collect();
+
+        $data = $rows->map(function (Customer $customer) use ($outlets) {
+            // Outlet diambil dari index pertama outlet_id milik user pembuat
+            $creatorOutletId = $customer->createdBy?->outletIds()[0] ?? null;
+
+            return [
+                'id'                   => $customer->id,
+                'name'                 => $customer->name,
+                'phone'                => $customer->telfon,
+                'email'                => $customer->email,
+                'umur'                 => $customer->umur !== null ? (int) $customer->umur : null,
+                'tanggal_lahir'        => $customer->tanggal_lahir,
+                'domisili'             => $customer->domisili,
+                'gender'               => $customer->gender,
+                'community_id'         => $customer->community_id,
+                'referral_id'          => $customer->referral_id,
+                'level_memberships_id' => $customer->level_memberships_id,
+                'level'                => $customer->levelMembership
+                    ? [
+                        'id'    => $customer->levelMembership->id,
+                        'name'  => $customer->levelMembership->name,
+                        'color' => $customer->levelMembership->color,
+                    ]
+                    : null,
+                'point'                => (int) $customer->point,
+                'exp'                  => (int) $customer->exp,
+                'level_batch'          => $customer->level_batch,
+                'user_id'              => $customer->user_id,
+                'user_name'            => $customer->createdBy?->name,
+                'outlet_id'            => $creatorOutletId,
+                'outlet_name'          => $creatorOutletId ? ($outlets[$creatorOutletId] ?? null) : null,
+                'is_deleted'           => $customer->deleted_at !== null,
+                'deleted_at'           => $customer->deleted_at,
+                'created_at'           => $customer->created_at,
+                'updated_at'           => $customer->updated_at,
+            ];
+        });
+
+        $nextCursor = null;
+        if ($hasMore && $rows->isNotEmpty()) {
+            $last = $rows->last();
+            $nextCursor = $this->encodeSyncCursor($last->updated_at, $last->id);
+        }
+
+        return response()->json([
+            'status'      => 'success',
+            'data'        => $data,
+            'has_more'    => $hasMore,
+            'next_cursor' => $nextCursor,
+            'server_time' => Carbon::now()->utc()->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * Encode cursor sync menjadi opaque base64 (URL-safe).
+     */
+    private function encodeSyncCursor($updatedAt, int $id): string
+    {
+        $payload = json_encode([
+            'updated_at' => Carbon::parse($updatedAt)->toIso8601String(),
+            'id'         => $id,
+        ]);
+
+        return rtrim(strtr(base64_encode($payload), '+/', '-_'), '=');
+    }
+
+    /**
+     * Decode cursor sync. Mengembalikan null jika tidak valid.
+     */
+    private function decodeSyncCursor(string $cursor): ?array
+    {
+        $normalized = strtr($cursor, '-_', '+/');
+        $padding    = strlen($normalized) % 4;
+        if ($padding > 0) {
+            $normalized .= str_repeat('=', 4 - $padding);
+        }
+
+        $decoded = base64_decode($normalized, true);
+        if ($decoded === false) {
+            return null;
+        }
+
+        $payload = json_decode($decoded, true);
+        if (!is_array($payload) || !isset($payload['updated_at'], $payload['id'])) {
+            return null;
+        }
+
+        try {
+            // toIso8601String() sudah memuat offset timezone, jadi TIDAK boleh
+            // dipanggil ->utc() lagi (akan menggeser waktu dua kali).
+            $updatedAt = Carbon::parse($payload['updated_at']);
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return [
+            'updated_at' => $updatedAt->toDateTimeString(),
+            'id'         => (int) $payload['id'],
+        ];
     }
 
     /**
