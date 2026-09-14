@@ -205,7 +205,7 @@ class TransactionController extends Controller
 
                 foreach ($validated['items'] as $itemPayload) {
                     $qty = $itemPayload['quantity'] ?? 1;
-                    
+
                     // Modifier calculation
                     $modifierData = $itemPayload['modifier_id'] ?? [];
                     if (is_string($modifierData)) {
@@ -412,7 +412,9 @@ class TransactionController extends Controller
                     }
                 }
 
-                $transactionTime = isset($validated['created_at']) ? Carbon::parse($validated['created_at']) : Carbon::now();
+                $transactionTime = isset($validated['created_at']) 
+                    ? Carbon::parse($validated['created_at'])->setTimezone('Asia/Jakarta') 
+                    : Carbon::now();
 
                 $totalPajakJson = is_array($validated['total_pajak'] ?? null)
                     ? json_encode($validated['total_pajak'])
@@ -464,14 +466,14 @@ class TransactionController extends Controller
                     }
 
                     $checkCatatan = $itemPayload['catatan'] ?? '';
-                    $discountIdJson = is_array($itemPayload['discount_id'] ?? null) 
-                        ? json_encode($itemPayload['discount_id']) 
+                    $discountIdJson = is_array($itemPayload['discount_id'] ?? null)
+                        ? json_encode($itemPayload['discount_id'])
                         : ($itemPayload['discount_id'] ?? '[]');
-                    $modifierIdJson = is_array($itemPayload['modifier_id'] ?? null) 
-                        ? json_encode($itemPayload['modifier_id']) 
+                    $modifierIdJson = is_array($itemPayload['modifier_id'] ?? null)
+                        ? json_encode($itemPayload['modifier_id'])
                         : ($itemPayload['modifier_id'] ?? '[]');
-                    $promoIdJson = is_array($itemPayload['promo_id'] ?? null) 
-                        ? json_encode($itemPayload['promo_id']) 
+                    $promoIdJson = is_array($itemPayload['promo_id'] ?? null)
+                        ? json_encode($itemPayload['promo_id'])
                         : (is_numeric($itemPayload['promo_id'] ?? null) ? (string)$itemPayload['promo_id'] : '[]');
                     $isReward = filter_var($itemPayload['reward'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
