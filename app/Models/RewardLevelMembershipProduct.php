@@ -15,4 +15,8 @@ class RewardLevelMembershipProduct extends Model
     public function product (){
         return $this->belongsTo(Product::class, 'product_id', 'id');
     }
+
+    public function rewardMembership(){
+        return $this->belongsTo(RewardMembership::class, 'reward_membership_id', 'id');
+    }
 }

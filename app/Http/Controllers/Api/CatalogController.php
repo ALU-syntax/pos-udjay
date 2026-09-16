@@ -11,6 +11,7 @@ use App\Models\NoteReceiptScheduling;
 use App\Models\Payment;
 use App\Models\ProductBirthdayReward;
 use App\Models\ProductExpReward;
+use App\Models\RewardLevelMembershipProduct;
 use App\Models\SalesType;
 use App\Models\PilihanGroup;
 use App\Models\Taxes;
@@ -380,6 +381,75 @@ class CatalogController extends Controller
         return response()->json([
             'status' => 'success',
             'data'   => $rewards,
+        ]);
+    }
+
+    /**
+     * Ambil data reward membership (level reward) untuk outlet user.
+     *
+     * - Outlet diambil otomatis dari token user yang login
+     * - product_id diambil dari tabel pivot `reward_level_membership_products`
+     *   (bukan dengan mencocokkan nama produk), lalu difilter dengan outlet_id
+     *   agar product yang dikirim benar-benar milik outlet tersebut
+     * - Semua level membership dikirim (tanpa filter is_active)
+     * - Data dikembalikan lengkap dengan detail produk (nama, harga, foto, kategori, varian)
+     *   agar dapat disimpan langsung di local Room aplikasi mobile
+     *
+     * GET /api/v1/catalog/reward-memberships
+     */
+    public function rewardMemberships(Request $request): JsonResponse
+    {
+        $outletIds = $request->user()->outletIds();
+
+        if (empty($outletIds)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User tidak memiliki outlet yang terdaftar.',
+            ], 422);
+        }
+
+        $outletId = $outletIds[0];
+
+        // Pivot berisi reward_membership_id + product_id + outlet_id, jadi
+        // product diambil langsung dari sini tanpa perlu join by name.
+        $pivots = RewardLevelMembershipProduct::withTrashed()
+            ->with([
+                'product' => function ($query) use ($outletId) {
+                    $query->withTrashed()
+                        ->where('outlet_id', $outletId)
+                        ->select('id', 'name', 'category_id', 'photo', 'description', 'exclude_tax', 'outlet_id', 'deleted_at')
+                        ->with([
+                            'category' => function ($q) {
+                                $q->withTrashed()->select('id', 'name');
+                            },
+                            'variants' => function ($q) {
+                                $q->withTrashed()
+                                    ->select('id', 'product_id', 'name', 'harga', 'stok', 'deleted_at')
+                                    ->orderBy('name', 'asc');
+                            },
+                        ]);
+                },
+                'rewardMembership' => function ($query) {
+                    $query->withTrashed()
+                        ->select('id', 'level_membership_id', 'name', 'description', 'icon', 'deleted_at')
+                        ->with([
+                            'levelMembership' => function ($q) {
+                                $q->withTrashed()->select('id', 'name', 'benchmark', 'color', 'deleted_at');
+                            },
+                        ]);
+                },
+            ])
+            ->where('outlet_id', $outletId)
+            ->orderBy('reward_membership_id', 'asc')
+            ->orderBy('id', 'asc')
+            ->get(['id', 'reward_membership_id', 'product_id', 'outlet_id', 'deleted_at', 'created_at', 'updated_at'])
+            // Jaga-jaga agar product milik outlet lain tidak ikut terkirim
+            ->filter(fn ($pivot) => $pivot->product !== null)
+            ->values();
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $pivots,
         ]);
     }
 }
