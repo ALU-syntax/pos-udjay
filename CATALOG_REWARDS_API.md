@@ -27,6 +27,7 @@ Accept: application/json
 | `GET /api/v1/catalog/product-birthday-rewards` | Produk reward ulang tahun customer (birthday reward). |
 | `GET /api/v1/catalog/product-exp-rewards` | Produk reward berdasarkan milestone EXP (mis. reward tiap 5000 EXP). |
 | `GET /api/v1/catalog/reward-memberships` | Produk reward per level membership (mis. benchmark 6000 EXP → Duta). |
+| `GET /api/v1/customers/birthday-claims/sync` | **Delta sync** pencatatan claim birthday reward (lintas outlet). |
 
 ---
 
@@ -265,11 +266,101 @@ Mengambil daftar reward per level membership untuk outlet user.
 
 ---
 
+## 4. Birthday Claim Sync (Delta Sync)
+
+### `GET /api/v1/customers/birthday-claims/sync`
+
+Delta sync pencatatan **customer yang sudah pernah claim birthday reward** ke cache lokal mobile (Room / SQLite).
+
+**Sumber data:** tabel `birthday_reward_claims` (`customer_id`, `outlet_id`, `product_id`, `age`).
+
+> **Tujuan:** mencegah satu customer claim birthday reward **lebih dari sekali pada umur yang sama**. Karena customer yang sudah claim di **outlet A tidak boleh claim lagi di outlet B**, data ini ber-scope **GLOBAL (semua outlet)** dan **tidak difilter per outlet**.
+
+**Kunci validasi di mobile:** `customer_id` + `age`.
+Sebelum mengizinkan claim, mobile mengecek apakah sudah ada baris dengan `customer_id` yang sama dan `age` = umur customer saat ini (yang belum `is_deleted`). Server tetap memvalidasi ulang saat checkout di `POST /api/v1/transactions/pay`.
+
+> **Catatan penting:** endpoint ini **read-only**. Pencatatan claim baru terjadi otomatis di server saat checkout (`TransactionController::pay`) ketika item memiliki catatan `"Birthday Reward"`.
+
+### Query Parameters
+
+| Parameter | Tipe | Wajib | Keterangan |
+|---|---|---|---|
+| `updated_since` | string (ISO 8601) | Tidak | Ambil baris dengan `updated_at >= nilai ini`. Dipakai untuk sync berkala (kirim `server_time` dari response sebelumnya). |
+| `cursor` | string (opaque base64) | Tidak | Keyset pagination. Jangan diparse client — cukup simpan `next_cursor` dan kirim balik. |
+| `limit` | int | Tidak | Jumlah baris per halaman. Default `500`, min `1`, max `1000`. |
+
+**Aturan pemakaian:**
+1. **Sync awal:** panggil tanpa `updated_since` dan tanpa `cursor`, lalu ikuti `next_cursor` selama `has_more` = `true`.
+2. **Sync berkala:** simpan `server_time` dari response terakhir, kirim sebagai `updated_since` pada sync berikutnya.
+3. Prioritas: `cursor` > `updated_since` > full sync.
+
+### Header Request
+| Header | Nilai | Wajib |
+|---|---|---|
+| `Authorization` | `Bearer {token}` | Ya |
+| `Accept` | `application/json` | Ya |
+
+### Response Sukses (HTTP 200)
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "customer_id": 12,
+      "customer_name": "Budi Santoso",
+      "outlet_id": 1,
+      "outlet_name": "Ud. Djaya Coffee House - Cimanggu",
+      "product_id": 626,
+      "product_name": "Free Cheese Cake",
+      "age": 27,
+      "is_deleted": false,
+      "deleted_at": null,
+      "created_at": "2026-07-12T04:15:00.000000Z",
+      "updated_at": "2026-07-12T04:15:00.000000Z"
+    }
+  ],
+  "has_more": false,
+  "next_cursor": null,
+  "server_time": "2026-09-17T03:00:00.000000Z"
+}
+```
+
+#### Penjelasan Field Utama
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `id` | int | ID record `birthday_reward_claims` (primary key untuk Room). |
+| `customer_id` | int | ID customer yang claim. |
+| `customer_name` | string \| null | Nama customer (dikirim agar mobile tidak perlu join di Room). |
+| `outlet_id` | int | ID outlet tempat claim dilakukan. |
+| `outlet_name` | string \| null | Nama outlet tempat claim (untuk ditampilkan, mis. "sudah claim di outlet X"). |
+| `product_id` | int | ID produk reward yang diambil. |
+| `product_name` | string \| null | Nama produk reward. |
+| `age` | int | Umur customer **saat claim**. Dipakai bersama `customer_id` sebagai kunci validasi "sudah claim tahun ini". |
+| `is_deleted` | boolean | `true` jika baris sudah di-soft delete di server. |
+| `deleted_at` | string \| null | Waktu soft delete. Dipakai mobile untuk menandai/menghapus baris lokal. |
+| `created_at` | string (ISO 8601) | Waktu claim dibuat. |
+| `updated_at` | string (ISO 8601) | Waktu terakhir baris berubah (dasar delta sync). |
+
+#### Metadata Response
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `has_more` | boolean | `true` jika masih ada halaman berikutnya. |
+| `next_cursor` | string \| null | Cursor untuk halaman berikutnya (`null` jika sudah habis). |
+| `server_time` | string (ISO 8601) | Waktu server saat response dibuat, dipakai sebagai `updated_since` sync berikutnya. |
+
+> **Soft delete:** tabel `birthday_reward_claims` mendukung soft delete (`deleted_at`). Baris yang dihapus tetap dikirim dengan `is_deleted` = `true` agar mobile dapat menghapus/menandai data lokalnya.
+
+---
+
 ## Response Error
 
 ### 1. Outlet Tidak Ditemukan Pada Token (HTTP 422)
 
-Berlaku untuk ketiga endpoint di atas.
+Berlaku untuk ketiga endpoint catalog di atas (section 1–3).
 
 ```json
 {
@@ -286,6 +377,28 @@ Berlaku untuk ketiga endpoint di atas.
 }
 ```
 
+### 3. Cursor Tidak Valid (HTTP 422)
+
+Khusus endpoint birthday claim sync.
+
+```json
+{
+  "status": "error",
+  "message": "Cursor tidak valid. Silakan mulai ulang sync tanpa cursor."
+}
+```
+
+### 4. Format `updated_since` Tidak Valid (HTTP 422)
+
+Khusus endpoint birthday claim sync.
+
+```json
+{
+  "status": "error",
+  "message": "Format updated_since tidak valid. Gunakan ISO-8601 (contoh: 2026-09-11T10:00:00Z)."
+}
+```
+
 ---
 
 ## Panduan Integrasi Mobile POS (Android/iOS)
@@ -294,7 +407,7 @@ Berlaku untuk ketiga endpoint di atas.
 
 Endpoint ini **read-only** dan **idempotent**. Karena setiap record memiliki primary key stabil (`id`) beserta `updated_at` / `deleted_at`, gunakan pola **upsert + soft delete**:
 
-1. Panggil ketiga endpoint saat aplikasi connect / sebelum masuk mode offline.
+1. Panggil ketiga endpoint catalog (section 1–3) dan endpoint birthday claim sync (section 4) saat aplikasi connect / sebelum masuk mode offline.
 2. Simpan hasilnya ke Room dengan `@Insert(onConflict = OnConflictStrategy.REPLACE)` berdasarkan `id`.
 3. Untuk setiap baris yang `deleted_at != null`, tandai `isDeleted = true` di Room (jangan hard delete agar data lama pada transaksi offline tetap valid).
 
@@ -305,21 +418,39 @@ Karena data sudah denormalisasi lengkap, cukup buat entitas:
 - `ProductBirthdayRewardEntity(id, product_name, productId, outletId, ...)`
 - `ProductExpRewardEntity(id, product_name, productId, outletId, ...)`
 - `RewardMembershipEntity(id, rewardMembershipId, productId, outletId, deletedAt, ...)`
-- `ProductEmbedded` (nested object `product`) — dipakai bersama oleh ketiga entitas
+- `BirthdayClaimEntity(id, customerId, customerName, outletId, outletName, productId, productName, age, isDeleted, deletedAt, ...)`
+- `ProductEmbedded` (nested object `product`) — dipakai bersama oleh tiga entitas catalog
 - `LevelMembershipEmbedded` (nested `reward_membership.level_membership`)
 
-Gunakan `@Embedded` / `@Relation` pada Room, **tanpa perlu join** tambahan saat runtime.
+Gunakan `@Embedded` / `@Relation` pada Room, **tanpa perlu join** tambahan saat runtime. Nama-nama entitas (`customer_name`, `outlet_name`, `product_name`) sudah dikirim server sehingga tidak perlu lookup tabel lain.
 
 ### 3. Sinkronisasi Hapus Data
 
-Karena server mengirim `deleted_at` pada reward, produk, kategori, varian, dan level:
+Karena server mengirim `deleted_at` pada reward, produk, kategori, varian, level, dan birthday claim:
 
 - Saat menerima `deleted_at` terisi, set flag lokal.
 - Saat reward dihapus di server, produk reward juga ikut terhitung (kategori `Membership`).
 
-### 4. Catatan Penting untuk Reward
+### 4. Validasi Claim Birthday di Mobile
+
+Alur yang disarankan: sebelum kasir menawarkan birthday reward, cek Room dengan:
+
+```sql
+SELECT * FROM birthday_claim
+WHERE customer_id = :customerId
+  AND age = :currentAge
+  AND is_deleted = 0
+LIMIT 1;
+```
+
+- Jika ada hasil → customer **sudah pernah claim** pada umur tersebut, tombol claim harus disembunyikan/dinonaktifkan.
+- Karena data ini **global lintas outlet**, claim di outlet A otomatis memblokir claim di outlet B setelah sync berjalan.
+- Server tetap memvalidasi ulang saat checkout, jadi data Room yang belum ter-sync tidak akan menghasilkan double claim di database.
+
+### 5. Catatan Penting untuk Reward
 
 - Harga produk reward biasanya `0`, jadi validasi total tagihan tetap berasal dari server saat `POST /api/v1/transactions/pay`.
 - Stok varian (`stok`) ikut dikirim, namun **stok reward tidak dimutasi oleh transaksi biasa** — tetap andalkan server sebagai sumber kebenaran.
 - `level_membership.benchmark` menunjukan EXP minimal untuk membersihkan reward tersebut (contoh `6000`).
 - Untuk **birthday reward**, kelayakan klaim tetap dihitung di server (rentang tanggal lahir + minimal 30 hari sejak registrasi) dan divalidasi ulang saat checkout — mobile cukup menyimpan produk reward-nya saja.
+- Untuk **birthday claim**, kunci validasinya adalah `customer_id` + `age` (bukan tanggal), sesuai logika server. Claim dicatat otomatis saat checkout.
