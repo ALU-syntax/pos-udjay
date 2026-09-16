@@ -10,6 +10,7 @@ use App\Models\Discount;
 use App\Models\NoteReceiptScheduling;
 use App\Models\Payment;
 use App\Models\ProductBirthdayReward;
+use App\Models\ProductExpReward;
 use App\Models\SalesType;
 use App\Models\PilihanGroup;
 use App\Models\Taxes;
@@ -319,6 +320,49 @@ class CatalogController extends Controller
         $outletId = $outletIds[0];
 
         $rewards = ProductBirthdayReward::with(['product' => function ($query) {
+            $query->select('id', 'name', 'category_id', 'photo', 'description', 'exclude_tax', 'outlet_id')
+                ->with(['category' => function ($q) {
+                    $q->select('id', 'name');
+                }])
+                ->with(['variants' => function ($q) {
+                    $q->select('id', 'product_id', 'name', 'harga', 'stok')
+                        ->orderBy('name', 'asc');
+                }]);
+        }])
+        ->where('outlet_id', $outletId)
+        ->orderBy('id', 'asc')
+        ->get(['id', 'product_name', 'product_id', 'outlet_id', 'created_at', 'updated_at'])
+        ->values();
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $rewards,
+        ]);
+    }
+
+    /**
+     * Ambil data product exp reward untuk outlet user.
+     *
+     * - Outlet diambil otomatis dari token user yang login
+     * - Data dikembalikan lengkap dengan detail produk (nama, harga, foto, kategori, varian)
+     *   agar dapat disimpan langsung di local Room aplikasi mobile
+     *
+     * GET /api/v1/catalog/product-exp-rewards
+     */
+    public function productExpRewards(Request $request): JsonResponse
+    {
+        $outletIds = $request->user()->outletIds();
+
+        if (empty($outletIds)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User tidak memiliki outlet yang terdaftar.',
+            ], 422);
+        }
+
+        $outletId = $outletIds[0];
+
+        $rewards = ProductExpReward::with(['product' => function ($query) {
             $query->select('id', 'name', 'category_id', 'photo', 'description', 'exclude_tax', 'outlet_id')
                 ->with(['category' => function ($q) {
                     $q->select('id', 'name');
