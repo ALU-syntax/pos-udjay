@@ -14,7 +14,22 @@ use Tests\TestCase;
 |
 */
 
-uses(TestCase::class, RefreshDatabase::class)->in('Feature');
+/*
+| PENTING:
+| RefreshDatabase hanya boleh dipakai oleh test yang memang butuh database
+| kosong (test gaya Breeze/Pest: Auth, Profile, Example).
+|
+| JANGAN terapkan ke seluruh folder 'Feature', karena test di tests/Feature/Api
+| ditulis dengan PHPUnit class + trait DatabaseTransactions dan bergantung pada
+| data seed. RefreshDatabase menjalankan migrate:fresh per test class sehingga
+| akan menghapus seluruh data seed dan membuat test API gagal.
+*/
+uses(TestCase::class, RefreshDatabase::class)->in('Feature/Auth');
+uses(TestCase::class, RefreshDatabase::class)->in('Feature/ProfileTest.php');
+uses(TestCase::class, RefreshDatabase::class)->in('Feature/ExampleTest.php');
+
+// Test API memakai DatabaseTransactions (rollback per test) + data seed.
+uses(TestCase::class)->in('Feature/Api');
 
 /*
 |--------------------------------------------------------------------------

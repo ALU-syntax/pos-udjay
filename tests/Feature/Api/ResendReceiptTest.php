@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Mail\ResendReceiptMail;
 use App\Models\Outlets;
+use App\Models\PettyCash;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -31,10 +32,19 @@ class ResendReceiptTest extends TestCase
             'outlet_id' => json_encode([$outlet->id]),
         ]);
 
+        // Buat petty cash sendiri agar tidak bergantung pada id hardcode 1.
+        $pettyCash = PettyCash::create([
+            'outlet_id' => (string) $outlet->id,
+            'amount_awal' => 100000,
+            'user_id_started' => $user->id,
+            'open' => now()->subHours(2),
+            'close' => null,
+        ]);
+
         $transaction = Transaction::create([
             'outlet_id' => $outlet->id,
             'user_id' => $user->id,
-            'patty_cash_id' => 1,
+            'patty_cash_id' => $pettyCash->id,
             'total' => 50000,
             'nominal_bayar' => 50000,
             'change' => 0,

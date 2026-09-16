@@ -21,8 +21,22 @@
         <env name="APP_ENV" value="testing"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_DRIVER" value="array"/>
-        <!-- <env name="DB_CONNECTION" value="sqlite"/> -->
-        <!-- <env name="DB_DATABASE" value=":memory:"/> -->
+        <!--
+            PENTING: jangan hapus baris DB_* di bawah.
+
+            Test WAJIB memakai database terpisah, bukan database utama dari .env.
+            Tanpa override ini, test yang memakai RefreshDatabase / DatabaseMigrations
+            akan menjalankan migrate:fresh pada DATABASE ASLI sehingga seluruh data
+            terhapus setiap kali `php artisan test` dijalankan.
+
+            Buat database test sekali dengan:
+                mysql -u root -p -e "CREATE DATABASE pos_udjaya_testing;"
+
+            Struktur MySQL dipakai (bukan SQLite) agar skema, index, dan perilaku
+            kolom di test identik dengan produksi.
+        -->
+        <env name="DB_CONNECTION" value="mysql"/>
+        <env name="DB_DATABASE" value="pos_udjaya_testing"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

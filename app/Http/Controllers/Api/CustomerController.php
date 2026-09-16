@@ -351,6 +351,129 @@ class CustomerController extends Controller
     }
 
     /**
+     * Delta sync pencatatan claim EXP milestone reward untuk cache lokal mobile (Room / SQLite).
+     *
+     * Scope data GLOBAL (semua outlet, tidak difilter per outlet). Tujuannya agar
+     * customer yang sudah claim di outlet A tidak bisa claim lagi di outlet B.
+     *
+     * Kunci validasi claim di mobile: `customer_id` + `exp` + `level_batch`.
+     * Customer hanya boleh claim satu kali untuk tiap milestone EXP
+     * (kelipatan 5000 terbesar dari `customers.exp`) pada `level_batch` yang sama.
+     *
+     * Cara pakai:
+     * 1. Sync awal  : panggil tanpa `updated_since` & tanpa `cursor`, lalu ikuti
+     *                 `next_cursor` sampai `has_more` = false.
+     * 2. Sync berkala: simpan `server_time` dari response terakhir, kirim sebagai
+     *                 `updated_since` pada sync berikutnya.
+     *
+     * - `cursor` adalah opaque base64 (jangan diparse client, cukup disimpan & dikirim balik)
+     * - Baris soft-deleted tetap dikirim dengan `is_deleted` = true agar device
+     *   dapat menghapus data lokalnya
+     * - `customer_name`, `outlet_name`, dan `product_name` ikut dikirim agar mobile
+     *   tidak perlu join di Room
+     * - Hasil diurutkan `updated_at ASC, id ASC`
+     *
+     * GET /api/v1/customers/exp-claims/sync?updated_since=&cursor=&limit=
+     */
+    public function expClaimsSync(Request $request): JsonResponse
+    {
+        $limit = (int) $request->query('limit', 500);
+        $limit = max(1, min($limit, 1000));
+
+        $updatedSince = $request->query('updated_since');
+        $cursorRaw    = $request->query('cursor');
+
+        $cursor = null;
+        if (!empty($cursorRaw)) {
+            $cursor = $this->decodeSyncCursor((string) $cursorRaw);
+
+            if ($cursor === null) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Cursor tidak valid. Silakan mulai ulang sync tanpa cursor.',
+                ], 422);
+            }
+        }
+
+        $query = ExpRewardClaims::withTrashed()->with([
+            'customer' => function ($q) {
+                $q->withTrashed()->select('id', 'name');
+            },
+            'outlet' => function ($q) {
+                $q->select('id', 'name');
+            },
+            'product' => function ($q) {
+                $q->select('id', 'name');
+            },
+        ]);
+
+        // Prioritas: cursor (keyset pagination) > updated_since (delta) > full sync
+        if ($cursor !== null) {
+            $query->where(function ($q) use ($cursor) {
+                $q->where('updated_at', '>', $cursor['updated_at'])
+                    ->orWhere(function ($q2) use ($cursor) {
+                        $q2->where('updated_at', '=', $cursor['updated_at'])
+                            ->where('id', '>', $cursor['id']);
+                    });
+            });
+        } elseif (!empty($updatedSince)) {
+            try {
+                $since = Carbon::parse($updatedSince)->utc();
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Format updated_since tidak valid. Gunakan ISO-8601 (contoh: 2026-09-11T10:00:00Z).',
+                ], 422);
+            }
+
+            // Gunakan >= agar baris yang berubah tepat pada server_time terakhir tidak terlewat.
+            // Duplikasi aman karena device melakukan upsert berdasarkan id.
+            $query->where('updated_at', '>=', $since);
+        }
+
+        // Ambil limit + 1 untuk mengetahui apakah masih ada halaman berikutnya
+        $rows = $query->orderBy('updated_at', 'asc')
+            ->orderBy('id', 'asc')
+            ->limit($limit + 1)
+            ->get();
+
+        $hasMore = $rows->count() > $limit;
+        $rows    = $rows->take($limit)->values();
+
+        $data = $rows->map(function (ExpRewardClaims $claim) {
+            return [
+                'id'            => $claim->id,
+                'customer_id'   => $claim->customer_id,
+                'customer_name' => $claim->customer?->name,
+                'outlet_id'     => $claim->outlet_id,
+                'outlet_name'   => $claim->outlet?->name,
+                'product_id'    => $claim->product_id,
+                'product_name'  => $claim->product?->name,
+                'exp'           => (int) $claim->exp,
+                'level_batch'   => (int) $claim->level_batch,
+                'is_deleted'    => $claim->deleted_at !== null,
+                'deleted_at'    => $claim->deleted_at,
+                'created_at'    => $claim->created_at,
+                'updated_at'    => $claim->updated_at,
+            ];
+        });
+
+        $nextCursor = null;
+        if ($hasMore && $rows->isNotEmpty()) {
+            $last = $rows->last();
+            $nextCursor = $this->encodeSyncCursor($last->updated_at, $last->id);
+        }
+
+        return response()->json([
+            'status'      => 'success',
+            'data'        => $data,
+            'has_more'    => $hasMore,
+            'next_cursor' => $nextCursor,
+            'server_time' => Carbon::now()->utc()->toIso8601String(),
+        ]);
+    }
+
+    /**
      * Encode cursor sync menjadi opaque base64 (URL-safe).
      */
     private function encodeSyncCursor($updatedAt, int $id): string

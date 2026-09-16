@@ -28,6 +28,7 @@ Accept: application/json
 | `GET /api/v1/catalog/product-exp-rewards` | Produk reward berdasarkan milestone EXP (mis. reward tiap 5000 EXP). |
 | `GET /api/v1/catalog/reward-memberships` | Produk reward per level membership (mis. benchmark 6000 EXP → Duta). |
 | `GET /api/v1/customers/birthday-claims/sync` | **Delta sync** pencatatan claim birthday reward (lintas outlet). |
+| `GET /api/v1/customers/exp-claims/sync` | **Delta sync** pencatatan claim EXP milestone reward (lintas outlet). |
 
 ---
 
@@ -356,6 +357,98 @@ Sebelum mengizinkan claim, mobile mengecek apakah sudah ada baris dengan `custom
 
 ---
 
+## 5. Exp Claim Sync (Delta Sync)
+
+### `GET /api/v1/customers/exp-claims/sync`
+
+Delta sync pencatatan **customer yang sudah pernah claim EXP milestone reward** ke cache lokal mobile (Room / SQLite).
+
+**Sumber data:** tabel `exp_reward_claims` (`customer_id`, `outlet_id`, `product_id`, `exp`, `level_batch`).
+
+> **Tujuan:** mencegah satu customer claim EXP milestone reward **lebih dari sekali**. Karena customer yang sudah claim di **outlet A tidak boleh claim lagi di outlet B**, data ini ber-scope **GLOBAL (semua outlet)** dan **tidak difilter per outlet**.
+
+**Kunci validasi di mobile:** `customer_id` + `exp` + `level_batch`.
+Customer hanya boleh claim satu kali untuk tiap milestone EXP (**kelipatan 5000 terbesar** dari `customers.exp`) pada `level_batch` yang sama.
+
+> **Catatan penting:** endpoint ini **read-only**. Pencatatan claim baru terjadi otomatis di server saat checkout (`TransactionController::pay`) ketika item memiliki catatan `"Exp Reward"`.
+
+### Query Parameters
+
+| Parameter | Tipe | Wajib | Keterangan |
+|---|---|---|---|
+| `updated_since` | string (ISO 8601) | Tidak | Ambil baris dengan `updated_at >= nilai ini`. Dipakai untuk sync berkala (kirim `server_time` dari response sebelumnya). |
+| `cursor` | string (opaque base64) | Tidak | Keyset pagination. Jangan diparse client — cukup simpan `next_cursor` dan kirim balik. |
+| `limit` | int | Tidak | Jumlah baris per halaman. Default `500`, min `1`, max `1000`. |
+
+**Aturan pemakaian:**
+1. **Sync awal:** panggil tanpa `updated_since` dan tanpa `cursor`, lalu ikuti `next_cursor` selama `has_more` = `true`.
+2. **Sync berkala:** simpan `server_time` dari response terakhir, kirim sebagai `updated_since` pada sync berikutnya.
+3. Prioritas: `cursor` > `updated_since` > full sync.
+
+### Header Request
+| Header | Nilai | Wajib |
+|---|---|---|
+| `Authorization` | `Bearer {token}` | Ya |
+| `Accept` | `application/json` | Ya |
+
+### Response Sukses (HTTP 200)
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 7,
+      "customer_id": 12,
+      "customer_name": "Budi Santoso",
+      "outlet_id": 1,
+      "outlet_name": "Ud. Djaya Coffee House - Cimanggu",
+      "product_id": 619,
+      "product_name": "Free Kopi Susu Djaya",
+      "exp": 5000,
+      "level_batch": 1,
+      "is_deleted": false,
+      "deleted_at": null,
+      "created_at": "2026-08-02T06:20:00.000000Z",
+      "updated_at": "2026-08-02T06:20:00.000000Z"
+    }
+  ],
+  "has_more": false,
+  "next_cursor": null,
+  "server_time": "2026-09-17T03:00:00.000000Z"
+}
+```
+
+#### Penjelasan Field Utama
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `id` | int | ID record `exp_reward_claims` (primary key untuk Room). |
+| `customer_id` | int | ID customer yang claim. |
+| `customer_name` | string \| null | Nama customer (dikirim agar mobile tidak perlu join di Room). |
+| `outlet_id` | int | ID outlet tempat claim dilakukan. |
+| `outlet_name` | string \| null | Nama outlet tempat claim (untuk ditampilkan, mis. "sudah claim di outlet X"). |
+| `product_id` | int | ID produk reward yang diambil. |
+| `product_name` | string \| null | Nama produk reward. |
+| `exp` | int | Milestone EXP saat claim (kelipatan 5000). Bagian dari kunci validasi. |
+| `level_batch` | int | Batch level customer saat claim. Bagian dari kunci validasi. |
+| `is_deleted` | boolean | `true` jika baris sudah di-soft delete di server. |
+| `deleted_at` | string \| null | Waktu soft delete. Dipakai mobile untuk menandai/menghapus baris lokal. |
+| `created_at` | string (ISO 8601) | Waktu claim dibuat. |
+| `updated_at` | string (ISO 8601) | Waktu terakhir baris berubah (dasar delta sync). |
+
+#### Metadata Response
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `has_more` | boolean | `true` jika masih ada halaman berikutnya. |
+| `next_cursor` | string \| null | Cursor untuk halaman berikutnya (`null` jika sudah habis). |
+| `server_time` | string (ISO 8601) | Waktu server saat response dibuat, dipakai sebagai `updated_since` sync berikutnya. |
+
+> **Soft delete:** tabel `exp_reward_claims` mendukung soft delete (`deleted_at`). Baris yang dihapus tetap dikirim dengan `is_deleted` = `true` agar mobile dapat menghapus/menandai data lokalnya.
+
+---
+
 ## Response Error
 
 ### 1. Outlet Tidak Ditemukan Pada Token (HTTP 422)
@@ -379,7 +472,7 @@ Berlaku untuk ketiga endpoint catalog di atas (section 1–3).
 
 ### 3. Cursor Tidak Valid (HTTP 422)
 
-Khusus endpoint birthday claim sync.
+Khusus endpoint claim sync (section 4–5).
 
 ```json
 {
@@ -390,7 +483,7 @@ Khusus endpoint birthday claim sync.
 
 ### 4. Format `updated_since` Tidak Valid (HTTP 422)
 
-Khusus endpoint birthday claim sync.
+Khusus endpoint claim sync (section 4–5).
 
 ```json
 {
@@ -407,7 +500,7 @@ Khusus endpoint birthday claim sync.
 
 Endpoint ini **read-only** dan **idempotent**. Karena setiap record memiliki primary key stabil (`id`) beserta `updated_at` / `deleted_at`, gunakan pola **upsert + soft delete**:
 
-1. Panggil ketiga endpoint catalog (section 1–3) dan endpoint birthday claim sync (section 4) saat aplikasi connect / sebelum masuk mode offline.
+1. Panggil ketiga endpoint catalog (section 1–3) dan kedua endpoint claim sync (section 4–5) saat aplikasi connect / sebelum masuk mode offline.
 2. Simpan hasilnya ke Room dengan `@Insert(onConflict = OnConflictStrategy.REPLACE)` berdasarkan `id`.
 3. Untuk setiap baris yang `deleted_at != null`, tandai `isDeleted = true` di Room (jangan hard delete agar data lama pada transaksi offline tetap valid).
 
@@ -419,6 +512,7 @@ Karena data sudah denormalisasi lengkap, cukup buat entitas:
 - `ProductExpRewardEntity(id, product_name, productId, outletId, ...)`
 - `RewardMembershipEntity(id, rewardMembershipId, productId, outletId, deletedAt, ...)`
 - `BirthdayClaimEntity(id, customerId, customerName, outletId, outletName, productId, productName, age, isDeleted, deletedAt, ...)`
+- `ExpClaimEntity(id, customerId, customerName, outletId, outletName, productId, productName, exp, levelBatch, isDeleted, deletedAt, ...)`
 - `ProductEmbedded` (nested object `product`) — dipakai bersama oleh tiga entitas catalog
 - `LevelMembershipEmbedded` (nested `reward_membership.level_membership`)
 
@@ -426,7 +520,7 @@ Gunakan `@Embedded` / `@Relation` pada Room, **tanpa perlu join** tambahan saat 
 
 ### 3. Sinkronisasi Hapus Data
 
-Karena server mengirim `deleted_at` pada reward, produk, kategori, varian, level, dan birthday claim:
+Karena server mengirim `deleted_at` pada reward, produk, kategori, varian, level, birthday claim, dan exp claim:
 
 - Saat menerima `deleted_at` terisi, set flag lokal.
 - Saat reward dihapus di server, produk reward juga ikut terhitung (kategori `Membership`).
@@ -447,10 +541,39 @@ LIMIT 1;
 - Karena data ini **global lintas outlet**, claim di outlet A otomatis memblokir claim di outlet B setelah sync berjalan.
 - Server tetap memvalidasi ulang saat checkout, jadi data Room yang belum ter-sync tidak akan menghasilkan double claim di database.
 
-### 5. Catatan Penting untuk Reward
+### 5. Validasi Claim EXP Milestone di Mobile
+
+> ⚠️ **WAJIB DIBACA AGENT MOBILE:** untuk EXP reward, mobile **tidak bisa** hanya membandingkan `customer_id` seperti birthday claim. Ada **dua nilai pembanding tambahan** yang harus dihitung dan dibandingkan dengan data customer hasil `customers/sync`, yaitu **`exp`** dan **`level_batch`**.
+
+Langkah validasi:
+
+1. Hitung milestone EXP yang bisa di-claim dari EXP customer saat ini (data customer dari endpoint `GET /api/v1/customers/sync`):
+   ```kotlin
+   val claimableExp = if (customer.exp >= 5000) (customer.exp / 5000) * 5000 else 0
+   ```
+   Milestone adalah **kelipatan 5000 terbesar** (bukan nilai EXP mentah).
+2. Cek apakah sudah ada claim untuk customer tersebut pada milestone tsb **dan** `level_batch` yang sama:
+
+```sql
+SELECT * FROM exp_claim
+WHERE customer_id = :customerId
+  AND exp = :claimableExp
+  AND level_batch = :customerLevelBatch
+  AND is_deleted = 0
+LIMIT 1;
+```
+
+- Jika ada hasil → customer **sudah claim milestone EXP tersebut pada `level_batch` saat ini**, tombol claim harus disembunyikan/dinonaktifkan.
+- Jika customer **naik level** (dari endpoint `customers/sync`), `level_batch` berubah → milestone di batch baru menjadi bisa di-claim kembali. Karena itulah `level_batch` ikut disimpan di Room.
+- EXP yang diperoleh **di bawah 5000** tidak menghasilkan claim (guard `exp >= 5000`).
+- Karena data ini **global lintas outlet**, claim di outlet A otomatis memblokir claim di outlet B setelah sync berjalan.
+- Server tetap memvalidasi ulang saat checkout.
+
+### 6. Catatan Penting untuk Reward
 
 - Harga produk reward biasanya `0`, jadi validasi total tagihan tetap berasal dari server saat `POST /api/v1/transactions/pay`.
 - Stok varian (`stok`) ikut dikirim, namun **stok reward tidak dimutasi oleh transaksi biasa** — tetap andalkan server sebagai sumber kebenaran.
 - `level_membership.benchmark` menunjukan EXP minimal untuk membersihkan reward tersebut (contoh `6000`).
 - Untuk **birthday reward**, kelayakan klaim tetap dihitung di server (rentang tanggal lahir + minimal 30 hari sejak registrasi) dan divalidasi ulang saat checkout — mobile cukup menyimpan produk reward-nya saja.
 - Untuk **birthday claim**, kunci validasinya adalah `customer_id` + `age` (bukan tanggal), sesuai logika server. Claim dicatat otomatis saat checkout.
+- Untuk **exp claim**, kunci validasinya adalah `customer_id` + `exp` (milestone, kelipatan 5000 terbesar) + `level_batch` — **wajib pembandingan dengan `exp` & `level_batch` customer saat ini**, sesuai logika server (`TransactionController`). Claim dicatat otomatis saat checkout.
