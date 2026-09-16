@@ -84,6 +84,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/sync', [CustomerController::class, 'sync'])->name('api.v1.customers.sync');
             Route::get('/birthday-claims/sync', [CustomerController::class, 'birthdayClaimsSync'])->name('api.v1.customers.birthday-claims.sync');
             Route::get('/exp-claims/sync', [CustomerController::class, 'expClaimsSync'])->name('api.v1.customers.exp-claims.sync');
+            Route::get('/reward-confirmations/sync', [CustomerController::class, 'rewardConfirmationsSync'])->name('api.v1.customers.reward-confirmations.sync');
             Route::get('/referrals', [CustomerController::class, 'referrals'])->name('api.v1.customers.referrals');
             Route::post('/', [CustomerController::class, 'store'])->name('api.v1.customers.store');
             Route::get('/{id}', [CustomerController::class, 'show'])->name('api.v1.customers.show');
