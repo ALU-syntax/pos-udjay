@@ -28,8 +28,10 @@ class DashboardController extends Controller
             $discount += $transaction->total_diskon;
 
             $totalTax = 0;
-            foreach (json_decode($transaction->total_pajak) as $itemPajak) {
-                $totalTax += $itemPajak->total;
+            if($transaction->total_pajak){
+                foreach (json_decode($transaction->total_pajak) as $itemPajak) {
+                    $totalTax += $itemPajak->total;
+                }
             }
             $grossSales += $transaction->total + $transaction->total_diskon - $totalTax;
 
