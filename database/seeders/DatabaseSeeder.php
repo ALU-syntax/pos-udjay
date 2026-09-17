@@ -39,7 +39,8 @@ class DatabaseSeeder extends Seeder
             WarehouseMenuSeeder::class,
             RawMaterialCategorySeeder::class,
             RawMaterialSeeder::class,
-            SupplierSeeder::class
+            SupplierSeeder::class,
+            ConfigSeeder::class
         ]);
 
         // Memanggil ProductFactory

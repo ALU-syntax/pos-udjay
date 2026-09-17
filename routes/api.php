@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\CommunityController;
+use App\Http\Controllers\Api\ConfigController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\OpenBillController;
 use App\Http\Controllers\Api\ShiftSessionController;
@@ -93,6 +94,12 @@ Route::prefix('v1')->group(function () {
         // Community (dropdown form "Tambah Member")
         Route::get('/communities', [CommunityController::class, 'index'])->name('api.v1.communities.index');
 
+        // Config aplikasi untuk mobile (validasi, feature flag, dsb)
+        Route::get('/configs', [ConfigController::class, 'index'])->name('api.v1.configs.index');
+        Route::get('/configs/{name}', [ConfigController::class, 'show'])
+            ->where('name', '[A-Za-z0-9_.\-]+')
+            ->name('api.v1.configs.show');
+
         // Transactions / Checkout
         Route::post('/transactions/pay', [TransactionController::class, 'pay'])->name('api.v1.transactions.pay');
         Route::get('/transactions/sync', [TransactionController::class, 'sync'])->name('api.v1.transactions.sync');
@@ -102,8 +109,8 @@ Route::prefix('v1')->group(function () {
 
 });
 
-Route::get('/getCategoryProductByOutlet/{idOutlet}', [ProductController::class,'getCategoryProductByOutlet'])->name('getCategoryProductByOutlet');
-Route::get('/getModifierByOutlet/{idOutlet}', [ModifiersController::class,'getModifierByOutlet'])->name('getModifierByOutlet');
-Route::get('/getDiscountByOutlet/{idOutlet}', [DiscountController::class,'getDiscountByOutlet'])->name('getDiscountByOutlet');
-Route::get('/apiGetSalesTypeByOutlet/{idOutlet}', [SalesTypeController::class,'apiGetSalesTypeByOutlet'])->name('apiGetSalesTypeByOutlet');
-Route::get('/getPilihansByOutlet/{idOutlet}', [PilihanController::class,'getPilihansByOutlet'])->name('getPilihansByOutlet');
+Route::get('/getCategoryProductByOutlet/{idOutlet}', [ProductController::class, 'getCategoryProductByOutlet'])->name('getCategoryProductByOutlet');
+Route::get('/getModifierByOutlet/{idOutlet}', [ModifiersController::class, 'getModifierByOutlet'])->name('getModifierByOutlet');
+Route::get('/getDiscountByOutlet/{idOutlet}', [DiscountController::class, 'getDiscountByOutlet'])->name('getDiscountByOutlet');
+Route::get('/apiGetSalesTypeByOutlet/{idOutlet}', [SalesTypeController::class, 'apiGetSalesTypeByOutlet'])->name('apiGetSalesTypeByOutlet');
+Route::get('/getPilihansByOutlet/{idOutlet}', [PilihanController::class, 'getPilihansByOutlet'])->name('getPilihansByOutlet');

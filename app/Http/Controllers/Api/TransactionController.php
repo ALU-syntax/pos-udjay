@@ -31,6 +31,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Jenssegers\Agent\Agent;
 
@@ -98,6 +99,19 @@ class TransactionController extends Controller
             'items.*.tmp_id'         => ['nullable', 'string'],
             'items.*.discount_id'    => ['nullable'], // array or json string
             'items.*.modifier_id'    => ['nullable'], // array or json string
+        ]);
+
+        Log::info('transactions/pay request', [
+            'outlet_id'   => $outletId,
+            'user_id'     => $user->id,
+            'customer_id' => $validated['customer_id'] ?? null,
+            'reference_id'=> $validated['reference_id'] ?? null,
+            'items'       => collect($validated['items'])->map(fn ($i) => [
+                'product_id' => $i['product_id'] ?? null,
+                'variant_id' => $i['variant_id'] ?? null,
+                'catatan'    => $i['catatan'] ?? null,
+                'reward'     => $i['reward'] ?? null,
+            ])->all(),
         ]);
 
         // Resolusi shift session (opsional) — menandai device asal transaksi.
@@ -412,8 +426,8 @@ class TransactionController extends Controller
                     }
                 }
 
-                $transactionTime = isset($validated['created_at']) 
-                    ? Carbon::parse($validated['created_at'])->setTimezone('Asia/Jakarta') 
+                $transactionTime = isset($validated['created_at'])
+                    ? Carbon::parse($validated['created_at'])->setTimezone('Asia/Jakarta')
                     : Carbon::now();
 
                 $totalPajakJson = is_array($validated['total_pajak'] ?? null)
