@@ -101,6 +101,19 @@ class TransactionController extends Controller
             'items.*.modifier_id'    => ['nullable'], // array or json string
         ]);
 
+        // Normalisasi ID item: aplikasi mobile versi lama mengirim sentinel `-1`
+        // (atau nilai <= 0) untuk produk/variant custom. Kolom product_id, variant_id,
+        // dan sales_type_id bertipe unsigned sehingga nilai negatif ditolak MySQL
+        // (SQLSTATE 22003). Samakan dengan konvensi web POS yang menyimpan null.
+        $validated['items'] = collect($validated['items'])->map(function (array $item) {
+            foreach (['product_id', 'variant_id', 'sales_type_id'] as $key) {
+                if (array_key_exists($key, $item) && (!is_numeric($item[$key]) || (int) $item[$key] <= 0)) {
+                    $item[$key] = null;
+                }
+            }
+            return $item;
+        })->all();
+
         Log::info('transactions/pay request', [
             'outlet_id'   => $outletId,
             'user_id'     => $user->id,
@@ -513,7 +526,7 @@ class TransactionController extends Controller
                         }
 
                         if ($customerId) {
-                            if ($checkCatatan === "Birthday Reward" && $umurCustomer != 0) {
+                            if ($checkCatatan === "Birthday Reward" && $umurCustomer != 0 && $idProduct) {
                                 BirthdayRewardClaims::create([
                                     'customer_id' => (int) $customerId,
                                     'outlet_id'   => (int) $outletId,

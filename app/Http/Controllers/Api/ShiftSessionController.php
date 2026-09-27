@@ -73,7 +73,7 @@ class ShiftSessionController extends Controller
                 'total_amount'      => (int) ($item->harga * $totalTx),
                 'product'           => $item->product ? [
                     'id'           => $item->product->id,
-                    'nama_product' => $item->product->nama_product,
+                    'nama_product' => $item->product->name,
                     'category'     => $item->product->category ? [
                         'id'   => $item->product->category->id,
                         'name' => $item->product->category->name,
