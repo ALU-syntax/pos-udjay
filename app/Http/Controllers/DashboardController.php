@@ -5,20 +5,24 @@ namespace App\Http\Controllers;
 use App\Models\Outlets;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
-use App\Models\VariantProduct;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request){
+    public function index(Request $request)
+    {
         $startDate = Carbon::now()->startOfDay();
         $endDate = Carbon::now()->endOfDay();
 
+        $outlets = Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get();
+        $outletIds = $outlets->pluck('id');
+
         $dataTransaction = Transaction::with(['itemTransaction'])
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->get(); // Ambil data sesuai kebutuhan
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereIn('outlet_id', $outletIds)
+            ->get(); // Ambil data sesuai kebutuhan
 
         $grossSales = 0;
         $discount = 0;
@@ -28,7 +32,7 @@ class DashboardController extends Controller
             $discount += $transaction->total_diskon;
 
             $totalTax = 0;
-            if($transaction->total_pajak){
+            if ($transaction->total_pajak) {
                 foreach (json_decode($transaction->total_pajak) as $itemPajak) {
                     $totalTax += $itemPajak->total;
                 }
@@ -38,9 +42,7 @@ class DashboardController extends Controller
             $netSales += $transaction->total - $totalTax;
         }
 
-        $outlets = Outlets::whereIn('id', json_decode(auth()->user()->outlet_id))->get();
-
-         // Inisialisasi array data per outlet, tiap outlet punya array 24 jam dengan nilai 0
+        // Inisialisasi array data per outlet, tiap outlet punya array 24 jam dengan nilai 0
         $hourlyGrossSalesPerOutlet = [];
         foreach ($outlets as $outlet) {
             $hourlyGrossSalesPerOutlet[$outlet->id] = array_fill(0, 24, 0);
@@ -73,17 +75,18 @@ class DashboardController extends Controller
 
         // dd($hourlyGrossSales);
 
-        return view('dashboard',[
-            "outlets" => $outlets,
-            "grossSales" => $grossSales,
-            "netSales" => $netSales,
-            "transactions" => count($dataTransaction),
-            "hourlyGrossSalesPerOutlet" => $hourlyGrossSalesPerOutlet,
-            "hours" => $hours,
+        return view('dashboard', [
+            'outlets' => $outlets,
+            'grossSales' => $grossSales,
+            'netSales' => $netSales,
+            'transactions' => count($dataTransaction),
+            'hourlyGrossSalesPerOutlet' => $hourlyGrossSalesPerOutlet,
+            'hours' => $hours,
         ]);
     }
 
-    public function getDataSummary(Request $request){
+    public function getDataSummary(Request $request)
+    {
         $startDate = Carbon::now()->startOfDay();
         $endDate = Carbon::now()->endOfDay();
 
@@ -97,14 +100,25 @@ class DashboardController extends Controller
             $endDate = Carbon::now()->endOfDay();
         }
 
-        $outlet = $request->input('outlet');
+        $outletIds = array_values(array_filter((array) $request->input('outlet', [])));
+
+        if (count($outletIds) === 0) {
+            return response()->json([
+                'outlets' => [],
+                'grossSales' => 0,
+                'netSales' => 0,
+                'transactions' => 0,
+                'hourlyGrossSalesPerOutlet' => [],
+                'hours' => array_map(fn ($hour) => str_pad($hour, 2, '0', STR_PAD_LEFT), range(0, 23)),
+            ]);
+        }
 
         // dd($outlet);
         $dataTransaction = Transaction::with(['itemTransaction'])
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->whereIn('outlet_id', $outlet)->get(); // Ambil data sesuai kebutuhan
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereIn('outlet_id', $outletIds)->get(); // Ambil data sesuai kebutuhan
 
-        $outlets = Outlets::where('id', $outlet)->get();
+        $outlets = Outlets::whereIn('id', $outletIds)->get();
 
         $grossSales = 0;
         $discount = 0;
@@ -122,7 +136,7 @@ class DashboardController extends Controller
             $netSales += $transaction->total - $discount;
         }
 
-         // Inisialisasi array data per outlet, tiap outlet punya array 24 jam dengan nilai 0
+        // Inisialisasi array data per outlet, tiap outlet punya array 24 jam dengan nilai 0
         $hourlyGrossSalesPerOutlet = [];
         foreach ($outlets as $outlet) {
             $hourlyGrossSalesPerOutlet[$outlet->id] = array_fill(0, 24, 0);
@@ -154,12 +168,12 @@ class DashboardController extends Controller
         }
 
         return response()->json([
-            "outlets" => $outlets,
-            "grossSales" => $grossSales,
-            "netSales" => $netSales,
-            "transactions" => count($dataTransaction),
-            "hourlyGrossSalesPerOutlet" => $hourlyGrossSalesPerOutlet,
-            "hours" => $hours,
+            'outlets' => $outlets,
+            'grossSales' => $grossSales,
+            'netSales' => $netSales,
+            'transactions' => count($dataTransaction),
+            'hourlyGrossSalesPerOutlet' => $hourlyGrossSalesPerOutlet,
+            'hours' => $hours,
         ]);
     }
 
@@ -215,7 +229,6 @@ class DashboardController extends Controller
     //             ->limit(3)
     //             ->get();
 
-
     //             $averageSalesPerTransaction = count($dataTransaction) ? $grossSales / count($dataTransaction) : 0;
     //             // dd($averageSalesPerTransaction);
     //             $grossMargin = $grossSales ? ($netSales / $grossSales) * 100 : 0;
@@ -238,14 +251,15 @@ class DashboardController extends Controller
     //     }
     // }
 
-    public function getDataOutletCompare(Request $request){
+    public function getDataOutletCompare(Request $request)
+    {
         $startDate = Carbon::now()->startOfDay();
-        $endDate   = Carbon::now()->endOfDay();
+        $endDate = Carbon::now()->endOfDay();
 
         $dates = explode(' - ', $request->input('date'));
         if (count($dates) == 2) {
             $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
-            $endDate   = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
         }
 
         $outletIds = (array) $request->input('outlet', []);
@@ -262,8 +276,8 @@ class DashboardController extends Controller
                     ->get();
 
                 $grossSales = 0;
-                $discount   = 0;
-                $netSales   = 0;
+                $discount = 0;
+                $netSales = 0;
 
                 foreach ($dataTransaction as $transaction) {
                     $discount += $transaction->total_diskon;
@@ -275,7 +289,7 @@ class DashboardController extends Controller
 
                     // asumsi total = net + diskon (tanpa pajak)
                     $grossSales += $transaction->total + $transaction->total_diskon;
-                    $netSales   += $transaction->total;
+                    $netSales += $transaction->total;
                 }
 
                 // --- AGREGASI ITEM: TOP 3 & DOWN 3 ---
@@ -284,12 +298,12 @@ class DashboardController extends Controller
                     ->select([
                         'product_id',
                         'variant_id',
-                        DB::raw('COUNT(*) as qty')
+                        DB::raw('COUNT(*) as qty'),
                     ])
                     ->whereNotNull('variant_id') // kalau mau gabungkan yang tanpa variant, lihat catatan di bawah
-                    ->whereHas('transaction', function($q) use ($outletId, $startDate, $endDate) {
+                    ->whereHas('transaction', function ($q) use ($outletId, $startDate, $endDate) {
                         $q->where('outlet_id', $outletId)
-                        ->whereBetween('created_at', [$startDate, $endDate]);
+                            ->whereBetween('created_at', [$startDate, $endDate]);
                     })
                     ->groupBy('product_id', 'variant_id');
 
@@ -299,13 +313,13 @@ class DashboardController extends Controller
                     ->with(['variant:id,name', 'product:id,name'])
                     ->limit(3)
                     ->get()
-                    ->map(function($row){
+                    ->map(function ($row) {
                         return [
                             'product_id' => $row->product_id,
-                            'product'    => $row->product->name ?? null,
+                            'product' => $row->product->name ?? null,
                             'variant_id' => $row->variant_id,
-                            'variant'    => $row->variant->name ?? null,
-                            'qty'        => (int) $row->qty,
+                            'variant' => $row->variant->name ?? null,
+                            'qty' => (int) $row->qty,
                         ];
                     });
 
@@ -315,13 +329,13 @@ class DashboardController extends Controller
                     ->with(['variant:id,name', 'product:id,name'])
                     ->limit(3)
                     ->get()
-                    ->map(function($row){
+                    ->map(function ($row) {
                         return [
                             'product_id' => $row->product_id,
-                            'product'    => $row->product->name ?? null,
+                            'product' => $row->product->name ?? null,
                             'variant_id' => $row->variant_id,
-                            'variant'    => $row->variant->name ?? null,
-                            'qty'        => (int) $row->qty,
+                            'variant' => $row->variant->name ?? null,
+                            'qty' => (int) $row->qty,
                         ];
                     });
 
@@ -335,13 +349,13 @@ class DashboardController extends Controller
                     : 0;
 
                 $listData[] = [
-                    'outlet'        => $getOutlet->name ?? ('Outlet #'.$outletId),
-                    'grossSales'    => $grossSales,
-                    'netSales'      => $netSales,
-                    'transactions'  => $dataTransaction->count(),
-                    'averageSales'  => round($averageSalesPerTransaction),
-                    'grossMargin'   => round($grossMargin),
-                    'topThreeItem'  => $topThreeItem,
+                    'outlet' => $getOutlet->name ?? ('Outlet #'.$outletId),
+                    'grossSales' => $grossSales,
+                    'netSales' => $netSales,
+                    'transactions' => $dataTransaction->count(),
+                    'averageSales' => round($averageSalesPerTransaction),
+                    'grossMargin' => round($grossMargin),
+                    'topThreeItem' => $topThreeItem,
                     'downThreeItem' => $downThreeItem,
                 ];
             }
