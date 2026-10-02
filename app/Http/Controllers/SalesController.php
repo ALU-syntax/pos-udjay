@@ -387,128 +387,143 @@ class SalesController extends Controller
         $dates = explode(' - ', $request->input('date'));
         if (count($dates) == 2) {
             $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
-            $endDate   = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
         } else {
             $startDate = Carbon::now()->startOfDay();
-            $endDate   = Carbon::now()->endOfDay();
+            $endDate = Carbon::now()->endOfDay();
         }
 
         $outlet = $request->input('outlet');
 
-        // 🔹 Bikin QUERY, jangan get()
-        $query = VariantProduct::query()
-            ->with([
-                'itemTransaction' => function ($transaction) use ($startDate, $endDate) {
-                    $transaction->whereBetween('created_at', [$startDate, $endDate]);
-                },
-                'product.outlet',
-                'product.category' => function ($category) {
-                    $category->withTrashed();
-                },
-            ]);
+        $variants = VariantProduct::query()
+            ->join('products', 'products.id', '=', 'variant_products.product_id')
+            ->join('outlets', 'outlets.id', '=', 'products.outlet_id')
+            ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+            ->whereNull('products.deleted_at')
+            ->when($outlet !== 'all', function ($query) use ($outlet) {
+                $query->where('products.outlet_id', $outlet);
+            })
+            ->select([
+                'variant_products.id',
+                'variant_products.name as variant_name',
+                'variant_products.harga',
+                'products.name as product_name',
+                'outlets.name as outlet_name',
+                'categories.name as category_name',
+            ])
+            ->get();
 
-        if ($outlet !== 'all') {
-            $query->whereHas('product', function ($q) use ($outlet) {
-                $q->where('outlet_id', $outlet);
-            });
+        $items = [];
+        foreach ($variants as $variant) {
+            $name = $variant->variant_name == $variant->product_name
+                ? $variant->product_name
+                : $variant->product_name.' - '.$variant->variant_name;
+
+            if ($outlet === 'all') {
+                $name .= ' ('.$variant->outlet_name.')';
+            }
+
+            $items[(string) $variant->id] = [
+                'id' => $variant->id,
+                'name' => $name,
+                'category' => $variant->category_name,
+                'item_sold' => 0,
+                'gross_sales' => 0,
+                'discounts' => 0,
+                'net_sales' => 0,
+                'gross_profit' => 0,
+                'gross_margin' => 0,
+                'price' => (float) $variant->harga,
+            ];
         }
 
-        return DataTables::of($query) // ⬅️ kirim query, bukan collection
-            ->addColumn('name', function ($row) use ($outlet) {
-                if ($outlet == "all") {
-                    return ($row->name == $row->product->name)
-                        ? $row->product->name . " (" . $row->product->outlet->name . ")"
-                        : $row->product->name . ' - ' . $row->name . " (" . $row->product->outlet->name . ")";
-                } else {
-                    return ($row->name == $row->product->name)
-                        ? $row->product->name
-                        : $row->product->name . ' - ' . $row->name;
-                }
-            })
-            ->addColumn('category', function ($row) {
-                return optional($row->product->category)->name;
-            })
-            ->addColumn('item_sold', function ($row) {
-                return $row->itemTransaction->count();
-            })
-            ->addColumn('gross_sales', function ($row) {
-                $itemSold   = $row->itemTransaction->count();
-                $grossSales = $itemSold * $row->harga;
-
-                return $grossSales == 0
-                    ? "Rp. 0"
-                    : formatRupiah((string) $grossSales, "Rp. ");
-            })
-            ->addColumn('discounts', function ($row) {
-                $totalDiscount = 0;
-
-                foreach ($row->itemTransaction as $itemTransaction) {
-                    if (!$itemTransaction->discount_id) {
-                        continue;
+        if ($items) {
+            TransactionItem::query()
+                ->select(['variant_id', 'discount_id'])
+                ->whereIn('variant_id', array_keys($items))
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->cursor()
+                ->each(function ($transactionItem) use (&$items) {
+                    $variantId = (string) $transactionItem->variant_id;
+                    if (!isset($items[$variantId])) {
+                        return;
                     }
 
-                    $dataDiscount = json_decode($itemTransaction->discount_id);
-
-                    if (!is_array($dataDiscount)) {
-                        continue;
+                    $discountAmount = 0;
+                    $discounts = json_decode($transactionItem->discount_id, true);
+                    if (is_array($discounts)) {
+                        foreach ($discounts as $discount) {
+                            $discountAmount += (float) ($discount['result'] ?? 0);
+                        }
                     }
 
-                    foreach ($dataDiscount as $discount) {
-                        $totalDiscount += $discount->result ?? 0;
-                    }
-                }
+                    $items[$variantId]['item_sold']++;
+                    $items[$variantId]['gross_sales'] += $items[$variantId]['price'];
+                    $items[$variantId]['discounts'] += $discountAmount;
+                });
+        }
 
-                return $totalDiscount == 0
-                    ? "Rp. 0"
-                    : formatRupiah((string) $totalDiscount, "Rp. ");
-            })
-            ->addColumn('net_sales', function ($row) {
-                $jumlahTransaksi = $row->itemTransaction->count();
-                $grossSales      = $jumlahTransaksi * $row->harga;
+        foreach ($items as &$item) {
+            $item['net_sales'] = $item['gross_sales'] - $item['discounts'];
+            $item['gross_profit'] = $item['net_sales'];
+            $item['gross_margin'] = $item['item_sold'] ? 100 : 0;
+        }
+        unset($item);
 
-                $totalDiscount = 0;
-                foreach ($row->itemTransaction as $itemTransaction) {
-                    if (!$itemTransaction->discount_id) continue;
-                    $dataDiscount = json_decode($itemTransaction->discount_id);
-                    if (!is_array($dataDiscount)) continue;
+        $order = $request->input('order', []);
+        $sortColumns = [
+            0 => 'name',
+            1 => 'category',
+            2 => 'item_sold',
+            3 => 'gross_sales',
+            4 => 'discounts',
+            5 => 'net_sales',
+            6 => 'gross_profit',
+            7 => 'gross_margin',
+        ];
 
-                    foreach ($dataDiscount as $discount) {
-                        $totalDiscount += $discount->result ?? 0;
-                    }
+        uasort($items, function ($first, $second) use ($order, $sortColumns) {
+            foreach ($order as $criterion) {
+                $sortColumn = $sortColumns[$criterion['column'] ?? null] ?? null;
+                if (!$sortColumn) {
+                    continue;
                 }
 
-                $netSales = $grossSales - $totalDiscount;
+                $direction = ($criterion['dir'] ?? 'asc') === 'desc' ? -1 : 1;
+                $firstValue = $first[$sortColumn] ?? '';
+                $secondValue = $second[$sortColumn] ?? '';
+                $comparison = is_numeric($firstValue) && is_numeric($secondValue)
+                    ? $firstValue <=> $secondValue
+                    : strnatcasecmp((string) $firstValue, (string) $secondValue);
 
-                return $netSales == 0
-                    ? "Rp. 0"
-                    : formatRupiah((string) $netSales, "Rp. ");
-            })
-            ->addColumn('gross_profit', function ($row) {
-                // Sekarang masih sama dengan net_sales, idealnya pakai harga_modal juga
-                $jumlahTransaksi = $row->itemTransaction->count();
-                $grossSales      = $jumlahTransaksi * $row->harga;
-
-                $totalDiscount = 0;
-                foreach ($row->itemTransaction as $itemTransaction) {
-                    if (!$itemTransaction->discount_id) continue;
-                    $dataDiscount = json_decode($itemTransaction->discount_id);
-                    if (!is_array($dataDiscount)) continue;
-
-                    foreach ($dataDiscount as $discount) {
-                        $totalDiscount += $discount->result ?? 0;
-                    }
+                if ($comparison !== 0) {
+                    return $comparison * $direction;
                 }
+            }
 
-                $grossProfit = $grossSales - $totalDiscount;
+            return $first['id'] <=> $second['id'];
+        });
 
-                return $grossProfit == 0
-                    ? "Rp. 0"
-                    : formatRupiah((string) $grossProfit, "Rp. ");
+        return DataTables::of(array_values($items))
+            ->order(function () {
+                // Raw values are sorted before formatting so pagination remains global.
             })
-            ->addColumn('gross_margin', function ($row) {
-                $grossMargin = $row->itemTransaction->count() ? "100%" : "0%";
-                return $grossMargin;
+            ->editColumn('gross_sales', function ($row) {
+                return $row['gross_sales'] == 0 ? 'Rp. 0' : formatRupiah((string) $row['gross_sales'], 'Rp. ');
             })
+            ->editColumn('discounts', function ($row) {
+                return $row['discounts'] == 0 ? 'Rp. 0' : formatRupiah((string) $row['discounts'], 'Rp. ');
+            })
+            ->editColumn('net_sales', function ($row) {
+                return $row['net_sales'] == 0 ? 'Rp. 0' : formatRupiah((string) $row['net_sales'], 'Rp. ');
+            })
+            ->editColumn('gross_profit', function ($row) {
+                return $row['gross_profit'] == 0 ? 'Rp. 0' : formatRupiah((string) $row['gross_profit'], 'Rp. ');
+            })
+            ->editColumn('gross_margin', function ($row) {
+                return $row['gross_margin'].'%';
+            })
+            ->removeColumn('price')
             ->setRowId('id')
             ->make(true);
     }

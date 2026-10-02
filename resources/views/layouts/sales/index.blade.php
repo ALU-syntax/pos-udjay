@@ -1114,26 +1114,32 @@
                             {
                                 data: 'item_sold',
                                 name: 'item_sold',
+                                searchable: false,
                             },
                             {
                                 data: 'gross_sales',
                                 name: 'gross_sales',
+                                searchable: false,
                             },
                             {
                                 data: 'discounts',
                                 name: 'discounts',
+                                searchable: false,
                             },
                             {
                                 data: 'net_sales',
                                 name: 'net_sales',
+                                searchable: false,
                             },
                             {
                                 data: 'gross_profit',
                                 name: 'gross_profit',
+                                searchable: false,
                             },
                             {
                                 data: 'gross_margin',
                                 name: 'gross_margin',
+                                searchable: false,
                             }
                         ],
                         paging: isNeedPagination, // Menghilangkan pagination
