@@ -242,6 +242,175 @@
             position: relative;
             z-index: 5;
         }
+
+        #item-sales_wrapper .item-sales-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        #item-sales_wrapper .item-sales-export-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        #item-sales_wrapper .item-sales-export-row__left,
+        #item-sales_wrapper .item-sales-export-row__right {
+            display: flex;
+            align-items: center;
+        }
+
+        #item-sales_wrapper .item-sales-export-row__right {
+            justify-content: flex-end;
+        }
+
+        #item-sales_wrapper .item-sales-toolbar__left,
+        #item-sales_wrapper .item-sales-toolbar__right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #item-sales_wrapper .item-sales-toolbar__left {
+            flex: 1 1 auto;
+            flex-wrap: wrap;
+        }
+
+        #item-sales_wrapper .item-sales-toolbar__right {
+            flex: 0 1 320px;
+            min-width: 240px;
+            justify-content: flex-end;
+        }
+
+        #item-sales_wrapper .item-sales-toolbar__right .dataTables_filter,
+        #item-sales_wrapper .item-sales-toolbar__right .dt-search,
+        #item-sales_wrapper .item-sales-toolbar__right label {
+            width: 100%;
+        }
+
+        #item-sales_wrapper .item-sales-toolbar__right input {
+            min-width: 0;
+            width: 100%;
+        }
+
+        #item-sales_wrapper .dataTables_length,
+        #item-sales_wrapper .dt-length,
+        #item-sales_wrapper .dataTables_filter,
+        #item-sales_wrapper .dt-search,
+        #item-sales_wrapper .dt-buttons {
+            float: none;
+            margin: 0;
+        }
+
+        #item-sales_wrapper .dataTables_length label,
+        #item-sales_wrapper .dt-length,
+        #item-sales_wrapper .dataTables_filter label,
+        #item-sales_wrapper .dt-search {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        #item-sales_wrapper .dataTables_length select,
+        #item-sales_wrapper .dt-length select,
+        #item-sales_wrapper .dataTables_filter input,
+        #item-sales_wrapper .dt-search input {
+            min-height: 42px;
+            margin: 0;
+            border-radius: 8px;
+        }
+
+        #item-sales_wrapper .item-sales-zero-filter {
+            display: flex;
+            align-items: center;
+            min-height: 42px;
+            padding: 0 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: #f8f9fa;
+            white-space: nowrap;
+        }
+
+        #item-sales_wrapper .item-sales-zero-filter .form-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: auto;
+            margin: 0;
+            padding-left: 0;
+        }
+
+        #item-sales_wrapper .item-sales-zero-filter .form-check-input {
+            float: none;
+            margin: 0;
+        }
+
+        #item-sales_wrapper .item-sales-zero-filter .form-check-label {
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        #item-sales_wrapper .item-sales-toolbar .btn-modern,
+        #item-sales_wrapper .item-sales-export-row .btn-modern {
+            min-height: 42px;
+            padding-top: 8px !important;
+            padding-bottom: 8px !important;
+        }
+
+        @media (max-width: 991.98px) {
+            #item-sales_wrapper .item-sales-export-row,
+            #item-sales_wrapper .item-sales-toolbar,
+            #item-sales_wrapper .item-sales-toolbar__left,
+            #item-sales_wrapper .item-sales-toolbar__right {
+                align-items: stretch;
+            }
+
+            #item-sales_wrapper .item-sales-toolbar {
+                flex-direction: column;
+            }
+
+            #item-sales_wrapper .item-sales-toolbar__left {
+                flex-wrap: wrap;
+            }
+
+            #item-sales_wrapper .item-sales-toolbar__right,
+            #item-sales_wrapper .dataTables_filter,
+            #item-sales_wrapper .dt-search,
+            #item-sales_wrapper .dataTables_filter label,
+            #item-sales_wrapper .dt-search label,
+            #item-sales_wrapper .dataTables_filter input,
+            #item-sales_wrapper .dt-search input {
+                width: 100%;
+            }
+
+            #item-sales_wrapper .item-sales-toolbar__right {
+                min-width: 0;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            #item-sales_wrapper .item-sales-export-row {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            #item-sales_wrapper .item-sales-export-row__left,
+            #item-sales_wrapper .item-sales-export-row__right,
+            #item-sales_wrapper .item-sales-zero-filter {
+                width: 100%;
+            }
+
+            #item-sales_wrapper .item-sales-export-row__right {
+                justify-content: flex-start;
+            }
+        }
     </style>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.bootstrap5.min.css">
@@ -499,15 +668,6 @@
                             </div>
                             <div class="tab-pane fade" id="item-sales-nobd" role="tabpanel"
                                 aria-labelledby="item-sales-tab-nobd">
-                                <div class="d-flex justify-content-end mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" role="switch"
-                                            id="item-sales-hide-zero" checked>
-                                        <label class="form-check-label" for="item-sales-hide-zero">
-                                            Sembunyikan item tanpa penjualan
-                                        </label>
-                                    </div>
-                                </div>
                                 <table id="item-sales" class="table display row-border order-column " style="width:100%">
                                     <thead id="head-item-sales">
                                         <tr>
@@ -1108,7 +1268,8 @@
                             data: function(d) {
                                 d.date = date;
                                 d.outlet = outlet;
-                                d.hide_zero_sales = $('#item-sales-hide-zero').is(':checked') ? 1 : 0;
+                                var $hideZeroSales = $('#item-sales-hide-zero');
+                                d.hide_zero_sales = !$hideZeroSales.length || $hideZeroSales.is(':checked') ? 1 : 0;
                             },
                         },
                         columns: [{
@@ -1165,7 +1326,7 @@
                         scrollY: 500,
                         autoWidth: false,
                         info: true,
-                        dom: 'Blfrtip',
+                        dom: "<'item-sales-export-row'<'item-sales-export-row__left'B><'item-sales-export-row__right'>><'item-sales-toolbar'<'item-sales-toolbar__left'l><'item-sales-toolbar__right'f>>rtip",
                         buttons: [{
                                 text: '<span class="mdi mdi-file-excel"></span> Export Excel',
                                 className: 'btn btn-modern btn-excel',
@@ -1311,12 +1472,24 @@
                             $(api.column(6).footer()).html(formatRupiah(String(totals.gross_profit || 0), "Rp. "));
                         },
                         initComplete: function(setting, json) {
+                            $('#item-sales_wrapper .item-sales-export-row__right').append(`
+                                <div class="item-sales-zero-filter">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                            id="item-sales-hide-zero" checked>
+                                        <label class="form-check-label" for="item-sales-hide-zero">
+                                            Sembunyikan item tanpa penjualan
+                                        </label>
+                                    </div>
+                                </div>
+                            `);
                             $('.dt-scroll-body table thead').remove();
                             $('.dt-scroll-body table tfoot').remove();
                         },
                     });
 
-                    $('#item-sales-hide-zero').off('change.itemSales').on('change.itemSales', function() {
+                    $('#item-sales-nobd').off('change.itemSales', '#item-sales-hide-zero')
+                        .on('change.itemSales', '#item-sales-hide-zero', function() {
                         tableSales.ajax.reload();
                     });
 
