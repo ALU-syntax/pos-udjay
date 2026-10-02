@@ -407,6 +407,7 @@ class SalesController extends Controller
                 'variant_products.id',
                 'variant_products.name as variant_name',
                 'variant_products.harga',
+                'products.id as product_id',
                 'products.name as product_name',
                 'outlets.name as outlet_name',
                 'categories.name as category_name',
@@ -425,6 +426,7 @@ class SalesController extends Controller
 
             $items[(string) $variant->id] = [
                 'id' => $variant->id,
+                'product_id' => $variant->product_id,
                 'name' => $name,
                 'category' => $variant->category_name,
                 'item_sold' => 0,
@@ -470,7 +472,35 @@ class SalesController extends Controller
         }
         unset($item);
 
-        $order = $request->input('order', []);
+        $hideZeroSales = filter_var(
+            $request->input('hide_zero_sales', true),
+            FILTER_VALIDATE_BOOLEAN
+        );
+        if ($hideZeroSales) {
+            $items = array_filter($items, fn ($item) => $item['item_sold'] > 0);
+        }
+
+        $search = Str::lower(trim((string) $request->input('search.value', '')));
+        $matchingItems = collect($items);
+        if ($search !== '') {
+            $matchingItems = $matchingItems->filter(function ($item) use ($search) {
+                return Str::contains(Str::lower((string) $item['name']), $search)
+                    || Str::contains(Str::lower((string) ($item['category'] ?? '')), $search);
+            });
+        }
+
+        $totals = [
+            'item_sold' => $matchingItems->sum('item_sold'),
+            'gross_sales' => $matchingItems->sum('gross_sales'),
+            'discounts' => $matchingItems->sum('discounts'),
+            'net_sales' => $matchingItems->sum('net_sales'),
+            'gross_profit' => $matchingItems->sum('gross_profit'),
+        ];
+
+        $order = $request->input('order', [
+            ['column' => 2, 'dir' => 'desc'],
+            ['column' => 0, 'dir' => 'asc'],
+        ]);
         $sortColumns = [
             0 => 'name',
             1 => 'category',
@@ -525,6 +555,7 @@ class SalesController extends Controller
             })
             ->removeColumn('price')
             ->setRowId('id')
+            ->with('totals', $totals)
             ->make(true);
     }
 

@@ -499,6 +499,15 @@
                             </div>
                             <div class="tab-pane fade" id="item-sales-nobd" role="tabpanel"
                                 aria-labelledby="item-sales-tab-nobd">
+                                <div class="d-flex justify-content-end mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                            id="item-sales-hide-zero" checked>
+                                        <label class="form-check-label" for="item-sales-hide-zero">
+                                            Sembunyikan item tanpa penjualan
+                                        </label>
+                                    </div>
+                                </div>
                                 <table id="item-sales" class="table display row-border order-column " style="width:100%">
                                     <thead id="head-item-sales">
                                         <tr>
@@ -1090,17 +1099,16 @@
                         $('#item-sales').find('thead tr:gt(0)').remove(); // sisakan hanya baris header pertama
                     }
 
-                    let isNeedPagination = outlet == "all" || isRangeMoreThan31Days(date) ? true : false;
-
                     var tableSales = $('#item-sales').DataTable({
                         processing: true,
                         serverSide: true,
                         ajax: {
                             url: '{{ route('report/sales/getItemSales') }}', // Make sure this URL matches your Laravel route
                             type: 'GET',
-                            data: {
-                                date: date,
-                                outlet: outlet
+                            data: function(d) {
+                                d.date = date;
+                                d.outlet = outlet;
+                                d.hide_zero_sales = $('#item-sales-hide-zero').is(':checked') ? 1 : 0;
                             },
                         },
                         columns: [{
@@ -1142,16 +1150,22 @@
                                 searchable: false,
                             }
                         ],
-                        paging: isNeedPagination, // Menghilangkan pagination
-                        searching: true, // Menghilangkan search bar
+                        paging: true,
+                        pageLength: 25,
+                        lengthMenu: [25, 50, 100],
+                        searching: true,
                         ordering: true,
                         orderMulti: true,
+                        order: [
+                            [2, 'desc'],
+                            [0, 'asc']
+                        ],
                         scrollCollapse: true,
                         scrollX: true,
                         scrollY: 500,
                         autoWidth: false,
                         info: true,
-                        dom: 'Bfrtip',
+                        dom: 'Blfrtip',
                         buttons: [{
                                 text: '<span class="mdi mdi-file-excel"></span> Export Excel',
                                 className: 'btn btn-modern btn-excel',
@@ -1287,39 +1301,14 @@
                         },
                         footerCallback: function(row, data, start, end, display) {
                             var api = this.api();
+                            var json = api.ajax.json();
+                            var totals = json && json.totals ? json.totals : {};
 
-                            // Menghitung total untuk setiap kolom yang diinginkan
-                            var totalItemSold = api.column(2).data().reduce(function(a, b) {
-                                return parseInt(a) + parseInt(b);
-                                // return getAmount(a.toString() + getAmount(b.toString()))
-                            }, 0);
-
-                            var totalGrossSales = api.column(3).data().reduce(function(a, b) {
-                                // return parseFloat(a) + parseFloat(b);
-                                return getAmount(a.toString()) + getAmount(b.toString());
-                            }, 0);
-
-                            var totalDiscounts = api.column(4).data().reduce(function(a, b) {
-                                // return parseFloat(a) + parseFloat(b);
-                                return getAmount(a.toString()) + getAmount(b.toString());
-                            }, 0);
-
-                            var totalNetSales = api.column(5).data().reduce(function(a, b) {
-                                // return parseFloat(a) + parseFloat(b);
-                                return getAmount(a.toString()) + getAmount(b.toString());
-                            }, 0);
-
-                            var totalGrossProfit = api.column(6).data().reduce(function(a, b) {
-                                // return parseFloat(a) + parseFloat(b);
-                                return getAmount(a.toString()) + getAmount(b.toString());
-                            }, 0);
-
-                            // Menampilkan total di footer
-                            $(api.column(2).footer()).html(totalItemSold);
-                            $(api.column(3).footer()).html(formatRupiah(totalGrossSales.toString(), "Rp. "));
-                            $(api.column(4).footer()).html(formatRupiah(totalDiscounts.toString(), "Rp. "));
-                            $(api.column(5).footer()).html(formatRupiah(totalNetSales.toString(), "Rp. "));
-                            $(api.column(6).footer()).html(formatRupiah(totalGrossProfit.toString(), "Rp. "));
+                            $(api.column(2).footer()).html(totals.item_sold || 0);
+                            $(api.column(3).footer()).html(formatRupiah(String(totals.gross_sales || 0), "Rp. "));
+                            $(api.column(4).footer()).html(formatRupiah(String(totals.discounts || 0), "Rp. "));
+                            $(api.column(5).footer()).html(formatRupiah(String(totals.net_sales || 0), "Rp. "));
+                            $(api.column(6).footer()).html(formatRupiah(String(totals.gross_profit || 0), "Rp. "));
                         },
                         initComplete: function(setting, json) {
                             $('.dt-scroll-body table thead').remove();
@@ -1327,18 +1316,9 @@
                         },
                     });
 
-                    // Pastikan untuk menambahkan elemen <tfoot> di HTML Anda
-                    $('#item-sales tfoot').append(`
-                        <tr>
-                            <th colspan="1">Total</th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                        </tr>
-                    `);
+                    $('#item-sales-hide-zero').off('change.itemSales').on('change.itemSales', function() {
+                        tableSales.ajax.reload();
+                    });
 
                     // Event handler untuk menghapus header dan footer setiap kali tabel di redraw
                     tableSales.on('draw', function() {
@@ -1353,21 +1333,6 @@
                     tableSales.on('draw.dt order.dt column-sizing.dt', function() {
                         $('.dt-scroll-body table thead').remove();
                     });
-
-                    // Custom search function hanya untuk kolom name dan category
-                    $.fn.dataTable.ext.search.push(
-                        function(settings, data, dataIndex) {
-                            var searchTerm = $('.dataTables_filter input').val().toLowerCase();
-                            var name = data[0].toLowerCase(); // Kolom name
-                            var category = data[1].toLowerCase(); // Kolom category
-
-                            // Jika search term ada di name atau category, tampilkan baris
-                            if (name.includes(searchTerm) || category.includes(searchTerm)) {
-                                return true;
-                            }
-                            return false;
-                        }
-                    );
 
                     $('#item-sales tbody').off().on('click', 'tr', function() {
                         var data = tableSales.row(this).data();
