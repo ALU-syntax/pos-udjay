@@ -147,6 +147,27 @@
             /* Warna abu */
         }
 
+        #modifier-sales tbody tr.modifier-parent-row td {
+            background-color: #eef2f7;
+            border-top: 6px solid #fff;
+            font-weight: 700;
+        }
+
+        #modifier-sales tbody tr.modifier-child-row td:first-child {
+            position: relative;
+            padding-left: 2.5rem !important;
+            font-weight: 500;
+        }
+
+        #modifier-sales tbody tr.modifier-child-row td:first-child::before {
+            position: absolute;
+            top: 50%;
+            left: 1.25rem;
+            width: 0.75rem;
+            border-top: 1px solid #9ca3af;
+            content: '';
+        }
+
         /* Menambahkan border vertikal di kanan kolom discount sales */
         #discount-sales td:first-child {
             border-right: 1px solid #ccc;
@@ -1565,6 +1586,9 @@
                                 width: '200px'
                             } // Menetapkan lebar kolom pertama menjadi 200px
                         ],
+                        createdRow: function(row, data) {
+                            $(row).addClass(data[6] ? 'modifier-parent-row' : 'modifier-child-row');
+                        },
                         initComplete: function(setting, json) {
                             $('.dt-scroll-body table thead').remove();
                             $('.dt-scroll-body table tfoot').remove();
@@ -1976,12 +2000,6 @@
                     picker.setStartDate(moment().startOf(
                         'day')); // Set start date ke hari ini atau tanggal lain
                     picker.setEndDate(moment().startOf('day')); // Set end date ke hari ini atau tanggal lain
-                });
-
-                // Event untuk menangani pemilihan rentang yang telah ditentukan
-                $('#date_range_transaction').on('apply.daterangepicker', function(ev, picker) {
-                    // Memperbarui DataTable ketika rentang yang telah ditentukan dipilih
-                    checkActiveTab();
                 });
 
                 $('a[data-bs-toggle="pill"]').off().on('shown.bs.tab', function(e) {

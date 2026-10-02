@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\CategoryPayment;
 use App\Models\Discount;
 use App\Models\ModifierGroup;
+use App\Models\Modifiers;
 use App\Models\Outlets;
 use App\Models\Product;
 use App\Models\SalesType;
@@ -599,8 +600,8 @@ class SalesController extends Controller
             ->make(true);
     }
 
-    public function getModifierSales(Request $request){
-
+    public function getModifierSales(Request $request)
+    {
         $dates = explode(' - ', $request->input('date'));
         if (count($dates) == 2) {
             $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
@@ -614,15 +615,173 @@ class SalesController extends Controller
         $outlet = $request->input('outlet');
         $customData = [];
 
-        if($outlet == "all"){
+        if ($outlet == "all") {
             $dataModifier = ModifierGroup::with(['modifier', 'outlet'])->get();
-        }else{
+        } else {
             $dataModifier = ModifierGroup::with(['modifier'])->where('outlet_id', $outlet)->get();
         }
 
+        $groups = [];
+        $modifierGroupKeys = [];
+
+        foreach ($dataModifier as $modifierGroup) {
+            $groupKey = 'group-' . $modifierGroup->id;
+            $groups[$groupKey] = [
+                'name' => $modifierGroup->name,
+                'outlet_name' => $outlet == 'all' ? optional($modifierGroup->outlet)->name : null,
+                'modifiers' => [],
+            ];
+
+            foreach ($modifierGroup->modifier as $modifier) {
+                $modifierId = (string) $modifier->id;
+                $groups[$groupKey]['modifiers'][$modifierId] = [
+                    'name' => $modifier->name,
+                    'quantity_sold' => 0,
+                    'gross_sales' => 0,
+                    'discounts' => 0,
+                ];
+                $modifierGroupKeys[$modifierId] = $groupKey;
+            }
+        }
+
+        $historicalModifiers = [];
+        $transactionItems = TransactionItem::query()
+            ->join('transactions', 'transactions.id', '=', 'transaction_items.transaction_id')
+            ->select([
+                'transaction_items.modifier_id',
+                'transaction_items.discount_id',
+                'transactions.outlet_id',
+            ])
+            ->whereNull('transactions.deleted_at')
+            ->whereNotNull('transaction_items.modifier_id')
+            ->where('transaction_items.modifier_id', '!=', '[]')
+            ->whereBetween('transactions.created_at', [$startDate, $endDate])
+            ->when($outlet != 'all', function ($query) use ($outlet) {
+                $query->where('transactions.outlet_id', $outlet);
+            });
+
+        $transactionItems->cursor()
+            ->each(function ($transactionItem) use (&$groups, &$modifierGroupKeys, &$historicalModifiers) {
+                $modifiers = json_decode($transactionItem->modifier_id, true);
+                if (!is_array($modifiers)) {
+                    return;
+                }
+
+                $discountPercentage = 0;
+                $discounts = json_decode($transactionItem->discount_id, true);
+                if (is_array($discounts)) {
+                    foreach ($discounts as $discount) {
+                        $discountPercentage += (float) ($discount['value'] ?? 0);
+                    }
+                }
+
+                foreach ($modifiers as $modifierSnapshot) {
+                    if (!is_array($modifierSnapshot) || !isset($modifierSnapshot['id'])) {
+                        continue;
+                    }
+
+                    $modifierId = (string) $modifierSnapshot['id'];
+                    $price = (float) ($modifierSnapshot['harga'] ?? 0);
+                    $discountAmount = $price * $discountPercentage / 100;
+
+                    if (isset($modifierGroupKeys[$modifierId])) {
+                        $groupKey = $modifierGroupKeys[$modifierId];
+                        $groups[$groupKey]['modifiers'][$modifierId]['quantity_sold']++;
+                        $groups[$groupKey]['modifiers'][$modifierId]['gross_sales'] += $price;
+                        $groups[$groupKey]['modifiers'][$modifierId]['discounts'] += $discountAmount;
+                        continue;
+                    }
+
+                    if (!isset($historicalModifiers[$modifierId])) {
+                        $historicalModifiers[$modifierId] = [
+                            'name' => $modifierSnapshot['nama'] ?? 'Modifier Terhapus',
+                            'outlet_id' => (string) $transactionItem->outlet_id,
+                            'quantity_sold' => 0,
+                            'gross_sales' => 0,
+                            'discounts' => 0,
+                        ];
+                    }
+
+                    $historicalModifiers[$modifierId]['quantity_sold']++;
+                    $historicalModifiers[$modifierId]['gross_sales'] += $price;
+                    $historicalModifiers[$modifierId]['discounts'] += $discountAmount;
+                }
+            });
+
+        if ($historicalModifiers) {
+            $historicalModels = Modifiers::withTrashed()
+                ->with(['modifierGroup' => function ($query) {
+                    $query->withTrashed()->with('outlet');
+                }])
+                ->whereIn('id', array_keys($historicalModifiers))
+                ->get()
+                ->keyBy(fn ($modifier) => (string) $modifier->id);
+
+            $fallbackOutletNames = $outlet == 'all'
+                ? Outlets::whereIn('id', collect($historicalModifiers)->pluck('outlet_id')->unique())->pluck('name', 'id')
+                : collect();
+
+            foreach ($historicalModifiers as $modifierId => $totals) {
+                $historicalModel = $historicalModels->get($modifierId);
+                $historicalGroup = optional($historicalModel)->modifierGroup;
+
+                if ($historicalGroup) {
+                    $groupKey = 'group-' . $historicalGroup->id;
+                    if (!isset($groups[$groupKey])) {
+                        $groups[$groupKey] = [
+                            'name' => $historicalGroup->name,
+                            'outlet_name' => $outlet == 'all' ? optional($historicalGroup->outlet)->name : null,
+                            'modifiers' => [],
+                        ];
+                    }
+                } else {
+                    $groupKey = 'deleted-' . $totals['outlet_id'];
+                    if (!isset($groups[$groupKey])) {
+                        $groups[$groupKey] = [
+                            'name' => 'Modifier Terhapus',
+                            'outlet_name' => $outlet == 'all' ? $fallbackOutletNames->get($totals['outlet_id']) : null,
+                            'modifiers' => [],
+                        ];
+                    }
+                }
+
+                $groups[$groupKey]['modifiers'][$modifierId] = $totals;
+            }
+        }
+
+        foreach ($groups as $groupKey => $group) {
+            $groups[$groupKey]['quantity_sold'] = array_sum(array_column($group['modifiers'], 'quantity_sold'));
+            $groups[$groupKey]['gross_sales'] = array_sum(array_column($group['modifiers'], 'gross_sales'));
+            $groups[$groupKey]['discounts'] = array_sum(array_column($group['modifiers'], 'discounts'));
+            $groups[$groupKey]['net_sales'] = $groups[$groupKey]['gross_sales'] - $groups[$groupKey]['discounts'];
+        }
+
+        $order = $request->input('order.0');
+        $sortColumns = [
+            0 => 'name',
+            1 => 'quantity_sold',
+            2 => 'gross_sales',
+            3 => 'discounts',
+            4 => 'net_sales',
+        ];
+
+        if (isset($sortColumns[$order['column'] ?? null])) {
+            $sortColumn = $sortColumns[$order['column']];
+            $sortDirection = ($order['dir'] ?? 'asc') === 'desc' ? -1 : 1;
+
+            uasort($groups, function ($first, $second) use ($sortColumn, $sortDirection) {
+                $firstValue = $first[$sortColumn];
+                $secondValue = $second[$sortColumn];
+                $comparison = is_numeric($firstValue) && is_numeric($secondValue)
+                    ? $firstValue <=> $secondValue
+                    : strnatcasecmp($firstValue, $secondValue);
+
+                return $comparison * $sortDirection;
+            });
+        }
 
         $id = 0;
-        foreach($dataModifier as $modifierParent){
+        foreach ($groups as $modifierParent) {
             $tmpDataParent = [];
             $quantitySoldParent = 0;
             $grossSoldParent = 0;
@@ -631,27 +790,19 @@ class SalesController extends Controller
 
             $id++;
             array_push($tmpDataParent, $id);
-            array_push($tmpDataParent, $modifierParent->name);
+            array_push($tmpDataParent, $modifierParent['name']);
 
             $tmpDataChild = [];
-            foreach($modifierParent->modifier as $modifier){
+            foreach ($modifierParent['modifiers'] as $modifier) {
                 $tmpDataModifier = [];
-                $transactions = TransactionItem::whereJsonContains('modifier_id', ['id' => strval($modifier->id)])->whereBetween('created_at', [$startDate, $endDate])->get();
-                $quantitySoldModifier = count($transactions);
-                $grossSalesModifier = $modifier->harga * $quantitySoldModifier;
-                $totalDiskon = 0;
-
-                foreach($transactions as $transaction){
-                    $dataDiskonTransaction = json_decode($transaction->discount_id);
-                    foreach($dataDiskonTransaction as $diskon){
-                        $totalDiskon += $modifier->harga * $diskon->value / 100;
-                    }
-                }
+                $quantitySoldModifier = $modifier['quantity_sold'];
+                $grossSalesModifier = $modifier['gross_sales'];
+                $totalDiskon = $modifier['discounts'];
                 $netSales = $grossSalesModifier - $totalDiskon;
 
                 $id++;
                 array_push($tmpDataModifier, $id);
-                array_push($tmpDataModifier, $modifier->name);
+                array_push($tmpDataModifier, $modifier['name']);
                 array_push($tmpDataModifier, $quantitySoldModifier);
                 array_push($tmpDataModifier, $grossSalesModifier);
                 array_push($tmpDataModifier, $totalDiskon);
@@ -672,8 +823,8 @@ class SalesController extends Controller
             array_push($tmpDataParent, $netSalesParent);
             array_push($tmpDataParent, true);
 
-            if($outlet == "all"){
-                array_push($tmpDataParent, $modifierParent->outlet->name);
+            if ($outlet == "all") {
+                array_push($tmpDataParent, $modifierParent['outlet_name']);
             }
 
             array_push($customData, $tmpDataParent);
@@ -681,6 +832,9 @@ class SalesController extends Controller
         }
 
         return DataTables::of($customData)
+        ->order(function () {
+            // Parent groups are sorted before flattening so their children stay attached.
+        })
         ->addColumn('name',function($row) use($outlet){
             if($row[6]){
                 if($outlet == "all"){
