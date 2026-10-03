@@ -20,6 +20,7 @@ use App\Http\Controllers\ModifiersController;
 use App\Http\Controllers\NoteReceiptSchedulingController;
 use App\Http\Controllers\OpenBillController;
 use App\Http\Controllers\OrderTable\BannerController as OrderTableBannerController;
+use App\Http\Controllers\OrderTable\BridgeMonitorController as OrderTableBridgeMonitorController;
 use App\Http\Controllers\OrderTable\CatalogSelectorController as OrderTableCatalogSelectorController;
 use App\Http\Controllers\OrderTable\DiningTableController as OrderTableDiningTableController;
 use App\Http\Controllers\OrderTable\OrderMonitorController as OrderTableOrderMonitorController;
@@ -157,6 +158,11 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::get('/payments', [OrderTablePaymentMonitorController::class, 'index'])->name('payments');
+
+        Route::prefix('bridge')->group(function () {
+            Route::get('/', [OrderTableBridgeMonitorController::class, 'index'])->name('bridge');
+            Route::post('/{order}/rebridge', [OrderTableBridgeMonitorController::class, 'rebridge'])->name('bridge/rebridge');
+        });
     });
 
     Route::group(['prefix' => 'konfigurasi', 'as' => 'konfigurasi/'], function () {

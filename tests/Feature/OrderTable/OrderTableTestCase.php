@@ -59,7 +59,7 @@ abstract class OrderTableTestCase extends TestCase
     {
         $table = new DiningTable(array_merge([
             'outlet_id' => $outlet->id,
-            'code' => 'T01',
+            'code' => 'T'.strtoupper(substr(uniqid(), -6)),
             'name' => 'Table 1',
             'capacity' => 4,
             'qr_active' => true,

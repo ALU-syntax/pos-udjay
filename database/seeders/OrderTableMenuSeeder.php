@@ -59,6 +59,10 @@ class OrderTableMenuSeeder extends Seeder
                 'name' => 'Monitor Pembayaran',
                 'permissions' => ['read '],
             ],
+            'order-table/bridge' => [
+                'name' => 'Monitor Bridge',
+                'permissions' => ['read ', 'retry '],
+            ],
         ];
 
         foreach ($menus as $url => $definition) {

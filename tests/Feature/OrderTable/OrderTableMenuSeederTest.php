@@ -26,6 +26,7 @@ class OrderTableMenuSeederTest extends OrderTableTestCase
             'order-table/orders' => ['read order-table/orders', 'serve order-table/orders', 'cancel order-table/orders'],
             'order-table/sessions' => ['read order-table/sessions', 'close order-table/sessions'],
             'order-table/payments' => ['read order-table/payments'],
+            'order-table/bridge' => ['read order-table/bridge', 'retry order-table/bridge'],
         ];
 
         foreach ($expectedByMenu as $url => $expected) {
