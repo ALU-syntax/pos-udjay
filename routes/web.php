@@ -19,6 +19,9 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ModifiersController;
 use App\Http\Controllers\NoteReceiptSchedulingController;
 use App\Http\Controllers\OpenBillController;
+use App\Http\Controllers\OrderTable\DiningTableController as OrderTableDiningTableController;
+use App\Http\Controllers\OrderTable\OutletSettingController as OrderTableOutletSettingController;
+use App\Http\Controllers\OrderTable\PaymentMethodController as OrderTablePaymentMethodController;
 use App\Http\Controllers\OutletController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PemasukanController;
@@ -40,8 +43,6 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\UserController;
-use App\Models\ModifierGroup;
-use App\Models\NoteReceiptScheduling;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -64,7 +65,7 @@ Route::get('/login', [AuthController::class, 'login'])->name('login')->middlewar
 // Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 Route::get('/', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
-Route::get('/test', function(){
+Route::get('/test', function () {
     return view('email.testing-email');
 });
 
@@ -75,9 +76,43 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::group(['prefix' => 'order-table', 'as' => 'order-table/'], function () {
+        Route::prefix('outlet-settings')->group(function () {
+            Route::get('/', [OrderTableOutletSettingController::class, 'index'])->name('outlet-settings');
+            Route::get('/create', [OrderTableOutletSettingController::class, 'create'])->name('outlet-settings/create');
+            Route::post('/', [OrderTableOutletSettingController::class, 'store'])->name('outlet-settings/store');
+            Route::get('/{outletSetting}/edit', [OrderTableOutletSettingController::class, 'edit'])->name('outlet-settings/edit');
+            Route::put('/{outletSetting}', [OrderTableOutletSettingController::class, 'update'])->name('outlet-settings/update');
+            Route::post('/{outletSetting}/toggle', [OrderTableOutletSettingController::class, 'toggleForcedClose'])->name('outlet-settings/toggle');
+        });
+
+        Route::prefix('dining-tables')->group(function () {
+            Route::get('/', [OrderTableDiningTableController::class, 'index'])->name('dining-tables');
+            Route::get('/create', [OrderTableDiningTableController::class, 'create'])->name('dining-tables/create');
+            Route::post('/', [OrderTableDiningTableController::class, 'store'])->name('dining-tables/store');
+            Route::get('/{diningTable}/edit', [OrderTableDiningTableController::class, 'edit'])->name('dining-tables/edit');
+            Route::put('/{diningTable}', [OrderTableDiningTableController::class, 'update'])->name('dining-tables/update');
+            Route::delete('/{diningTable}', [OrderTableDiningTableController::class, 'destroy'])->name('dining-tables/destroy');
+            Route::post('/{diningTable}/toggle-qr', [OrderTableDiningTableController::class, 'toggleQr'])->name('dining-tables/toggle-qr');
+            Route::post('/{diningTable}/rotate-token', [OrderTableDiningTableController::class, 'rotateToken'])->name('dining-tables/rotate-token');
+            Route::get('/{diningTable}/qr', [OrderTableDiningTableController::class, 'preview'])->name('dining-tables/qr');
+            Route::get('/{diningTable}/qr/download', [OrderTableDiningTableController::class, 'download'])->name('dining-tables/qr/download');
+            Route::get('/{diningTable}/qr/print', [OrderTableDiningTableController::class, 'print'])->name('dining-tables/qr/print');
+        });
+
+        Route::prefix('payment-methods')->group(function () {
+            Route::get('/', [OrderTablePaymentMethodController::class, 'index'])->name('payment-methods');
+            Route::get('/create', [OrderTablePaymentMethodController::class, 'create'])->name('payment-methods/create');
+            Route::post('/', [OrderTablePaymentMethodController::class, 'store'])->name('payment-methods/store');
+            Route::get('/{paymentMethod}/edit', [OrderTablePaymentMethodController::class, 'edit'])->name('payment-methods/edit');
+            Route::put('/{paymentMethod}', [OrderTablePaymentMethodController::class, 'update'])->name('payment-methods/update');
+            Route::post('/{paymentMethod}/toggle', [OrderTablePaymentMethodController::class, 'toggle'])->name('payment-methods/toggle');
+        });
+    });
+
     Route::group(['prefix' => 'konfigurasi', 'as' => 'konfigurasi/'], function () {
 
-        Route::prefix('menu')->group(function(){
+        Route::prefix('menu')->group(function () {
             Route::get('/', [MenuController::class, 'index'])->name('menu');
             Route::get('/create', [MenuController::class, 'create'])->name('menu/create');
             Route::get('/{menu}/edit', [MenuController::class, 'edit'])->name('menu/edit');
@@ -88,8 +123,7 @@ Route::middleware('auth')->group(function () {
 
         });
 
-
-        Route::prefix('permissions')->group(function(){
+        Route::prefix('permissions')->group(function () {
             Route::get('/', [PermissionController::class, 'index'])->name('permissions');
             Route::get('/create', [PermissionController::class, 'create'])->name('permissions/create');
             Route::get('/edit/{id}', [PermissionController::class, 'edit'])->name('permissions/edit');
@@ -98,16 +132,16 @@ Route::middleware('auth')->group(function () {
             Route::delete('/destroy/{id}', [PermissionController::class, 'destroy'])->name('permissions/destroy');
         });
 
-        Route::prefix('outlets')->group(function(){
+        Route::prefix('outlets')->group(function () {
             Route::get('/', [OutletController::class, 'index'])->name('outlets');
             Route::get('/create', [OutletController::class, 'create'])->name('outlets/create');
             Route::post('/store', [OutletController::class, 'store'])->name('outlets/store');
             Route::get('/edit/{outlet}', [OutletController::class, 'edit'])->name('outlets/edit');
             Route::put('/update/{outlet}', [OutletController::class, 'update'])->name('outlets/update');
-            Route::delete('/destroy/{outlet}', [OutletController::class,'destroy'])->name('outlets/destroy');
+            Route::delete('/destroy/{outlet}', [OutletController::class, 'destroy'])->name('outlets/destroy');
         });
 
-        Route::prefix('checkout')->group(function(){
+        Route::prefix('checkout')->group(function () {
             Route::get('/', [CheckoutController::class, 'index'])->name('checkout');
             Route::post('/store', [CheckoutController::class, 'store'])->name('checkout/store');
 
@@ -119,28 +153,27 @@ Route::middleware('auth')->group(function () {
 
         });
 
-        Route::prefix('category-payment')->group(function(){
+        Route::prefix('category-payment')->group(function () {
             Route::get('/', [CategoryPaymentController::class, 'index'])->name('category-payment');
             Route::get('/create', [CategoryPaymentController::class, 'create'])->name('category-payment/create');
             Route::post('/store', [CategoryPaymentController::class, 'store'])->name('category-payment/store');
             Route::get('/edit/{categoryPayment}', [CategoryPaymentController::class, 'edit'])->name('category-payment/edit');
             Route::put('/update/{categoryPayment}', [CategoryPaymentController::class, 'update'])->name('category-payment/update');
-            Route::delete('/destroy/{categoryPayment}', [CategoryPaymentController::class,'destroy'])->name('category-payment/destroy');
+            Route::delete('/destroy/{categoryPayment}', [CategoryPaymentController::class, 'destroy'])->name('category-payment/destroy');
         });
 
-        Route::prefix('payment')->group(function(){
+        Route::prefix('payment')->group(function () {
             Route::get('/', [PaymentController::class, 'index'])->name('payment');
             Route::get('/create', [PaymentController::class, 'create'])->name('payment/create');
             Route::post('/store', [PaymentController::class, 'store'])->name('payment/store');
             Route::get('/edit/{payment}', [PaymentController::class, 'edit'])->name('payment/edit');
             Route::put('/update/{payment}', [PaymentController::class, 'update'])->name('payment/update');
-            Route::delete('/destroy/{payment}', [PaymentController::class,'destroy'])->name('payment/destroy');
+            Route::delete('/destroy/{payment}', [PaymentController::class, 'destroy'])->name('payment/destroy');
         });
 
     });
 
-
-    Route::group(['prefix' => 'employee', 'as' => 'employee/'], function(){
+    Route::group(['prefix' => 'employee', 'as' => 'employee/'], function () {
         Route::prefix('users')->group(function () {
             Route::get('/', [UserController::class, 'index'])->name('user');
             Route::get('/create', [UserController::class, 'create'])->name('user/create');
@@ -150,7 +183,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/destroy/{id}', [UserController::class, 'destroy'])->name('user/destroy');
         });
 
-        Route::prefix('roles')->group(function(){
+        Route::prefix('roles')->group(function () {
             Route::get('/', [RoleController::class, 'index'])->name('roles');
             Route::get('/create', [RoleController::class, 'create'])->name('roles/create');
             Route::post('/store', [RoleController::class, 'store'])->name('roles/store');
@@ -159,7 +192,7 @@ Route::middleware('auth')->group(function () {
             Route::delete('/destroy/{id}', [RoleController::class, 'destroy'])->name('roles/destroy');
         });
 
-        Route::prefix('hak-akses')->group(function(){
+        Route::prefix('hak-akses')->group(function () {
             Route::get('/', [HakAksesController::class, 'index'])->name('hak-akses');
             Route::get('/edit/hak-akses-role/{id}', [HakAksesController::class, 'editAksesRole'])->name('hak-akses/role/edit');
             Route::post('/update/role/{id}', [HakAksesController::class, 'updateAksesRole'])->name('hak-akses/role/update');
@@ -169,19 +202,19 @@ Route::middleware('auth')->group(function () {
 
     });
 
-    Route::group(['prefix'=> 'library', 'as' => 'library/'], function () {
+    Route::group(['prefix' => 'library', 'as' => 'library/'], function () {
 
-        Route::prefix('category')->group(function(){
+        Route::prefix('category')->group(function () {
             Route::get('/', [CategoryController::class, 'index'])->name('category');
             Route::get('/create', [CategoryController::class, 'create'])->name('category/create');
             Route::post('/store', [CategoryController::class, 'store'])->name('category/store');
             Route::get('/edit/{category}', [CategoryController::class, 'edit'])->name('category/edit');
-            Route::put('/update/{category}', [CategoryController::class,'update'])->name('category/update');
-            Route::delete('/destroy/{category}', [CategoryController::class,'destroy'])->name('category/destroy');
+            Route::put('/update/{category}', [CategoryController::class, 'update'])->name('category/update');
+            Route::delete('/destroy/{category}', [CategoryController::class, 'destroy'])->name('category/destroy');
         });
 
-        Route::prefix('product')->group(function(){
-            Route::get('/', [ProductController::class,'index'])->name('product');
+        Route::prefix('product')->group(function () {
+            Route::get('/', [ProductController::class, 'index'])->name('product');
             Route::get('/create', [ProductController::class, 'create'])->name('product/create');
             Route::get('/getVariantByProductId/{id}', [ProductController::class, 'findVariantByProductId'])->name('product/findVariantByProductId');
             Route::get('/getVariantByProductName/{name}', [ProductController::class, 'findVariantByProductName'])->name('product/findVariantByProductName');
@@ -189,49 +222,49 @@ Route::middleware('auth')->group(function () {
             Route::get('/getProductByOutlet', [ProductController::class, 'getProductByOutlet'])->name('product/getProductByOutlet');
             Route::post('/store', [ProductController::class, 'store'])->name('product/store');
             Route::get('/edit/{product}', [ProductController::class, 'edit'])->name('product/edit');
-            Route::put('/update/{product}', [ProductController::class,'update'])->name('product/update');
-            Route::delete('/destroy/{product}', [ProductController::class,'destroy'])->name('product/destroy');
+            Route::put('/update/{product}', [ProductController::class, 'update'])->name('product/update');
+            Route::delete('/destroy/{product}', [ProductController::class, 'destroy'])->name('product/destroy');
         });
 
-        Route::prefix('tax')->group(function(){
+        Route::prefix('tax')->group(function () {
             Route::get('/', [TaxController::class, 'index'])->name('tax');
-            Route::get('/create', [TaxController::class, 'create'])->name("tax/create");
+            Route::get('/create', [TaxController::class, 'create'])->name('tax/create');
             Route::get('/edit/{tax}', [TaxController::class, 'edit'])->name('tax/edit');
             Route::post('/store', [TaxController::class, 'store'])->name('tax/store');
             Route::put('/update/{tax}', [TaxController::class, 'update'])->name('tax/update');
             Route::delete('/delete/{tax}', [TaxController::class, 'destroy'])->name('tax/destroy');
         });
 
-        Route::prefix('modifiers')->group(function(){
+        Route::prefix('modifiers')->group(function () {
             Route::get('/', [ModifiersController::class, 'index'])->name('modifiers');
             Route::get('/create', [ModifiersController::class, 'create'])->name('modifiers/create');
             Route::get('/edit/{modifier}', [ModifiersController::class, 'edit'])->name('modifiers/edit');
             Route::get('/getProduct/{modifierGroup}', [ModifiersController::class, 'getProduct'])->name('modifiers/getProduct');
-            Route::post('/store', [ModifiersController::class, 'store'])->name("modifiers/store");
+            Route::post('/store', [ModifiersController::class, 'store'])->name('modifiers/store');
             Route::put('/update/{modifier}', [ModifiersController::class, 'update'])->name('modifiers/update');
             Route::put('/update/product/{modifier}', [ModifiersController::class, 'updateProductModifier'])->name('modifiers/update-product');
             Route::delete('/destroy/{modifier}', [ModifiersController::class, 'destroy'])->name('modifiers/destroy');
         });
 
-        Route::prefix('discount')->group(function(){
+        Route::prefix('discount')->group(function () {
             Route::get('/', [DiscountController::class, 'index'])->name('discount');
             Route::get('/create', [DiscountController::class, 'create'])->name('discount/create');
             Route::post('/store', [DiscountController::class, 'store'])->name('discount/store');
             Route::get('/edit/{discount}', [DiscountController::class, 'edit'])->name('discount/edit');
             Route::put('/update/{discount}', [DiscountController::class, 'update'])->name('discount/update');
-            Route::delete('/destroy/{discount}', [DiscountController::class,'destroy'])->name('discount/destroy');
+            Route::delete('/destroy/{discount}', [DiscountController::class, 'destroy'])->name('discount/destroy');
         });
 
-        Route::prefix('promo')->group(function(){
+        Route::prefix('promo')->group(function () {
             Route::get('/', [PromoController::class, 'index'])->name('promo');
             Route::get('/create', [PromoController::class, 'create'])->name('promo/create');
             Route::post('/store', [PromoController::class, 'store'])->name('promo/store');
             Route::get('/edit/{promo}', [PromoController::class, 'edit'])->name('promo/edit');
             Route::put('/update/{promo}', [PromoController::class, 'update'])->name('promo/update');
-            Route::delete('/destroy/{promo}', [PromoController::class,'destroy'])->name('promo/destroy');
+            Route::delete('/destroy/{promo}', [PromoController::class, 'destroy'])->name('promo/destroy');
         });
 
-        Route::prefix('salestype')->group(function(){
+        Route::prefix('salestype')->group(function () {
             Route::get('/', [SalesTypeController::class, 'index'])->name('salestype');
             Route::get('/create', [SalesTypeController::class, 'create'])->name('salestype/create');
             Route::get('/getSalesTypeByOutlet', [SalesTypeController::class, 'getSalesTypeByOutlet'])->name('salestype/getSalesTypeByOutlet');
@@ -239,26 +272,26 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/{salesType}', [SalesTypeController::class, 'edit'])->name('salestype/edit');
             Route::put('/update/{salesType}', [SalesTypeController::class, 'update'])->name('salestype/update');
             Route::put('/updateStatus/{id}', [SalesTypeController::class, 'updateStatus'])->name('salestype/update-status');
-            Route::delete('/destroy/{salesType}', [SalesTypeController::class,'destroy'])->name('salestype/destroy');
+            Route::delete('/destroy/{salesType}', [SalesTypeController::class, 'destroy'])->name('salestype/destroy');
         });
 
-        Route::prefix('pilihan')->group(function(){
+        Route::prefix('pilihan')->group(function () {
             Route::get('/', [PilihanController::class, 'index'])->name('pilihan');
             Route::get('/create', [PilihanController::class, 'create'])->name('pilihan/create');
             Route::get('/edit/{pilihan}', [PilihanController::class, 'edit'])->name('pilihan/edit');
             Route::get('/getProduct/{pilihanGroup}', [PilihanController::class, 'getProduct'])->name('pilihan/getProduct');
-            Route::post('/store', [PilihanController::class, 'store'])->name("pilihan/store");
+            Route::post('/store', [PilihanController::class, 'store'])->name('pilihan/store');
             Route::put('/update/{pilihan}', [PilihanController::class, 'update'])->name('pilihan/update');
             Route::put('/update/product/{pilihan}', [PilihanController::class, 'updateProductPilihan'])->name('pilihan/update-product');
             Route::delete('/destroy/{pilihan}', [PilihanController::class, 'destroy'])->name('pilihan/destroy');
         });
 
-        Route::prefix('note-receipt-scheduling')->group(function(){
+        Route::prefix('note-receipt-scheduling')->group(function () {
             Route::get('/', [NoteReceiptSchedulingController::class, 'index'])->name('note-receipt-scheduling');
             Route::get('/create', [NoteReceiptSchedulingController::class, 'create'])->name('note-receipt-scheduling/create');
             Route::get('/edit/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'edit'])->name('note-receipt-scheduling/edit');
             Route::get('/getProduct/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'getRequirementProduct'])->name('note-receipt-scheduling/getRequirementProduct');
-            Route::post('/store', [NoteReceiptSchedulingController::class, 'store'])->name("note-receipt-scheduling/store");
+            Route::post('/store', [NoteReceiptSchedulingController::class, 'store'])->name('note-receipt-scheduling/store');
             Route::put('/update/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'update'])->name('note-receipt-scheduling/update');
             Route::put('/update/product/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'setProductRequirement'])->name('note-receipt-scheduling/setProductRequirement');
             Route::delete('/destroy/{noteReceiptScheduling}', [NoteReceiptSchedulingController::class, 'destroy'])->name('note-receipt-scheduling/destroy');
@@ -286,7 +319,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/update/{categoryBahanBaku}', [KategoriBahanBakuController::class, 'update'])->name('category-bahan-baku/update');
         });
 
-        Route::prefix('bahan-baku')->group(function(){
+        Route::prefix('bahan-baku')->group(function () {
             Route::get('/', [BahanBakuController::class, 'index'])->name('bahan-baku');
             Route::get('/create', [BahanBakuController::class, 'create'])->name('bahan-baku/create');
             Route::post('/store', [BahanBakuController::class, 'store'])->name('bahan-baku/store');
@@ -297,8 +330,8 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-    Route::group(['prefix'=> 'membership', 'as' => 'membership/'], function () {
-        Route::prefix('customer')->group(function(){
+    Route::group(['prefix' => 'membership', 'as' => 'membership/'], function () {
+        Route::prefix('customer')->group(function () {
             Route::get('/', [CustomerController::class, 'index'])->name('customer');
             Route::get('/create', [CustomerController::class, 'create'])->name('customer/create');
             Route::post('/store', [CustomerController::class, 'store'])->name('customer/store');
@@ -316,7 +349,7 @@ Route::middleware('auth')->group(function () {
             Route::delete('/lepasTransaction/{transaction}', [CustomerController::class, 'lepasTransaction'])->name('customer/lepasTransaction');
         });
 
-        Route::prefix('community')->group(function(){
+        Route::prefix('community')->group(function () {
             Route::get('/', [CommunityController::class, 'index'])->name('community');
             Route::get('/create', [CommunityController::class, 'create'])->name('community/create');
             Route::get('/createExchangeExp/{id}', [CommunityController::class, 'createExchangeExp'])->name('community/createExchangeExp');
@@ -329,7 +362,7 @@ Route::middleware('auth')->group(function () {
             Route::delete('/destroy/{community}', [CommunityController::class, 'destroy'])->name('community/destroy');
         });
 
-        Route::prefix('level-membership')->group(function(){
+        Route::prefix('level-membership')->group(function () {
             Route::get('/', [LevelMembershipController::class, 'index'])->name('level-membership');
             Route::get('/create', [LevelMembershipController::class, 'create'])->name('level-membership/create');
             Route::post('/store', [LevelMembershipController::class, 'store'])->name('level-membership/store');
@@ -341,16 +374,14 @@ Route::middleware('auth')->group(function () {
             Route::delete('/destroy/{level}', [LevelMembershipController::class, 'destroy'])->name('level-membership/destroy');
         });
 
-        Route::prefix('list-icon')->group(function(){
-            Route::get('/', function(){
+        Route::prefix('list-icon')->group(function () {
+            Route::get('/', function () {
                 return view('layouts.list_icon');
             });
         });
     });
 
-
-
-    Route::prefix('kasir')->group(function(){
+    Route::prefix('kasir')->group(function () {
         Route::get('/', [KasirController::class, 'index'])->name('kasir');
         Route::get('/viewPattyCash', [KasirController::class, 'viewPattyCash'])->name('kasir/viewPattyCash');
         Route::get('/choose-payment', [KasirController::class, 'choosePayment'])->name('kasir/choosePayment');
@@ -378,7 +409,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/refund', [KasirController::class, 'refund'])->name('kasir/refund');
     });
 
-    Route::group(['prefix' => 'accounting', 'as' => 'accounting/'], function(){
+    Route::group(['prefix' => 'accounting', 'as' => 'accounting/'], function () {
         Route::prefix('pengeluaran')->group(function () {
             Route::get('/', [PengeluaranController::class, 'index'])->name('pengeluaran');
             Route::get('/create', [PengeluaranController::class, 'create'])->name('pengeluaran/create');
@@ -407,7 +438,7 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-    Route::group(['prefix' => 'report', 'as' => 'report/'], function(){
+    Route::group(['prefix' => 'report', 'as' => 'report/'], function () {
         Route::prefix('sales')->group(function () {
             Route::get('/', [SalesController::class, 'index'])->name('sales');
             Route::get('/sales-summary', [SalesController::class, 'getSalesSummary'])->name('sales/getSalesSummary');
@@ -461,7 +492,7 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-    Route::group(['prefix' => 'warehouse', 'as' => 'warehouse/'], function(){
+    Route::group(['prefix' => 'warehouse', 'as' => 'warehouse/'], function () {
         Route::prefix('inventory')->group(function () {
             Route::get('/', [InventoryController::class, 'index'])->name('inventory');
             Route::get('/create', [InventoryController::class, 'create'])->name('inventory/create');
@@ -523,6 +554,5 @@ Route::get('/get-akun/{outlet_id}', [OutletController::class, 'getAkun']);
 Route::get('/get-all-category', [CategoryController::class, 'getAllCategory']);
 Route::post('/log-error-android', [LogController::class, 'logErrorAndroid'])->name('log/logErrorAndroid');
 Route::post('/log-error-android', [LogController::class, 'logErrorAndroid'])->name('log/logErrorAndroid');
-
 
 require __DIR__.'/auth.php';

@@ -63,7 +63,7 @@
                                                             id="permission-{{ $mm->id . '-' . $permission->id }}">
                                                         <label class="form-check-label"
                                                             for="permission-{{ $mm->id . '-' . $permission->id }}">
-                                                            {{ explode(' ', $permission->name)[0] }}
+                                                            {{ str($permission->name)->before(' ')->headline() }}
                                                         </label>
                                                     </div>
                                                 @endforeach
@@ -96,7 +96,7 @@
                                                                 id="permission-{{ $sm->id . '-' . $permission->id }}">
                                                             <label class="form-check-label"
                                                                 for="permission-{{ $sm->id . '-' . $permission->id }}">
-                                                                {{ explode(' ', $permission->name)[0] }}
+                                                                {{ str($permission->name)->before(' ')->headline() }}
                                                             </label>
                                                         </div>
                                                     @endforeach

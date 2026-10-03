@@ -3,21 +3,21 @@
 namespace Database\Seeders;
 
 use App\Models\Menu;
-use Illuminate\Database\Seeder;
 use App\Traits\HasMenuPermission;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-
 
 class MenuSeeder extends Seeder
 {
     use HasMenuPermission;
+
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
         Cache::forget('menus');
+        Cache::forget('urlMenu');
         /**
          * @var Menu $mm
          */
@@ -27,25 +27,25 @@ class MenuSeeder extends Seeder
         $this->attachMenuPermission($mm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/sales'],
+            ['url' => $mm->url.'/sales'],
             ['name' => 'Sales', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/transactions'],
+            ['url' => $mm->url.'/transactions'],
             ['name' => 'Transactions', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/openbill'],
+            ['url' => $mm->url.'/openbill'],
             ['name' => 'Open Bill', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/rush-hour'],
+            ['url' => $mm->url.'/rush-hour'],
             ['name' => 'Rush Hour', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
@@ -56,55 +56,55 @@ class MenuSeeder extends Seeder
         $this->attachMenuPermission($mm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/category'],
+            ['url' => $mm->url.'/category'],
             ['name' => 'Category', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/product'],
+            ['url' => $mm->url.'/product'],
             ['name' => 'Product', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/tax'],
+            ['url' => $mm->url.'/tax'],
             ['name' => 'Taxes', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/promo'],
+            ['url' => $mm->url.'/promo'],
             ['name' => 'Promo', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/modifiers'],
+            ['url' => $mm->url.'/modifiers'],
             ['name' => 'Modifiers', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/discount'],
+            ['url' => $mm->url.'/discount'],
             ['name' => 'Discount', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/salestype'],
+            ['url' => $mm->url.'/salestype'],
             ['name' => 'Sales Type', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/pilihan'],
+            ['url' => $mm->url.'/pilihan'],
             ['name' => 'Pilihan Item', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/note-receipt-scheduling'],
+            ['url' => $mm->url.'/note-receipt-scheduling'],
             ['name' => 'Note Receipt Scheduling', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
@@ -115,19 +115,19 @@ class MenuSeeder extends Seeder
         $this->attachMenuPermission($mm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/pengeluaran'],
+            ['url' => $mm->url.'/pengeluaran'],
             ['name' => 'Pengeluaran', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/pemasukan'],
+            ['url' => $mm->url.'/pemasukan'],
             ['name' => 'Pendapatan Diluar Transaksi', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/piutang'],
+            ['url' => $mm->url.'/piutang'],
             ['name' => 'Piutang / Kasbon', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
@@ -138,19 +138,19 @@ class MenuSeeder extends Seeder
         $this->attachMenuPermission($mm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/users'],
+            ['url' => $mm->url.'/users'],
             ['name' => 'Users', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/roles'],
+            ['url' => $mm->url.'/roles'],
             ['name' => 'Role', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/hak-akses'],
+            ['url' => $mm->url.'/hak-akses'],
             ['name' => 'Hak Akses', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
@@ -163,25 +163,25 @@ class MenuSeeder extends Seeder
         $this->attachMenuPermission($mm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/customer'],
+            ['url' => $mm->url.'/customer'],
             ['name' => 'Customer', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/community'],
+            ['url' => $mm->url.'/community'],
             ['name' => 'Community', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/level-membership'],
+            ['url' => $mm->url.'/level-membership'],
             ['name' => 'Level Membership', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/list-icon'],
+            ['url' => $mm->url.'/list-icon'],
             ['name' => 'List Icon', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
@@ -193,47 +193,49 @@ class MenuSeeder extends Seeder
         $this->attachMenuPermission($mm, ['read '], ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/menu'],
+            ['url' => $mm->url.'/menu'],
             ['name' => 'Menu', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, ['create ', 'read ', 'update ', 'delete ', 'sort '], ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/permissions'],
+            ['url' => $mm->url.'/permissions'],
             ['name' => 'Permission', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/outlets'],
+            ['url' => $mm->url.'/outlets'],
             ['name' => 'Outlets', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/checkout'],
+            ['url' => $mm->url.'/checkout'],
             ['name' => 'Checkout', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/category-payment'],
+            ['url' => $mm->url.'/category-payment'],
             ['name' => 'Category Payment', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         $sm = $mm->subMenus()->updateOrCreate(
-            ['url' => $mm->url . '/payment'],
+            ['url' => $mm->url.'/payment'],
             ['name' => 'Payment', 'category' => $mm->category]
         );
         $this->attachMenuPermission($sm, null, ['admin']);
 
         // END KONFIGURASI
 
-        //KASIR
+        $this->call(OrderTableMenuSeeder::class);
+
+        // KASIR
         $mm = Menu::firstOrCreate(['url' => 'kasir'], ['name' => 'Kasir', 'category' => 'KASIR', 'icon' => 'fa-money-bill']);
         $this->attachMenuPermission($mm, ['read '], ['admin']);
-        //END KASIR
+        // END KASIR
 
     }
 }
