@@ -22,8 +22,11 @@ use App\Http\Controllers\OpenBillController;
 use App\Http\Controllers\OrderTable\BannerController as OrderTableBannerController;
 use App\Http\Controllers\OrderTable\CatalogSelectorController as OrderTableCatalogSelectorController;
 use App\Http\Controllers\OrderTable\DiningTableController as OrderTableDiningTableController;
+use App\Http\Controllers\OrderTable\OrderMonitorController as OrderTableOrderMonitorController;
 use App\Http\Controllers\OrderTable\OutletSettingController as OrderTableOutletSettingController;
 use App\Http\Controllers\OrderTable\PaymentMethodController as OrderTablePaymentMethodController;
+use App\Http\Controllers\OrderTable\PaymentMonitorController as OrderTablePaymentMonitorController;
+use App\Http\Controllers\OrderTable\SessionMonitorController as OrderTableSessionMonitorController;
 use App\Http\Controllers\OrderTable\VoucherController as OrderTableVoucherController;
 use App\Http\Controllers\OrderTable\VoucherRedemptionController as OrderTableVoucherRedemptionController;
 use App\Http\Controllers\OutletController;
@@ -140,6 +143,20 @@ Route::middleware('auth')->group(function () {
             Route::put('/{banner}', [OrderTableBannerController::class, 'update'])->name('banners/update');
             Route::post('/{banner}/toggle', [OrderTableBannerController::class, 'toggle'])->name('banners/toggle');
         });
+
+        Route::prefix('orders')->group(function () {
+            Route::get('/', [OrderTableOrderMonitorController::class, 'index'])->name('orders');
+            Route::get('/{order}', [OrderTableOrderMonitorController::class, 'show'])->name('orders/show');
+            Route::post('/{order}/serve', [OrderTableOrderMonitorController::class, 'serve'])->name('orders/serve');
+            Route::post('/{order}/cancel', [OrderTableOrderMonitorController::class, 'cancel'])->name('orders/cancel');
+        });
+
+        Route::prefix('sessions')->group(function () {
+            Route::get('/', [OrderTableSessionMonitorController::class, 'index'])->name('sessions');
+            Route::post('/{session}/close', [OrderTableSessionMonitorController::class, 'close'])->name('sessions/close');
+        });
+
+        Route::get('/payments', [OrderTablePaymentMonitorController::class, 'index'])->name('payments');
     });
 
     Route::group(['prefix' => 'konfigurasi', 'as' => 'konfigurasi/'], function () {

@@ -5,6 +5,7 @@ namespace App\Models\OrderTable;
 use App\Models\Outlets;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends Model
@@ -18,6 +19,14 @@ class Order extends Model
         'session_id' => 'integer',
         'table_id' => 'integer',
         'voucher_id' => 'integer',
+        'pos_transaction_id' => 'integer',
+        'subtotal' => 'integer',
+        'discount_item_total' => 'integer',
+        'voucher_discount' => 'integer',
+        'modifier_total' => 'integer',
+        'tax_total' => 'integer',
+        'rounding' => 'integer',
+        'grand_total' => 'integer',
         'tax_breakdown' => 'array',
         'placed_at' => 'datetime',
         'payment_due_at' => 'datetime',
@@ -47,5 +56,20 @@ class Order extends Model
     public function voucherRedemption(): HasOne
     {
         return $this->hasOne(VoucherRedemption::class, 'order_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class, 'order_id');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(OrderPayment::class, 'order_id');
+    }
+
+    public function statusLogs(): HasMany
+    {
+        return $this->hasMany(OrderStatusLog::class, 'order_id');
     }
 }

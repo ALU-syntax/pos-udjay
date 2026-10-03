@@ -47,6 +47,18 @@ class OrderTableMenuSeeder extends Seeder
                 'name' => 'Banner',
                 'permissions' => ['create ', 'read ', 'update '],
             ],
+            'order-table/orders' => [
+                'name' => 'Monitor Order',
+                'permissions' => ['read ', 'serve ', 'cancel '],
+            ],
+            'order-table/sessions' => [
+                'name' => 'Monitor Sesi',
+                'permissions' => ['read ', 'close '],
+            ],
+            'order-table/payments' => [
+                'name' => 'Monitor Pembayaran',
+                'permissions' => ['read '],
+            ],
         ];
 
         foreach ($menus as $url => $definition) {
