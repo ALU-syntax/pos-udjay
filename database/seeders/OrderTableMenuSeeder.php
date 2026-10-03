@@ -35,6 +35,18 @@ class OrderTableMenuSeeder extends Seeder
                 'name' => 'Metode Pembayaran',
                 'permissions' => ['create ', 'read ', 'update '],
             ],
+            'order-table/vouchers' => [
+                'name' => 'Voucher',
+                'permissions' => ['create ', 'read ', 'update '],
+            ],
+            'order-table/voucher-redemptions' => [
+                'name' => 'Redemption Voucher',
+                'permissions' => ['read '],
+            ],
+            'order-table/banners' => [
+                'name' => 'Banner',
+                'permissions' => ['create ', 'read ', 'update '],
+            ],
         ];
 
         foreach ($menus as $url => $definition) {

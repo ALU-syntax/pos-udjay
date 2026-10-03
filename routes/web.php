@@ -19,9 +19,13 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ModifiersController;
 use App\Http\Controllers\NoteReceiptSchedulingController;
 use App\Http\Controllers\OpenBillController;
+use App\Http\Controllers\OrderTable\BannerController as OrderTableBannerController;
+use App\Http\Controllers\OrderTable\CatalogSelectorController as OrderTableCatalogSelectorController;
 use App\Http\Controllers\OrderTable\DiningTableController as OrderTableDiningTableController;
 use App\Http\Controllers\OrderTable\OutletSettingController as OrderTableOutletSettingController;
 use App\Http\Controllers\OrderTable\PaymentMethodController as OrderTablePaymentMethodController;
+use App\Http\Controllers\OrderTable\VoucherController as OrderTableVoucherController;
+use App\Http\Controllers\OrderTable\VoucherRedemptionController as OrderTableVoucherRedemptionController;
 use App\Http\Controllers\OutletController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PemasukanController;
@@ -107,6 +111,34 @@ Route::middleware('auth')->group(function () {
             Route::get('/{paymentMethod}/edit', [OrderTablePaymentMethodController::class, 'edit'])->name('payment-methods/edit');
             Route::put('/{paymentMethod}', [OrderTablePaymentMethodController::class, 'update'])->name('payment-methods/update');
             Route::post('/{paymentMethod}/toggle', [OrderTablePaymentMethodController::class, 'toggle'])->name('payment-methods/toggle');
+        });
+
+        Route::prefix('selectors')->group(function () {
+            Route::get('/categories', [OrderTableCatalogSelectorController::class, 'categories'])->name('selectors/categories');
+            Route::get('/products', [OrderTableCatalogSelectorController::class, 'products'])->name('selectors/products');
+            Route::get('/vouchers', [OrderTableCatalogSelectorController::class, 'vouchers'])->name('selectors/vouchers');
+            Route::get('/promos', [OrderTableCatalogSelectorController::class, 'promos'])->name('selectors/promos');
+            Route::get('/internal', [OrderTableCatalogSelectorController::class, 'internal'])->name('selectors/internal');
+        });
+
+        Route::prefix('vouchers')->group(function () {
+            Route::get('/', [OrderTableVoucherController::class, 'index'])->name('vouchers');
+            Route::get('/create', [OrderTableVoucherController::class, 'create'])->name('vouchers/create');
+            Route::post('/', [OrderTableVoucherController::class, 'store'])->name('vouchers/store');
+            Route::get('/{voucher}/edit', [OrderTableVoucherController::class, 'edit'])->name('vouchers/edit');
+            Route::put('/{voucher}', [OrderTableVoucherController::class, 'update'])->name('vouchers/update');
+            Route::post('/{voucher}/toggle', [OrderTableVoucherController::class, 'toggle'])->name('vouchers/toggle');
+        });
+
+        Route::get('/voucher-redemptions', [OrderTableVoucherRedemptionController::class, 'index'])->name('voucher-redemptions');
+
+        Route::prefix('banners')->group(function () {
+            Route::get('/', [OrderTableBannerController::class, 'index'])->name('banners');
+            Route::get('/create', [OrderTableBannerController::class, 'create'])->name('banners/create');
+            Route::post('/', [OrderTableBannerController::class, 'store'])->name('banners/store');
+            Route::get('/{banner}/edit', [OrderTableBannerController::class, 'edit'])->name('banners/edit');
+            Route::put('/{banner}', [OrderTableBannerController::class, 'update'])->name('banners/update');
+            Route::post('/{banner}/toggle', [OrderTableBannerController::class, 'toggle'])->name('banners/toggle');
         });
     });
 
