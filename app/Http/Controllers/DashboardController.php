@@ -128,14 +128,14 @@ class DashboardController extends Controller
             $discount += $transaction->total_diskon;
 
             $totalTax = 0;
-            if($transaction->total_pajak){
+            if ($transaction->total_pajak) {
                 foreach (json_decode($transaction->total_pajak) as $itemPajak) {
                     $totalTax += $itemPajak->total;
                 }
             }
-            $grossSales += $transaction->total;
+            $grossSales += $transaction->total + $transaction->total_diskon - $totalTax;
 
-            $netSales += $transaction->total - $discount;
+            $netSales += $transaction->total - $totalTax;
         }
 
         // Inisialisasi array data per outlet, tiap outlet punya array 24 jam dengan nilai 0
@@ -285,15 +285,15 @@ class DashboardController extends Controller
                     $discount += $transaction->total_diskon;
 
                     $totalTax = 0;
-                    if($transaction->total_pajak){
+                    if ($transaction->total_pajak) {
                         foreach (json_decode($transaction->total_pajak) as $itemPajak) {
                             $totalTax += $itemPajak->total;
                         }
                     }
 
-                    // asumsi total = net + diskon (tanpa pajak)
-                    $grossSales += $transaction->total + $transaction->total_diskon;
-                    $netSales += $transaction->total;
+                    // asumsi total = net + diskon + pajak
+                    $grossSales += $transaction->total + $transaction->total_diskon - $totalTax;
+                    $netSales += $transaction->total - $totalTax;
                 }
 
                 // --- AGREGASI ITEM: TOP 3 & DOWN 3 ---
