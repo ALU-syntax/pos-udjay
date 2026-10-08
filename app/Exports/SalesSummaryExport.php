@@ -1,11 +1,15 @@
 <?php
-// app/Exports/SalesSummaryTableExport.php
+// app/Exports/SalesSummaryExport.php
 namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
@@ -27,18 +31,29 @@ class SalesSummaryExport implements FromArray, ShouldAutoSize, WithStyles, WithC
      */
     protected array $rows;
     protected bool $withTotals;
+    protected ?string $period;
 
-    public function __construct(array $rows, bool $withTotals = true)
+    private const TITLE_ROWS = 3;
+    private const HEADER_ROW = 4;
+    private const LAST_COL   = 'I';
+
+    public function __construct(array $rows, bool $withTotals = true, ?string $period = null)
     {
         $this->rows = $rows;
         $this->withTotals = $withTotals;
+        $this->period = $period;
     }
 
     public function array(): array
     {
-
         $data = [];
-        // header persis seperti template
+
+        // Baris judul & periode
+        $data[] = ['Sales Summary Report'];
+        $data[] = [$this->period ?: 'Periode: -'];
+        $data[] = [''];
+
+        // Header tabel
         $data[] = [
             'Outlet', 'Gross Sales', 'Discount', 'Refund', 'Net Sales',
             'Gratuity', 'Tax', 'Rounding', 'Total Collected'
@@ -81,14 +96,66 @@ class SalesSummaryExport implements FromArray, ShouldAutoSize, WithStyles, WithC
 
     public function styles(Worksheet $sheet)
     {
-        // Bold header (row 1)
-        $sheet->getStyle('A1:I1')->getFont()->setBold(true);
+        $headerRow = self::HEADER_ROW;
+        $lastCol   = self::LAST_COL;
+        $lastRow   = $sheet->getHighestRow();
 
-        // Bold baris total (baris terakhir)
-        $lastRow = $sheet->getHighestRow();
-        if ($lastRow > 1) {
-            $sheet->getStyle("A{$lastRow}:I{$lastRow}")->getFont()->setBold(true);
+        // ---- Judul ----
+        $sheet->mergeCells("A1:{$lastCol}1");
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle('A1')
+            ->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+            ->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getRowDimension(1)->setRowHeight(26);
+
+        // ---- Periode ----
+        $sheet->mergeCells("A2:{$lastCol}2");
+        $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(11);
+        $sheet->getStyle('A2')->getFont()->getColor()->setARGB('FF808080');
+        $sheet->getStyle('A2')
+            ->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // ---- Header tabel ----
+        $headerRange = "A{$headerRow}:{$lastCol}{$headerRow}";
+        $sheet->getStyle($headerRange)->getFont()->setBold(true);
+        $sheet->getStyle($headerRange)->getFont()->getColor()->setARGB(Color::COLOR_WHITE);
+        $sheet->getStyle($headerRange)->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFD03C3C');
+        $sheet->getStyle($headerRange)->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+            ->setVertical(Alignment::VERTICAL_CENTER)
+            ->setWrapText(true);
+        $sheet->getRowDimension($headerRow)->setRowHeight(20);
+
+        // ---- Border tabel ----
+        $tableRange = "A{$headerRow}:{$lastCol}{$lastRow}";
+        $sheet->getStyle($tableRange)->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)
+            ->setColor(new Color('FFD9D9D9'));
+
+        // ---- Perataan angka (kolom B..I rata kanan) ----
+        if ($lastRow > $headerRow) {
+            $sheet->getStyle('B' . ($headerRow + 1) . ":{$lastCol}{$lastRow}")
+                ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
         }
+
+        // ---- Baris total ----
+        if ($this->withTotals && $lastRow > $headerRow) {
+            $totalRange = "A{$lastRow}:{$lastCol}{$lastRow}";
+            $sheet->getStyle($totalRange)->getFont()->setBold(true);
+            $sheet->getStyle($totalRange)->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB('FFF2F2F2');
+            $sheet->getStyle($totalRange)->getBorders()->getTop()
+                ->setBorderStyle(Border::BORDER_DOUBLE)
+                ->setColor(new Color('FF000000'));
+        }
+
+        // Bekukan baris header
+        $sheet->freezePane('A' . ($headerRow + 1));
 
         return [];
     }

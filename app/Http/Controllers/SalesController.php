@@ -1200,27 +1200,87 @@ class SalesController extends Controller
             ];
         }
 
-        $export = new SalesSummaryExport($rows, withTotals: true);
+        // Bangun info periode dari rentang tanggal yang dipilih di UI
+        $period = $this->formatPeriodLabel($date);
+
+        $export = new SalesSummaryExport($rows, withTotals: true, period: $period);
         $filename = 'Sales Summary Report '.now()->format('Ymd_His').'.xlsx';
         return Excel::download($export, $filename);
     }
 
-    // TODO: Samakan isi function ini dengan logika yang dipakai oleh AJAX Sales Summary kamu
-    private function computeOutletSummary(string $dateRange, int $outletId): array
+    private function formatPeriodLabel(?string $dateRange): string
     {
-        // Implementasikan sesuai logic-mu:
-        // - parse $dateRange (single date / range)
-        // - filter transactions by outlet & date range
-        // - hitung gross, discount, refund, net, gratuity, tax, rounding, total_collected
+        $dates = explode(' - ', (string) $dateRange);
+        $format = fn($value) => ($d = trim($value)) !== ''
+            ? Carbon::createFromFormat('Y/m/d', $d)->translatedFormat('d M Y')
+            : null;
+
+        if (count($dates) == 2) {
+            $from = $format($dates[0]);
+            $to   = $format($dates[1]);
+
+            if ($from && $to) {
+                return $from === $to
+                    ? "Periode: {$from}"
+                    : "Periode: {$from} s/d {$to}";
+            }
+        } elseif (count($dates) == 1 && ($from = $format($dates[0]))) {
+            return "Periode: {$from}";
+        }
+
+        return 'Periode: -';
+    }
+
+    private function computeOutletSummary(?string $dateRange, ?int $outletId): array
+    {
+        $dates = explode(' - ', (string) $dateRange);
+        if (count($dates) == 2) {
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]))->startOfDay();
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]))->endOfDay();
+        } else {
+            $startDate = Carbon::now()->startOfDay();
+            $endDate = Carbon::now()->endOfDay();
+        }
+
+        $query = Transaction::with(['itemTransaction'])
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        if ($outletId) {
+            $query->where('outlet_id', $outletId);
+        }
+
+        $dataTransaction = $query->get();
+
+        $grossSales = 0;
+        $discount = 0;
+        $netSales = 0;
+        $tax = 0;
+        $rounding = 0;
+
+        foreach ($dataTransaction as $data) {
+            $discount += $data->total_diskon;
+
+            $totalTax = 0;
+            foreach (json_decode($data->total_pajak) ?? [] as $itemPajak) {
+                $totalTax += $itemPajak->total;
+            }
+            $grossSales += $data->total + $data->total_diskon - $totalTax;
+            $netSales += $data->total - $totalTax;
+            $tax += $totalTax;
+            $rounding += $data->rounding_amount;
+        }
+
+        $totalCollected = $netSales + $tax + $rounding;
+
         return [
-            'gross' => 0,
-            'discount' => 0,
+            'gross' => $grossSales,
+            'discount' => $discount,
             'refund' => 0,
-            'net' => 0,
+            'net' => $netSales,
             'gratuity' => 0,
-            'tax' => 0,
-            'rounding' => 0,
-            'total_collected' => 0,
+            'tax' => $tax,
+            'rounding' => $rounding,
+            'total_collected' => $totalCollected,
         ];
     }
 
