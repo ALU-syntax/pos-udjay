@@ -5,10 +5,13 @@ namespace App\Http\Controllers\OrderTable;
 use App\DataTables\OrderTable\OutletSettingDataTable;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OrderTable\StoreOutletSettingRequest;
+use App\Http\Requests\OrderTable\UpdateOrderTablePublicUrlRequest;
 use App\Http\Requests\OrderTable\UpdateOutletSettingRequest;
+use App\Models\Config;
 use App\Models\OrderTable\OutletSetting;
 use App\Models\Outlets;
 use App\Services\OrderTable\AuditLogger;
+use App\Services\OrderTable\DiningTableQrService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +29,39 @@ class OutletSettingController extends Controller
 
         return $dataTable->render('layouts.order-table.outlet-settings.index', [
             'outlets' => $this->outlets(),
+            'publicUrl' => $this->publicUrlData(),
         ]);
+    }
+
+    public function updatePublicUrl(UpdateOrderTablePublicUrlRequest $request)
+    {
+        $before = $this->publicUrlData();
+        $value = trim((string) $request->input('public_url'));
+
+        Config::setValue(
+            DiningTableQrService::PUBLIC_URL_CONFIG_KEY,
+            $value === '' ? null : $value,
+            'Base URL halaman order customer (QR meja). Kosong = pakai domain backoffice',
+            'string',
+        );
+
+        $after = $this->publicUrlData();
+        $this->auditLogger->log('outlet-setting.public-url-updated', new OutletSetting, $before, $after);
+
+        return responseSuccess(true, 'Base URL QR berhasil disimpan');
+    }
+
+    private function publicUrlData(): array
+    {
+        $config = Config::query()
+            ->where('name', DiningTableQrService::PUBLIC_URL_CONFIG_KEY)
+            ->first();
+
+        return [
+            'value' => (string) ($config?->value ?? ''),
+            'resolved' => DiningTableQrService::resolveBaseUrl(),
+            'fallback' => config('app.url'),
+        ];
     }
 
     public function create()

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\OrderTable;
 
+use App\Models\Config;
 use App\Models\OrderTable\AuditLog;
 use App\Models\OrderTable\DiningTable;
 use App\Services\OrderTable\DiningTableQrService;
@@ -117,7 +118,7 @@ class DiningTableTest extends OrderTableTestCase
 
     public function test_qr_download_is_svg_and_contains_the_public_table_url(): void
     {
-        config(['order-table.public_url' => 'https://orders.example.test']);
+        config(['app.url' => 'https://orders.example.test']);
         $outlet = $this->outlet('QR Download');
         $user = $this->userFor($outlet, ['download order-table/dining-tables']);
         $table = $this->diningTable($outlet, ['code' => 'QR 01']);
@@ -130,6 +131,34 @@ class DiningTableTest extends OrderTableTestCase
         $this->assertStringContainsString('<svg', $response->getContent());
         $this->assertStringContainsString(
             '/o/'.$outlet->id.'/t/'.$table->qr_token,
+            app(DiningTableQrService::class)->url($table),
+        );
+    }
+
+    public function test_qr_url_prefers_the_configs_table_over_the_backoffice_fallback(): void
+    {
+        config(['app.url' => 'https://from-app.example.test']);
+        Config::setValue(DiningTableQrService::PUBLIC_URL_CONFIG_KEY, 'https://from-db.example.test', null, 'string');
+
+        $outlet = $this->outlet('QR Precedence');
+        $table = $this->diningTable($outlet);
+
+        $this->assertSame(
+            'https://from-db.example.test/o/'.$outlet->id.'/t/'.$table->qr_token,
+            app(DiningTableQrService::class)->url($table),
+        );
+    }
+
+    public function test_qr_url_falls_back_to_the_backoffice_domain_when_config_is_missing(): void
+    {
+        config(['app.url' => 'https://from-app.example.test']);
+        Config::query()->where('name', DiningTableQrService::PUBLIC_URL_CONFIG_KEY)->delete();
+
+        $outlet = $this->outlet('QR Fallback');
+        $table = $this->diningTable($outlet);
+
+        $this->assertSame(
+            'https://from-app.example.test/o/'.$outlet->id.'/t/'.$table->qr_token,
             app(DiningTableQrService::class)->url($table),
         );
     }

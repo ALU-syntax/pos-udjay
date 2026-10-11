@@ -25,6 +25,36 @@
             Perubahan pause, jam operasional, dan geofence langsung memengaruhi pelanggan Order Table.
         </div>
 
+        @can('update order-table/outlet-settings')
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-1">Domain Halaman Order (Global)</h5>
+                    <small class="text-muted">Base URL yang dipakai saat membuat QR meja. Berlaku untuk semua outlet.</small>
+                </div>
+                <div class="card-body">
+                    <form id="public-url-form" action="{{ route('order-table/outlet-settings/public-url') }}" method="POST" class="row g-3 align-items-end">
+                        @csrf
+                        @method('put')
+                        <div class="col-md-8">
+                            <label for="public_url" class="form-label">Base URL</label>
+                            <input id="public_url" name="public_url" type="url" class="form-control"
+                                value="{{ old('public_url', $publicUrl['value']) }}"
+                                placeholder="https://order.example.com">
+                            <small class="text-muted">
+                                Kosongkan untuk memakai domain backoffice ({{ $publicUrl['fallback'] }}).
+                                URL QR saat ini: <span class="text-break">{{ $publicUrl['resolved'] }}</span>
+                            </small>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-save me-1"></i>Simpan Base URL
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endcan
+
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
@@ -60,6 +90,26 @@
                 });
 
                 handleAction(tableId);
+
+                $('#public-url-form').on('submit', function (event) {
+                    event.preventDefault();
+                    const form = this;
+
+                    $.ajax({
+                        url: form.action,
+                        method: 'POST',
+                        data: $(form).serialize(),
+                        success: function (response) {
+                            showToast(response.status || 'success', response.message || 'Base URL QR diperbarui');
+                            window.location.reload();
+                        },
+                        error: function (xhr) {
+                            const errors = xhr.responseJSON?.errors;
+                            const firstError = errors ? Object.values(errors)[0]?.[0] : null;
+                            showToast('error', firstError || xhr.responseJSON?.message || 'Gagal menyimpan base URL');
+                        }
+                    });
+                });
 
                 $('.main-content').on('click', '.toggle-outlet-order', function (event) {
                     event.preventDefault();

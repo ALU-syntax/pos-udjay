@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('order_id')
                 ->constrained('ot_orders')
                 ->cascadeOnDelete();
-            $table->enum('method', ['qris', 'cashier', 'gateway']);
+            $table->enum('method', ['qris', 'cashier']);
             $table->string('gateway_ref', 100)->nullable()->unique();
             $table->bigInteger('amount');
             $table->enum('status', ['pending', 'paid', 'failed', 'expired']);

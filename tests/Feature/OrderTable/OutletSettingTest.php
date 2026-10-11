@@ -84,6 +84,45 @@ class OutletSettingTest extends OrderTableTestCase
         ]);
     }
 
+    public function test_global_public_url_can_be_updated_and_is_audited(): void
+    {
+        $outlet = $this->outlet('Public Url');
+        $user = $this->userFor($outlet, ['update order-table/outlet-settings']);
+
+        $this->actingAs($user)->putJson(route('order-table/outlet-settings/public-url'), [
+            'public_url' => 'https://order.example.test',
+        ])->assertOk()->assertJsonPath('status', 'success');
+
+        $this->assertDatabaseHas('configs', [
+            'name' => 'order_table_public_url',
+            'value' => 'https://order.example.test',
+        ]);
+        $this->assertDatabaseHas('ot_audit_logs', [
+            'action' => 'outlet-setting.public-url-updated',
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_global_public_url_rejects_an_invalid_url(): void
+    {
+        $outlet = $this->outlet('Public Url Invalid');
+        $user = $this->userFor($outlet, ['update order-table/outlet-settings']);
+
+        $this->actingAs($user)->putJson(route('order-table/outlet-settings/public-url'), [
+            'public_url' => 'not-a-url',
+        ])->assertUnprocessable()->assertJsonValidationErrors('public_url');
+    }
+
+    public function test_global_public_url_requires_permission(): void
+    {
+        $outlet = $this->outlet('Public Url Denied');
+        $user = $this->userFor($outlet);
+
+        $this->actingAs($user)->putJson(route('order-table/outlet-settings/public-url'), [
+            'public_url' => 'https://order.example.test',
+        ])->assertForbidden();
+    }
+
     public function test_hours_must_be_paired_and_service_fee_cannot_exceed_one_hundred_percent(): void
     {
         $outlet = $this->outlet('Setting Validation');

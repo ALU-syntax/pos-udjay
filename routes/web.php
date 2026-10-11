@@ -85,6 +85,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::group(['prefix' => 'order-table', 'as' => 'order-table/'], function () {
+        Route::put('/outlet-settings/public-url', [OrderTableOutletSettingController::class, 'updatePublicUrl'])->name('outlet-settings/public-url');
+
         Route::prefix('outlet-settings')->group(function () {
             Route::get('/', [OrderTableOutletSettingController::class, 'index'])->name('outlet-settings');
             Route::get('/create', [OrderTableOutletSettingController::class, 'create'])->name('outlet-settings/create');
