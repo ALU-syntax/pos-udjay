@@ -1,308 +1,221 @@
 @extends('layouts.app')
 @section('content')
-    <style>
-        .animated {
-            transition: width 0.5s ease, flex 0.5s ease;
-        }
+    @include('layouts.reports.partials.ui-styles')
 
-        #container-order-details {
-            display: none;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-        }
-
-        /* CSS untuk mengubah cursor menjadi select saat hover pada baris tabel */
-        #transactions-table tbody tr:hover {
-            cursor: pointer;
-            /* Mengubah cursor menjadi pointer */
-            background-color: #f0f0f0;
-            /* Opsional: menambahkan efek hover */
-        }
-
-        .btn-modern {
-            border: none !important;
-            border-radius: 10px !important;
-            padding: 10px 14px !important;
-            font-weight: 600 !important;
-            box-shadow: 0 6px 14px rgba(0, 0, 0, .08);
-            transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
-            color: #fff !important;
-            background-color: #d03c3c !important;
-        }
-
-        .btn-modern:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 18px rgba(0, 0, 0, .12);
-        }
-
-    </style>
-    <div class="main-content">
-        <div class="card text-center">
-            <h5 class="card-header">Transaction</h5>
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
+            <div>
+                <div class="ob-header__eyebrow">Laporan</div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-cash-register"></i></span>
+                    Transaction
+                </h1>
+                <p class="ob-header__desc">Daftar transaksi yang sudah selesai (Success Order) per outlet dan rentang tanggal.</p>
+            </div>
         </div>
 
-        <div class="card mt-4">
-            <div class="card-header ">
-                <div class="row">
-                    <div class="col-12">
-                        <ul class="nav nav-tabs">
-                            <li class="nav-item">
-                                <a class="nav-link active" aria-current="page" href="#">Success Order</a>
-                            </li>
-                            {{-- <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button"
-                                    aria-expanded="false">Dropdown</a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#">Action</a></li>
-                                    <li><a class="dropdown-item" href="#">Another action</a></li>
-                                    <li><a class="dropdown-item" href="#">Something else here</a></li>
-                                    <li>
-                                        <hr class="dropdown-divider">
-                                    </li>
-                                    <li><a class="dropdown-item" href="#">Separated link</a></li>
-                                </ul>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#">Link</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a>
-                            </li> --}}
-                        </ul>
+        {{-- Filter --}}
+        <div class="ob-card">
+            <div class="ob-toolbar">
+                <div class="ob-field">
+                    <label for="filter-outlet"><i class="fas fa-store" aria-hidden="true"></i> Outlet</label>
+                    <select id="filter-outlet" class="form-control select2">
+                        {{-- <option value="all" selected>-- Semua Outlet --</option> --}}
+                        @foreach ($outlets as $outlet)
+                            <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="ob-field">
+                    <label for="date_range_transaction"><i class="far fa-calendar-alt" aria-hidden="true"></i> Rentang Tanggal</label>
+                    <div class="ob-daterange">
+                        <button class="ob-daterange__btn" type="button" id="prevDate" aria-label="Mundur satu hari">
+                            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                        </button>
+                        <input type="text" id="date_range_transaction" name="date_range_transaction"
+                            class="form-control" autocomplete="off">
+                        <button class="ob-daterange__btn" type="button" id="nextDate" aria-label="Maju satu hari">
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                        </button>
                     </div>
                 </div>
 
-                <div class="row mt-2 d-flex">
-                    <div class="col-4 align-self-center d-flex">
-                        <select id="filter-outlet" class="form-control select2">
-                            {{-- <option value="all" selected>-- Semua Outlet --</option> --}}
-                            @foreach ($outlets as $outlet)
-                                <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-4 align-self-end just d-flex">
-                        <div class="input-group mb-3 mt-3">
-                            <div class="input-group-prepend">
-                                <button class="btn btn-outline-secondary" type="button" id="prevDate">-</button>
-                            </div>
-                            <input type="text" id="date_range_transaction" name="date_range_transaction"
-                                class="form-control">
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-secondary" type="button" id="nextDate">+</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-4 mt-0 mb-2 pe-4 d-flex align-items-center justify-content-end gap-2 flex-wrap">
-                        <button id="btnExport" class="btn btn-primary btn-modern">Export Transaksi</button>
-                    </div>
-
-                </div>
-
-                <div class="row row-card-no-pd mt-3">
-                    <div class="col-sm-6 col-md-4">
-                        <div class="card card-stats card-round">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-5">
-                                        <div class="icon-big text-center">
-                                            <i class="icon-pie-chart text-warning"></i>
-                                        </div>
-                                    </div>
-                                    <div class="col-7 col-stats">
-                                        <div class="numbers">
-                                            <p class="card-category">Transactions</p>
-                                            <h4 class="card-title" id="transaction">{{ count($data) }}</h4>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6 col-md-4">
-                        <div class="card card-stats card-round">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-5">
-                                        <div class="icon-big text-center">
-                                            <i class="icon-wallet text-primary"></i>
-                                        </div>
-                                    </div>
-                                    <div class="col-7 col-stats">
-                                        <div class="numbers">
-                                            <p class="card-category">Total Collected</p>
-                                            <h4 class="card-title" id="total-collected"></h4>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6 col-md-4">
-                        <div class="card card-stats card-round">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-5">
-                                        <div class="icon-big text-center">
-                                            <i class="icon-check text-success"></i>
-                                        </div>
-                                    </div>
-                                    <div class="col-7 col-stats">
-                                        <div class="numbers">
-                                            <p class="card-category">Net Sales</p>
-                                            <h4 class="card-title" id="net-sales">23</h4>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="ob-field ob-field--action">
+                    <button id="btnExport" class="btn ob-btn ob-btn-primary">Export Transaksi</button>
                 </div>
             </div>
-            <div class="card-body">
+        </div>
 
+        {{-- KPI --}}
+        <div class="ob-stats">
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--warning" aria-hidden="true"><i class="fas fa-receipt"></i></span>
+                <div>
+                    <p class="ob-stat__label">Transactions</p>
+                    <h4 class="ob-stat__value" id="transaction">{{ count($data) }}</h4>
+                </div>
+            </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--primary" aria-hidden="true"><i class="fas fa-wallet"></i></span>
+                <div>
+                    <p class="ob-stat__label">Total Collected</p>
+                    <h4 class="ob-stat__value" id="total-collected"></h4>
+                </div>
+            </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--success" aria-hidden="true"><i class="fas fa-chart-line"></i></span>
+                <div>
+                    <p class="ob-stat__label">Net Sales</p>
+                    <h4 class="ob-stat__value" id="net-sales">23</h4>
+                </div>
             </div>
         </div>
 
         <div class="row">
+            {{-- Tabel --}}
             <div class="col-12 animated" id="tableContainer">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="table-responsive">
-                                {!! $dataTable->table() !!}
-                            </div>
+                <div class="ob-card">
+                    <div class="ob-tabs-bar">
+                        <ul class="nav ob-tabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" aria-current="page" href="#">
+                                    <i class="fas fa-check-circle" aria-hidden="true"></i> Success Order
+                                </a>
+                            </li>
+                        </ul>
+                        <span class="ob-hint"><i class="fas fa-mouse-pointer" aria-hidden="true"></i> Klik baris untuk melihat detail</span>
+                    </div>
+                    <div class="ob-table-wrap">
+                        <div class="table-responsive">
+                            {!! $dataTable->table() !!}
                         </div>
                     </div>
                 </div>
             </div>
 
+            {{-- Panel detail --}}
             <div class="col-6" id="container-order-details">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="container">
-                            <div class="row">
-                                <div class="col-4">
-                                    <h5>Order Details</h5>
-                                </div>
+                <div class="ob-card ob-detail">
+                    <div class="ob-detail__head">
+                        <div>
+                            <div class="ob-detail__label">Order Details</div>
+                            <div class="ob-detail__name"><span id="complete-time"></span></div>
+                            <span class="badge badge-success">Complete</span>
+                        </div>
+                        <button type="button" class="ob-icon-btn" id="btn-close-detail" aria-label="Tutup detail">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                    </div>
 
+                    <div class="ob-detail__body">
+                        <h2 class="ob-section-title"><i class="fas fa-info-circle" aria-hidden="true"></i> Informasi</h2>
+                        <dl class="ob-meta">
+                            <div class="ob-meta__item">
+                                <dt>Collected By</dt>
+                                <dd id="collected-by"></dd>
+                            </div>
+                            <div class="ob-meta__item">
+                                <dt>Payment Method</dt>
+                                <dd id="payment-method"></dd>
+                            </div>
+                            <div class="ob-meta__item">
+                                <dt>Served by</dt>
+                                <dd id="served-by"></dd>
+                            </div>
+                            <div class="ob-meta__item">
+                                <dt>Order Id</dt>
+                                <dd></dd>
+                            </div>
+                            <div class="ob-meta__item">
+                                <dt>Table</dt>
+                                <dd></dd>
+                            </div>
+                            <div class="ob-meta__item">
+                                <dt>Pax</dt>
+                                <dd></dd>
+                            </div>
+                            <div class="ob-meta__item">
+                                <dt>Duration</dt>
+                                <dd></dd>
+                            </div>
+                            <div class="ob-meta__item">
+                                <dt>Point Use</dt>
+                                <dd id="container-point-use">-</dd>
+                            </div>
 
-                                    <div class="col-8 d-flex align-self-end justify-content-end">
-                                        {{-- <button class="btn btn-danger">Hapus Transaksi</button> --}}
-                                        @can('delete report/transactions')
-                                            <a id="btn-delete-transaction" class="btn btn-danger btn-sm me-1" href="">Hapus
-                                                Transaksi</a>
-                                        @endcan
-
+                            {{-- Customer + aksi kaitkan customer --}}
+                            <div class="ob-meta__item ob-meta__item--wide">
+                                <div class="ob-meta__head">
+                                    <dt>Customer</dt>
+                                    <div class="ob-actions">
                                         @can('edit-customer report/transactions')
-                                        <button id="btn-kaitkan-customer" class="btn btn-primary btn-sm"
-                                        >Kaitkan Customer</button>
+                                            <button id="btn-kaitkan-customer" class="btn ob-btn ob-btn-outline ob-btn-sm">
+                                                <i class="fas fa-user-tag" aria-hidden="true"></i> Kaitkan Customer
+                                            </button>
                                         @endcan
 
-                                        <button id="btn-batal-kaitkan-customer" class="btn btn-danger btn-sm d-none"
-                                        >Batal</button>
+                                        <button id="btn-batal-kaitkan-customer" class="btn ob-btn ob-btn-ghost ob-btn-sm d-none">Batal</button>
 
                                         <form action="{{ route('report/transaction/kaitkanCustomer') }}" id="submit-customer" method="PUT" class="d-none" enctype="multipart/form-data">
                                             @csrf
 
                                             <input type="text" name="id_transaction" id="id_transaction" hidden>
-                                            <button id="btn-confirm-kaitkan-customer" class="btn btn-success btn-sm ms-1" type="submit">Confirm</button>
+                                            <button id="btn-confirm-kaitkan-customer" class="btn ob-btn ob-btn-primary ob-btn-sm" type="submit">
+                                                <i class="fas fa-check" aria-hidden="true"></i> Confirm
+                                            </button>
                                         </form>
-
-
                                     </div>
-
-
-                            </div>
-                            <hr>
-                            <div class="row mb-2 d-flex">
-                                <div class="col-6">Status</div>
-                                <div class="col-6 text-right d-flex"><span class="badge badge-success">Complete</span></div>
-                            </div>
-                            <div class="row mb-2">
-                                <div class="col-6">Order Id</div>
-                                <div class="col-6 text-right d-flex"></div>
-                            </div>
-                            {{-- <div class="row mb-2">
-                                <div class="col-6">Receipt Number</div>
-                                <div class="col-6 text-right d-flex"></div>
-                            </div> --}}
-                            <div class="row mb-2 d-flex">
-                                <div class="col-6">Complete Time</div>
-                                <div class="col-6 d-flex justify-content-end"><span id="complete-time"></span></div>
-                            </div>
-                            <div class="row mb-2 d-flex">
-                                <div class="col-6">Table</div>
-                                <div class="col-6 text-right d-flex"></div>
-                            </div>
-                            <div class="row mb-2 d-flex">
-                                <div class="col-6">Served by</div>
-                                <div class="col-6 text-right d-flex" id="served-by"></div>
-                            </div>
-                            <div class="row mb-2 d-flex">
-                                <div class="col-6">Pax</div>
-                                <div class="col-6 text-right d-flex"></div>
-                            </div>
-                            <div class="row mb-2 d-flex">
-                                <div class="col-6">Duration</div>
-                                <div class="col-6 text-right d-flex"></div>
-                            </div>
-                            <div class="row mb-2 d-flex">
-                                <div class="col-6">Collected By</div>
-                                <div class="col-6 d-flex justify-content-end" id="collected-by"></div>
-                            </div>
-                            <div class="row mb-2 d-flex">
-                                <div class="col-4">Customer</div>
-                                <div id="container-customer" class="col-8 d-flex justify-content-end"><span id="customer">-</span></div>
-                            </div>
-                            <div class="row mb-2 d-flex">
-                                <div class="col-4">Point Use</div>
-                                <div id="container-point-use" class="col-8 d-flex justify-content-end"><span id="customer">-</span></div>
-                            </div>
-                            <div class="row mb-2 d-flex">
-                                <div class="col-6">Total Amount</div>
-                                <div class="col-6 d-flex justify-content-end" id="total-amount"></div>
-                            </div>
-                            <div class="row mb-2 d-flex">
-                                <div class="col-6">Payment Method</div>
-                                <div class="col-6 d-flex justify-content-end" id="payment-method"></div>
-                            </div>
-                            <div class="row mb-2 d-flex">
-                                <div class="col-6">
-                                    <h4>ORDERED ITEMS</h4>
                                 </div>
+                                <dd id="container-customer" class="d-flex"><span id="customer">-</span></dd>
                             </div>
-                            <div class="row mb-2">
-                                <div class="col-12">
-                                    <table class="table" id="table-list-item">
-                                        <thead class="thead-dark">
-                                            <tr>
-                                                <th>Item</th>
-                                                <th>Quantity</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td></td>
-                                                <td></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                        </dl>
+
+                        <h2 class="ob-section-title"><i class="fas fa-calculator" aria-hidden="true"></i> Ringkasan</h2>
+                        <div class="ob-summary">
+                            <div class="ob-summary__row ob-summary__row--total">
+                                <div>Total Amount</div>
+                                <div id="total-amount"></div>
                             </div>
                         </div>
-                        <div class="row d-flex">
-                            <div class="col-2">
-                                <button class="btn btn-primary" id="btn-close-detail">Close</button>
-                            </div>
-                            <div class="col-10 d-flex justify-content-end">
-                                <a href="{{ route('report/transaction/modalResendReceipt', 1) }}"
-                                    class="btn btn-outline-primary action" id="btn-resend-receipt">Resend Receipt</a>
-                                <a href="{{ route('report/transaction/showReceipt', 1) }}"
-                                    class="btn btn-outline-primary ms-2" id="btn-show-receipt">Show Receipt</a>
-                            </div>
+
+                        <h2 class="ob-section-title"><i class="fas fa-utensils" aria-hidden="true"></i> Ordered Items</h2>
+                        <div class="ob-items">
+                            <table class="table" id="table-list-item">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Quantity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="ob-detail__foot">
+                        <div class="ob-actions">
+                            @can('delete report/transactions')
+                                <a id="btn-delete-transaction" class="btn ob-btn ob-btn-danger" href="">
+                                    <i class="fas fa-trash-alt" aria-hidden="true"></i> Hapus Transaksi
+                                </a>
+                            @endcan
+                        </div>
+                        <div class="ob-actions">
+                            <a href="{{ route('report/transaction/modalResendReceipt', 1) }}"
+                                class="btn ob-btn ob-btn-outline action" id="btn-resend-receipt">
+                                <i class="fas fa-paper-plane" aria-hidden="true"></i> Resend Receipt
+                            </a>
+                            <a href="{{ route('report/transaction/showReceipt', 1) }}"
+                                class="btn ob-btn ob-btn-primary" id="btn-show-receipt">
+                                <i class="fas fa-file-invoice" aria-hidden="true"></i> Show Receipt
+                            </a>
                         </div>
                     </div>
                 </div>

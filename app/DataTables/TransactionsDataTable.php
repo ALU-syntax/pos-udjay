@@ -213,10 +213,10 @@ class TransactionsDataTable extends DataTable
     {
         return [
             Column::make('outlet_id')->title("Outlet"),
-            Column::make('created_at')->title("Time"),
+            Column::make('created_at')->title("Time")->addClass('ob-col-time'),
             Column::make('user_id')->title('Collected By'),
-            Column::make('items')->title('Items')->orderable(false),
-            Column::make('total')->title('Total Price'),
+            Column::make('items')->title('Items')->orderable(false)->addClass('ob-col-items'),
+            Column::make('total')->title('Total Price')->addClass('ob-col-total'),
         ];
     }
 
