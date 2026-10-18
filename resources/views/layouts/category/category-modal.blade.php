@@ -49,6 +49,31 @@
         </div>
     </div>
 
+    <!-- Order Table Visibility Field -->
+    <div class="col-md-12">
+        <div class="form-group mb-3">
+            <label class="form-label fw-semibold" for="show_in_order_table">
+                <i class="fa fa-qrcode text-primary me-1"></i>Tampil di Order Table
+                <span class="text-danger">*</span>
+            </label>
+            <select name="show_in_order_table" id="show_in_order_table"
+                class="form-select @error('show_in_order_table') is-invalid @enderror" required>
+                <option value="1" @if(old('show_in_order_table', $data->show_in_order_table ?? 1) == 1) selected @endif>
+                    Iya, tampilkan di menu pelanggan
+                </option>
+                <option value="0" @if(old('show_in_order_table', $data->show_in_order_table ?? 1) == 0) selected @endif>
+                    Tidak, khusus kasir
+                </option>
+            </select>
+            @error('show_in_order_table')
+                <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
+            <small class="text-muted d-block mt-1">
+                <i class="fa fa-info-circle"></i> Matikan untuk kategori internal seperti Waste, Kalibrasi, atau Compliment
+            </small>
+        </div>
+    </div>
+
     <!-- Status Field -->
     <div class="col-md-12">
         <div class="form-group mb-0">

@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\ConfigController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\OpenBillController;
+use App\Http\Controllers\Api\OrderTableCashierController;
+use App\Http\Controllers\Api\OrderTableDeviceController;
 use App\Http\Controllers\Api\ShiftSessionController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\DiscountController;
@@ -37,6 +39,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 |--------------------------------------------------------------------------
 */
 Route::prefix('v1')->group(function () {
+    Route::post('/internal/order-table/events', [\App\Http\Controllers\Api\OrderTableEventController::class, 'store']);
 
     // Public routes (no auth required)
     Route::get('/outlets', [AuthController::class, 'outlets'])->name('api.v1.outlets');
@@ -105,6 +108,25 @@ Route::prefix('v1')->group(function () {
         Route::get('/transactions/sync', [TransactionController::class, 'sync'])->name('api.v1.transactions.sync');
         Route::post('/transactions/refund', [TransactionController::class, 'refund'])->name('api.v1.transactions.refund');
         Route::post('/transactions/{id}/resend-receipt', [TransactionController::class, 'resendReceipt'])->name('api.v1.transactions.resend-receipt');
+
+        // Order Table pay-at-cashier queue. Transaction creation stays in POS;
+        // settle only forwards the existing transaction ID to Order Table.
+        Route::middleware(\App\Http\Middleware\OrderTableDevice::class)->prefix('order-table/orders')->group(function () {
+            Route::get('/', [OrderTableCashierController::class, 'index'])->name('api.v1.order-table.orders.index');
+            Route::get('/{id}', [OrderTableCashierController::class, 'show'])->name('api.v1.order-table.orders.show');
+            Route::post('/{id}/settle', [OrderTableCashierController::class, 'settle'])->name('api.v1.order-table.orders.settle');
+            Route::post('/{id}/claim', [OrderTableCashierController::class, 'claim']);
+            Route::post('/{id}/claim/heartbeat', [OrderTableCashierController::class, 'heartbeat']);
+            Route::post('/{id}/quote', [OrderTableCashierController::class, 'quote']);
+            Route::post('/{id}/pay', [OrderTableCashierController::class, 'pay']);
+            Route::get('/{id}/payment-state', [OrderTableCashierController::class, 'paymentState']);
+            Route::get('/{id}/co', [OrderTableCashierController::class, 'co']);
+            Route::get('/{id}/receipt', [OrderTableCashierController::class, 'receipt']);
+            Route::post('/{id}/serve', [OrderTableCashierController::class, 'serve']);
+        });
+        Route::post('/order-table/device/fcm-token', [OrderTableDeviceController::class, 'fcmToken'])
+            ->middleware(\App\Http\Middleware\OrderTableDevice::class);
+        Route::delete('/order-table/device/fcm-token', [OrderTableDeviceController::class, 'destroy']);
     });
 
 });

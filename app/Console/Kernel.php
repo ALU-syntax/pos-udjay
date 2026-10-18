@@ -14,6 +14,7 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         $schedule->command('promo:update-status')->everyMinute();
+        $schedule->command('order-table:dispatch-push')->everyMinute()->withoutOverlapping();
         $schedule->command('email:birthday')
             ->hourly()
             ->between('1:00', '6:00');

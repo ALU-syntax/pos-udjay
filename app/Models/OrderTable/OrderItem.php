@@ -23,6 +23,7 @@ class OrderItem extends Model
         'modifier_total' => 'integer',
         'line_total' => 'integer',
         'exclude_tax' => 'boolean',
+        'voided_at' => 'datetime',
     ];
 
     public function order(): BelongsTo

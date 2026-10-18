@@ -43,11 +43,18 @@ class CategoryDataTable extends DataTable
                     return "<span class='badge badge-danger'>Tidak </span></br>";
                 }
             })
+            ->editColumn('show_in_order_table', function ($row) {
+                if ($row->show_in_order_table) {
+                    return "<span class='badge badge-success'>Tampil</span></br>";
+                } else {
+                    return "<span class='badge badge-danger'>Disembunyikan</span></br>";
+                }
+            })
             ->editColumn('created_at', function($row){
                 return Carbon::parse($row->created_at)->diffForHumans();
             })
             ->addIndexColumn()
-            ->rawColumns(['reward_categories']);
+            ->rawColumns(['reward_categories', 'show_in_order_table']);
     }
 
     /**
@@ -82,6 +89,7 @@ class CategoryDataTable extends DataTable
             Column::make('name'),
             Column::make('status'),
             Column::make('reward_categories'),
+            Column::make('show_in_order_table')->title('Order Table'),
             Column::make('created_at'),
             Column::computed('action')
                 ->exportable(false)

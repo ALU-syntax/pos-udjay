@@ -58,7 +58,14 @@ class Order extends Model
         return $this->hasOne(VoucherRedemption::class, 'order_id');
     }
 
+    /** Item yang berlaku. Baris yang dihapus/diganti saat kasir mengedit order (voided_at) tidak ikut. */
     public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class, 'order_id')->whereNull('voided_at');
+    }
+
+    /** Termasuk baris hasil edit kasir yang sudah di-void (untuk audit / komplain). */
+    public function allItems(): HasMany
     {
         return $this->hasMany(OrderItem::class, 'order_id');
     }

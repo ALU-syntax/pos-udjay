@@ -158,6 +158,11 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
+        // Deployments without the optional OT migration retain existing logout behavior.
+        if (\Illuminate\Support\Facades\Schema::hasTable('order_table_devices')) {
+            \Illuminate\Support\Facades\DB::table('order_table_devices')
+                ->where('access_token_id', $request->user()->currentAccessToken()->id)->delete();
+        }
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([

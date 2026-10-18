@@ -20,6 +20,7 @@ return new class extends Migration
             $table->integer('capacity')->nullable();
             $table->timestamps();
             $table->softDeletes();
+            $table->unique(['outlet_id', 'code'], 'ot_dining_tables_outlet_code_unique');
         });
     }
 

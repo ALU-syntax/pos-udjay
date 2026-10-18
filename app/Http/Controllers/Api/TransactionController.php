@@ -26,6 +26,7 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
 use App\Models\VariantProduct;
+use App\Models\OrderTable\Order as OrderTableOrder;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -64,6 +65,15 @@ class TransactionController extends Controller
         }
 
         $outletId = $outletIds[0];
+
+        // OT totals/items must only enter through the locked snapshot payment service.
+        if (is_string($request->input('reference_id')) &&
+            OrderTableOrder::where('order_no', $request->input('reference_id'))->exists()) {
+            return response()->json([
+                'status' => 'error', 'code' => 'ORDER_TABLE_PAYMENT_REQUIRED',
+                'message' => 'Gunakan endpoint pembayaran Order Table.',
+            ], 409);
+        }
 
         // Validasi Payload Clean JSON
         $validated = $request->validate([
@@ -168,9 +178,14 @@ class TransactionController extends Controller
             Cache::put($cacheKey, true, now()->addSeconds(30));
         }
 
+        // Email member dikumpulkan selama transaksi DB dan baru dikirim setelah commit,
+        // supaya gangguan SMTP tidak membatalkan transaksi (dan tidak menahan sync kasir).
+        $pendingMails = [];
+
         // Jalankan transaksi dalam DB Transaction
         try {
-            $transactionResult = DB::transaction(function () use ($validated, $user, $outletId, $referenceId, $shiftSessionId) {
+            $transactionResult = DB::transaction(function () use ($validated, $user, $outletId, $referenceId, $shiftSessionId, &$pendingMails) {
+                $pendingMails = []; // bila closure diulang (retry), jangan ada email dobel
 
                 $billId = isset($validated['bill_id']) && (int)$validated['bill_id'] !== 0 ? (int)$validated['bill_id'] : null;
                 $isSplitBill = filter_var($validated['split_bill'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -326,7 +341,7 @@ class TransactionController extends Controller
                                 'levelMembership' => $customer->levelMembership?->name ?? '-',
                             ];
                             if (!empty($customer->email)) {
-                                Mail::to($customer->email)->send(new PenukaranPoin($dataEmailPointUse));
+                                $pendingMails[] = [$customer->email, new PenukaranPoin($dataEmailPointUse)];
                             }
                         }
 
@@ -352,7 +367,7 @@ class TransactionController extends Controller
                             'expired'         => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y')
                         ];
                         if (!empty($customer->email)) {
-                            Mail::to($customer->email)->send(new PenambahanPointExpMembership($dataEmail));
+                            $pendingMails[] = [$customer->email, new PenambahanPointExpMembership($dataEmail)];
                         }
 
                         $levelNameMember = $customer->levelMembership?->name ?? '-';
@@ -372,7 +387,7 @@ class TransactionController extends Controller
                                     'expired'       => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y')
                                 ];
                                 if (!empty($customer->email)) {
-                                    Mail::to($customer->email)->send(new PenambahanPoinMembershipKomunitas($dataPointCommunity));
+                                    $pendingMails[] = [$customer->email, new PenambahanPoinMembershipKomunitas($dataPointCommunity)];
                                 }
                             }
                         }
@@ -405,7 +420,7 @@ class TransactionController extends Controller
                                             $dataEmailLevelUp['nextMember'] = $listLevelMembership[$index + 1]->name;
                                         }
                                         if (!empty($customer->email)) {
-                                            Mail::to($customer->email)->send(new KenaikanLevelMember($dataEmailLevelUp));
+                                            $pendingMails[] = [$customer->email, new KenaikanLevelMember($dataEmailLevelUp)];
                                         }
 
                                         $customer->level_memberships_id = $level->id;
@@ -432,7 +447,7 @@ class TransactionController extends Controller
                             'expired'         => Carbon::parse($customer->created_at)->addYear()->format('d-m-Y')
                         ];
                         if (!empty($customer->email)) {
-                            Mail::to($customer->email)->send(new BerandaMember($dataEmailBeranda));
+                            $pendingMails[] = [$customer->email, new BerandaMember($dataEmailBeranda)];
                         }
 
                         $customer->save();
@@ -589,6 +604,8 @@ class TransactionController extends Controller
 
                 return $transaction;
             });
+
+            $this->sendMemberMails($pendingMails, $referenceId);
 
             return $this->buildSuccessResponse($transactionResult, "Transaksi Berhasil");
 
@@ -1226,5 +1243,26 @@ class TransactionController extends Controller
             'updated_at' => $updatedAt->toDateTimeString(),
             'id'         => (int) $payload['id'],
         ];
+    }
+
+    /**
+     * Kirim email member setelah transaksi tersimpan. Kegagalan (SMTP mati, timeout, dll.)
+     * hanya dicatat: transaksi kasir tetap sukses dan tidak perlu dikirim ulang.
+     *
+     * @param  array<int, array{0: string, 1: \Illuminate\Mail\Mailable}>  $mails
+     */
+    private function sendMemberMails(array $mails, ?string $referenceId): void
+    {
+        foreach ($mails as [$email, $mailable]) {
+            try {
+                Mail::to($email)->send($mailable);
+            } catch (\Throwable $e) {
+                Log::warning('Email member gagal dikirim setelah transaksi tersimpan', [
+                    'reference_id' => $referenceId,
+                    'mailable'     => class_basename($mailable),
+                    'error'        => $e->getMessage(),
+                ]);
+            }
+        }
     }
 }
