@@ -23,6 +23,10 @@ class OpenBillDataTable extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
+            ->addColumn('checkbox', function ($row) {
+                $nama = e($row->name);
+                return "<label class='ob-check' onclick='event.stopPropagation()'><input type='checkbox' class='ob-row-check' value='{$row->id}' data-name='{$nama}' aria-label='Pilih bill {$nama}'></label>";
+            })
             ->addColumn('status', function ($row) {
                 $status = $row->deleted_at ? "<span class='badge badge-success'>Sudah Dibayar</span></br>" : "<span class='badge badge-danger'>Belum Dibayar</span></br>";
                 return $status;
@@ -73,7 +77,7 @@ class OpenBillDataTable extends DataTable
 
                 return formatRupiah(intval($total), "Rp. ");
             })
-            ->rawColumns(['items', 'status', 'outlet'])
+            ->rawColumns(['checkbox', 'items', 'status', 'outlet'])
             ->setRowId('id')
             ->setRowAttr([
                 'onclick' => function($row){
@@ -141,7 +145,7 @@ class OpenBillDataTable extends DataTable
                     ->columns($this->getColumns())
                     ->minifiedAjax(route('report/openbill/data'))
                     //->dom('Bfrtip')
-                    ->orderBy(1)
+                    ->orderBy($this->canBulkDelete() ? 2 : 1)
                     ->selectStyleSingle()
                     ->buttons([
                         Button::make('excel'),
@@ -158,15 +162,35 @@ class OpenBillDataTable extends DataTable
      */
     public function getColumns(): array
     {
-        return [
-            Column::make('status')->title("Status"),
-            Column::make('name')->title("Nama"),
-            Column::make('created_at')->title("Time"),
+        $columns = [
+            Column::make('status')->title("Status")->addClass('ob-col-status'),
+            Column::make('name')->title("Nama")->addClass('ob-col-name'),
+            Column::make('created_at')->title("Time")->addClass('ob-col-time'),
             Column::make('outlet')->title("Outlet"),
             Column::make('user_id')->title('Collected By'),
-            Column::make('items')->title('Items'),
-            Column::make('total')->title('Total Price'),
+            Column::make('items')->title('Items')->addClass('ob-col-items'),
+            Column::make('total')->title('Total Price')->addClass('ob-col-total'),
         ];
+
+        if ($this->canBulkDelete()) {
+            array_unshift($columns, Column::computed('checkbox')
+                ->title("<input type='checkbox' id='ob-check-all' aria-label='Pilih semua bill di halaman ini'>")
+                ->orderable(false)
+                ->searchable(false)
+                ->exportable(false)
+                ->printable(false)
+                ->addClass('ob-col-check'));
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Kolom checkbox bulk delete hanya untuk user yang boleh menghapus open bill.
+     */
+    protected function canBulkDelete(): bool
+    {
+        return auth()->check() && auth()->user()->can('delete report/openbill');
     }
 
     /**

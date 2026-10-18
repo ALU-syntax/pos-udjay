@@ -244,15 +244,21 @@
             height: 38px;
             border: 1px solid var(--ob-border-strong);
             border-radius: var(--ob-radius-sm);
-            padding: 0 .75rem;
-            font-size: .875rem;
+            /* !important: menimpa .form-control-sm Kaiadmin (padding .25rem .5rem !important) */
+            padding: 0 .75rem !important;
+            font-size: .875rem !important;
             background-color: var(--ob-surface);
             transition: border-color .15s ease, box-shadow .15s ease;
         }
 
+        .ob-page .dataTables_wrapper .dataTables_length select {
+            padding-right: 2rem !important;
+            background-position: right .6rem center;
+        }
+
         .ob-page .dataTables_wrapper .dataTables_filter input {
             min-width: 240px;
-            padding-left: 2.1rem;
+            padding-left: 2.25rem !important;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: .7rem center;
@@ -360,17 +366,17 @@
             border-bottom: 0 !important;
         }
 
-        /* Kolom: Nama, Time, Items, Total */
-        .ob-page table.dataTable tbody td:nth-child(2) {
+        /* Kolom (class dari DataTable PHP) */
+        .ob-page table.dataTable tbody td.ob-col-name {
             font-weight: 600;
         }
 
-        .ob-page table.dataTable tbody td:nth-child(3) {
+        .ob-page table.dataTable tbody td.ob-col-time {
             color: var(--ob-text-2);
             font-variant-numeric: tabular-nums;
         }
 
-        .ob-page table.dataTable tbody td:nth-child(6) {
+        .ob-page table.dataTable tbody td.ob-col-items {
             max-width: 280px;
             color: var(--ob-text-2);
             white-space: nowrap;
@@ -378,15 +384,145 @@
             text-overflow: ellipsis;
         }
 
-        .ob-page table.dataTable tbody td:nth-child(7) {
+        .ob-page table.dataTable tbody td.ob-col-total {
             font-weight: 700;
             white-space: nowrap;
             text-align: right;
             font-variant-numeric: tabular-nums;
         }
 
-        .ob-page table.dataTable thead th:nth-child(7) {
+        .ob-page table.dataTable thead th.ob-col-total {
             text-align: right;
+        }
+
+        /* Kolom checkbox bulk delete */
+        .ob-page table.dataTable th.ob-col-check,
+        .ob-page table.dataTable td.ob-col-check {
+            width: 44px !important;
+            min-width: 44px !important;
+            max-width: 44px !important;
+            padding: 0 0 0 .25rem !important;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        /* Rapatkan jarak checkbox ke kolom berikutnya */
+        .ob-page table.dataTable th.ob-col-check+th,
+        .ob-page table.dataTable td.ob-col-check+td {
+            padding-left: .5rem !important;
+        }
+
+        /* <br> dari kolom status server membuat badge tidak center vertikal */
+        .ob-page table.dataTable tbody td br {
+            display: none;
+        }
+
+        .ob-check {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            padding: .85rem 0;
+            margin: 0 !important;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        /* Checkbox custom: 16px, sejajar dengan teks 14px & badge */
+        .ob-page input.ob-row-check,
+        .ob-page #ob-check-all {
+            appearance: none;
+            -webkit-appearance: none;
+            flex-shrink: 0;
+            display: inline-grid;
+            place-content: center;
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            border: 1.5px solid var(--ob-border-strong);
+            border-radius: 4px;
+            background: var(--ob-surface);
+            cursor: pointer;
+            vertical-align: middle;
+            transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .ob-page input.ob-row-check:hover,
+        .ob-page #ob-check-all:hover {
+            border-color: var(--ob-primary);
+        }
+
+        .ob-page input.ob-row-check:focus-visible,
+        .ob-page #ob-check-all:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(21, 114, 232, .25);
+        }
+
+        .ob-page input.ob-row-check:checked,
+        .ob-page #ob-check-all:checked,
+        .ob-page #ob-check-all:indeterminate {
+            background: var(--ob-primary);
+            border-color: var(--ob-primary);
+        }
+
+        .ob-page input.ob-row-check:checked::after,
+        .ob-page #ob-check-all:checked::after {
+            content: "";
+            width: 8px;
+            height: 4.5px;
+            border-left: 2px solid #fff;
+            border-bottom: 2px solid #fff;
+            transform: translateY(-1px) rotate(-45deg);
+        }
+
+        .ob-page #ob-check-all:indeterminate::after {
+            content: "";
+            width: 8px;
+            height: 2px;
+            border-radius: 1px;
+            background: #fff;
+        }
+
+        .ob-page table.dataTable tbody tr.ob-row-checked td {
+            background: #f1f6fe !important;
+        }
+
+        /* Action bar bulk delete */
+        .ob-bulkbar {
+            display: none;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem;
+            margin: 0 1.25rem;
+            margin-top: 1rem;
+            padding: .6rem .6rem .6rem 1rem;
+            border: 1px solid #fecaca;
+            border-radius: var(--ob-radius-sm);
+            background: #fff7f7;
+        }
+
+        .ob-bulkbar.is-visible {
+            display: flex;
+        }
+
+        .ob-bulkbar__info {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            font-size: .875rem;
+            font-weight: 600;
+            color: var(--ob-text);
+        }
+
+        .ob-bulkbar__info i {
+            color: var(--ob-danger);
+        }
+
+        .ob-bulkbar__actions {
+            display: flex;
+            gap: .5rem;
         }
 
         #openbill-table tbody tr,
@@ -843,6 +979,21 @@
                         </ul>
                         <span class="ob-hint"><i class="fas fa-mouse-pointer" aria-hidden="true"></i> Klik baris untuk melihat detail</span>
                     </div>
+
+                    @can('delete report/openbill')
+                        <div class="ob-bulkbar" id="ob-bulkbar" role="region" aria-live="polite" aria-label="Aksi bill terpilih">
+                            <div class="ob-bulkbar__info">
+                                <i class="fas fa-check-square" aria-hidden="true"></i>
+                                <span><span id="ob-selected-count">0</span> bill dipilih</span>
+                            </div>
+                            <div class="ob-bulkbar__actions">
+                                <button type="button" class="btn ob-btn ob-btn-ghost" id="btn-clear-selection">Batal</button>
+                                <button type="button" class="btn ob-btn ob-btn-danger" id="btn-bulk-delete-openbill">
+                                    <i class="fas fa-trash-alt" aria-hidden="true"></i> Hapus Terpilih
+                                </button>
+                            </div>
+                        </div>
+                    @endcan
 
                     <div class="tab-content ob-table-wrap" id="line-tabContent">
                         <div class="tab-pane fade show active" id="open-bill" role="tabpanel"
@@ -1339,6 +1490,129 @@
                     restoreOpenBill(idOpenBill);
                 });
 
+            });
+
+            // ===== Bulk delete open bill =====
+            // Pilihan disimpan lintas halaman pagination, dikosongkan saat filter/tab berubah.
+            const selectedOpenBills = new Map(); // id => nama bill
+
+            function escapeHtml(text) {
+                return $('<div>').text(text ?? '').html();
+            }
+
+            function syncBulkSelectionUi() {
+                const jumlah = selectedOpenBills.size;
+                $('#ob-selected-count').text(jumlah);
+                $('#ob-bulkbar').toggleClass('is-visible', jumlah > 0);
+
+                const rowChecks = openBillTable.find('tbody input.ob-row-check');
+                rowChecks.each(function() {
+                    const checked = selectedOpenBills.has(String(this.value));
+                    this.checked = checked;
+                    $(this).closest('tr').toggleClass('ob-row-checked', checked);
+                });
+
+                const totalDiHalaman = rowChecks.length;
+                const terpilihDiHalaman = rowChecks.filter(':checked').length;
+                const checkAll = $('#ob-check-all')[0];
+                if (checkAll) {
+                    checkAll.checked = totalDiHalaman > 0 && terpilihDiHalaman === totalDiHalaman;
+                    checkAll.indeterminate = terpilihDiHalaman > 0 && terpilihDiHalaman < totalDiHalaman;
+                }
+            }
+
+            function clearBulkSelection() {
+                selectedOpenBills.clear();
+                syncBulkSelectionUi();
+            }
+
+            function bulkDeleteOpenBill() {
+                const ids = Array.from(selectedOpenBills.keys());
+                if (!ids.length) return;
+
+                const names = Array.from(selectedOpenBills.values());
+                const maxTampil = 5;
+                let listHtml = names.slice(0, maxTampil).map(n => `<li>${escapeHtml(n)}</li>`).join('');
+                if (names.length > maxTampil) {
+                    listHtml += `<li><em>+${names.length - maxTampil} lainnya</em></li>`;
+                }
+
+                Swal.fire({
+                    title: `Hapus ${ids.length} Open Bill?`,
+                    html: `<ul class="text-start mb-0">${listHtml}</ul>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, hapus semua',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+
+                    $.ajax({
+                        url: `{{ route('report/openbill/bulkDeleteOpenBill') }}`,
+                        method: 'POST',
+                        data: {
+                            ids: ids,
+                        },
+                        beforeSend: function() {
+                            showLoader();
+                            $('#btn-bulk-delete-openbill').prop('disabled', true);
+                        },
+                        complete: function() {
+                            showLoader(false);
+                            $('#btn-bulk-delete-openbill').prop('disabled', false);
+                        },
+                        success: function(res) {
+                            showToast('success', res.message);
+
+                            if (stateLastId && selectedOpenBills.has(String(stateLastId))) {
+                                removeDetailCard(detailCard, tableContainer, openBillTable);
+                                stateLastId = 0;
+                            }
+
+                            clearBulkSelection();
+                            window.LaravelDataTables[idOpenBillDatatable].ajax.reload(null, false);
+                            window.LaravelDataTables[idOpenBillDeletedDatatable].ajax.reload(null, false);
+                        },
+                        error: function(xhr) {
+                            console.error(xhr);
+                            Swal.fire('Gagal', xhr.responseJSON?.message ?? 'Open Bill gagal dihapus', 'error');
+                        }
+                    });
+                });
+            }
+
+            $(document).ready(function() {
+                openBillTable.on('change', 'tbody input.ob-row-check', function() {
+                    if (this.checked) {
+                        selectedOpenBills.set(String(this.value), $(this).data('name'));
+                    } else {
+                        selectedOpenBills.delete(String(this.value));
+                    }
+                    syncBulkSelectionUi();
+                });
+
+                $(document).on('change', '#ob-check-all', function() {
+                    const checked = this.checked;
+                    openBillTable.find('tbody input.ob-row-check').each(function() {
+                        if (checked) {
+                            selectedOpenBills.set(String(this.value), $(this).data('name'));
+                        } else {
+                            selectedOpenBills.delete(String(this.value));
+                        }
+                    });
+                    syncBulkSelectionUi();
+                });
+
+                openBillTable.on('draw.dt', syncBulkSelectionUi);
+
+                // Filter / tab berubah -> data berbeda, kosongkan pilihan agar tidak salah hapus
+                $('#filter-outlet, #status-bill').on('change', clearBulkSelection);
+                $('a[data-bs-toggle="pill"]').on('shown.bs.tab', clearBulkSelection);
+
+                $('#btn-clear-selection').on('click', clearBulkSelection);
+                $('#btn-bulk-delete-openbill').on('click', bulkDeleteOpenBill);
             });
         </script>
     @endpush

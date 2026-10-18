@@ -539,6 +539,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/getOpenBillDataDetail', [OpenBillController::class, 'getOpenBillDataDetail'])->name('openbill/getOpenBillDataDetail');
             Route::post('/restoreOpenBill', [OpenBillController::class, 'restoreOpenBill'])->name('openbill/restoreOpenBill');
             Route::post('/deleteOpenBill/{idOpenBill}', [OpenBillController::class, 'deleteOpenBill'])->name('openbill/deleteOpenBill');
+            Route::post('/bulkDeleteOpenBill', [OpenBillController::class, 'bulkDeleteOpenBill'])->name('openbill/bulkDeleteOpenBill');
 
         });
 

@@ -92,6 +92,31 @@ class OpenBillController extends Controller
         $openBill->save();
     }
 
+    public function bulkDeleteOpenBill(Request $request){
+        abort_unless(auth()->user()->can('delete report/openbill'), 403);
+
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+        ]);
+
+        $userOutlet = json_decode(auth()->user()->outlet_id);
+
+        $jumlahTerhapus = OpenBill::withTrashed()
+            ->whereIn('id', $request->input('ids'))
+            ->whereIn('outlet_id', $userOutlet)
+            ->whereNull('delete_permanen')
+            ->update([
+                'delete_permanen' => Carbon::now(),
+                'id_user_deleted' => auth()->user()->id
+            ]);
+
+        return response()->json([
+            'message' => "{$jumlahTerhapus} Open Bill berhasil dihapus",
+            'deleted' => $jumlahTerhapus,
+        ]);
+    }
+
     public function getOpenBillDataTable(OpenBillDataTable $openBillDataTable)
     {
         return $openBillDataTable->ajax();

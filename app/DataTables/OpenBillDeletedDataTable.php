@@ -161,13 +161,13 @@ class OpenBillDeletedDataTable extends DataTable
     public function getColumns(): array
     {
         return [
-            Column::make('status')->title("Status"),
-            Column::make('name')->title("Nama"),
-            Column::make('created_at')->title("Time"),
+            Column::make('status')->title("Status")->addClass('ob-col-status'),
+            Column::make('name')->title("Nama")->addClass('ob-col-name'),
+            Column::make('created_at')->title("Time")->addClass('ob-col-time'),
             Column::make('outlet')->title("Outlet"),
             Column::make('user_id')->title('Collected By'),
-            Column::make('items')->title('Items'),
-            Column::make('total')->title('Total Price'),
+            Column::make('items')->title('Items')->addClass('ob-col-items'),
+            Column::make('total')->title('Total Price')->addClass('ob-col-total'),
         ];
     }
 
