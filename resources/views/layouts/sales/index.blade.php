@@ -1,155 +1,397 @@
 @extends('layouts.app')
 @section('content')
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+
+    @include('layouts.reports.partials.ui-styles')
+
     <style>
-        /* Menghilangkan semua border pada tabel */
-        #payment-method-table {
-            border-collapse: collapse;
-            /* Menghilangkan border */
+        /* ===== Sales — layout: navigasi laporan di kiri, konten di kanan ===== */
+        .ob-sales {
+            display: grid;
+            grid-template-columns: 240px minmax(0, 1fr);
+            align-items: start;
         }
 
-        /* Menghilangkan border pada sel */
-        #payment-method-table th,
-        #payment-method-table td {
-            border: none;
-            /* Menghilangkan border */
-            padding: 8px;
-            /* Menambahkan padding untuk estetika */
+        .ob-sidenav {
+            gap: .15rem;
+            padding: 1rem .75rem;
+            border-right: 1px solid var(--ob-border);
+            min-height: 100%;
         }
 
-        /* Menambahkan border vertikal di kanan kolom Payment Method */
-        #payment-method-table td:first-child {
-            border-right: 1px solid #ccc;
-            /* Border kanan */
+        .ob-sidenav__label {
+            padding: 0 .65rem .5rem;
+            font-size: .7rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--ob-muted);
         }
 
-        /* Menambahkan border horizontal atas dan bawah di baris Total */
-        #payment-method-table tr:last-child {
-            border-top: 2px solid #000;
-            /* Border atas */
-            border-bottom: 2px solid #000;
-            /* Border bawah */
+        .ob-sidenav .nav-link {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            min-height: 40px;
+            padding: .5rem .65rem;
+            border: 0;
+            border-radius: 9px;
+            font-size: .875rem;
+            font-weight: 500;
+            color: var(--ob-text-2);
+            background: transparent;
+            cursor: pointer;
+            transition: background-color .15s ease, color .15s ease;
         }
 
-        /* Menambahkan background abu pada header tabel */
-        #payment-method-table thead th {
-            background-color: #f2f2f2;
-            /* Warna abu */
+        .ob-sidenav .nav-link i {
+            width: 18px;
+            text-align: center;
+            color: var(--ob-muted);
+            transition: color .15s ease;
         }
 
-        #payment-method-merchant-table {
-            border-collapse: collapse;
-            /* Menghilangkan border */
+        .ob-sidenav .nav-link:hover {
+            background: var(--ob-surface-2);
+            color: var(--ob-text);
         }
 
-        /* Menghilangkan border pada sel */
-        #payment-method-merchant-table th,
-        #payment-method-merchant-table td {
-            border: none;
-            /* Menghilangkan border */
-            padding: 8px;
-            /* Menambahkan padding untuk estetika */
+        .ob-sidenav .nav-link.active {
+            background: var(--ob-primary-soft);
+            color: var(--ob-primary);
+            font-weight: 600;
         }
 
-        /* Menambahkan border vertikal di kanan kolom Payment Method */
-        #payment-method-merchant-table td:first-child {
-            border-right: 1px solid #ccc;
-            /* Border kanan */
+        .ob-sidenav .nav-link.active i {
+            color: var(--ob-primary);
         }
 
-        /* Menambahkan border horizontal atas dan bawah di baris Total */
-        #payment-method-merchant-table tr:last-child {
-            border-top: 2px solid #000;
-            /* Border atas */
-            border-bottom: 2px solid #000;
-            /* Border bawah */
+        .ob-sidenav .nav-link:focus-visible {
+            outline: 2px solid var(--ob-primary);
+            outline-offset: 2px;
         }
 
-        /* Menambahkan background abu pada header tabel */
-        #payment-method-merchant-table thead th {
-            background-color: #f2f2f2;
-            /* Warna abu */
+        .ob-sales__content {
+            min-width: 0;
+            padding: 1.25rem;
         }
 
-        /* Menambahkan border vertikal di kanan kolom item sales */
-        #item-sales td:first-child {
-            border-right: 1px solid #ccc;
-            /* Border kanan */
+        @media (max-width: 991.98px) {
+            .ob-sales {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            /* Navigasi jadi baris horizontal yang bisa di-scroll */
+            .ob-sidenav {
+                flex-direction: row !important;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                border-right: 0;
+                border-bottom: 1px solid var(--ob-border);
+                padding: .75rem;
+                scrollbar-width: thin;
+            }
+
+            .ob-sidenav__label {
+                display: none;
+            }
+
+            .ob-sidenav .nav-link {
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .ob-sales__content {
+                padding: 1rem;
+            }
         }
 
-        /* Menambahkan border horizontal atas dan bawah di baris Total */
-        #item-sales tr:last-child {
-            border-top: 2px solid #000;
-            /* Border atas */
-            border-bottom: 2px solid #000;
-            /* Border bawah */
+        /* ----- Header tiap tab ----- */
+        .ob-pane-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: .75rem;
+            margin-bottom: 1rem;
         }
 
-        /* Menambahkan background abu pada header tabel */
-        #item-sales thead th {
-            background-color: #f2f2f2;
-            /* Warna abu */
+        .ob-pane-head__title {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--ob-text);
         }
 
-        /* Pastikan kolom Name boleh membungkus dan punya lebar minimal */
+        .ob-pane-head__desc {
+            margin: .2rem 0 0;
+            font-size: .82rem;
+            color: var(--ob-muted);
+        }
+
+        /* ----- Callout info ----- */
+        .ob-callout {
+            display: flex;
+            gap: .75rem;
+            padding: .85rem 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid #bfdbfe;
+            border-radius: var(--ob-radius-sm);
+            background: #eff6ff;
+            color: #1e3a8a;
+            font-size: .85rem;
+            line-height: 1.5;
+        }
+
+        .ob-callout i {
+            margin-top: .15rem;
+            color: var(--ob-primary);
+        }
+
+        .ob-callout p {
+            margin: 0 0 .15rem;
+            font-weight: 700;
+            font-size: .85rem;
+        }
+
+        /* ----- Laporan bentuk statement (Sales Summary & Gross Profit) ----- */
+        .ob-statement {
+            border: 1px solid var(--ob-border);
+            border-radius: var(--ob-radius-sm);
+            overflow: hidden;
+            max-width: 720px;
+        }
+
+        .ob-statement__head {
+            display: flex;
+            justify-content: space-between;
+            padding: .7rem 1rem;
+            background: var(--ob-surface-2);
+            border-bottom: 1px solid var(--ob-border);
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--ob-muted);
+        }
+
+        .ob-statement__row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: .8rem 1rem;
+            font-size: .9rem;
+            color: var(--ob-text-2);
+        }
+
+        .ob-statement__row+.ob-statement__row {
+            border-top: 1px solid var(--ob-border);
+        }
+
+        .ob-statement__row>div:last-child {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: .5rem;
+            text-align: right;
+            color: var(--ob-text);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .ob-statement__row--indent>div:first-child {
+            padding-left: 1rem;
+        }
+
+        .ob-statement__row--subtotal {
+            background: var(--ob-surface-2);
+            color: var(--ob-text);
+            font-weight: 700;
+            border-top: 1px solid var(--ob-border-strong) !important;
+        }
+
+        .ob-statement__row--grand {
+            background: var(--ob-primary-soft);
+            color: var(--ob-text);
+            font-weight: 700;
+            border-top: 2px solid var(--ob-primary) !important;
+        }
+
+        .ob-statement__row--grand>div:last-child {
+            color: var(--ob-primary);
+            font-size: 1.05rem;
+        }
+
+        .ob-statement strong {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            font-weight: inherit;
+        }
+
+        /* ----- Tabel biasa (Payment Method) ----- */
+        .ob-plain-table {
+            border: 1px solid var(--ob-border);
+            border-radius: var(--ob-radius-sm);
+            overflow: auto;
+        }
+
+        .ob-plain-table table {
+            margin: 0;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .ob-plain-table thead th {
+            padding: .8rem 1rem !important;
+            background: var(--ob-surface-2);
+            border: 0 !important;
+            border-bottom: 1px solid var(--ob-border) !important;
+            color: var(--ob-muted);
+            font-size: .72rem !important;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .ob-plain-table thead th b {
+            font-weight: inherit;
+        }
+
+        .ob-plain-table tbody td {
+            padding: .75rem 1rem !important;
+            border: 0 !important;
+            border-bottom: 1px solid var(--ob-border) !important;
+            font-size: .875rem;
+            color: var(--ob-text);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .ob-plain-table tbody tr:hover td {
+            background: var(--ob-surface-2);
+        }
+
+        .ob-plain-table th:nth-child(n+2),
+        .ob-plain-table td:nth-child(n+2) {
+            text-align: right;
+        }
+
+        /* Baris terakhir = Total */
+        .ob-plain-table tbody tr:last-child td {
+            border-bottom: 0 !important;
+            border-top: 2px solid var(--ob-border-strong) !important;
+            background: var(--ob-surface-2);
+            font-weight: 700;
+        }
+
+        /* ----- DataTables di halaman Sales ----- */
+        .ob-sales table.dataTable td,
+        .ob-sales table.dataTable th {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .ob-sales table.dataTable thead th b,
+        .ob-sales table.dataTable tfoot th b {
+            font-weight: inherit;
+        }
+
+        .ob-sales .text-col-right,
+        .ob-sales table.dataTable .text-end {
+            text-align: right !important;
+        }
+
+        /* Footer total */
+        .ob-page table.dataTable tfoot th,
+        .ob-page table.dataTable tfoot td {
+            padding: .8rem 1rem !important;
+            background: var(--ob-surface-2) !important;
+            border: 0 !important;
+            border-top: 2px solid var(--ob-border-strong) !important;
+            color: var(--ob-text);
+            font-size: .85rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        /* scrollX memecah tabel jadi head/body/foot terpisah: border di container saja */
+        .ob-page .dataTables_scroll,
+        .ob-page .dt-scroll {
+            border: 1px solid var(--ob-border);
+            border-radius: var(--ob-radius-sm);
+            overflow: hidden;
+        }
+
+        .ob-page .dataTables_scroll table.dataTable,
+        .ob-page .dt-scroll table.dataTable {
+            border: 0 !important;
+            border-radius: 0;
+        }
+
+        .ob-page .dataTables_scrollHead,
+        .ob-page .dt-scroll-head {
+            background: var(--ob-surface-2);
+        }
+
+        .ob-page .dataTables_scrollBody,
+        .ob-page .dt-scroll-body {
+            border-bottom: 0 !important;
+        }
+
+        /* FixedColumns: kolom beku harus punya latar solid agar isi kolom lain tidak tembus */
+        .ob-page table.dataTable tbody td.dtfc-fixed-left,
+        .ob-page table.dataTable tbody td.dtfc-fixed-start {
+            background: var(--ob-surface) !important;
+            box-shadow: inset -1px 0 0 var(--ob-border) !important;
+        }
+
+        .ob-page table.dataTable thead th.dtfc-fixed-left,
+        .ob-page table.dataTable thead th.dtfc-fixed-start,
+        .ob-page table.dataTable tfoot th.dtfc-fixed-left,
+        .ob-page table.dataTable tfoot th.dtfc-fixed-start {
+            background: var(--ob-surface-2) !important;
+            box-shadow: inset -1px 0 0 var(--ob-border) !important;
+            z-index: 2;
+        }
+
+        .ob-page table.dataTable tbody tr:hover td.dtfc-fixed-left,
+        .ob-page table.dataTable tbody tr:hover td.dtfc-fixed-start {
+            background: var(--ob-surface-2) !important;
+        }
+
+        /* Baris yang membuka modal detail */
+        #item-sales tbody tr,
+        #category-sales tbody tr {
+            cursor: pointer;
+            transition: background-color .15s ease;
+        }
+
+        #item-sales tbody tr:hover td,
+        #category-sales tbody tr:hover td {
+            background: var(--ob-surface-2) !important;
+        }
+
+        /* Kolom Name boleh membungkus dan punya lebar minimal (sesuai columnDefs JS) */
         #item-sales td:nth-child(1),
         #item-sales th:nth-child(1) {
             white-space: normal;
-            /* hapus kalau sebelumnya pakai text-nowrap */
             min-width: 200px;
-            /* match dengan JS columnDefs width */
         }
 
-        /* Kalau kamu sebelumnya menaruh text-truncate/nowrap di semua sel, netralkan khusus Name */
         #item-sales td:nth-child(1) .text-truncate {
             overflow: visible;
             text-overflow: unset;
             white-space: normal;
         }
 
-
-        /* Menambahkan border vertikal di kanan kolom category sales */
-        #category-sales td:first-child {
-            border-right: 1px solid #ccc;
-            /* Border kanan */
-        }
-
-        /* Menambahkan border horizontal atas dan bawah di baris Total */
-        #category-sales tr:last-child {
-            border-top: 2px solid #000;
-            /* Border atas */
-            border-bottom: 2px solid #000;
-            /* Border bawah */
-        }
-
-        /* Menambahkan background abu pada header tabel */
-        #category-sales thead th {
-            background-color: #f2f2f2;
-            /* Warna abu */
-        }
-
-        /* Menambahkan border vertikal di kanan kolom modifier sales */
-        #modifier-sales td:first-child {
-            border-right: 1px solid #ccc;
-            /* Border kanan */
-        }
-
-        /* Menambahkan border horizontal atas dan bawah di baris Total */
-        #modifier-sales tr:last-child {
-            border-top: 2px solid #000;
-            /* Border atas */
-            border-bottom: 2px solid #000;
-            /* Border bawah */
-        }
-
-        /* Menambahkan background abu pada header tabel */
-        #modifier-sales thead th {
-            background-color: #f2f2f2;
-            /* Warna abu */
-        }
-
+        /* Modifier: baris induk & anak */
         #modifier-sales tbody tr.modifier-parent-row td {
-            background-color: #eef2f7;
-            border-top: 6px solid #fff;
+            background-color: var(--ob-surface-2) !important;
+            border-top: 1px solid var(--ob-border-strong) !important;
             font-weight: 700;
         }
 
@@ -157,6 +399,7 @@
             position: relative;
             padding-left: 2.5rem !important;
             font-weight: 500;
+            color: var(--ob-text-2);
         }
 
         #modifier-sales tbody tr.modifier-child-row td:first-child::before {
@@ -164,91 +407,74 @@
             top: 50%;
             left: 1.25rem;
             width: 0.75rem;
-            border-top: 1px solid #9ca3af;
+            border-top: 1px solid var(--ob-border-strong);
             content: '';
         }
 
-        /* Menambahkan border vertikal di kanan kolom discount sales */
-        #discount-sales td:first-child {
-            border-right: 1px solid #ccc;
-            /* Border kanan */
-        }
-
-        /* Menambahkan border horizontal atas dan bawah di baris Total */
-        #discount-sales tr:last-child {
-            border-top: 2px solid #000;
-            /* Border atas */
-            border-bottom: 2px solid #000;
-            /* Border bawah */
-        }
-
-        /* Menambahkan background abu pada header tabel */
-        #discount-sales thead th {
-            background-color: #f2f2f2;
-            /* Warna abu */
-        }
-
-        .nav-pills.nav-primary .nav-link.active {
-            background: #d03c3c;
-            border: 1px solid #d03c3c
-        }
-
-        .text-col-right {
-            text-align: right;
-        }
-
-        /* basis tombol modern */
-        .btn-modern {
-            border: none !important;
-            border-radius: 10px !important;
-            padding: 10px 14px !important;
-            font-weight: 600 !important;
-            box-shadow: 0 6px 14px rgba(0, 0, 0, .08);
-            transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
-            color: #fff !important;
-            background-color: #d03c3c !important;
-        }
-
-        .btn-modern:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 18px rgba(0, 0, 0, .12);
-        }
-
-        /* varian warna */
-        .btn-excel {
-            background: #22c55e;
-            color: #fff;
-        }
-
-        .btn-csv {
-            background: #3b82f6;
-            color: #fff;
-        }
-
-        .btn-print {
-            background: #111827;
-            color: #fff;
-        }
-
-        /* icon optional (pakai Material Design Icons / FontAwesome kalau ada) */
-        .btn-modern .mdi {
-            margin-right: 6px;
-            font-size: 18px;
-            vertical-align: -2px;
-        }
-
-        /* pastikan tombol berada “di atas” header scroll */
-        .dataTables_wrapper .dt-buttons {
+        /* ----- Tombol export (dibuat oleh JS DataTables Buttons & tombol Sales Summary) ----- */
+        .ob-page .dataTables_wrapper .dt-buttons {
             position: relative;
             z-index: 5;
+            float: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            margin-bottom: .85rem;
         }
 
+        .ob-page .btn-modern,
+        .ob-page .dt-buttons .btn-modern.dt-button {
+            display: inline-flex !important;
+            align-items: center;
+            gap: .45rem;
+            min-height: 40px;
+            margin: 0 !important;
+            padding: .5rem 1rem !important;
+            border: 1px solid #15803d !important;
+            border-radius: 10px !important;
+            background: #15803d !important;
+            background-image: none !important;
+            color: #fff !important;
+            font-size: .85rem !important;
+            font-weight: 600 !important;
+            line-height: 1.2;
+            box-shadow: 0 4px 12px rgba(21, 128, 61, .22) !important;
+            transition: transform .12s ease, box-shadow .15s ease, background-color .15s ease;
+        }
+
+        .ob-page .btn-modern:hover,
+        .ob-page .dt-buttons .btn-modern.dt-button:hover:not(.disabled) {
+            background: #166534 !important;
+            border-color: #166534 !important;
+            transform: translateY(-1px);
+        }
+
+        .ob-page .btn-modern:disabled {
+            opacity: .7;
+            transform: none;
+        }
+
+        /* Ikon Excel konsisten (FontAwesome), dipakai juga bila MDI tidak termuat */
+        .ob-page .btn-modern .mdi.mdi-file-excel::before {
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+            content: "\f1c3";
+            font-size: .95rem;
+        }
+
+        .ob-page .btn-modern .mdi {
+            margin: 0;
+            font-size: .95rem;
+            line-height: 1;
+        }
+
+        /* ----- Toolbar khusus Item Sales (layout dom dari JS) ----- */
         #item-sales_wrapper .item-sales-toolbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         #item-sales_wrapper .item-sales-export-row {
@@ -256,7 +482,11 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
+        }
+
+        #item-sales_wrapper .item-sales-export-row .dt-buttons {
+            margin-bottom: 0;
         }
 
         #item-sales_wrapper .item-sales-export-row__left,
@@ -301,8 +531,7 @@
         #item-sales_wrapper .dataTables_length,
         #item-sales_wrapper .dt-length,
         #item-sales_wrapper .dataTables_filter,
-        #item-sales_wrapper .dt-search,
-        #item-sales_wrapper .dt-buttons {
+        #item-sales_wrapper .dt-search {
             float: none;
             margin: 0;
         }
@@ -318,23 +547,14 @@
             white-space: nowrap;
         }
 
-        #item-sales_wrapper .dataTables_length select,
-        #item-sales_wrapper .dt-length select,
-        #item-sales_wrapper .dataTables_filter input,
-        #item-sales_wrapper .dt-search input {
-            min-height: 42px;
-            margin: 0;
-            border-radius: 8px;
-        }
-
         #item-sales_wrapper .item-sales-zero-filter {
             display: flex;
             align-items: center;
-            min-height: 42px;
-            padding: 0 12px;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            background: #f8f9fa;
+            min-height: 40px;
+            padding: 0 .85rem;
+            border: 1px solid var(--ob-border);
+            border-radius: var(--ob-radius-sm);
+            background: var(--ob-surface-2);
             white-space: nowrap;
         }
 
@@ -350,21 +570,24 @@
         #item-sales_wrapper .item-sales-zero-filter .form-check-input {
             float: none;
             margin: 0;
+            cursor: pointer;
+        }
+
+        #item-sales_wrapper .item-sales-zero-filter .form-check-input:checked {
+            background-color: var(--ob-primary);
+            border-color: var(--ob-primary);
         }
 
         #item-sales_wrapper .item-sales-zero-filter .form-check-label {
             margin: 0;
             line-height: 1.2;
-        }
-
-        #item-sales_wrapper .item-sales-toolbar .btn-modern,
-        #item-sales_wrapper .item-sales-export-row .btn-modern {
-            min-height: 42px;
-            padding-top: 8px !important;
-            padding-bottom: 8px !important;
+            font-size: .82rem !important;
+            color: var(--ob-text-2) !important;
+            cursor: pointer;
         }
 
         @media (max-width: 991.98px) {
+
             #item-sales_wrapper .item-sales-export-row,
             #item-sales_wrapper .item-sales-toolbar,
             #item-sales_wrapper .item-sales-toolbar__left,
@@ -374,10 +597,6 @@
 
             #item-sales_wrapper .item-sales-toolbar {
                 flex-direction: column;
-            }
-
-            #item-sales_wrapper .item-sales-toolbar__left {
-                flex-wrap: wrap;
             }
 
             #item-sales_wrapper .item-sales-toolbar__right,
@@ -412,220 +631,193 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
 
-    <div class="main-content">
-        <div class="card text-center">
-            <h5 class="card-header">Sales</h5>
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
+            <div>
+                <div class="ob-header__eyebrow">Laporan</div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-chart-bar"></i></span>
+                    Sales
+                </h1>
+                <p class="ob-header__desc">Ringkasan penjualan, metode pembayaran, item, kategori, diskon, pajak, dan kasir.</p>
+            </div>
         </div>
 
-        <div class="card mt-4">
-            <div class="card-header ">
-                <div class="row">
-                    <div class="col-4 align-self-center d-flex">
-                        <select id="filter-outlet" class="form-control select2">
-                            <option value="all" selected>-- Semua Outlet --</option>
-                            @foreach ($outlets as $outlet)
-                                <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+        {{-- Filter --}}
+        <div class="ob-card">
+            <div class="ob-toolbar">
+                <div class="ob-field">
+                    <label for="filter-outlet"><i class="fas fa-store" aria-hidden="true"></i> Outlet</label>
+                    <select id="filter-outlet" class="form-control select2">
+                        <option value="all" selected>-- Semua Outlet --</option>
+                        @foreach ($outlets as $outlet)
+                            <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
 
-                    <div class="col-4 align-self-end just d-flex">
-                        <div class="input-group mb-3 mt-3">
-                            <div class="input-group-prepend">
-                                <button class="btn btn-outline-secondary" type="button" id="prevDate">-</button>
-                            </div>
-                            <input type="text" id="date_range_transaction" name="date_range_transaction"
-                                class="form-control">
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-secondary" type="button" id="nextDate">+</button>
-                            </div>
-                        </div>
+                <div class="ob-field">
+                    <label for="date_range_transaction"><i class="far fa-calendar-alt" aria-hidden="true"></i> Rentang Tanggal</label>
+                    <div class="ob-daterange">
+                        <button class="ob-daterange__btn" type="button" id="prevDate" aria-label="Mundur satu hari">
+                            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                        </button>
+                        <input type="text" id="date_range_transaction" name="date_range_transaction"
+                            class="form-control" autocomplete="off">
+                        <button class="ob-daterange__btn" type="button" id="nextDate" aria-label="Maju satu hari">
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                        </button>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="card-body">
-                <!-- Page Content -->
-                <div class="row">
-                    <div class="col-3">
-                        <div class="nav flex-column nav-pills nav-primary nav-pills-no-bd" id="v-pills-tab" role="tablist"
-                            aria-orientation="vertical">
-                            <a class="nav-link active" id="sales-summary-tab-nobd" data-bs-toggle="pill"
-                                href="#sales-summary-nobd" role="tab" aria-controls="v-pills-home-nobd"
-                                aria-selected="true">Sales Summary</a>
-                            <a class="nav-link" id="gross-profit-tab-nobd" data-bs-toggle="pill" href="#gross-profit-nobd"
-                                role="tab" aria-controls="gross-profit-nobd" aria-selected="false">Gross Profit</a>
-                            <a class="nav-link" id="payment-method-tab-nobd" data-bs-toggle="pill"
-                                href="#payment-method-nobd" role="tab" aria-controls="payment-method-nobd"
-                                aria-selected="false">Payment Method</a>
-                            <a class="nav-link" id="payment-method-merchant-tab-nobd" data-bs-toggle="pill"
-                                href="#payment-method-merchant-nobd" role="tab" aria-controls="payment-method-merchant-nobd"
-                                aria-selected="false">Payment Method (Merchant)</a>
-                            <a class="nav-link" id="sales-type-tab-nobd" data-bs-toggle="pill" href="#sales-type-nobd"
-                                role="tab" aria-controls="sales-type-nobd" aria-selected="false">Sales Type</a>
-                            <a class="nav-link" id="item-sales-tab-nobd" data-bs-toggle="pill" href="#item-sales-nobd"
-                                role="tab" aria-controls="item-sales-nobd" aria-selected="false">Item Sales</a>
-                            <a class="nav-link" id="category-sales-tab-nobd" data-bs-toggle="pill"
-                                href="#category-sales-nobd" role="tab" aria-controls="category-sales-nobd"
-                                aria-selected="false">Category Sales</a>
-                            <a class="nav-link" id="modifier-sales-tab-nobd" data-bs-toggle="pill"
-                                href="#modifier-sales-nobd" role="tab" aria-controls="modifier-sales-nobd"
-                                aria-selected="false">Modifier Sales</a>
-                            <a class="nav-link" id="discount-tab-nobd" data-bs-toggle="pill" href="#discount-nobd"
-                                role="tab" aria-controls="discount-nobd" aria-selected="false">Discounts</a>
-                            <a class="nav-link" id="taxes-tab-nobd" data-bs-toggle="pill" href="#taxes-nobd" role="tab"
-                                aria-controls="taxes-nobd" aria-selected="false">Taxes</a>
-                            <a class="nav-link" id="collected-by-tab-nobd" data-bs-toggle="pill"
-                                href="#collected-by-nobd" role="tab" aria-controls="collected-by-nobd"
-                                aria-selected="false">Collected By</a>
-                        </div>
-                    </div>
-                    <div class="col-9">
-                        <div class="tab-content" id="v-pills-tabContent">
-                            <div class="tab-pane fade show active" id="sales-summary-nobd" role="tabpanel"
-                                aria-labelledby="sales-summary-tab-nobd">
-                                <!-- contoh tombol -->
-                                <button id="btn-export-sales-summary" class="btn btn-sm btn-success btn-modern"
-                                    style="margin-left: -5px; margin-bottom: 10px;">
-                                    Export Excel
+        <div class="ob-card">
+            <div class="ob-sales">
+                {{-- Navigasi laporan --}}
+                <div class="nav flex-column ob-sidenav" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                    <div class="ob-sidenav__label">Jenis Laporan</div>
+                    <a class="nav-link active" id="sales-summary-tab-nobd" data-bs-toggle="pill"
+                        href="#sales-summary-nobd" role="tab" aria-controls="sales-summary-nobd"
+                        aria-selected="true"><i class="fas fa-file-invoice-dollar" aria-hidden="true"></i> Sales Summary</a>
+                    <a class="nav-link" id="gross-profit-tab-nobd" data-bs-toggle="pill" href="#gross-profit-nobd"
+                        role="tab" aria-controls="gross-profit-nobd" aria-selected="false"><i class="fas fa-chart-line" aria-hidden="true"></i> Gross Profit</a>
+                    <a class="nav-link" id="payment-method-tab-nobd" data-bs-toggle="pill"
+                        href="#payment-method-nobd" role="tab" aria-controls="payment-method-nobd"
+                        aria-selected="false"><i class="fas fa-credit-card" aria-hidden="true"></i> Payment Method</a>
+                    <a class="nav-link" id="payment-method-merchant-tab-nobd" data-bs-toggle="pill"
+                        href="#payment-method-merchant-nobd" role="tab" aria-controls="payment-method-merchant-nobd"
+                        aria-selected="false"><i class="fas fa-store-alt" aria-hidden="true"></i> Payment Method (Merchant)</a>
+                    <a class="nav-link" id="sales-type-tab-nobd" data-bs-toggle="pill" href="#sales-type-nobd"
+                        role="tab" aria-controls="sales-type-nobd" aria-selected="false"><i class="fas fa-concierge-bell" aria-hidden="true"></i> Sales Type</a>
+                    <a class="nav-link" id="item-sales-tab-nobd" data-bs-toggle="pill" href="#item-sales-nobd"
+                        role="tab" aria-controls="item-sales-nobd" aria-selected="false"><i class="fas fa-hamburger" aria-hidden="true"></i> Item Sales</a>
+                    <a class="nav-link" id="category-sales-tab-nobd" data-bs-toggle="pill"
+                        href="#category-sales-nobd" role="tab" aria-controls="category-sales-nobd"
+                        aria-selected="false"><i class="fas fa-tags" aria-hidden="true"></i> Category Sales</a>
+                    <a class="nav-link" id="modifier-sales-tab-nobd" data-bs-toggle="pill"
+                        href="#modifier-sales-nobd" role="tab" aria-controls="modifier-sales-nobd"
+                        aria-selected="false"><i class="fas fa-sliders-h" aria-hidden="true"></i> Modifier Sales</a>
+                    <a class="nav-link" id="discount-tab-nobd" data-bs-toggle="pill" href="#discount-nobd"
+                        role="tab" aria-controls="discount-nobd" aria-selected="false"><i class="fas fa-percent" aria-hidden="true"></i> Discounts</a>
+                    <a class="nav-link" id="taxes-tab-nobd" data-bs-toggle="pill" href="#taxes-nobd" role="tab"
+                        aria-controls="taxes-nobd" aria-selected="false"><i class="fas fa-landmark" aria-hidden="true"></i> Taxes</a>
+                    <a class="nav-link" id="collected-by-tab-nobd" data-bs-toggle="pill"
+                        href="#collected-by-nobd" role="tab" aria-controls="collected-by-nobd"
+                        aria-selected="false"><i class="fas fa-user-check" aria-hidden="true"></i> Collected By</a>
+                </div>
+
+                {{-- Konten laporan --}}
+                <div class="ob-sales__content">
+                    <div class="tab-content" id="v-pills-tabContent">
+                        <div class="tab-pane fade show active" id="sales-summary-nobd" role="tabpanel"
+                            aria-labelledby="sales-summary-tab-nobd">
+                            <div class="ob-pane-head">
+                                <div>
+                                    <h2 class="ob-pane-head__title">Sales Summary</h2>
+                                    <p class="ob-pane-head__desc">Ringkasan penjualan kotor hingga total yang diterima.</p>
+                                </div>
+                                <button id="btn-export-sales-summary" class="btn btn-sm btn-success btn-modern">
+                                    <i class="fas fa-file-excel" aria-hidden="true"></i> Export Excel
                                 </button>
+                            </div>
 
-                                <div class="container">
-                                    <div class="row" style="background-color: #ccc; height: 50px; margin-bottom: 5px;">
-                                    </div>
-                                    <div class="row ">
-                                        <div class="col-6">
-                                            Gross Sales
-                                        </div>
-                                        <div class="col-6  justify-content-end d-flex" id="gross-sales-summary">
-                                            Rp. 0
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            Discounts
-                                        </div>
-                                        <div class=" justify-content-end d-flex col-6" id="discount-sales-summary">
-                                            Rp. 0
-                                        </div>
-                                    </div>
-                                    {{-- <hr> --}}
-                                    {{-- <div class="row">
-                                        <div class="col-6">
-                                            Refunds
-                                        </div>
-                                        <div class=" justify-content-end d-flex col-6">
-                                            Rp. 0
-                                        </div>
-                                    </div> --}}
-                                    <hr style="border: 2px solid black;">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <strong>Net Sales</strong>
-                                        </div>
-                                        <div class="col-6 justify-content-end d-flex ">
-                                            <strong id="net-sales-summary">Rp. 0</strong>
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            Tax
-                                        </div>
-                                        <div class=" justify-content-end d-flex col-6" id="tax-sales-summary">
-                                            Rp. 0
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            Rounding
-                                        </div>
-                                        <div class=" justify-content-end d-flex col-6" id="rounding-sales-summary">
-                                            Rp. 0
-                                        </div>
-                                    </div>
-                                    <hr style="border: 2px solid black;">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <strong>Total Collected</strong>
-                                        </div>
-                                        <div class="col-6 justify-content-end d-flex ">
-                                            <strong id="total-collected-sales-summary">Rp. 0</strong>
-                                        </div>
-                                    </div>
-                                    <hr style="border: 2px solid black;">
+                            <div class="ob-statement">
+                                <div class="ob-statement__head">
+                                    <span>Keterangan</span>
+                                    <span>Jumlah</span>
+                                </div>
+                                <div class="ob-statement__row">
+                                    <div>Gross Sales</div>
+                                    <div id="gross-sales-summary">Rp. 0</div>
+                                </div>
+                                <div class="ob-statement__row ob-statement__row--indent">
+                                    <div>Discounts</div>
+                                    <div id="discount-sales-summary">Rp. 0</div>
+                                </div>
+                                {{-- <div class="ob-statement__row ob-statement__row--indent">
+                                    <div>Refunds</div>
+                                    <div>Rp. 0</div>
+                                </div> --}}
+                                <div class="ob-statement__row ob-statement__row--subtotal">
+                                    <div>Net Sales</div>
+                                    <div><strong id="net-sales-summary">Rp. 0</strong></div>
+                                </div>
+                                <div class="ob-statement__row ob-statement__row--indent">
+                                    <div>Tax</div>
+                                    <div id="tax-sales-summary">Rp. 0</div>
+                                </div>
+                                <div class="ob-statement__row ob-statement__row--indent">
+                                    <div>Rounding</div>
+                                    <div id="rounding-sales-summary">Rp. 0</div>
+                                </div>
+                                <div class="ob-statement__row ob-statement__row--grand">
+                                    <div>Total Collected</div>
+                                    <div><strong id="total-collected-sales-summary">Rp. 0</strong></div>
                                 </div>
                             </div>
-                            <div class="tab-pane fade" id="gross-profit-nobd" role="tabpanel"
-                                aria-labelledby="gross-profit-tab-nobd">
-                                <div class="alert alert-primary" role="alert">
-                                    <p><b>Gross Profit</b></p>
+                        </div>
+
+                        <div class="tab-pane fade" id="gross-profit-nobd" role="tabpanel"
+                            aria-labelledby="gross-profit-tab-nobd">
+                            <div class="ob-pane-head">
+                                <div>
+                                    <h2 class="ob-pane-head__title">Gross Profit</h2>
+                                    <p class="ob-pane-head__desc">Net Sales dikurangi Cost of Goods Sold (COGS).</p>
+                                </div>
+                            </div>
+
+                            <div class="ob-callout" role="note">
+                                <i class="fas fa-info-circle" aria-hidden="true"></i>
+                                <div>
+                                    <p>Gross Profit</p>
                                     Gross Profit is your Net sales minus cost of Goods Sold (COGS). <b>To Report Gross
-                                        Profit Accuratel, please make sure all items have a COGS</b>
-                                </div>
-
-                                <div class="container">
-                                    <div class="row" style="background-color: #ccc; height: 50px; margin-bottom: 5px;">
-                                    </div>
-                                    <div class="row ">
-                                        <div class="col-6">
-                                            Gross Sales
-                                        </div>
-                                        <div class="col-6  justify-content-end d-flex" id="gross-sales-gross-profit">
-                                            Rp. 0
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            Discounts
-                                        </div>
-                                        <div class=" justify-content-end d-flex col-6" id="discount-gross-profit">
-                                            Rp. 0
-                                        </div>
-                                    </div>
-                                    <hr style="border: 2px solid black;">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <strong>Net Sales</strong>
-                                        </div>
-                                        <div class="col-6 justify-content-end d-flex ">
-                                            <strong id="net-sales-gross-profit">Rp. 0 <span
-                                                    class="badge badge-success">100%</span></strong>
-                                        </div>
-
-                                    </div>
-                                    <hr>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <strong>Cost Of Goods Sold (COGS)</strong>
-                                        </div>
-                                        <div class="col-6 justify-content-end d-flex ">
-                                            <strong id="cogs-gross-profit">Rp. 0 <span
-                                                    class="badge badge-danger">0%</span></strong>
-                                        </div>
-                                    </div>
-                                    <hr style="border: 2px solid black;">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <strong>Gross Profit</strong>
-                                        </div>
-                                        <div class="col-6 justify-content-end d-flex ">
-                                            <strong id="gross-profit">Rp. 0 <span
-                                                    class="badge badge-success">100%</span></strong>
-                                        </div>
-                                    </div>
-                                    <hr style="border: 2px solid black;">
+                                        Profit Accurately, please make sure all items have a COGS</b>
                                 </div>
                             </div>
-                            <div class="tab-pane fade" id="payment-method-nobd" role="tabpanel"
-                                aria-labelledby="payment-method-tab-nobd">
+
+                            <div class="ob-statement">
+                                <div class="ob-statement__head">
+                                    <span>Keterangan</span>
+                                    <span>Jumlah</span>
+                                </div>
+                                <div class="ob-statement__row">
+                                    <div>Gross Sales</div>
+                                    <div id="gross-sales-gross-profit">Rp. 0</div>
+                                </div>
+                                <div class="ob-statement__row ob-statement__row--indent">
+                                    <div>Discounts</div>
+                                    <div id="discount-gross-profit">Rp. 0</div>
+                                </div>
+                                <div class="ob-statement__row ob-statement__row--subtotal">
+                                    <div>Net Sales</div>
+                                    <div><strong id="net-sales-gross-profit">Rp. 0 <span
+                                                class="badge badge-success">100%</span></strong></div>
+                                </div>
+                                <div class="ob-statement__row">
+                                    <div>Cost Of Goods Sold (COGS)</div>
+                                    <div><strong id="cogs-gross-profit">Rp. 0 <span
+                                                class="badge badge-danger">0%</span></strong></div>
+                                </div>
+                                <div class="ob-statement__row ob-statement__row--grand">
+                                    <div>Gross Profit</div>
+                                    <div><strong id="gross-profit">Rp. 0 <span
+                                                class="badge badge-success">100%</span></strong></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="payment-method-nobd" role="tabpanel"
+                            aria-labelledby="payment-method-tab-nobd">
+                            <div class="ob-pane-head">
+                                <div>
+                                    <h2 class="ob-pane-head__title">Payment Method</h2>
+                                    <p class="ob-pane-head__desc">Jumlah transaksi dan total yang diterima per metode pembayaran.</p>
+                                </div>
+                            </div>
+                            <div class="ob-plain-table">
                                 <table id="payment-method-table" class="table">
                                     <thead>
                                         <tr>
@@ -639,8 +831,17 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="tab-pane fade" id="payment-method-merchant-nobd" role="tabpanel"
-                                aria-labelledby="payment-method-merchant-tab-nobd">
+                        </div>
+
+                        <div class="tab-pane fade" id="payment-method-merchant-nobd" role="tabpanel"
+                            aria-labelledby="payment-method-merchant-tab-nobd">
+                            <div class="ob-pane-head">
+                                <div>
+                                    <h2 class="ob-pane-head__title">Payment Method (Merchant)</h2>
+                                    <p class="ob-pane-head__desc">Rincian metode pembayaran per merchant.</p>
+                                </div>
+                            </div>
+                            <div class="ob-plain-table">
                                 <table id="payment-method-merchant-table" class="table">
                                     <thead>
                                         <tr>
@@ -654,164 +855,216 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="tab-pane fade" id="sales-type-nobd" role="tabpanel"
-                                aria-labelledby="sales-type-tab-nobd">
-                                <table id="sales-type" class="display table table-bordered" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th>Sales Type</th>
-                                            <th>Count</th>
-                                            <th>Total Collected</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                            <div class="tab-pane fade" id="item-sales-nobd" role="tabpanel"
-                                aria-labelledby="item-sales-tab-nobd">
-                                <table id="item-sales" class="table display row-border order-column " style="width:100%">
-                                    <thead id="head-item-sales">
-                                        <tr>
-                                            <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
-                                            <th><b>Category</b></th>
-                                            <th><b>Item Sold</b></th>
-                                            <th><b>Gross Sales</b></th>
-                                            <th><b>Discounts</b></th>
-                                            <th><b>Net Sales</b></th>
-                                            <th><b>Gross Profit</b></th>
-                                            <th><b>Gross Margin</b></th>
-                                        </tr>
-                                    </thead>
-                                    <tfoot>
-                                        <tr>
-                                            <th colspan="1">Total</th>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                            <div class="tab-pane fade" id="category-sales-nobd" role="tabpanel"
-                                aria-labelledby="category-sales-tab-nobd">
-                                <div class="alert alert-primary" role="alert">
-                                    <p><b>Gross Profit</b></p>
-                                    To Report Gross
-                                    Profit Accurately, please make sure all items have a COGS
-                                </div>
-
-                                <table id="category-sales" class="table display row-border order-column"
-                                    style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th style="border-right: #000; border-radius: 2px"><b>Category</b></th>
-                                            <th><b>Item Sold</b></th>
-                                            <th><b>Gross Sales</b></th>
-                                            <th><b>Discounts</b></th>
-                                        </tr>
-                                    </thead>
-                                    <tfoot>
-                                        <tr>
-                                            <th colspan="1">Total</th>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                            <div class="tab-pane fade" id="modifier-sales-nobd" role="tabpanel"
-                                aria-labelledby="modifier-sales-tab-nobd">
-                                <table id="modifier-sales" class="table display row-border order-column"
-                                    style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
-                                            <th><b>Quantity Sold</b></th>
-                                            <th><b>Gross Sales</b></th>
-                                            <th><b>Discounts</b></th>
-                                            <th><b>Net Sales</b></th>
-                                        </tr>
-                                    </thead>
-                                    <tfoot>
-                                        <tr>
-                                            <th colspan="1">Total</th>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                            <div class="tab-pane fade" id="discount-nobd" role="tabpanel"
-                                aria-labelledby="discount-tab-nobd">
-                                <table id="discount-sales" class="table display row-border order-column"
-                                    style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
-                                            <th><b>Discount Amount</b></th>
-                                            <th><b>Count</b></th>
-                                            <th><b>Discount Total</b></th>
-                                        </tr>
-                                    </thead>
-                                    <tfoot>
-                                        <tr>
-                                            <th colspan="1">Total</th>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                            <div class="tab-pane fade" id="taxes-nobd" role="tabpanel" aria-labelledby="taxes-tab-nobd">
-                                <table id="tax-sales" class="table display row-border order-column" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
-                                            <th><b>Tax Rate</b></th>
-                                            <th><b>Taxable Amount</b></th>
-                                            <th><b>Tax Collected</b></th>
-                                        </tr>
-                                    </thead>
-                                    <tfoot>
-                                        <tr>
-                                            <th colspan="1">Total</th>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                            <div class="tab-pane fade" id="collected-by-nobd" role="tabpanel"
-                                aria-labelledby="collected-by-tab-nobd">
-                                <table id="collected-by-sales" class="table display row-border order-column"
-                                    style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th style="border-right: #000; border-radius: 2px"><b>Name</b></th>
-                                            <th><b>Title</b></th>
-                                            <th><b>Number Of Tranasctions</b></th>
-                                            <th><b>Total Collected</b></th>
-                                        </tr>
-                                    </thead>
-                                    <tfoot>
-                                        <tr>
-                                            <th colspan="1">Total</th>
-                                            <th></th>
-                                            <th></th>
-                                            <th></th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-
                         </div>
+
+                        <div class="tab-pane fade" id="sales-type-nobd" role="tabpanel"
+                            aria-labelledby="sales-type-tab-nobd">
+                            <div class="ob-pane-head">
+                                <div>
+                                    <h2 class="ob-pane-head__title">Sales Type</h2>
+                                    <p class="ob-pane-head__desc">Penjualan berdasarkan tipe penjualan.</p>
+                                </div>
+                            </div>
+                            <table id="sales-type" class="display table table-bordered" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th>Sales Type</th>
+                                        <th>Count</th>
+                                        <th>Total Collected</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+
+                        <div class="tab-pane fade" id="item-sales-nobd" role="tabpanel"
+                            aria-labelledby="item-sales-tab-nobd">
+                            <div class="ob-pane-head">
+                                <div>
+                                    <h2 class="ob-pane-head__title">Item Sales</h2>
+                                    <p class="ob-pane-head__desc">Penjualan per item. Klik baris untuk melihat detail.</p>
+                                </div>
+                            </div>
+                            <table id="item-sales" class="table display row-border order-column " style="width:100%">
+                                <thead id="head-item-sales">
+                                    <tr>
+                                        <th><b>Name</b></th>
+                                        <th><b>Category</b></th>
+                                        <th><b>Item Sold</b></th>
+                                        <th><b>Gross Sales</b></th>
+                                        <th><b>Discounts</b></th>
+                                        <th><b>Net Sales</b></th>
+                                        <th><b>Gross Profit</b></th>
+                                        <th><b>Gross Margin</b></th>
+                                    </tr>
+                                </thead>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="1">Total</th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="tab-pane fade" id="category-sales-nobd" role="tabpanel"
+                            aria-labelledby="category-sales-tab-nobd">
+                            <div class="ob-pane-head">
+                                <div>
+                                    <h2 class="ob-pane-head__title">Category Sales</h2>
+                                    <p class="ob-pane-head__desc">Penjualan per kategori. Klik baris untuk melihat detail.</p>
+                                </div>
+                            </div>
+
+                            <div class="ob-callout" role="note">
+                                <i class="fas fa-info-circle" aria-hidden="true"></i>
+                                <div>
+                                    <p>Gross Profit</p>
+                                    To Report Gross Profit Accurately, please make sure all items have a COGS
+                                </div>
+                            </div>
+
+                            <table id="category-sales" class="table display row-border order-column"
+                                style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th><b>Category</b></th>
+                                        <th><b>Item Sold</b></th>
+                                        <th><b>Gross Sales</b></th>
+                                        <th><b>Discounts</b></th>
+                                    </tr>
+                                </thead>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="1">Total</th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="tab-pane fade" id="modifier-sales-nobd" role="tabpanel"
+                            aria-labelledby="modifier-sales-tab-nobd">
+                            <div class="ob-pane-head">
+                                <div>
+                                    <h2 class="ob-pane-head__title">Modifier Sales</h2>
+                                    <p class="ob-pane-head__desc">Penjualan modifier, dikelompokkan per induk modifier.</p>
+                                </div>
+                            </div>
+                            <table id="modifier-sales" class="table display row-border order-column"
+                                style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th><b>Name</b></th>
+                                        <th><b>Quantity Sold</b></th>
+                                        <th><b>Gross Sales</b></th>
+                                        <th><b>Discounts</b></th>
+                                        <th><b>Net Sales</b></th>
+                                    </tr>
+                                </thead>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="1">Total</th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="tab-pane fade" id="discount-nobd" role="tabpanel"
+                            aria-labelledby="discount-tab-nobd">
+                            <div class="ob-pane-head">
+                                <div>
+                                    <h2 class="ob-pane-head__title">Discounts</h2>
+                                    <p class="ob-pane-head__desc">Pemakaian diskon dan total potongan.</p>
+                                </div>
+                            </div>
+                            <table id="discount-sales" class="table display row-border order-column"
+                                style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th><b>Name</b></th>
+                                        <th><b>Discount Amount</b></th>
+                                        <th><b>Count</b></th>
+                                        <th><b>Discount Total</b></th>
+                                    </tr>
+                                </thead>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="1">Total</th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="tab-pane fade" id="taxes-nobd" role="tabpanel" aria-labelledby="taxes-tab-nobd">
+                            <div class="ob-pane-head">
+                                <div>
+                                    <h2 class="ob-pane-head__title">Taxes</h2>
+                                    <p class="ob-pane-head__desc">Pajak yang dikenakan dan total pajak terkumpul.</p>
+                                </div>
+                            </div>
+                            <table id="tax-sales" class="table display row-border order-column" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th><b>Name</b></th>
+                                        <th><b>Tax Rate</b></th>
+                                        <th><b>Taxable Amount</b></th>
+                                        <th><b>Tax Collected</b></th>
+                                    </tr>
+                                </thead>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="1">Total</th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="tab-pane fade" id="collected-by-nobd" role="tabpanel"
+                            aria-labelledby="collected-by-tab-nobd">
+                            <div class="ob-pane-head">
+                                <div>
+                                    <h2 class="ob-pane-head__title">Collected By</h2>
+                                    <p class="ob-pane-head__desc">Jumlah transaksi dan total yang diterima per kasir.</p>
+                                </div>
+                            </div>
+                            <table id="collected-by-sales" class="table display row-border order-column"
+                                style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th><b>Name</b></th>
+                                        <th><b>Title</b></th>
+                                        <th><b>Number Of Tranasctions</b></th>
+                                        <th><b>Total Collected</b></th>
+                                    </tr>
+                                </thead>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="1">Total</th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
                     </div>
                 </div>
             </div>
