@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\OrderTable\Voucher;
 use App\Models\Outlets;
 use App\Models\Product;
-use App\Models\Promo;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,8 +14,6 @@ use Illuminate\Support\Facades\Schema;
 
 class CatalogSelectorService
 {
-    public const INTERNAL_ROUTES = ['menu', 'cart', 'orders', 'vouchers'];
-
     public function canUseGlobal(User $user): bool
     {
         $activeOutletIds = Outlets::query()
@@ -66,26 +63,6 @@ class CatalogSelectorService
             ->map(fn (Voucher $voucher) => ['id' => $voucher->id, 'text' => $voucher->code]);
     }
 
-    public function promos(User $user, ?int $outletId, ?string $search = null): Collection
-    {
-        return Promo::query()
-            ->where('status', true)
-            ->whereIn('outlet_id', $this->contextOutletIds($user, $outletId))
-            ->when($search, fn (Builder $query) => $query->where('name', 'like', '%'.$search.'%'))
-            ->orderBy('name')
-            ->limit(50)
-            ->get(['id', 'name'])
-            ->map(fn (Promo $promo) => ['id' => $promo->id, 'text' => $promo->name]);
-    }
-
-    public function internal(?string $search = null): Collection
-    {
-        return collect(self::INTERNAL_ROUTES)
-            ->filter(fn (string $route) => ! $search || str_contains($route, $search))
-            ->map(fn (string $route) => ['id' => $route, 'text' => ucfirst($route)])
-            ->values();
-    }
-
     public function validIds(string $type, User $user, ?int $outletId, array $ids): bool
     {
         $ids = collect($ids)->map(fn ($id) => (int) $id)->unique()->values();
@@ -93,8 +70,6 @@ class CatalogSelectorService
             'product' => $this->productQuery($user, $outletId),
             'category' => $this->categoryQuery($user, $outletId),
             'voucher' => $this->voucherTargetQuery($user, $outletId),
-            'promo' => Promo::query()->where('status', true)
-                ->whereIn('outlet_id', $this->contextOutletIds($user, $outletId)),
             default => null,
         };
 
@@ -118,10 +93,7 @@ class CatalogSelectorService
 
     public function optionById(string $type, User $user, ?int $outletId, mixed $id): ?array
     {
-        if ($type === 'internal' && in_array($id, self::INTERNAL_ROUTES, true)) {
-            return ['id' => $id, 'text' => ucfirst((string) $id)];
-        }
-        if ($type === 'url' || ! is_numeric($id)) {
+        if (! is_numeric($id)) {
             return null;
         }
 
@@ -129,9 +101,6 @@ class CatalogSelectorService
             'product' => $this->productQuery($user, $outletId)->whereKey((int) $id)->first(['id', 'name']),
             'category' => $this->categoryQuery($user, $outletId)->whereKey((int) $id)->first(['id', 'name']),
             'voucher' => $this->voucherTargetQuery($user, $outletId)->whereKey((int) $id)->first(['id', 'code']),
-            'promo' => Promo::query()->where('status', true)
-                ->whereIn('outlet_id', $this->contextOutletIds($user, $outletId))
-                ->whereKey((int) $id)->first(['id', 'name']),
             default => null,
         };
 

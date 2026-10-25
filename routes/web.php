@@ -123,8 +123,6 @@ Route::middleware('auth')->group(function () {
             Route::get('/categories', [OrderTableCatalogSelectorController::class, 'categories'])->name('selectors/categories');
             Route::get('/products', [OrderTableCatalogSelectorController::class, 'products'])->name('selectors/products');
             Route::get('/vouchers', [OrderTableCatalogSelectorController::class, 'vouchers'])->name('selectors/vouchers');
-            Route::get('/promos', [OrderTableCatalogSelectorController::class, 'promos'])->name('selectors/promos');
-            Route::get('/internal', [OrderTableCatalogSelectorController::class, 'internal'])->name('selectors/internal');
         });
 
         Route::prefix('vouchers')->group(function () {

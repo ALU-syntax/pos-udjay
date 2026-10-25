@@ -43,12 +43,14 @@ class BannerController extends Controller
 
         return view('layouts.order-table.banners.create', [
             'banner' => new Banner([
-                'position' => 'home_top',
+                'display_mode' => 'image',
+                'tone' => 'black',
+                'action_type' => 'none',
                 'sort_order' => 0,
                 'status' => true,
             ]),
             'outlets' => $this->outlets(),
-            'canUseGlobal' => $this->catalogSelector->canUseGlobal(request()->user()),
+            'canManageGlobal' => $this->catalogSelector->canUseGlobal(request()->user()),
         ]);
     }
 
@@ -60,7 +62,7 @@ class BannerController extends Controller
 
         try {
             $banner = DB::transaction(function () use ($request, $uploadedPath) {
-                $payload = Arr::except($request->validated(), ['image_upload']);
+                $payload = Arr::except($request->validated(), ['image_upload', 'remove_image']);
                 if ($uploadedPath !== null) {
                     $payload['image_url'] = Storage::disk('public')->url($uploadedPath);
                 }
@@ -89,7 +91,7 @@ class BannerController extends Controller
         return view('layouts.order-table.banners.edit', [
             'banner' => $banner,
             'outlets' => $this->outlets(),
-            'canUseGlobal' => $this->catalogSelector->canUseGlobal(request()->user()),
+            'canManageGlobal' => $this->catalogSelector->canUseGlobal(request()->user()),
             'targetOption' => $this->catalogSelector->optionById(
                 $banner->action_type,
                 request()->user(),
@@ -103,17 +105,18 @@ class BannerController extends Controller
     {
         $banner = $this->banner($banner);
         $oldManagedPath = $this->managedPath($banner->image_url);
+        $removeImage = $request->boolean('remove_image');
         $uploadedPath = $request->hasFile('image_upload')
             ? $request->file('image_upload')->store('order-table/banners', 'public')
             : null;
 
         try {
-            DB::transaction(function () use ($request, $banner, $uploadedPath) {
+            DB::transaction(function () use ($request, $banner, $uploadedPath, $removeImage) {
                 $before = $banner->attributesToArray();
-                $payload = Arr::except($request->validated(), ['image_upload']);
+                $payload = Arr::except($request->validated(), ['image_upload', 'remove_image']);
                 if ($uploadedPath !== null) {
                     $payload['image_url'] = Storage::disk('public')->url($uploadedPath);
-                } elseif ($payload['image_url'] === null) {
+                } elseif ($payload['image_url'] === null && ! $removeImage) {
                     unset($payload['image_url']);
                 }
 
@@ -129,7 +132,7 @@ class BannerController extends Controller
             throw $exception;
         }
 
-        if (($uploadedPath !== null || $request->filled('image_url'))
+        if (($uploadedPath !== null || $request->filled('image_url') || $removeImage)
             && $oldManagedPath !== null
             && $oldManagedPath !== $uploadedPath) {
             Storage::disk('public')->delete($oldManagedPath);
@@ -204,12 +207,12 @@ class BannerController extends Controller
 
     private function bannerTargetIsValid(Banner $banner): bool
     {
+        if ($banner->action_type === 'none') {
+            return true;
+        }
         if ($banner->action_type === 'url') {
             return filter_var($banner->action_value, FILTER_VALIDATE_URL)
                 && in_array(strtolower((string) parse_url($banner->action_value, PHP_URL_SCHEME)), ['http', 'https'], true);
-        }
-        if ($banner->action_type === 'internal') {
-            return in_array($banner->action_value, CatalogSelectorService::INTERNAL_ROUTES, true);
         }
         if ($banner->outlet_id === null) {
             return $banner->action_type === 'voucher'

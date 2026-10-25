@@ -9,9 +9,10 @@ class UpdateBannerRequest extends BannerRequest
         return 'update order-table/banners';
     }
 
+    // A text card saved without a background has no image to keep when switching to image mode.
     protected function imageRequired(): bool
     {
-        return false;
+        return blank($this->routeBanner()?->image_url);
     }
 
     public function rules(): array

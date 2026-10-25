@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\OrderTable\Banner;
 use App\Models\OrderTable\Voucher;
 use App\Models\Product;
-use App\Models\Promo;
 use App\Services\OrderTable\CatalogSelectorService;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
@@ -20,8 +19,12 @@ class BannerDataTable extends DataTable
     {
         return (new EloquentDataTable($query))
             ->addColumn('outlet_name', fn (Banner $banner) => $banner->outlet?->name ?? 'Global')
+            ->addColumn('display_mode_label', fn (Banner $banner) => $banner->display_mode === 'text' ? 'Kartu teks' : 'Gambar')
             ->addColumn('image', function (Banner $banner) {
                 $url = (string) $banner->image_url;
+                if ($url === '') {
+                    return '<span class="text-muted">Tanpa gambar</span>';
+                }
                 $safe = str_starts_with($url, '/') || filter_var($url, FILTER_VALIDATE_URL) && in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true);
 
                 return $safe
@@ -44,7 +47,6 @@ class BannerDataTable extends DataTable
             ->selectSub(Product::query()->select('name')->whereColumn('products.id', 'ot_banners.action_value')->limit(1), 'product_target_label')
             ->selectSub(Category::query()->select('name')->whereColumn('categories.id', 'ot_banners.action_value')->limit(1), 'category_target_label')
             ->selectSub(Voucher::query()->select('code')->whereColumn('ot_vouchers.id', 'ot_banners.action_value')->limit(1), 'voucher_target_label')
-            ->selectSub(Promo::query()->select('name')->whereColumn('promos.id', 'ot_banners.action_value')->limit(1), 'promo_target_label')
             ->with('outlet')->where(function (QueryBuilder $query) use ($outletIds, $canManageGlobal) {
                 $query->whereIn('outlet_id', $outletIds);
                 if ($canManageGlobal) {
@@ -78,10 +80,10 @@ class BannerDataTable extends DataTable
         return [
             Column::make('outlet_name')->title('Outlet / Global')->name('outlet.name'),
             Column::make('title')->title('Judul'),
+            Column::computed('display_mode_label')->title('Jenis')->orderable(false)->searchable(false),
             Column::computed('image')->title('Gambar')->orderable(false)->searchable(false),
             Column::computed('action_target')->title('Aksi / Target'),
             Column::computed('effective_status')->title('Status Efektif'),
-            Column::make('position')->title('Posisi'),
             Column::make('sort_order')->title('Urutan'),
             Column::computed('action')->title('Aksi')->exportable(false)->printable(false)->orderable(false)->searchable(false)->width(100)->addClass('text-center'),
         ];
@@ -109,19 +111,18 @@ class BannerDataTable extends DataTable
 
     private function actionTargetLabel(Banner $banner): string
     {
-        $type = ucfirst($banner->action_type);
+        $type = match ($banner->action_type) {
+            'none' => 'Tanpa aksi',
+            'url' => 'URL',
+            'product' => 'Produk',
+            'category' => 'Kategori',
+            'voucher' => 'Voucher',
+            default => ucfirst($banner->action_type),
+        };
         $label = match ($banner->action_type) {
             'product' => $banner->product_target_label,
             'category' => $banner->category_target_label,
             'voucher' => $banner->voucher_target_label,
-            'promo' => $banner->promo_target_label,
-            'internal' => match ($banner->action_value) {
-                'home' => 'Beranda',
-                'menu' => 'Daftar Menu',
-                'cart' => 'Keranjang',
-                'orders' => 'Status Pesanan',
-                default => $banner->action_value,
-            },
             default => $banner->action_value,
         };
 

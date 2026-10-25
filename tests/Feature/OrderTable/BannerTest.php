@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\OrderTable\Banner;
 use App\Models\OrderTable\Voucher;
 use App\Models\Product;
-use App\Models\Promo;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -51,9 +50,8 @@ class BannerTest extends OrderTableTestCase
         $ownProduct = Product::create(['name' => 'Banner Own Product', 'category_id' => $category->id, 'outlet_id' => $own->id, 'status' => true]);
         $foreignProduct = Product::create(['name' => 'Banner Foreign Product', 'category_id' => $category->id, 'outlet_id' => $other->id, 'status' => true]);
         $voucher = Voucher::create(['outlet_id' => $own->id, 'code' => 'BANNER-VOUCHER', 'type' => 'fixed', 'value' => 1000, 'min_spend' => 0, 'scope' => 'all', 'status' => true]);
-        $promo = Promo::create(['name' => 'Banner Promo', 'outlet_id' => $own->id, 'type' => 'discount', 'purchase_requirement' => 'any_item', 'reward' => '[]', 'status' => true]);
 
-        foreach ([['product', $ownProduct->id], ['category', $category->id], ['voucher', $voucher->id], ['promo', $promo->id]] as [$type, $id]) {
+        foreach ([['product', $ownProduct->id], ['category', $category->id], ['voucher', $voucher->id]] as [$type, $id]) {
             $this->actingAs($user)->postJson(route('order-table/banners/store'), $this->payload($own->id, [
                 'title' => 'Target '.$type, 'action_type' => $type, 'action_value' => $id,
             ]))->assertOk();
@@ -67,19 +65,99 @@ class BannerTest extends OrderTableTestCase
         ]))->assertForbidden();
     }
 
-    public function test_internal_action_uses_an_allowlist(): void
+    public function test_removed_internal_and_promo_actions_are_rejected(): void
     {
-        $outlet = $this->outlet('Banner Internal');
+        $outlet = $this->outlet('Banner Removed Actions');
         $user = $this->userFor($outlet, ['create order-table/banners']);
 
-        foreach (['menu', 'cart', 'orders', 'vouchers'] as $target) {
+        foreach (['internal' => 'menu', 'promo' => 1] as $type => $value) {
             $this->actingAs($user)->postJson(route('order-table/banners/store'), $this->payload($outlet->id, [
-                'title' => 'Internal '.$target, 'action_type' => 'internal', 'action_value' => $target,
-            ]))->assertOk();
+                'action_type' => $type, 'action_value' => $value,
+            ]))->assertUnprocessable()->assertJsonValidationErrors('action_type');
         }
+    }
+
+    public function test_none_action_discards_any_action_value(): void
+    {
+        $outlet = $this->outlet('Banner No Action');
+        $user = $this->userFor($outlet, ['create order-table/banners']);
+
+        $response = $this->actingAs($user)->postJson(route('order-table/banners/store'), $this->payload($outlet->id, [
+            'action_type' => 'none', 'action_value' => 'https://example.test/leftover',
+        ]))->assertOk();
+
+        $this->assertNull(Banner::findOrFail($response->json('data.id'))->action_value);
+    }
+
+    public function test_image_mode_requires_an_image_and_drops_text_fields(): void
+    {
+        $outlet = $this->outlet('Banner Image Mode');
+        $user = $this->userFor($outlet, ['create order-table/banners']);
+
         $this->actingAs($user)->postJson(route('order-table/banners/store'), $this->payload($outlet->id, [
-            'title' => 'Unsafe internal', 'action_type' => 'internal', 'action_value' => 'admin',
-        ]))->assertUnprocessable()->assertJsonValidationErrors('action_value');
+            'image_url' => null,
+        ]))->assertUnprocessable()->assertJsonValidationErrors(['image_url', 'image_upload']);
+
+        $response = $this->actingAs($user)->postJson(route('order-table/banners/store'), $this->payload($outlet->id, [
+            'eyebrow' => 'Stale', 'subtitle' => 'Stale subtitle', 'tone' => 'red',
+        ]))->assertOk();
+
+        $banner = Banner::findOrFail($response->json('data.id'));
+        $this->assertNull($banner->eyebrow);
+        $this->assertNull($banner->subtitle);
+        $this->assertNull($banner->tone);
+    }
+
+    public function test_text_mode_needs_a_tone_and_short_title_but_no_image(): void
+    {
+        $outlet = $this->outlet('Banner Text Mode');
+        $user = $this->userFor($outlet, ['create order-table/banners']);
+        $textCard = ['display_mode' => 'text', 'image_url' => null, 'eyebrow' => 'Menu Baru', 'subtitle' => 'Matcha premium'];
+
+        $this->actingAs($user)->postJson(route('order-table/banners/store'), $this->payload($outlet->id, $textCard))
+            ->assertUnprocessable()->assertJsonValidationErrors('tone');
+        $this->actingAs($user)->postJson(route('order-table/banners/store'), $this->payload($outlet->id, array_merge($textCard, [
+            'tone' => 'coffee', 'title' => str_repeat('a', 61),
+        ])))->assertUnprocessable()->assertJsonValidationErrors('title');
+
+        $response = $this->actingAs($user)->postJson(route('order-table/banners/store'), $this->payload($outlet->id, array_merge($textCard, [
+            'tone' => 'coffee', 'title' => 'Matcha Latte sudah datang',
+        ])))->assertOk();
+
+        $banner = Banner::findOrFail($response->json('data.id'));
+        $this->assertSame('text', $banner->display_mode);
+        $this->assertNull($banner->image_url);
+        $this->assertSame('Menu Baru', $banner->eyebrow);
+    }
+
+    public function test_text_mode_can_remove_a_managed_background_image(): void
+    {
+        Storage::fake('public');
+        $outlet = $this->outlet('Banner Remove Background');
+        $user = $this->userFor($outlet, ['update order-table/banners']);
+        $path = 'order-table/banners/background.jpg';
+        Storage::disk('public')->put($path, 'background');
+        $banner = $this->banner($outlet->id, [
+            'display_mode' => 'text', 'tone' => 'black', 'image_url' => Storage::disk('public')->url($path),
+        ]);
+
+        $this->actingAs($user)->putJson(route('order-table/banners/update', $banner->id), $this->payload($outlet->id, [
+            'display_mode' => 'text', 'tone' => 'black', 'image_url' => null, 'remove_image' => true,
+        ], false))->assertOk();
+
+        $this->assertNull($banner->fresh()->image_url);
+        Storage::disk('public')->assertMissing($path);
+    }
+
+    public function test_switching_an_imageless_text_card_to_image_mode_requires_an_image(): void
+    {
+        $outlet = $this->outlet('Banner Switch Mode');
+        $user = $this->userFor($outlet, ['update order-table/banners']);
+        $banner = $this->banner($outlet->id, ['display_mode' => 'text', 'tone' => 'red', 'image_url' => null]);
+
+        $this->actingAs($user)->putJson(route('order-table/banners/update', $banner->id), $this->payload($outlet->id, [
+            'image_url' => null,
+        ], false))->assertUnprocessable()->assertJsonValidationErrors('image_url');
     }
 
     public function test_upload_stores_managed_image_url_and_writes_audit(): void
@@ -191,11 +269,11 @@ class BannerTest extends OrderTableTestCase
     {
         $payload = array_merge([
             'outlet_id' => $outletId,
+            'display_mode' => 'image',
             'title' => 'Banner '.uniqid(),
             'image_url' => 'https://cdn.example.test/banner.jpg',
             'action_type' => 'url',
             'action_value' => 'https://example.test/menu',
-            'position' => 'home_top',
             'start_at' => null,
             'end_at' => null,
             'status' => true,

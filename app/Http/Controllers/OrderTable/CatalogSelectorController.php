@@ -28,16 +28,6 @@ class CatalogSelectorController extends Controller
         return $this->respond($request, 'vouchers');
     }
 
-    public function promos(Request $request)
-    {
-        return $this->respond($request, 'promos');
-    }
-
-    public function internal(Request $request)
-    {
-        return $this->respond($request, 'internal');
-    }
-
     private function respond(Request $request, string $type)
     {
         $this->authorizeSelector($request, $type);
@@ -51,9 +41,7 @@ class CatalogSelectorController extends Controller
 
         abort_unless($this->catalogSelector->isAuthorizedOutlet($request->user(), $outletId), 403);
 
-        $data = $type === 'internal'
-            ? $this->catalogSelector->internal($validated['q'] ?? null)
-            : $this->catalogSelector->{$type}($request->user(), $outletId, $validated['q'] ?? null);
+        $data = $this->catalogSelector->{$type}($request->user(), $outletId, $validated['q'] ?? null);
 
         return responseSuccess(false, false, $data->values()->all());
     }
@@ -70,7 +58,6 @@ class CatalogSelectorController extends Controller
         ];
         $abilities = match ($type) {
             'categories', 'products', 'vouchers' => [...$voucherAbilities, ...$bannerAbilities],
-            'promos', 'internal' => $bannerAbilities,
         };
 
         abort_unless(collect($abilities)->contains(fn (string $ability) => $request->user()->can($ability)), 403);

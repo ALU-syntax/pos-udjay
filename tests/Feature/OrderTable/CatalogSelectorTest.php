@@ -5,7 +5,6 @@ namespace Tests\Feature\OrderTable;
 use App\Models\Category;
 use App\Models\OrderTable\Voucher;
 use App\Models\Product;
-use App\Models\Promo;
 
 class CatalogSelectorTest extends OrderTableTestCase
 {
@@ -45,7 +44,7 @@ class CatalogSelectorTest extends OrderTableTestCase
         $this->assertNotContains($inactiveCategory->id, array_column($categories, 'id'));
     }
 
-    public function test_banner_target_selectors_scope_vouchers_promos_and_internal_routes(): void
+    public function test_banner_voucher_selector_is_scoped_to_active_outlet_and_global_vouchers(): void
     {
         $own = $this->outlet('Selector Targets Own');
         $other = $this->outlet('Selector Targets Other');
@@ -54,9 +53,6 @@ class CatalogSelectorTest extends OrderTableTestCase
         $globalVoucher = $this->voucher(null, 'SELECTOR-GLOBAL', true);
         $inactiveVoucher = $this->voucher($own->id, 'SELECTOR-INACTIVE', false);
         $foreignVoucher = $this->voucher($other->id, 'SELECTOR-FOREIGN', true);
-        $ownPromo = $this->promo($own->id, 'Selector Own Promo', true);
-        $inactivePromo = $this->promo($own->id, 'Selector Inactive Promo', false);
-        $foreignPromo = $this->promo($other->id, 'Selector Foreign Promo', true);
 
         $vouchers = $this->actingAs($user)->getJson(route('order-table/selectors/vouchers', ['outlet_id' => $own->id]))->assertOk()->json('data');
         $voucherIds = array_column($vouchers, 'id');
@@ -64,16 +60,6 @@ class CatalogSelectorTest extends OrderTableTestCase
         $this->assertContains($globalVoucher->id, $voucherIds);
         $this->assertNotContains($inactiveVoucher->id, $voucherIds);
         $this->assertNotContains($foreignVoucher->id, $voucherIds);
-
-        $promos = $this->actingAs($user)->getJson(route('order-table/selectors/promos', ['outlet_id' => $own->id]))->assertOk()->json('data');
-        $promoIds = array_column($promos, 'id');
-        $this->assertContains($ownPromo->id, $promoIds);
-        $this->assertNotContains($inactivePromo->id, $promoIds);
-        $this->assertNotContains($foreignPromo->id, $promoIds);
-
-        $internal = $this->actingAs($user)->getJson(route('order-table/selectors/internal', ['outlet_id' => $own->id]))
-            ->assertOk()->assertJsonStructure(['data'])->json('data');
-        $this->assertSame(['menu', 'cart', 'orders', 'vouchers'], array_column($internal, 'id'));
     }
 
     public function test_read_only_permissions_cannot_use_form_selectors(): void
@@ -86,7 +72,7 @@ class CatalogSelectorTest extends OrderTableTestCase
             ->getJson(route('order-table/selectors/products', ['outlet_id' => $outlet->id]))
             ->assertForbidden();
         $this->actingAs($bannerReader)
-            ->getJson(route('order-table/selectors/internal'))
+            ->getJson(route('order-table/selectors/vouchers', ['outlet_id' => $outlet->id]))
             ->assertForbidden();
     }
 
@@ -95,14 +81,6 @@ class CatalogSelectorTest extends OrderTableTestCase
         return Voucher::create([
             'outlet_id' => $outletId, 'code' => $code, 'type' => 'fixed', 'value' => 1000,
             'min_spend' => 0, 'scope' => 'all', 'scope_ids' => null, 'status' => $status,
-        ]);
-    }
-
-    private function promo(int $outletId, string $name, bool $status): Promo
-    {
-        return Promo::create([
-            'name' => $name, 'outlet_id' => $outletId, 'type' => 'discount',
-            'purchase_requirement' => 'any_item', 'reward' => '[]', 'status' => $status,
         ]);
     }
 }

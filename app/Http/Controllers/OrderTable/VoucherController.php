@@ -46,7 +46,7 @@ class VoucherController extends Controller
                 'status' => true,
             ]),
             'outlets' => $this->outlets(),
-            'canUseGlobal' => $this->catalogSelector->canUseGlobal(request()->user()),
+            'canManageGlobal' => $this->catalogSelector->canUseGlobal(request()->user()),
         ]);
     }
 
@@ -70,7 +70,7 @@ class VoucherController extends Controller
         return view('layouts.order-table.vouchers.edit', [
             'voucher' => $voucher,
             'outlets' => $this->outlets(),
-            'canUseGlobal' => $this->catalogSelector->canUseGlobal(request()->user()),
+            'canManageGlobal' => $this->catalogSelector->canUseGlobal(request()->user()),
             'targetOptions' => $this->catalogSelector->optionsByIds(
                 $voucher->scope,
                 request()->user(),

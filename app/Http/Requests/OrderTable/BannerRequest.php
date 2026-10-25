@@ -16,10 +16,19 @@ abstract class BannerRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $textMode = $this->input('display_mode') === 'text';
+
         $this->merge([
             'title' => trim((string) $this->input('title')),
             'image_url' => $this->filled('image_url') ? trim((string) $this->input('image_url')) : null,
-            'action_value' => $this->filled('action_value') ? trim((string) $this->input('action_value')) : null,
+            'action_value' => $this->filled('action_value') && $this->input('action_type') !== 'none'
+                ? trim((string) $this->input('action_value'))
+                : null,
+            // Image banners carry their wording inside the artwork, so stale text fields are dropped.
+            'eyebrow' => $textMode && $this->filled('eyebrow') ? trim((string) $this->input('eyebrow')) : null,
+            'subtitle' => $textMode && $this->filled('subtitle') ? trim((string) $this->input('subtitle')) : null,
+            'tone' => $textMode ? $this->input('tone') : null,
+            'remove_image' => $textMode && $this->boolean('remove_image'),
         ]);
     }
 
@@ -44,27 +53,32 @@ abstract class BannerRequest extends FormRequest
     public function rules(): array
     {
         $actionType = $this->input('action_type');
+        $textMode = $this->input('display_mode') === 'text';
         $imageUrlRules = ['nullable', 'string', 'max:500', 'url', 'regex:/^https?:\/\//i'];
         $imageUploadRules = ['nullable', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'max:4096'];
 
-        if ($this->imageRequired()) {
+        if (! $textMode && $this->imageRequired()) {
             array_unshift($imageUrlRules, 'required_without:image_upload');
             array_unshift($imageUploadRules, 'required_without:image_url');
         }
 
         return [
             'outlet_id' => ['nullable', 'integer', 'exists:outlets,id'],
-            'title' => ['required', 'string', 'max:255'],
+            'display_mode' => ['required', Rule::in(Banner::DISPLAY_MODES)],
+            // In text mode the title is the headline on a 16:9 card, so it must stay short.
+            'title' => ['required', 'string', $textMode ? 'max:60' : 'max:255'],
+            'eyebrow' => ['nullable', 'string', 'max:40'],
+            'subtitle' => ['nullable', 'string', 'max:120'],
+            'tone' => $textMode ? ['required', Rule::in(Banner::TONES)] : ['nullable'],
             'image_url' => $imageUrlRules,
             'image_upload' => $imageUploadRules,
-            'action_type' => ['required', Rule::in(['url', 'internal', 'product', 'category', 'voucher', 'promo'])],
+            'remove_image' => ['boolean'],
+            'action_type' => ['required', Rule::in(Banner::ACTION_TYPES)],
             'action_value' => match ($actionType) {
                 'url' => ['required', 'string', 'max:500', 'url', 'regex:/^https?:\/\//i'],
-                'internal' => ['required', Rule::in(CatalogSelectorService::INTERNAL_ROUTES)],
-                'product', 'category', 'voucher', 'promo' => ['required', 'integer', 'min:1'],
-                default => ['nullable', 'string', 'max:500'],
+                'product', 'category', 'voucher' => ['required', 'integer', 'min:1'],
+                default => ['nullable'],
             },
-            'position' => ['required', Rule::in(['home_top', 'home_middle', 'home_bottom'])],
             'start_at' => ['nullable', 'required_with:end_at', 'date'],
             'end_at' => ['nullable', 'required_with:start_at', 'date', 'after_or_equal:start_at'],
             'status' => ['required', 'boolean'],
@@ -84,8 +98,8 @@ abstract class BannerRequest extends FormRequest
             }
 
             $type = $this->input('action_type');
-            if (! $this->filled('outlet_id') && ! in_array($type, ['url', 'internal', 'voucher'], true)) {
-                $validator->errors()->add('action_type', 'Banner global hanya dapat menggunakan URL, halaman internal, atau voucher global.');
+            if (! $this->filled('outlet_id') && ! in_array($type, ['none', 'url', 'voucher'], true)) {
+                $validator->errors()->add('action_type', 'Banner global hanya dapat menggunakan URL, voucher global, atau tanpa aksi.');
 
                 return;
             }
@@ -102,7 +116,7 @@ abstract class BannerRequest extends FormRequest
 
                 return;
             }
-            if (! in_array($type, ['product', 'category', 'voucher', 'promo'], true)) {
+            if (! in_array($type, ['product', 'category', 'voucher'], true)) {
                 return;
             }
 
@@ -118,7 +132,7 @@ abstract class BannerRequest extends FormRequest
         });
     }
 
-    private function routeBanner(): ?Banner
+    protected function routeBanner(): ?Banner
     {
         $value = $this->route('banner');
         if ($value instanceof Banner) {

@@ -17,33 +17,40 @@
         <script>
             $(function () {
                 const tableId = 'banner-table';
-                const selectorUrls = { product: @json(route('order-table/selectors/products')), category: @json(route('order-table/selectors/categories')), voucher: @json(route('order-table/selectors/vouchers')), promo: @json(route('order-table/selectors/promos')), internal: @json(route('order-table/selectors/internal')) };
+                const selectorUrls = { product: @json(route('order-table/selectors/products')), category: @json(route('order-table/selectors/categories')), voucher: @json(route('order-table/selectors/vouchers')) };
                 $('#outlet-filter').on('change', () => window.LaravelDataTables[tableId].ajax.reload());
                 handleAction(tableId, function () {
                     const form = $('#form_action'); const target = form.find('#action_target');
                     function initTarget(clear) {
-                        const type = form.find('#action_type').val(); const selectable = type !== 'url';
                         const global = form.find('#outlet_id').val() === '';
-                        form.find('#action_type option[value="product"], #action_type option[value="category"], #action_type option[value="promo"]').prop('disabled', global);
-                        if (global && !['url', 'internal', 'voucher'].includes(type)) {
-                            form.find('#action_type').val('url');
+                        form.find('#action_type option[value="product"], #action_type option[value="category"]').prop('disabled', global);
+                        if (global && !['none', 'url', 'voucher'].includes(form.find('#action_type').val())) {
+                            form.find('#action_type').val('none');
                         }
                         const effectiveType = form.find('#action_type').val();
-                        const effectiveSelectable = effectiveType !== 'url';
+                        const isUrl = effectiveType === 'url';
+                        const effectiveSelectable = Object.hasOwn(selectorUrls, effectiveType);
                         if (target.hasClass('select2-hidden-accessible')) target.select2('destroy');
                         if (clear) target.empty();
-                        form.find('.action-url-field').toggleClass('d-none', effectiveSelectable).find('input').prop('disabled', effectiveSelectable);
+                        form.find('.action-url-field').toggleClass('d-none', !isUrl).find('input').prop('disabled', !isUrl);
                         form.find('.action-target-field').toggleClass('d-none', !effectiveSelectable);
                         target.prop('disabled', !effectiveSelectable);
                         if (!effectiveSelectable) return;
                         target.select2({ dropdownParent: $('#modal_action'), width: '100%', placeholder: 'Pilih target', ajax: { url: selectorUrls[effectiveType], dataType: 'json', delay: 250, data: params => ({ q: params.term, outlet_id: form.find('#outlet_id').val() }), processResults: response => ({ results: response.data || [] }) } });
                     }
                     function preview(src) { form.find('.banner-image-preview').attr('src', src).toggleClass('d-none', !src); form.find('.banner-image-placeholder').toggleClass('d-none', !!src); }
+                    function updateDisplayMode() {
+                        const text = form.find('#display_mode').val() === 'text'; const title = form.find('#title');
+                        form.find('.banner-text-only').toggleClass('d-none', !text).find('input, select').prop('disabled', !text);
+                        form.find('.banner-image-only').toggleClass('d-none', text);
+                        title.attr('maxlength', text ? title.data('text-maxlength') : 255);
+                    }
                     function updateGlobalWarning() { form.find('.global-impact-warning').toggleClass('d-none', form.find('#outlet_id').val() !== ''); }
                     form.on('change', '#action_type, #outlet_id', function () { initTarget(true); updateGlobalWarning(); });
+                    form.on('change', '#display_mode', updateDisplayMode);
                     form.on('input', '#image_url', function () { if (this.value) form.find('#image').val(''); preview(this.value); });
                     form.on('change', '#image', function () { if (this.files[0]) { form.find('#image_url').val(''); preview(URL.createObjectURL(this.files[0])); } });
-                    initTarget(false); updateGlobalWarning();
+                    initTarget(false); updateGlobalWarning(); updateDisplayMode();
                 });
                 $('.main-content').on('click', '.toggle-banner', function (event) {
                     event.preventDefault(); const button = this;
