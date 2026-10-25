@@ -270,6 +270,13 @@
         box-shadow: 0 0 0 3px rgba(21, 114, 232, .15);
     }
 
+    /* Wrapper tabel dari opsi dom DataTable: hanya tabel yang scroll horizontal,
+       show entries / search / pagination tetap di tempat */
+    .ob-page .ob-table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .ob-page table.dataTable {
         margin: 0 !important;
         border-collapse: separate !important;
@@ -614,8 +621,20 @@
         color: var(--ob-primary) !important;
     }
 
+    .ob-page .badge-warning {
+        background: #fef3c7 !important;
+        color: #b45309 !important;
+    }
+
+    .ob-page .badge-muted {
+        background: var(--ob-border) !important;
+        color: var(--ob-text-2) !important;
+    }
+
     .ob-page .badge-success::before,
-    .ob-page .badge-danger::before {
+    .ob-page .badge-danger::before,
+    .ob-page .badge-warning::before,
+    .ob-page .badge-muted::before {
         content: "";
         width: 6px;
         height: 6px;

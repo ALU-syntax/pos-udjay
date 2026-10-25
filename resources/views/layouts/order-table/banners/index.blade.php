@@ -1,24 +1,65 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="main-content order-table-page">
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-            <div><h2 class="h4 mb-1 font-weight-bold"><i class="fa fa-image me-2"></i>Banner Order Table</h2><p class="text-muted mb-0">Atur materi promosi dan tujuan banner pelanggan.</p></div>
-            @can('create order-table/banners')<a href="{{ route('order-table/banners/create') }}" class="btn btn-primary btn-round action"><i class="fa fa-plus me-2"></i>Tambah Banner</a>@endcan
+    @include('layouts.reports.partials.ui-styles')
+
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
+            <div>
+                <div class="ob-header__eyebrow">Order Table</div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-image"></i></span>
+                    Banner
+                </h1>
+                <p class="ob-header__desc">Atur materi promosi yang tampil di halaman menu pelanggan.</p>
+            </div>
+            @can('create order-table/banners')
+                <a href="{{ route('order-table/banners/create') }}" class="btn ob-btn ob-btn-primary action">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Tambah Banner
+                </a>
+            @endcan
         </div>
-        @if ($canManageGlobal)<div class="alert alert-warning border-0 shadow-sm"><i class="fa fa-triangle-exclamation me-2"></i>Perubahan banner global berdampak pada seluruh outlet aktif.</div>@endif
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-3"><div><h5 class="mb-1">Daftar Banner</h5><small class="text-muted">Status efektif memperhitungkan status dan periode tayang.</small></div><div class="order-table-filter"><label for="outlet-filter" class="form-label small mb-1">Filter outlet</label><select id="outlet-filter" class="form-select form-select-sm"><option value="">Semua outlet</option>@if ($canManageGlobal)<option value="global">Global</option>@endif @foreach ($outlets as $outlet)<option value="{{ $outlet->id }}">{{ $outlet->name }}</option>@endforeach</select></div></div>
-            <div class="card-body"><div class="table-responsive">{!! $dataTable->table(['class' => 'table table-hover align-middle mb-0']) !!}</div></div>
+
+        @if ($canManageGlobal)
+            <div class="ob-notice" role="note">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                <span>Perubahan banner <strong>global</strong> langsung tampil di seluruh outlet aktif.</span>
+            </div>
+        @endif
+
+        {{-- Tabel --}}
+        <div class="ob-card">
+            <div class="ob-tabs-bar">
+                <div>
+                    <h2 class="ob-section-title mb-1"><i class="fas fa-list" aria-hidden="true"></i> Daftar Banner</h2>
+                    <span class="ob-hint"><i class="fas fa-info-circle" aria-hidden="true"></i> Status memperhitungkan status aktif dan periode tayang.</span>
+                </div>
+                <div class="ob-field ob-banner-filter">
+                    <label for="outlet-filter"><i class="fas fa-store" aria-hidden="true"></i> Outlet</label>
+                    <select id="outlet-filter" class="form-control">
+                        <option value="">Semua banner</option>
+                        @if ($canManageGlobal)<option value="global">Hanya banner global</option>@endif
+                        @foreach ($outlets as $outlet)
+                            <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="ob-table-wrap">
+                {!! $dataTable->table(['class' => 'table w-100']) !!}
+            </div>
         </div>
     </div>
+
     @push('js')
         {!! $dataTable->scripts() !!}
         <script>
             $(function () {
                 const tableId = 'banner-table';
                 const selectorUrls = { product: @json(route('order-table/selectors/products')), category: @json(route('order-table/selectors/categories')), voucher: @json(route('order-table/selectors/vouchers')) };
-                $('#outlet-filter').on('change', () => window.LaravelDataTables[tableId].ajax.reload());
+                $('#outlet-filter').select2({ width: '100%', minimumResultsForSearch: 8 })
+                    .on('change', () => window.LaravelDataTables[tableId].ajax.reload());
                 handleAction(tableId, function () {
                     const form = $('#form_action'); const target = form.find('#action_target');
                     function initTarget(clear) {
@@ -62,5 +103,138 @@
             });
         </script>
     @endpush
-    @push('css')<style>.order-table-page .card{border-radius:10px}.order-table-filter{min-width:240px}.order-table-thumbnail{width:96px;height:54px;object-fit:cover;border-radius:6px}.order-table-actions{display:inline-flex;gap:5px}.order-table-actions .btn{width:34px;height:34px;padding:7px}</style>@endpush
+
+    @push('css')
+        <style>
+            .ob-notice {
+                display: flex;
+                align-items: center;
+                gap: .65rem;
+                margin-bottom: 1.25rem;
+                padding: .8rem 1rem;
+                border: 1px solid #fde68a;
+                border-radius: var(--ob-radius-sm);
+                background: #fffbeb;
+                color: #92400e;
+                font-size: .875rem;
+            }
+
+            /* badge-primary tidak punya titik di partial bersama (dipakai Open Bill untuk nama outlet) */
+            .ob-page .badge.ob-badge-dot::before {
+                content: "";
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: currentColor;
+            }
+
+            .ob-banner-filter {
+                width: 260px;
+                max-width: 100%;
+            }
+
+            /* Sel banner: thumbnail 16:9 + judul + jenis */
+            .ob-banner-cell {
+                display: flex;
+                align-items: center;
+                gap: .85rem;
+                min-width: 240px;
+            }
+
+            .ob-banner-thumb {
+                display: inline-grid;
+                place-items: center;
+                flex-shrink: 0;
+                width: 96px;
+                height: 54px;
+                border-radius: 8px;
+                border: 1px solid var(--ob-border);
+                object-fit: cover;
+                font-weight: 800;
+                font-size: .95rem;
+            }
+
+            /* Warna sama dengan tone di PWA Order Table */
+            .ob-banner-thumb--black { background: #000; color: #fff; }
+            .ob-banner-thumb--red { background: #c72129; color: #fff; }
+            .ob-banner-thumb--coffee { background: #943e0f; color: #fff; }
+            .ob-banner-thumb--yellow { background: #fdf100; color: #000; }
+
+            .ob-banner-thumb--empty {
+                background: var(--ob-surface-2);
+                color: var(--ob-muted);
+            }
+
+            .ob-banner-cell__title {
+                font-weight: 600;
+                color: var(--ob-text);
+                overflow-wrap: anywhere;
+            }
+
+            .ob-banner-cell__meta,
+            .ob-target__type {
+                font-size: .75rem;
+                color: var(--ob-muted);
+            }
+
+            .ob-target {
+                display: flex;
+                flex-direction: column;
+                gap: .1rem;
+            }
+
+            .ob-page table.dataTable tbody td.ob-col-time {
+                white-space: nowrap;
+                font-size: .8rem;
+            }
+
+            .ob-page table.dataTable th.ob-col-order,
+            .ob-page table.dataTable td.ob-col-order {
+                text-align: center;
+                font-variant-numeric: tabular-nums;
+            }
+
+            /* Aksi per baris */
+            .ob-row-actions {
+                display: inline-flex;
+                gap: .35rem;
+            }
+
+            .ob-page .ob-icon-btn--sm {
+                width: 34px;
+                height: 34px;
+                border-radius: 9px;
+                font-size: .8rem;
+                text-decoration: none;
+            }
+
+            .ob-page .ob-icon-btn--sm:hover {
+                background: var(--ob-primary-soft);
+                color: var(--ob-primary);
+            }
+
+            .ob-page .ob-icon-btn--danger:hover {
+                background: var(--ob-danger-soft);
+                color: var(--ob-danger);
+            }
+
+            .ob-page .ob-icon-btn--success:hover {
+                background: var(--ob-success-soft);
+                color: var(--ob-success);
+            }
+
+            .ob-page .ob-icon-btn:focus-visible {
+                outline: 2px solid var(--ob-primary);
+                outline-offset: 2px;
+            }
+
+            @media (max-width: 575.98px) {
+                .ob-header > .ob-btn,
+                .ob-banner-filter {
+                    width: 100%;
+                    justify-content: center;
+                }
+            }
+        </style>
+    @endpush
 @endsection

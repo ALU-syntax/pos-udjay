@@ -18,23 +18,15 @@ class BannerDataTable extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
-            ->addColumn('outlet_name', fn (Banner $banner) => $banner->outlet?->name ?? 'Global')
-            ->addColumn('display_mode_label', fn (Banner $banner) => $banner->display_mode === 'text' ? 'Kartu teks' : 'Gambar')
-            ->addColumn('image', function (Banner $banner) {
-                $url = (string) $banner->image_url;
-                if ($url === '') {
-                    return '<span class="text-muted">Tanpa gambar</span>';
-                }
-                $safe = str_starts_with($url, '/') || filter_var($url, FILTER_VALIDATE_URL) && in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true);
-
-                return $safe
-                    ? '<img src="'.e($url).'" alt="'.e($banner->title).'" class="order-table-thumbnail" loading="lazy">'
-                    : '<span class="text-muted">Gambar tidak valid</span>';
-            })
-            ->addColumn('action_target', fn (Banner $banner) => $this->actionTargetLabel($banner))
-            ->addColumn('effective_status', fn (Banner $banner) => $this->effectiveStatus($banner))
+            ->editColumn('title', fn (Banner $banner) => $this->bannerCell($banner))
+            ->addColumn('outlet_name', fn (Banner $banner) => $banner->outlet
+                ? e($banner->outlet->name)
+                : '<span class="badge badge-primary rounded-pill">Global</span>')
+            ->addColumn('action_target', fn (Banner $banner) => $this->actionTarget($banner))
+            ->addColumn('period', fn (Banner $banner) => $this->period($banner))
+            ->addColumn('effective_status', fn (Banner $banner) => $this->statusBadge($banner))
             ->addColumn('action', fn (Banner $banner) => view('layouts.order-table.banners.action', compact('banner'))->render())
-            ->rawColumns(['image', 'action'])
+            ->rawColumns(['title', 'outlet_name', 'action_target', 'period', 'effective_status', 'action'])
             ->setRowId('id');
     }
 
@@ -72,20 +64,21 @@ class BannerDataTable extends DataTable
     {
         return $this->builder()->setTableId('banner-table')->columns($this->getColumns())
             ->minifiedAjax('', null, ['outlet_id' => "$('#outlet-filter').val()"])
-            ->responsive(true)->orderBy(6);
+            // Default Bootstrap 4 dom, but only the table scrolls horizontally so length/search/paging stay put.
+            ->dom("<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>><'ob-table-scroll'tr><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>")
+            ->orderBy(5, 'asc');
     }
 
     public function getColumns(): array
     {
         return [
-            Column::make('outlet_name')->title('Outlet / Global')->name('outlet.name'),
-            Column::make('title')->title('Judul'),
-            Column::computed('display_mode_label')->title('Jenis')->orderable(false)->searchable(false),
-            Column::computed('image')->title('Gambar')->orderable(false)->searchable(false),
+            Column::make('title')->title('Banner'),
+            Column::make('outlet_name')->title('Outlet')->name('outlet.name'),
             Column::computed('action_target')->title('Aksi / Target'),
-            Column::computed('effective_status')->title('Status Efektif'),
-            Column::make('sort_order')->title('Urutan'),
-            Column::computed('action')->title('Aksi')->exportable(false)->printable(false)->orderable(false)->searchable(false)->width(100)->addClass('text-center'),
+            Column::computed('period')->title('Periode Tayang')->addClass('ob-col-time'),
+            Column::computed('effective_status')->title('Status'),
+            Column::make('sort_order')->title('Urutan')->addClass('ob-col-order'),
+            Column::computed('action')->title('')->exportable(false)->printable(false)->orderable(false)->searchable(false)->width(90)->addClass('text-center'),
         ];
     }
 
@@ -94,25 +87,58 @@ class BannerDataTable extends DataTable
         return 'Banner_'.date('YmdHis');
     }
 
-    private function effectiveStatus(Banner $banner): string
+    private function bannerCell(Banner $banner): string
     {
-        if (! $banner->status) {
-            return 'Nonaktif';
-        }
-        if ($banner->start_at?->isFuture()) {
-            return 'Terjadwal';
-        }
-        if ($banner->end_at?->isPast()) {
-            return 'Berakhir';
+        $url = (string) $banner->image_url;
+        $safeUrl = str_starts_with($url, '/')
+            || filter_var($url, FILTER_VALIDATE_URL) && in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true);
+
+        $thumb = match (true) {
+            $url !== '' && $safeUrl => '<img src="'.e($url).'" alt="" class="ob-banner-thumb" loading="lazy">',
+            $banner->display_mode === 'text' && $url === '' => '<span class="ob-banner-thumb ob-banner-thumb--'.e($banner->tone ?? 'black').'" aria-hidden="true">Aa</span>',
+            default => '<span class="ob-banner-thumb ob-banner-thumb--empty" title="Gambar tidak valid"><i class="fas fa-image" aria-hidden="true"></i></span>',
+        };
+        $meta = $banner->display_mode === 'text' ? 'Kartu teks' : 'Gambar';
+        if ($banner->display_mode === 'text' && filled($banner->eyebrow)) {
+            $meta .= ' · '.$banner->eyebrow;
         }
 
-        return 'Aktif';
+        return '<div class="ob-banner-cell">'.$thumb.'<div>'
+            .'<div class="ob-banner-cell__title">'.e($banner->title).'</div>'
+            .'<div class="ob-banner-cell__meta">'.e($meta).'</div>'
+            .'</div></div>';
     }
 
-    private function actionTargetLabel(Banner $banner): string
+    private function period(Banner $banner): string
     {
+        if (! $banner->start_at && ! $banner->end_at) {
+            return '<span class="text-muted">Tanpa batas</span>';
+        }
+
+        $format = fn ($date) => $date ? $date->translatedFormat('d M Y, H:i') : '…';
+
+        return e($format($banner->start_at).' – '.$format($banner->end_at));
+    }
+
+    private function statusBadge(Banner $banner): string
+    {
+        [$label, $variant] = match (true) {
+            ! $banner->status => ['Nonaktif', 'muted'],
+            (bool) $banner->start_at?->isFuture() => ['Terjadwal', 'primary ob-badge-dot'],
+            (bool) $banner->end_at?->isPast() => ['Berakhir', 'warning'],
+            default => ['Aktif', 'success'],
+        };
+
+        return '<span class="badge badge-'.$variant.'">'.$label.'</span>';
+    }
+
+    private function actionTarget(Banner $banner): string
+    {
+        if ($banner->action_type === 'none') {
+            return '<span class="text-muted">Tanpa aksi</span>';
+        }
+
         $type = match ($banner->action_type) {
-            'none' => 'Tanpa aksi',
             'url' => 'URL',
             'product' => 'Produk',
             'category' => 'Kategori',
@@ -126,6 +152,7 @@ class BannerDataTable extends DataTable
             default => $banner->action_value,
         };
 
-        return $type.($label ? ': '.$label : '');
+        return '<div class="ob-target"><span class="ob-target__type">'.e($type).'</span>'
+            .'<span>'.e($label ?: '—').'</span></div>';
     }
 }
