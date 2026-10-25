@@ -3,6 +3,8 @@
 namespace App\Services\OrderTable;
 
 use App\Models\OrderTable\Order;
+use App\Models\OrderTable\OrderItem;
+use App\Models\OrderTable\Voucher;
 use App\Models\Payment;
 use App\Models\PettyCash;
 use App\Models\Product;
@@ -169,6 +171,79 @@ class CashierPaymentService
         return $result;
     }
 
+    /**
+     * Voucher OT mengikuti konvensi diskon POS: rupiah dicatat per transaksi di diskon_all_item,
+     * persen dicatat per item di transaction_items.discount_id. Potongan persen bisa dibatasi
+     * max_discount, jadi result per unit dibagi proporsional (harga + modifier) dari voucher_discount
+     * dengan sisa pembulatan terbesar, sehingga Σ result selalu sama dengan voucher_discount.
+     *
+     * @param  array<int, array{0: OrderItem, 1: array}>  $items  hasil snapshot()
+     * @return array{0: array, 1: array<int, array<int, array>>} [diskon_all_item, discount_id per item per unit]
+     */
+    private function voucherDiscounts(Order $order, array $items): array
+    {
+        $amount = $order->voucher_discount;
+        if (! $order->voucher_id || $amount <= 0) {
+            return [[], []];
+        }
+
+        $voucher = Voucher::find($order->voucher_id);
+        $id = 'ot-voucher:'.$order->voucher_id;
+        $name = 'Voucher '.($voucher?->code ?? 'Order Table');
+        $transactionLevel = [[['id' => $id, 'nama' => $name, 'satuan' => 'rupiah', 'value' => $amount]], []];
+        if ($voucher?->type !== 'percent') {
+            return $transactionLevel;
+        }
+
+        $units = [];
+        foreach ($items as $index => [$item]) {
+            if (! $this->voucherCovers($voucher, $item)) {
+                continue;
+            }
+            for ($i = 0; $i < $item->qty; $i++) {
+                $units[] = [$index, $i, $item->unit_price + $item->modifier_total];
+            }
+        }
+        $weight = array_sum(array_column($units, 2));
+        // Cakupan bisa bergeser setelah order dibuat (mis. produk pindah kategori); nominal tetap utuh di level transaksi.
+        if ($weight < $amount) {
+            return $transactionLevel;
+        }
+
+        $results = [];
+        $remainders = [];
+        foreach ($units as $key => [, , $unitWeight]) {
+            $results[$key] = intdiv($amount * $unitWeight, $weight);
+            $remainders[$key] = ($amount * $unitWeight) % $weight;
+        }
+        arsort($remainders);
+        foreach (array_slice(array_keys($remainders), 0, $amount - array_sum($results)) as $key) {
+            $results[$key]++;
+        }
+
+        $perUnit = [];
+        foreach ($units as $key => [$index, $i]) {
+            if ($results[$key] > 0) {
+                $perUnit[$index][$i] = [['id' => $id, 'nama' => $name, 'result' => $results[$key],
+                    'satuan' => 'percent', 'value' => $voucher->value]];
+            }
+        }
+
+        return [[], $perUnit];
+    }
+
+    /** Sama dengan computeVoucherDiscount di pricing Node: kategori diambil dari produk. */
+    private function voucherCovers(Voucher $voucher, OrderItem $item): bool
+    {
+        $scopeIds = array_map('intval', (array) $voucher->scope_ids);
+
+        return match ($voucher->scope) {
+            'product' => in_array((int) $item->product_id, $scopeIds, true),
+            'category' => in_array((int) Product::whereKey($item->product_id)->value('category_id'), $scopeIds, true),
+            default => true,
+        };
+    }
+
     private function snapshotHash(Order $order): string
     {
         return hash('sha256', json_encode([
@@ -314,6 +389,7 @@ class CashierPaymentService
             if (! $claim->snapshot_hash || ! hash_equals($claim->snapshot_hash, $this->snapshotHash($order))) {
                 throw new CashierError('SNAPSHOT_CHANGED');
             }
+            [$diskonAllItem, $voucherPerUnit] = $this->voucherDiscounts($order, $items);
             $transaction = Transaction::create([
                 'outlet_id' => $order->outlet_id, 'user_id' => $shift->user_id,
                 'patty_cash_id' => $petty->id, 'shift_session_id' => $shift->id,
@@ -322,10 +398,10 @@ class CashierPaymentService
                 'category_payment_id' => $payment?->category_payment_id ?? $cashCategory->id, 'tipe_pembayaran' => $payment?->id,
                 'nama_tipe_pembayaran' => $payment?->name ?? $cashCategory->name, 'total_pajak' => json_encode($order->tax_breakdown ?? []),
                 'total_modifier' => $order->modifier_total, 'total_diskon' => $order->discount_item_total + $order->voucher_discount,
-                'diskon_all_item' => '[]', 'rounding_amount' => abs($order->rounding),
+                'diskon_all_item' => json_encode($diskonAllItem), 'rounding_amount' => abs($order->rounding),
                 'tanda_rounding' => $order->rounding < 0 ? '-' : '+', 'potongan_point' => 0,
             ]);
-            foreach ($items as [$item, $modifiers]) {
+            foreach ($items as $index => [$item, $modifiers]) {
                 if ($item->variant_id) {
                     VariantProduct::whereKey($item->variant_id)->decrement('stok', $item->qty);
                 }
@@ -333,7 +409,8 @@ class CashierPaymentService
                     TransactionItem::create([
                         'transaction_id' => $transaction->id, 'product_id' => $item->product_id,
                         'variant_id' => $item->variant_id, 'harga' => $item->unit_price,
-                        'modifier_id' => json_encode($modifiers), 'discount_id' => '[]', 'promo_id' => '[]',
+                        'modifier_id' => json_encode($modifiers),
+                        'discount_id' => json_encode($voucherPerUnit[$index][$i] ?? []), 'promo_id' => '[]',
                         'catatan' => mb_substr((string) $item->notes, 0, 255), 'reward_item' => 0,
                     ]);
                 }
