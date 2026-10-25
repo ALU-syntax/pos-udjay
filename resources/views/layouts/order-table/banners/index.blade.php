@@ -106,19 +106,6 @@
 
     @push('css')
         <style>
-            .ob-notice {
-                display: flex;
-                align-items: center;
-                gap: .65rem;
-                margin-bottom: 1.25rem;
-                padding: .8rem 1rem;
-                border: 1px solid #fde68a;
-                border-radius: var(--ob-radius-sm);
-                background: #fffbeb;
-                color: #92400e;
-                font-size: .875rem;
-            }
-
             /* badge-primary tidak punya titik di partial bersama (dipakai Open Bill untuk nama outlet) */
             .ob-page .badge.ob-badge-dot::before {
                 content: "";

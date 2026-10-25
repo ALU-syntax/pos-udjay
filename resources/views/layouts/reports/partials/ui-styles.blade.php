@@ -1120,4 +1120,168 @@
             justify-content: center;
         }
     }
+
+    /* ----- Notice (peringatan lembut) ----- */
+    .ob-notice {
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        margin-bottom: 1.25rem;
+        padding: .8rem 1rem;
+        border: 1px solid #fde68a;
+        border-radius: var(--ob-radius-sm);
+        background: #fffbeb;
+        color: #92400e;
+        font-size: .875rem;
+    }
+
+    /* ----- Modal form: komponen modal dengan addStyle "ob-page ob-modal" ----- */
+    .ob-modal .modal-content {
+        border: 1px solid var(--ob-border);
+        border-radius: var(--ob-radius);
+        box-shadow: 0 24px 64px rgba(15, 23, 42, .18);
+        overflow: hidden;
+    }
+
+    .ob-modal .modal-header {
+        padding: 1.1rem 1.5rem;
+        border-bottom: 1px solid var(--ob-border) !important;
+        background: linear-gradient(180deg, var(--ob-surface-2), var(--ob-surface));
+    }
+
+    .ob-modal .modal-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--ob-text);
+    }
+
+    .ob-modal .modal-body {
+        padding: 1.25rem 1.5rem .5rem;
+    }
+
+    .ob-modal__desc {
+        margin: 0 0 1rem;
+        color: var(--ob-text-2);
+        font-size: .875rem;
+    }
+
+    .ob-modal .ob-notice {
+        margin-bottom: 1rem;
+    }
+
+    .ob-modal .ob-form-heading {
+        margin: .25rem 0 1rem;
+        padding-top: 1.1rem;
+        border-top: 1px solid var(--ob-border);
+    }
+
+    .ob-modal .ob-form-heading--first {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: 0;
+    }
+
+    .ob-modal .ob-form-heading .ob-section-title {
+        margin: 0;
+    }
+
+    .ob-modal .form-label {
+        font-size: .75rem;
+        font-weight: 600;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        color: var(--ob-muted);
+        margin-bottom: .4rem;
+    }
+
+    .ob-modal .form-control,
+    .ob-modal .form-select {
+        min-height: 42px;
+        border: 1px solid var(--ob-border-strong);
+        border-radius: var(--ob-radius-sm);
+        background-color: var(--ob-surface);
+        color: var(--ob-text);
+        font-size: .875rem !important;
+        box-shadow: none;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .ob-modal .form-control:focus,
+    .ob-modal .form-select:focus {
+        border-color: var(--ob-primary);
+        box-shadow: 0 0 0 3px rgba(21, 114, 232, .15);
+    }
+
+    .ob-modal .form-control[readonly] {
+        background-color: var(--ob-surface-2);
+        color: var(--ob-text-2);
+    }
+
+    .ob-modal small.text-muted {
+        display: block;
+        margin-top: .35rem;
+        font-size: .78rem;
+        color: var(--ob-muted) !important;
+    }
+
+    .ob-modal .form-check-label {
+        font-size: .85rem;
+        color: var(--ob-text-2);
+    }
+
+    .ob-modal .ob-preview {
+        display: grid;
+        place-items: center;
+        aspect-ratio: 16 / 9;
+        width: 100%;
+        border: 1px dashed var(--ob-border-strong);
+        border-radius: var(--ob-radius-sm);
+        background: var(--ob-surface-2);
+        color: var(--ob-muted);
+        font-size: .85rem;
+        overflow: hidden;
+    }
+
+    .ob-modal .ob-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .ob-modal .modal-footer {
+        gap: .5rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--ob-border) !important;
+        background: var(--ob-surface-2);
+    }
+
+    .ob-modal .modal-footer .btn {
+        min-height: 40px;
+        margin: 0;
+        padding: .5rem 1.1rem;
+        border-radius: 10px !important;
+        font-size: .85rem;
+        font-weight: 600;
+    }
+
+    /* Tombol simpan di kanan, tutup sebagai tombol sekunder di kirinya */
+    .ob-modal .modal-footer .btn-primary {
+        order: 2;
+        background: var(--ob-primary) !important;
+        border: 1px solid var(--ob-primary) !important;
+        color: #fff !important;
+        box-shadow: 0 4px 12px rgba(21, 114, 232, .25);
+    }
+
+    .ob-modal .modal-footer .btn-danger {
+        order: 1;
+        background: var(--ob-surface) !important;
+        border: 1px solid var(--ob-border-strong) !important;
+        color: var(--ob-text-2) !important;
+    }
+
+    .ob-modal .modal-footer .btn-danger:hover {
+        background: var(--ob-surface-2) !important;
+        color: var(--ob-text) !important;
+    }
 </style>

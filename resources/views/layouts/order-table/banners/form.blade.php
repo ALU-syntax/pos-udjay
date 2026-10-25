@@ -9,8 +9,8 @@
         : '';
 @endphp
 
-<x-modal addStyle="modal-xl" title="{{ $editing ? 'Edit Banner' : 'Tambah Banner' }}"
-    description="Banner berupa gambar jadi atau kartu teks, dan dapat diarahkan ke produk, kategori, voucher, atau URL."
+{{-- ob-page memberi token & gaya report ke modal (modal dirender di luar .main-content) --}}
+<x-modal addStyle="modal-xl ob-page ob-modal" title="{{ $editing ? 'Edit Banner' : 'Tambah Banner' }}"
     update="{{ $editing }}"
     action="{{ $editing ? route('order-table/banners/update', $banner->id) : route('order-table/banners/store') }}"
     method="POST">
@@ -18,13 +18,36 @@
         @method('put')
     @endif
 
-    <div class="col-12 mb-3 global-impact-warning d-none"><div class="alert alert-warning mb-0"><strong>Perhatian:</strong> banner global tampil di seluruh outlet aktif.</div></div>
-    <div class="col-md-6 mb-3">
+    <div class="col-12">
+        <p class="ob-modal__desc">Banner tampil di carousel halaman menu pelanggan, berupa gambar jadi atau kartu teks.</p>
+    </div>
+    <div class="col-12 global-impact-warning d-none">
+        <div class="ob-notice" role="note">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            <span>Banner <strong>global</strong> tampil di seluruh outlet aktif.</span>
+        </div>
+    </div>
+
+    {{-- Penempatan --}}
+    <div class="col-12 ob-form-heading ob-form-heading--first">
+        <h3 class="ob-section-title"><i class="fas fa-store" aria-hidden="true"></i> Penempatan</h3>
+    </div>
+    <div class="col-md-8 mb-3">
         <label for="outlet_id" class="form-label">Outlet <span class="text-danger">*</span></label>
         <select id="outlet_id" name="outlet_id" class="form-select" @required(!$canManageGlobal)>
             @if ($canManageGlobal)<option value="" @selected(old('outlet_id', $banner->outlet_id) === null || old('outlet_id') === '')>Global - semua outlet</option>@else<option value="">Pilih outlet</option>@endif
             @foreach ($outlets as $outlet)<option value="{{ $outlet->id }}" @selected((string) old('outlet_id', $banner->outlet_id) === (string) $outlet->id)>{{ $outlet->name }}</option>@endforeach
         </select>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="sort_order" class="form-label">Urutan</label>
+        <input id="sort_order" name="sort_order" type="number" min="0" class="form-control" value="{{ old('sort_order', $banner->sort_order ?? 0) }}">
+        <small class="text-muted">Angka kecil tampil lebih dulu.</small>
+    </div>
+
+    {{-- Tampilan --}}
+    <div class="col-12 ob-form-heading">
+        <h3 class="ob-section-title"><i class="fas fa-image" aria-hidden="true"></i> Tampilan</h3>
     </div>
     <div class="col-md-6 mb-3">
         <label for="display_mode" class="form-label">Jenis Banner <span class="text-danger">*</span></label>
@@ -57,23 +80,36 @@
         <label for="subtitle" class="form-label">Subjudul</label>
         <input id="subtitle" name="subtitle" type="text" maxlength="120" class="form-control" value="{{ old('subtitle', $banner->subtitle) }}" placeholder="Contoh: Min. belanja Rp 30.000, semua menu">
     </div>
-    <div class="col-md-6 mb-3">
-        <label for="image_url" class="form-label"><span class="banner-image-only">URL Gambar</span><span class="banner-text-only">URL Gambar Latar (opsional)</span></label>
-        <input id="image_url" name="image_url" type="url" maxlength="500" class="form-control" value="{{ old('image_url', $remoteImageUrl) }}" placeholder="https://...">
-        <small class="text-muted">Gunakan URL atau unggah file di sebelahnya. Ukuran 1200×675 (16:9).</small>
-    </div>
-    <div class="col-md-6 mb-3">
-        <label for="image" class="form-label">Unggah Gambar</label>
-        <input id="image" name="image_upload" type="file" accept="image/jpeg,image/png,image/webp" class="form-control">
-        @if ($editing && $banner->image_url)
-            <div class="form-check mt-2 banner-text-only">
-                <input id="remove_image" name="remove_image" type="checkbox" value="1" class="form-check-input" @checked(old('remove_image'))>
-                <label for="remove_image" class="form-check-label">Hapus gambar latar</label>
+    <div class="col-lg-7">
+        <div class="row">
+            <div class="col-12 mb-3">
+                <label for="image_url" class="form-label"><span class="banner-image-only">URL Gambar</span><span class="banner-text-only">URL Gambar Latar (opsional)</span></label>
+                <input id="image_url" name="image_url" type="url" maxlength="500" class="form-control" value="{{ old('image_url', $remoteImageUrl) }}" placeholder="https://...">
             </div>
-        @endif
+            <div class="col-12 mb-3">
+                <label for="image" class="form-label">Atau Unggah Gambar</label>
+                <input id="image" name="image_upload" type="file" accept="image/jpeg,image/png,image/webp" class="form-control">
+                <small class="text-muted">JPG, PNG, atau WebP maks. 4 MB. Ukuran ideal 1200×675 (16:9).</small>
+                @if ($editing && $banner->image_url)
+                    <div class="form-check mt-2 banner-text-only">
+                        <input id="remove_image" name="remove_image" type="checkbox" value="1" class="form-check-input" @checked(old('remove_image'))>
+                        <label for="remove_image" class="form-check-label">Hapus gambar latar</label>
+                    </div>
+                @endif
+            </div>
+        </div>
     </div>
-    <div class="col-12 mb-3">
-        <div class="border rounded p-2 text-center bg-light"><img class="banner-image-preview {{ $banner->image_url ? '' : 'd-none' }}" src="{{ $banner->image_url ?: '' }}" alt="Preview banner" style="max-height:180px;max-width:100%;object-fit:contain"><span class="banner-image-placeholder {{ $banner->image_url ? 'd-none' : '' }} text-muted">Preview gambar</span></div>
+    <div class="col-lg-5 mb-3">
+        <span class="form-label d-block">Pratinjau</span>
+        <div class="ob-preview">
+            <img class="banner-image-preview {{ $banner->image_url ? '' : 'd-none' }}" src="{{ $banner->image_url ?: '' }}" alt="Pratinjau banner">
+            <span class="banner-image-placeholder {{ $banner->image_url ? 'd-none' : '' }}"><i class="fas fa-image me-1" aria-hidden="true"></i> Belum ada gambar</span>
+        </div>
+    </div>
+
+    {{-- Aksi --}}
+    <div class="col-12 ob-form-heading">
+        <h3 class="ob-section-title"><i class="fas fa-hand-pointer" aria-hidden="true"></i> Saat Banner Diketuk</h3>
     </div>
     <div class="col-md-4 mb-3">
         <label for="action_type" class="form-label">Jenis Aksi <span class="text-danger">*</span></label>
@@ -94,12 +130,33 @@
         </select>
         <small class="text-muted">Target dipilih dari daftar yang diizinkan, bukan ID manual.</small>
     </div>
-    <div class="col-md-3 mb-3"><label for="sort_order" class="form-label">Urutan</label><input id="sort_order" name="sort_order" type="number" min="0" class="form-control" value="{{ old('sort_order', $banner->sort_order ?? 0) }}"></div>
-    <div class="col-md-3 mb-3"><label for="start_at" class="form-label">Mulai</label><input id="start_at" name="start_at" type="datetime-local" class="form-control" value="{{ old('start_at', $banner->start_at?->format('Y-m-d\TH:i')) }}"></div>
-    <div class="col-md-3 mb-3"><label for="end_at" class="form-label">Selesai</label><input id="end_at" name="end_at" type="datetime-local" class="form-control" value="{{ old('end_at', $banner->end_at?->format('Y-m-d\TH:i')) }}"></div>
+
+    {{-- Jadwal & status --}}
+    <div class="col-12 ob-form-heading">
+        <h3 class="ob-section-title"><i class="far fa-calendar-alt" aria-hidden="true"></i> Jadwal &amp; Status</h3>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="start_at" class="form-label">Mulai Tayang</label>
+        <input id="start_at" name="start_at" type="datetime-local" class="form-control" value="{{ old('start_at', $banner->start_at?->format('Y-m-d\TH:i')) }}">
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="end_at" class="form-label">Selesai Tayang</label>
+        <input id="end_at" name="end_at" type="datetime-local" class="form-control" value="{{ old('end_at', $banner->end_at?->format('Y-m-d\TH:i')) }}">
+        <small class="text-muted">Kosongkan keduanya untuk tayang tanpa batas.</small>
+    </div>
     @if (!$editing)
-        <div class="col-md-3 mb-3"><label for="status" class="form-label">Status</label><select id="status" name="status" class="form-select"><option value="1" @selected(old('status', true) == 1)>Aktif</option><option value="0" @selected(old('status', true) == 0)>Nonaktif</option></select></div>
+        <div class="col-md-4 mb-3">
+            <label for="status" class="form-label">Status</label>
+            <select id="status" name="status" class="form-select">
+                <option value="1" @selected(old('status', true) == 1)>Aktif</option>
+                <option value="0" @selected(old('status', true) == 0)>Nonaktif</option>
+            </select>
+        </div>
     @else
-        <div class="col-md-3 mb-3"><label class="form-label">Status</label><input class="form-control bg-light" value="{{ $banner->status ? 'Aktif' : 'Nonaktif' }}" readonly></div>
+        <div class="col-md-4 mb-3">
+            <label for="status_readonly" class="form-label">Status</label>
+            <input id="status_readonly" class="form-control" value="{{ $banner->status ? 'Aktif' : 'Nonaktif' }}" readonly>
+            <small class="text-muted">Ubah lewat tombol aktif/nonaktif di daftar banner.</small>
+        </div>
     @endif
 </x-modal>
