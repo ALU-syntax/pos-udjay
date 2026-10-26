@@ -1,31 +1,65 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="main-content order-table-page">
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-            <div><h2 class="h4 mb-1 font-weight-bold"><i class="fa fa-ticket me-2"></i>Voucher Order Table</h2><p class="text-muted mb-0">Kelola voucher outlet dan pantau status efektifnya.</p></div>
+    @include('layouts.reports.partials.ui-styles')
+
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
+            <div>
+                <div class="ob-header__eyebrow">Order Table</div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-ticket-alt"></i></span>
+                    Voucher
+                </h1>
+                <p class="ob-header__desc">Kelola kode voucher yang bisa dipakai pelanggan saat checkout.</p>
+            </div>
             @can('create order-table/vouchers')
-                <a href="{{ route('order-table/vouchers/create') }}" class="btn btn-primary btn-round action"><i class="fa fa-plus me-2"></i>Tambah Voucher</a>
+                <a href="{{ route('order-table/vouchers/create') }}" class="btn ob-btn ob-btn-primary action">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Tambah Voucher
+                </a>
             @endcan
         </div>
+
         @if ($canManageGlobal)
-            <div class="alert alert-warning border-0 shadow-sm"><i class="fa fa-triangle-exclamation me-2"></i>Perubahan voucher global berdampak pada seluruh outlet aktif.</div>
-        @endif
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-3">
-                <div><h5 class="mb-1">Daftar Voucher</h5><small class="text-muted">Status efektif memperhitungkan status, tanggal, dan kuota.</small></div>
-                <div class="order-table-filter"><label for="outlet-filter" class="form-label small mb-1">Filter outlet</label><select id="outlet-filter" class="form-select form-select-sm"><option value="">Semua outlet</option>@if ($canManageGlobal)<option value="global">Global</option>@endif @foreach ($outlets as $outlet)<option value="{{ $outlet->id }}">{{ $outlet->name }}</option>@endforeach</select></div>
+            <div class="ob-notice" role="note">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                <span>Perubahan voucher <strong>global</strong> langsung berlaku di seluruh outlet aktif.</span>
             </div>
-            <div class="card-body"><div class="table-responsive">{!! $dataTable->table(['class' => 'table table-hover align-middle mb-0']) !!}</div></div>
+        @endif
+
+        {{-- Tabel --}}
+        <div class="ob-card">
+            <div class="ob-tabs-bar">
+                <div>
+                    <h2 class="ob-section-title mb-1"><i class="fas fa-list" aria-hidden="true"></i> Daftar Voucher</h2>
+                    <span class="ob-hint"><i class="fas fa-info-circle" aria-hidden="true"></i> Status memperhitungkan status aktif, periode berlaku, dan kuota.</span>
+                </div>
+                <div class="ob-field ob-list-filter">
+                    <label for="outlet-filter"><i class="fas fa-store" aria-hidden="true"></i> Outlet</label>
+                    <select id="outlet-filter" class="form-control">
+                        <option value="">Semua voucher</option>
+                        @if ($canManageGlobal)<option value="global">Hanya voucher global</option>@endif
+                        @foreach ($outlets as $outlet)
+                            <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="ob-table-wrap">
+                {!! $dataTable->table(['class' => 'table w-100']) !!}
+            </div>
         </div>
     </div>
+
     @push('js')
         {!! $dataTable->scripts() !!}
         <script>
             $(function () {
                 const tableId = 'voucher-table';
                 const selectorUrls = { category: @json(route('order-table/selectors/categories')), product: @json(route('order-table/selectors/products')) };
-                $('#outlet-filter').on('change', () => window.LaravelDataTables[tableId].ajax.reload());
+                $('#outlet-filter').select2({ width: '100%', minimumResultsForSearch: 8 })
+                    .on('change', () => window.LaravelDataTables[tableId].ajax.reload());
                 handleAction(tableId, function () {
                     const form = $('#form_action');
                     const target = form.find('#scope_ids');
@@ -66,5 +100,71 @@
             });
         </script>
     @endpush
-    @push('css')<style>.order-table-page .card{border-radius:10px}.order-table-filter{min-width:240px}.order-table-actions{display:inline-flex;gap:5px}.order-table-actions .btn{width:34px;height:34px;padding:7px}</style>@endpush
+
+    @push('css')
+        <style>
+            /* Sel voucher: kode bergaya tiket + manfaat */
+            .ob-voucher-cell,
+            .ob-cell-stack {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: .2rem;
+            }
+
+            .ob-voucher-cell {
+                min-width: 180px;
+            }
+
+            .ob-voucher-code {
+                padding: .25rem .6rem;
+                border: 1px dashed var(--ob-primary);
+                border-radius: 6px;
+                background: var(--ob-primary-soft);
+                color: var(--ob-primary);
+                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                font-size: .82rem;
+                font-weight: 700;
+                letter-spacing: .04em;
+            }
+
+            .ob-cell-meta {
+                font-size: .75rem;
+                color: var(--ob-muted);
+            }
+
+            .ob-cell-stack {
+                white-space: nowrap;
+                font-variant-numeric: tabular-nums;
+            }
+
+            .ob-quota {
+                min-width: 120px;
+            }
+
+            .ob-quota__bar {
+                display: block;
+                width: 100%;
+                height: 5px;
+                border-radius: 999px;
+                background: var(--ob-border);
+                overflow: hidden;
+            }
+
+            .ob-quota__fill {
+                display: block;
+                height: 100%;
+                border-radius: inherit;
+            }
+
+            .ob-quota__fill--primary { background: var(--ob-primary); }
+            .ob-quota__fill--warning { background: #d97706; }
+            .ob-quota__fill--danger { background: var(--ob-danger); }
+
+            .ob-page table.dataTable tbody td.ob-col-time {
+                white-space: nowrap;
+                font-size: .8rem;
+            }
+        </style>
+    @endpush
 @endsection

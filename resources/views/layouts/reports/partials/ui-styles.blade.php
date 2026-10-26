@@ -1284,4 +1284,75 @@
         background: var(--ob-surface-2) !important;
         color: var(--ob-text) !important;
     }
+
+    .ob-modal .input-group-text {
+        min-width: 44px;
+        justify-content: center;
+        border: 1px solid var(--ob-border-strong);
+        border-radius: var(--ob-radius-sm) 0 0 var(--ob-radius-sm);
+        background: var(--ob-surface-2);
+        color: var(--ob-text-2);
+        font-size: .85rem;
+        font-weight: 600;
+    }
+
+    .ob-modal .input-group > .form-control {
+        border-radius: 0 var(--ob-radius-sm) var(--ob-radius-sm) 0;
+    }
+
+    /* ----- Halaman daftar Order Table (banner, voucher, ...) ----- */
+    /* Opt-in: badge-primary sengaja tanpa titik karena dipakai Open Bill untuk nama outlet */
+    .ob-page .badge.ob-badge-dot::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .ob-list-filter {
+        width: 260px;
+        max-width: 100%;
+    }
+
+    .ob-row-actions {
+        display: inline-flex;
+        gap: .35rem;
+    }
+
+    .ob-page .ob-icon-btn--sm {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        font-size: .8rem;
+        text-decoration: none;
+    }
+
+    .ob-page .ob-icon-btn--sm:hover {
+        background: var(--ob-primary-soft);
+        color: var(--ob-primary);
+    }
+
+    .ob-page .ob-icon-btn--danger:hover {
+        background: var(--ob-danger-soft);
+        color: var(--ob-danger);
+    }
+
+    .ob-page .ob-icon-btn--success:hover {
+        background: var(--ob-success-soft);
+        color: var(--ob-success);
+    }
+
+    .ob-page .ob-icon-btn:focus-visible {
+        outline: 2px solid var(--ob-primary);
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 575.98px) {
+        .ob-header > .ob-btn,
+        .ob-list-filter {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 </style>

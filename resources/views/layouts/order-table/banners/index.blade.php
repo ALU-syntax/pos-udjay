@@ -35,7 +35,7 @@
                     <h2 class="ob-section-title mb-1"><i class="fas fa-list" aria-hidden="true"></i> Daftar Banner</h2>
                     <span class="ob-hint"><i class="fas fa-info-circle" aria-hidden="true"></i> Status memperhitungkan status aktif dan periode tayang.</span>
                 </div>
-                <div class="ob-field ob-banner-filter">
+                <div class="ob-field ob-list-filter">
                     <label for="outlet-filter"><i class="fas fa-store" aria-hidden="true"></i> Outlet</label>
                     <select id="outlet-filter" class="form-control">
                         <option value="">Semua banner</option>
@@ -106,20 +106,6 @@
 
     @push('css')
         <style>
-            /* badge-primary tidak punya titik di partial bersama (dipakai Open Bill untuk nama outlet) */
-            .ob-page .badge.ob-badge-dot::before {
-                content: "";
-                width: 6px;
-                height: 6px;
-                border-radius: 50%;
-                background: currentColor;
-            }
-
-            .ob-banner-filter {
-                width: 260px;
-                max-width: 100%;
-            }
-
             /* Sel banner: thumbnail 16:9 + judul + jenis */
             .ob-banner-cell {
                 display: flex;
@@ -179,48 +165,6 @@
             .ob-page table.dataTable td.ob-col-order {
                 text-align: center;
                 font-variant-numeric: tabular-nums;
-            }
-
-            /* Aksi per baris */
-            .ob-row-actions {
-                display: inline-flex;
-                gap: .35rem;
-            }
-
-            .ob-page .ob-icon-btn--sm {
-                width: 34px;
-                height: 34px;
-                border-radius: 9px;
-                font-size: .8rem;
-                text-decoration: none;
-            }
-
-            .ob-page .ob-icon-btn--sm:hover {
-                background: var(--ob-primary-soft);
-                color: var(--ob-primary);
-            }
-
-            .ob-page .ob-icon-btn--danger:hover {
-                background: var(--ob-danger-soft);
-                color: var(--ob-danger);
-            }
-
-            .ob-page .ob-icon-btn--success:hover {
-                background: var(--ob-success-soft);
-                color: var(--ob-success);
-            }
-
-            .ob-page .ob-icon-btn:focus-visible {
-                outline: 2px solid var(--ob-primary);
-                outline-offset: 2px;
-            }
-
-            @media (max-width: 575.98px) {
-                .ob-header > .ob-btn,
-                .ob-banner-filter {
-                    width: 100%;
-                    justify-content: center;
-                }
             }
         </style>
     @endpush
