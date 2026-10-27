@@ -5,7 +5,11 @@ namespace App\Services\OrderTable;
 use App\Models\Config;
 use App\Models\OrderTable\DiningTable;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
+use RuntimeException;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use ZipArchive;
 
 class DiningTableQrService
 {
@@ -45,12 +49,44 @@ class DiningTableQrService
 
     public function download(DiningTable $table): Response
     {
-        $code = preg_replace('/[^A-Za-z0-9_-]+/', '-', $table->code) ?: (string) $table->getKey();
-        $filename = 'table-'.$code.'.svg';
-
         return response($this->svg($table), 200, [
             'Content-Type' => 'image/svg+xml',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Disposition' => 'attachment; filename="'.$this->filename($table).'"',
         ]);
+    }
+
+    /**
+     * ZIP berisi SVG QR, dikelompokkan per folder outlet agar mudah dibagikan ke operasional.
+     *
+     * @param  Collection<int, DiningTable>  $tables  sudah di-eager load relasi outlet
+     */
+    public function downloadZip(Collection $tables, string $zipName): BinaryFileResponse
+    {
+        $path = tempnam(sys_get_temp_dir(), 'qr-meja-');
+        $zip = new ZipArchive;
+
+        if ($path === false || $zip->open($path, ZipArchive::OVERWRITE) !== true) {
+            throw new RuntimeException('Gagal membuat file ZIP QR meja.');
+        }
+
+        foreach ($tables as $table) {
+            $folder = $this->slug($table->outlet?->name ?? '') ?: 'outlet-'.$table->outlet_id;
+            $zip->addFromString($folder.'/'.$this->filename($table), $this->svg($table));
+        }
+
+        $zip->close();
+
+        return response()->download($path, $zipName, ['Content-Type' => 'application/zip'])
+            ->deleteFileAfterSend();
+    }
+
+    private function filename(DiningTable $table): string
+    {
+        return 'table-'.($this->slug($table->code) ?: (string) $table->getKey()).'.svg';
+    }
+
+    public function slug(string $value): string
+    {
+        return trim(preg_replace('/[^A-Za-z0-9_-]+/', '-', $value), '-');
     }
 }

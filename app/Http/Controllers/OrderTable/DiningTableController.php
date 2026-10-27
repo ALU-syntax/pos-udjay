@@ -117,22 +117,6 @@ class DiningTableController extends Controller
         return responseSuccess(true, $table->qr_active ? 'QR meja diaktifkan' : 'QR meja dinonaktifkan');
     }
 
-    public function rotateToken(Request $request, int $diningTable)
-    {
-        $this->authorize('rotate order-table/dining-tables');
-        $table = $this->table($diningTable);
-
-        DB::transaction(function () use ($table) {
-            $before = $table->attributesToArray();
-            $table->qr_token = $this->qrService->generateToken();
-            $table->save();
-
-            $this->auditLogger->log('dining-table.qr-rotated', $table, $before, $table->fresh()->attributesToArray());
-        });
-
-        return responseSuccess(true, 'Token QR meja berhasil dirotasi');
-    }
-
     public function preview(int $diningTable)
     {
         $this->authorize('read order-table/dining-tables');
@@ -150,6 +134,32 @@ class DiningTableController extends Controller
         $this->authorize('download order-table/dining-tables');
 
         return $this->qrService->download($this->table($diningTable));
+    }
+
+    public function downloadAll(Request $request)
+    {
+        $this->authorize('download order-table/dining-tables');
+
+        $outletIds = $request->user()->outletIds();
+        $outletId = $request->integer('outlet_id');
+        $outlet = $outletId && in_array($outletId, $outletIds, true) ? Outlets::find($outletId) : null;
+
+        // Hanya QR aktif: QR nonaktif tidak bisa dipakai pelanggan, jadi tidak perlu dicetak
+        $tables = DiningTable::query()
+            ->with('outlet')
+            ->whereIn('outlet_id', $outlet ? [$outlet->id] : $outletIds)
+            ->where('qr_active', true)
+            ->orderBy('outlet_id')
+            ->orderBy('code')
+            ->get();
+
+        if ($tables->isEmpty()) {
+            return responseWarning('Tidak ada meja dengan QR aktif untuk diunduh.');
+        }
+
+        $scope = $outlet ? ($this->qrService->slug($outlet->name) ?: 'outlet-'.$outlet->id) : 'semua-outlet';
+
+        return $this->qrService->downloadZip($tables, 'qr-meja-'.$scope.'-'.now()->format('Ymd-His').'.zip');
     }
 
     public function print(int $diningTable)

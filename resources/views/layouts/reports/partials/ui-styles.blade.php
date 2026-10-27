@@ -1300,6 +1300,20 @@
         border-radius: 0 var(--ob-radius-sm) var(--ob-radius-sm) 0;
     }
 
+    /* Varian akhiran satuan (mis. "orang") di kanan input */
+    .ob-modal .input-group > .form-control.ob-input-suffixed {
+        border-radius: var(--ob-radius-sm) 0 0 var(--ob-radius-sm);
+    }
+
+    .ob-modal .input-group-text.ob-input-suffix {
+        border-radius: 0 var(--ob-radius-sm) var(--ob-radius-sm) 0;
+    }
+
+    /* Tombol sekunder lain di footer modal ikut di antara tutup dan simpan */
+    .ob-modal .modal-footer .ob-btn-outline {
+        order: 1;
+    }
+
     /* ----- Halaman daftar Order Table (banner, voucher, ...) ----- */
     /* Opt-in: badge-primary sengaja tanpa titik karena dipakai Open Bill untuk nama outlet */
     .ob-page .badge.ob-badge-dot::before {
@@ -1308,6 +1322,11 @@
         height: 6px;
         border-radius: 50%;
         background: currentColor;
+    }
+
+    .ob-cell-meta {
+        font-size: .75rem;
+        color: var(--ob-muted);
     }
 
     .ob-list-filter {

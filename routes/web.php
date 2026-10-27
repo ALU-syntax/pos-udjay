@@ -100,11 +100,11 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [OrderTableDiningTableController::class, 'index'])->name('dining-tables');
             Route::get('/create', [OrderTableDiningTableController::class, 'create'])->name('dining-tables/create');
             Route::post('/', [OrderTableDiningTableController::class, 'store'])->name('dining-tables/store');
+            Route::get('/qr/download-all', [OrderTableDiningTableController::class, 'downloadAll'])->name('dining-tables/qr/download-all');
             Route::get('/{diningTable}/edit', [OrderTableDiningTableController::class, 'edit'])->name('dining-tables/edit');
             Route::put('/{diningTable}', [OrderTableDiningTableController::class, 'update'])->name('dining-tables/update');
             Route::delete('/{diningTable}', [OrderTableDiningTableController::class, 'destroy'])->name('dining-tables/destroy');
             Route::post('/{diningTable}/toggle-qr', [OrderTableDiningTableController::class, 'toggleQr'])->name('dining-tables/toggle-qr');
-            Route::post('/{diningTable}/rotate-token', [OrderTableDiningTableController::class, 'rotateToken'])->name('dining-tables/rotate-token');
             Route::get('/{diningTable}/qr', [OrderTableDiningTableController::class, 'preview'])->name('dining-tables/qr');
             Route::get('/{diningTable}/qr/download', [OrderTableDiningTableController::class, 'download'])->name('dining-tables/qr/download');
             Route::get('/{diningTable}/qr/print', [OrderTableDiningTableController::class, 'print'])->name('dining-tables/qr/print');

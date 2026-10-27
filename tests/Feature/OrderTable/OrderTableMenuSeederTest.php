@@ -18,7 +18,7 @@ class OrderTableMenuSeederTest extends OrderTableTestCase
         $expectedByMenu = [
             'order-table' => ['read order-table'],
             'order-table/outlet-settings' => ['create order-table/outlet-settings', 'read order-table/outlet-settings', 'update order-table/outlet-settings'],
-            'order-table/dining-tables' => ['create order-table/dining-tables', 'read order-table/dining-tables', 'update order-table/dining-tables', 'delete order-table/dining-tables', 'rotate order-table/dining-tables', 'download order-table/dining-tables', 'print order-table/dining-tables'],
+            'order-table/dining-tables' => ['create order-table/dining-tables', 'read order-table/dining-tables', 'update order-table/dining-tables', 'delete order-table/dining-tables', 'download order-table/dining-tables', 'print order-table/dining-tables'],
             'order-table/payment-methods' => ['create order-table/payment-methods', 'read order-table/payment-methods', 'update order-table/payment-methods'],
             'order-table/vouchers' => ['create order-table/vouchers', 'read order-table/vouchers', 'update order-table/vouchers'],
             'order-table/voucher-redemptions' => ['read order-table/voucher-redemptions'],

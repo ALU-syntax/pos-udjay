@@ -29,7 +29,7 @@ class OrderTableMenuSeeder extends Seeder
             ],
             'order-table/dining-tables' => [
                 'name' => 'Meja & QR',
-                'permissions' => ['create ', 'read ', 'update ', 'delete ', 'rotate ', 'download ', 'print '],
+                'permissions' => ['create ', 'read ', 'update ', 'delete ', 'download ', 'print '],
             ],
             'order-table/payment-methods' => [
                 'name' => 'Metode Pembayaran',

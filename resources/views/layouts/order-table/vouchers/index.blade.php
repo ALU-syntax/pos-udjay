@@ -128,11 +128,6 @@
                 letter-spacing: .04em;
             }
 
-            .ob-cell-meta {
-                font-size: .75rem;
-                color: var(--ob-muted);
-            }
-
             .ob-cell-stack {
                 white-space: nowrap;
                 font-variant-numeric: tabular-nums;

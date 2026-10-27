@@ -3,9 +3,9 @@
 namespace Tests\Feature\OrderTable;
 
 use App\Models\Config;
-use App\Models\OrderTable\AuditLog;
 use App\Models\OrderTable\DiningTable;
 use App\Services\OrderTable\DiningTableQrService;
+use ZipArchive;
 
 class DiningTableTest extends OrderTableTestCase
 {
@@ -77,28 +77,6 @@ class DiningTableTest extends OrderTableTestCase
         $this->assertTrue($table->fresh()->qr_active);
     }
 
-    public function test_rotate_changes_token_and_redacts_both_audit_snapshots(): void
-    {
-        $outlet = $this->outlet('Rotate');
-        $user = $this->userFor($outlet, ['rotate order-table/dining-tables']);
-        $table = $this->diningTable($outlet);
-        $oldToken = $table->qr_token;
-
-        $this->actingAs($user)
-            ->postJson(route('order-table/dining-tables/rotate-token', $table->id))
-            ->assertOk();
-
-        $table->refresh();
-        $this->assertNotSame($oldToken, $table->qr_token);
-        $this->assertMatchesRegularExpression('/\A[0-9a-f]{64}\z/', $table->qr_token);
-
-        $audit = AuditLog::where('action', 'dining-table.qr-rotated')->where('subject_id', $table->id)->firstOrFail();
-        $this->assertArrayNotHasKey('qr_token', $audit->before);
-        $this->assertArrayNotHasKey('qr_token', $audit->after);
-        $this->assertStringNotContainsString($oldToken, json_encode($audit->toArray(), JSON_THROW_ON_ERROR));
-        $this->assertStringNotContainsString($table->qr_token, json_encode($audit->toArray(), JSON_THROW_ON_ERROR));
-    }
-
     public function test_destroy_soft_deletes_the_table_and_writes_an_audit_log(): void
     {
         $outlet = $this->outlet('Delete');
@@ -114,6 +92,56 @@ class DiningTableTest extends OrderTableTestCase
             'action' => 'dining-table.deleted',
             'subject_id' => $table->id,
         ]);
+    }
+
+    public function test_download_all_zips_active_qr_codes_grouped_by_outlet_folder(): void
+    {
+        $outletA = $this->outlet('Zip A');
+        $outletB = $this->outlet('Zip B');
+        $other = $this->outlet('Zip Other');
+        $user = $this->userFor($outletA, ['download order-table/dining-tables']);
+        $user->forceFill(['outlet_id' => [$outletA->id, $outletB->id]])->save();
+
+        $this->diningTable($outletA, ['code' => 'A01']);
+        $this->diningTable($outletB, ['code' => 'B01']);
+        $this->diningTable($outletB, ['code' => 'B02', 'qr_active' => false]);
+        $this->diningTable($other, ['code' => 'X01']);
+
+        $response = $this->actingAs($user)->get(route('order-table/dining-tables/qr/download-all'));
+
+        $response->assertOk()->assertDownload();
+        $entries = $this->zipEntries($response->baseResponse->getFile()->getPathname());
+        $this->assertEqualsCanonicalizing([
+            'Order-Table-Outlet-Zip-A/table-A01.svg',
+            'Order-Table-Outlet-Zip-B/table-B01.svg',
+        ], $entries);
+    }
+
+    public function test_download_all_respects_the_outlet_filter_and_warns_when_empty(): void
+    {
+        $outlet = $this->outlet('Zip Filter');
+        $user = $this->userFor($outlet, ['download order-table/dining-tables']);
+        $this->diningTable($outlet, ['code' => 'F01']);
+
+        $response = $this->actingAs($user)->get(route('order-table/dining-tables/qr/download-all', ['outlet_id' => $outlet->id]));
+        $response->assertOk()->assertDownload();
+        $this->assertSame(['Order-Table-Outlet-Zip-Filter/table-F01.svg'], $this->zipEntries($response->baseResponse->getFile()->getPathname()));
+
+        $empty = $this->outlet('Zip Empty');
+        $emptyUser = $this->userFor($empty, ['download order-table/dining-tables']);
+        $this->diningTable($empty, ['qr_active' => false]);
+
+        $this->actingAs($emptyUser)->getJson(route('order-table/dining-tables/qr/download-all'))
+            ->assertOk()
+            ->assertJson(['status' => 'warning']);
+    }
+
+    public function test_download_all_requires_download_permission(): void
+    {
+        $outlet = $this->outlet('Zip Forbidden');
+        $user = $this->userFor($outlet, ['read order-table/dining-tables']);
+
+        $this->actingAs($user)->get(route('order-table/dining-tables/qr/download-all'))->assertForbidden();
     }
 
     public function test_qr_download_is_svg_and_contains_the_public_table_url(): void
@@ -161,5 +189,18 @@ class DiningTableTest extends OrderTableTestCase
             'https://from-app.example.test/o/'.$outlet->id.'/t/'.$table->qr_token,
             app(DiningTableQrService::class)->url($table),
         );
+    }
+
+    private function zipEntries(string $path): array
+    {
+        $zip = new ZipArchive;
+        $this->assertTrue($zip->open($path) === true);
+        $entries = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entries[] = $zip->getNameIndex($i);
+        }
+        $zip->close();
+
+        return $entries;
     }
 }

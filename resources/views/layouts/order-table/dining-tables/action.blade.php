@@ -1,33 +1,29 @@
-<div class="order-table-actions" role="group" aria-label="Aksi meja {{ $table->code }}">
+<div class="ob-row-actions" role="group" aria-label="Aksi meja {{ $table->code }}">
     @can('read order-table/dining-tables')
-        <a href="{{ route('order-table/dining-tables/qr', $table->id) }}" class="btn btn-sm btn-outline-primary qr-preview"
-            title="Preview QR" aria-label="Preview QR"><i class="fa fa-eye"></i></a>
+        <a href="{{ route('order-table/dining-tables/qr', $table->id) }}" class="ob-icon-btn ob-icon-btn--sm qr-preview"
+            title="Lihat QR" aria-label="Lihat QR"><i class="fas fa-qrcode" aria-hidden="true"></i></a>
     @endcan
     @can('download order-table/dining-tables')
-        <a href="{{ route('order-table/dining-tables/qr/download', $table->id) }}" class="btn btn-sm btn-outline-secondary"
-            title="Download QR" aria-label="Download QR"><i class="fa fa-download"></i></a>
+        <a href="{{ route('order-table/dining-tables/qr/download', $table->id) }}" class="ob-icon-btn ob-icon-btn--sm"
+            title="Download QR" aria-label="Download QR"><i class="fas fa-download" aria-hidden="true"></i></a>
     @endcan
     @can('print order-table/dining-tables')
         <a href="{{ route('order-table/dining-tables/qr/print', $table->id) }}" target="_blank" rel="noopener"
-            class="btn btn-sm btn-outline-secondary" title="Cetak QR" aria-label="Cetak QR"><i class="fa fa-print"></i></a>
-    @endcan
-    @can('rotate order-table/dining-tables')
-        <a href="{{ route('order-table/dining-tables/rotate-token', $table->id) }}"
-            class="btn btn-sm btn-outline-warning sensitive-action" data-action="rotate"
-            title="Rotasi token QR" aria-label="Rotasi token QR"><i class="fa fa-sync"></i></a>
+            class="ob-icon-btn ob-icon-btn--sm" title="Cetak QR" aria-label="Cetak QR"><i class="fas fa-print" aria-hidden="true"></i></a>
     @endcan
     @can('update order-table/dining-tables')
+        <a href="{{ route('order-table/dining-tables/edit', $table->id) }}" class="ob-icon-btn ob-icon-btn--sm action"
+            title="Edit meja" aria-label="Edit meja"><i class="fas fa-pen" aria-hidden="true"></i></a>
         <a href="{{ route('order-table/dining-tables/toggle-qr', $table->id) }}"
-            class="btn btn-sm {{ $table->qr_active ? 'btn-outline-danger' : 'btn-outline-success' }} sensitive-action" data-action="toggle"
+            class="ob-icon-btn ob-icon-btn--sm toggle-qr {{ $table->qr_active ? 'ob-icon-btn--danger' : 'ob-icon-btn--success' }}"
+            data-active="{{ $table->qr_active ? 1 : 0 }}"
             title="{{ $table->qr_active ? 'Nonaktifkan QR' : 'Aktifkan QR' }}"
             aria-label="{{ $table->qr_active ? 'Nonaktifkan QR' : 'Aktifkan QR' }}">
-            <i class="fa {{ $table->qr_active ? 'fa-ban' : 'fa-check' }}"></i>
+            <i class="fas fa-power-off" aria-hidden="true"></i>
         </a>
-        <a href="{{ route('order-table/dining-tables/edit', $table->id) }}" class="btn btn-sm btn-outline-primary action"
-            title="Edit meja" aria-label="Edit meja"><i class="fa fa-pen"></i></a>
     @endcan
     @can('delete order-table/dining-tables')
-        <a href="{{ route('order-table/dining-tables/destroy', $table->id) }}" class="btn btn-sm btn-outline-danger delete"
-            title="Hapus meja" aria-label="Hapus meja"><i class="fa fa-trash"></i></a>
+        <a href="{{ route('order-table/dining-tables/destroy', $table->id) }}" class="ob-icon-btn ob-icon-btn--sm ob-icon-btn--danger delete"
+            title="Hapus meja" aria-label="Hapus meja"><i class="fas fa-trash-alt" aria-hidden="true"></i></a>
     @endcan
 </div>
