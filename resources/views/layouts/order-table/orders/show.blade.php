@@ -5,7 +5,13 @@
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
             <div>
                 <h2 class="h4 mb-1 font-weight-bold"><i class="fa fa-receipt me-2"></i>Order {{ $order->order_no }}</h2>
+                @if ($order->atas_nama)
+                    <p class="mb-1">Atas nama <strong>{{ $order->atas_nama }}</strong></p>
+                @endif
                 <p class="text-muted mb-0">{{ $order->outlet?->name }} &middot; {{ $order->table?->name ?? $order->table?->code }} &middot; {{ $order->created_at?->format('d M Y H:i') }}</p>
+                @if ($order->notes)
+                    <p class="text-muted mb-0 mt-1"><i class="fa fa-sticky-note me-1"></i>Catatan dapur: {{ $order->notes }}</p>
+                @endif
             </div>
             <div class="d-flex gap-2">
                 <a href="{{ route('order-table/orders') }}" class="btn btn-outline-secondary"><i class="fa fa-arrow-left me-1"></i>Kembali</a>

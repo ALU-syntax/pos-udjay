@@ -89,7 +89,8 @@ class CashierHttpTest extends CashierHttpTestCase
             ->assertJsonPath('data.state', 'pos_committed')->assertJsonPath('data.collectionAllowed', false);
         $id = $response->json('data.posTransactionId');
         $this->assertDatabaseHas('transactions', ['id' => $id, 'total' => 22000, 'change' => 3000,
-            'customer_id' => null, 'tipe_pembayaran' => null, 'nama_tipe_pembayaran' => 'Cash', 'total_modifier' => 2000]);
+            'customer_id' => null, 'tipe_pembayaran' => null, 'nama_tipe_pembayaran' => 'Cash', 'total_modifier' => 2000,
+            'atas_nama' => 'Budi']);
         $this->assertDatabaseCount('transaction_items', 2);
         $this->assertDatabaseHas('transaction_items', ['harga' => 10000, 'variant_id' => 1]);
         $this->assertDatabaseHas('variant_products', ['id' => 1, 'stok' => 18]);
@@ -97,7 +98,8 @@ class CashierHttpTest extends CashierHttpTestCase
         $this->postJson('/api/v1/order-table/orders/1/pay', $data)->assertOk()->assertJsonPath('data.posTransactionId', $id);
         $this->postJson('/api/v1/order-table/orders/1/claim')->assertOk()->assertJsonPath('data.collectionAllowed', false);
         $this->getJson('/api/v1/order-table/orders/1/payment-state')->assertOk()->assertJsonPath('data.settleRequired', true);
-        $this->getJson('/api/v1/order-table/orders/1/receipt')->assertOk()->assertJsonPath('data.transaction.id', $id);
+        $this->getJson('/api/v1/order-table/orders/1/receipt')->assertOk()->assertJsonPath('data.transaction.id', $id)
+            ->assertJsonPath('data.transaction.atas_nama', 'Budi')->assertJsonPath('data.order.atasNama', 'Budi');
         $this->getJson('/api/v1/order-table/orders/1/co')->assertStatus(409);
         $this->assertDatabaseCount('transactions', 1);
         $this->assertDatabaseHas('variant_products', ['id' => 1, 'stok' => 18]);
@@ -162,7 +164,8 @@ class CashierHttpTest extends CashierHttpTestCase
         $this->getJson('/api/v1/order-table/orders/2/receipt')->assertStatus(409);
         $this->postJson('/api/v1/order-table/orders/2/serve')->assertStatus(409);
         DB::table('ot_orders')->where('id', 2)->update(['payment_status' => 'paid', 'status' => 'received']);
-        $this->getJson('/api/v1/order-table/orders/2/co')->assertOk();
+        $this->getJson('/api/v1/order-table/orders/2/co')->assertOk()
+            ->assertJsonPath('data.atasNama', 'Budi')->assertJsonPath('data.notes', 'Minuman duluan');
         $this->getJson('/api/v1/order-table/orders/2/receipt')->assertStatus(409);
     }
 

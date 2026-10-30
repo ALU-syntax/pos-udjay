@@ -187,7 +187,7 @@ class OrderTableCashierController extends Controller
             'order' => $this->orderPayload($order),
             'transaction' => $transaction->only(['id', 'reference_id', 'outlet_id', 'patty_cash_id', 'shift_session_id',
                 'total', 'nominal_bayar', 'change', 'tipe_pembayaran', 'nama_tipe_pembayaran', 'total_pajak',
-                'total_diskon', 'total_modifier', 'rounding_amount', 'tanda_rounding', 'created_at']),
+                'total_diskon', 'total_modifier', 'rounding_amount', 'tanda_rounding', 'atas_nama', 'created_at']),
             'items' => $transaction->itemTransaction->map(fn ($item) => $item->only([
                 'id', 'product_id', 'variant_id', 'harga', 'modifier_id', 'discount_id', 'catatan',
             ])),
@@ -293,6 +293,8 @@ class OrderTableCashierController extends Controller
             'id' => $order->id,
             'orderId' => $order->id,
             'orderNo' => $order->order_no,
+            'atasNama' => $order->atas_nama,
+            'notes' => $order->notes,
             'outletId' => $order->outlet_id,
             'status' => $order->status,
             'paymentMode' => $order->payment_mode,

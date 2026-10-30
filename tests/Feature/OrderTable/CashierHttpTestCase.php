@@ -83,6 +83,7 @@ abstract class CashierHttpTestCase extends TestCase
             (require $file)->up();
         }
         (require database_path('migrations/2026_10_18_000001_add_voided_at_to_ot_order_items_table.php'))->up();
+        (require database_path('migrations/2026_10_30_000001_add_atas_nama_to_ot_orders_and_transactions.php'))->up();
         DB::table('outlets')->insert([['id' => 11, 'name' => 'A'], ['id' => 22, 'name' => 'B']]);
         $this->cashier = User::create(['name' => 'Kasir', 'outlet_id' => [11], 'status' => 1, 'deleted' => 0]);
         $this->bearer = $this->cashier->createToken('test-device', ['*'], now()->addDay())->plainTextToken;
@@ -108,6 +109,7 @@ abstract class CashierHttpTestCase extends TestCase
             'payment_status' => 'unpaid', 'subtotal' => 22000, 'modifier_total' => 2000,
             'tax_total' => 2000, 'tax_breakdown' => json_encode([['id' => 1, 'name' => 'Tax', 'total' => 2000]]),
             'grand_total' => 22000, 'geofence_flag' => 'unknown', 'payment_due_at' => now()->addHour(),
+            'atas_nama' => 'Budi', 'notes' => 'Minuman duluan',
             'created_at' => now(), 'updated_at' => now(),
         ], $extra));
         $item = DB::table('ot_order_items')->insertGetId(['order_id' => $id, 'product_id' => 1, 'variant_id' => 1,

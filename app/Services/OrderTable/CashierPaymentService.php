@@ -400,6 +400,7 @@ class CashierPaymentService
                 'total_modifier' => $order->modifier_total, 'total_diskon' => $order->discount_item_total + $order->voucher_discount,
                 'diskon_all_item' => json_encode($diskonAllItem), 'rounding_amount' => abs($order->rounding),
                 'tanda_rounding' => $order->rounding < 0 ? '-' : '+', 'potongan_point' => 0,
+                'atas_nama' => $order->atas_nama,
             ]);
             foreach ($items as $index => [$item, $modifiers]) {
                 if ($item->variant_id) {
