@@ -49,21 +49,27 @@ class ProductImageVariantsTest extends TestCase
         $this->assertTrue($disk->exists($product->photo));
         $this->assertStringStartsWith('product/variants/', $product->photo_thumb);
         $this->assertTrue((bool) $product->photo_webp);
-        foreach (['photo_thumb' => 320, 'photo_medium' => 1080] as $column => $max) {
+        foreach (['photo_thumb' => 320, 'photo_medium' => 1280] as $column => $side) {
             $jpeg = $product->{$column};
             $this->assertTrue($disk->exists($jpeg));
             $this->assertTrue($disk->exists(preg_replace('/\.jpg$/', '.webp', $jpeg)));
-            [$width, $height] = getimagesize($disk->path($jpeg));
-            $this->assertSame($max, max($width, $height));
+            $this->assertSame([$side, $side], array_slice(getimagesize($disk->path($jpeg)), 0, 2));
         }
     }
 
-    public function test_small_photos_are_not_enlarged(): void
+    public function test_portrait_photos_are_sharp_enough_for_square_display(): void
+    {
+        // Foto HP portrait 9:16: dulu diperkecil per sisi terpanjang menjadi 608×1080 sehingga blur di detail.
+        $product = $this->product();
+        app(ProductImageVariants::class)->attach($product, $this->upload(1800, 3200));
+        $this->assertSame([1280, 1280], array_slice(getimagesize(Storage::disk('local')->path($product->refresh()->photo_medium)), 0, 2));
+    }
+
+    public function test_small_photos_are_cropped_square_but_not_enlarged(): void
     {
         $product = $this->product();
         app(ProductImageVariants::class)->attach($product, $this->upload(200, 100));
-        [$width] = getimagesize(Storage::disk('local')->path($product->refresh()->photo_medium));
-        $this->assertSame(200, $width);
+        $this->assertSame([100, 100], array_slice(getimagesize(Storage::disk('local')->path($product->refresh()->photo_medium)), 0, 2));
     }
 
     public function test_replacing_photo_deletes_old_original_and_versions(): void
@@ -129,5 +135,23 @@ class ProductImageVariantsTest extends TestCase
 
         $this->artisan('products:generate-image-variants')
             ->expectsOutputToContain('Semua foto produk sudah punya versi kecil.')->assertSuccessful();
+    }
+
+    public function test_regenerating_removes_versions_with_outdated_names(): void
+    {
+        $disk = Storage::disk('local');
+        $product = $this->product();
+        app(ProductImageVariants::class)->attach($product, $this->upload());
+        // Versi lama sebelum ukuran ikut di nama file (mis. buatan rilis sebelumnya).
+        $disk->put('product/variants/lama-medium.jpg', 'x');
+        $disk->put('product/variants/lama-medium.webp', 'x');
+        $product->forceFill(['photo_medium' => 'product/variants/lama-medium.jpg'])->saveQuietly();
+
+        $this->artisan('products:generate-image-variants', ['--force' => true])->assertSuccessful();
+
+        $this->assertStringEndsWith('-medium-1280.jpg', $product->refresh()->photo_medium);
+        $this->assertFalse($disk->exists('product/variants/lama-medium.jpg'));
+        $this->assertFalse($disk->exists('product/variants/lama-medium.webp'));
+        $this->assertTrue($disk->exists($product->photo_medium));
     }
 }
