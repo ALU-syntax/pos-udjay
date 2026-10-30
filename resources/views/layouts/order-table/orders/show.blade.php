@@ -10,7 +10,7 @@
                 @endif
                 <p class="text-muted mb-0">{{ $order->outlet?->name }} &middot; {{ $order->table?->name ?? $order->table?->code }} &middot; {{ $order->created_at?->format('d M Y H:i') }}</p>
                 @if ($order->notes)
-                    <p class="text-muted mb-0 mt-1"><i class="fa fa-sticky-note me-1"></i>Catatan dapur: {{ $order->notes }}</p>
+                    <p class="text-muted mb-0 mt-1"><i class="fa fa-sticky-note me-1"></i>Catatan: {{ $order->notes }}</p>
                 @endif
                 @if ($order->cancel_reason)
                     <p class="text-danger mb-0 mt-1"><i class="fa fa-times-circle me-1"></i>Alasan batal: {{ $order->cancel_reason }}</p>

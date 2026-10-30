@@ -24,6 +24,7 @@ class OrderTableFcmTest extends CashierHttpTestCase
             $this->ingest($event)->assertStatus(202);
             $payload = DB::table('order_table_events')->where('event_id', $event['eventId'])->value('payload');
             $this->assertSame($type, json_decode($payload, true)['type']);
+            $this->assertSame('qris', json_decode($payload, true)['paymentMode']);
         }
         $this->assertDatabaseCount('order_table_events', 3);
         $this->assertDatabaseCount('order_table_push_deliveries', 3);

@@ -40,6 +40,8 @@ class OrderTableEventController extends Controller
                     'eventId' => strtolower($data['eventId']), 'type' => $data['type'],
                     'orderId' => (string) $order->id, 'outletId' => (string) $order->outlet_id,
                     'orderNo' => $order->order_no,
+                    // Android memutar suara pesanan baru: bayar di kasir saat order.placed, QRIS saat order.paid.
+                    'paymentMode' => $order->payment_mode,
                 ]), 'created_at' => now(), 'updated_at' => now(),
             ]);
             $event = DB::table('order_table_events')->where('event_id', strtolower($data['eventId']))->lockForUpdate()->first();
