@@ -185,4 +185,60 @@ class CashierHttpTest extends CashierHttpTestCase
         $this->assertDatabaseHas('ot_audit_logs', ['action' => 'order.serve-requested']);
         $this->assertDatabaseCount('order_table_payment_claims', 1);
     }
+
+    public function test_cashier_cancel_forwards_reason_to_node_and_releases_claim(): void
+    {
+        config(['order-table.node.enabled' => true, 'order-table.node.base_url' => 'https://node.test', 'order-table.node.internal_api_key' => 'test-key']);
+        Http::fake(['*' => function () {
+            // Node yang sebenarnya mengubah baris order; di test disimulasikan.
+            DB::table('ot_orders')->where('id', 1)->update(['status' => 'cancelled', 'payment_status' => 'failed', 'cancel_reason' => 'Menu habis']);
+
+            return Http::response(['id' => 1, 'status' => 'cancelled']);
+        }]);
+
+        $this->postJson('/api/v1/order-table/orders/1/cancel', [])->assertStatus(422)->assertJsonValidationErrors('reason');
+        $this->postJson('/api/v1/order-table/orders/1/cancel', ['reason' => str_repeat('a', 161)])->assertStatus(422);
+        Http::assertNothingSent();
+
+        $this->postJson('/api/v1/order-table/orders/1/cancel', ['reason' => 'Menu habis'])->assertOk()
+            ->assertJsonPath('data.status', 'cancelled')->assertJsonPath('data.cancelReason', 'Menu habis');
+        Http::assertSent(fn ($r) => str_ends_with($r->url(), '/api/v1/internal/orders/1/cancel')
+            && $r['reason'] === 'Menu habis' && $r->hasHeader('X-Actor-Id', (string) $this->cashier->id));
+        $this->assertDatabaseHas('ot_audit_logs', ['action' => 'order.cancelled-by-cashier', 'subject_id' => 1]);
+        $claim = DB::table('order_table_payment_claims')->where('order_id', 1)->first();
+        $this->assertFalse(\Carbon\Carbon::parse($claim->expires_at)->isFuture());
+    }
+
+    public function test_cashier_cancel_guards_claims_commits_modes_and_node_outage(): void
+    {
+        config(['order-table.node.enabled' => true, 'order-table.node.base_url' => 'https://node.test', 'order-table.node.internal_api_key' => 'test-key']);
+        Http::fake(['*' => Http::response(['message' => 'down'], 500)]);
+
+        // Order QRIS tidak boleh dibatalkan dari kasir: QR masih bisa dibayar pelanggan.
+        $this->makeOrder(2, ['payment_mode' => 'qris', 'payment_status' => 'pending']);
+        $this->postJson('/api/v1/order-table/orders/2/cancel', ['reason' => 'Menu habis'])
+            ->assertStatus(409)->assertJsonPath('code', 'CASHIER_MODE_REQUIRED');
+
+        // Sedang diproses kasir lain.
+        $claim = $this->claimToken();
+        $second = $this->cashier->createToken('second', ['*'], now()->addDay())->plainTextToken;
+        DB::table('shift_sessions')->insert(['id' => 2, 'outlet_id' => 11, 'user_id' => $this->cashier->id,
+            'petty_cash_id' => 1, 'android_id' => 'device-b', 'status' => 'ACTIVE']);
+        $this->deviceHeaders($second, 'device-b', 2);
+        $this->postJson('/api/v1/order-table/orders/1/cancel', ['reason' => 'Menu habis'])
+            ->assertStatus(409)->assertJsonPath('code', 'ORDER_CLAIMED');
+
+        // Pemilik claim boleh membatalkan; Node mati → 503 dan claim dilepas agar order bisa diproses lagi.
+        $this->deviceHeaders();
+        $this->postJson('/api/v1/order-table/orders/1/cancel', ['reason' => 'Menu habis'])
+            ->assertStatus(503)->assertJsonPath('code', 'ORDER_TABLE_UNAVAILABLE');
+        $this->assertNotSame($claim, $this->claimToken());
+        $this->assertDatabaseMissing('ot_audit_logs', ['action' => 'order.cancelled-by-cashier']);
+
+        // Transaksi POS sudah tercatat (uang diterima) → tidak bisa dibatalkan.
+        $this->postJson('/api/v1/order-table/orders/1/pay', ['claimToken' => $this->claimToken(), 'paymentId' => null, 'nominalBayar' => 22000])->assertOk();
+        $this->postJson('/api/v1/order-table/orders/1/cancel', ['reason' => 'Menu habis'])
+            ->assertStatus(409)->assertJsonPath('code', 'POS_TRANSACTION_EXISTS');
+        Http::assertSentCount(1);
+    }
 }

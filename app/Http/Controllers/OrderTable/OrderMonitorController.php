@@ -64,7 +64,7 @@ class OrderMonitorController extends Controller
     {
         $this->authorize('cancel order-table/orders');
         $order = $this->order($order);
-        $validated = $request->validate(['reason' => ['required', 'string', 'max:255']]);
+        $validated = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:160']]);
 
         try {
             $this->nodeClient->cancel($order->id, $validated['reason']);

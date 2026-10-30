@@ -84,6 +84,7 @@ abstract class CashierHttpTestCase extends TestCase
         }
         (require database_path('migrations/2026_10_18_000001_add_voided_at_to_ot_order_items_table.php'))->up();
         (require database_path('migrations/2026_10_30_000001_add_atas_nama_to_ot_orders_and_transactions.php'))->up();
+        (require database_path('migrations/2026_10_30_000002_add_cancel_reason_to_ot_orders.php'))->up();
         DB::table('outlets')->insert([['id' => 11, 'name' => 'A'], ['id' => 22, 'name' => 'B']]);
         $this->cashier = User::create(['name' => 'Kasir', 'outlet_id' => [11], 'status' => 1, 'deleted' => 0]);
         $this->bearer = $this->cashier->createToken('test-device', ['*'], now()->addDay())->plainTextToken;

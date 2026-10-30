@@ -149,6 +149,19 @@ class OrderTableCashierController extends Controller
         ], fn ($value) => $value !== null), array_values($items));
     }
 
+    /**
+     * POST /api/v1/order-table/orders/{id}/cancel
+     *
+     * Hanya order bayar di kasir yang belum dibayar. Alasan disimpan Node ke ot_orders.cancel_reason.
+     */
+    public function cancel(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:160']]);
+        $this->payments->cancel($id, $request->attributes->get('order_table_shift'), $data['reason']);
+
+        return response()->json(['status' => 'success', 'data' => $this->orderPayload($this->order($request, $id))]);
+    }
+
     public function heartbeat(Request $request, int $id): JsonResponse
     {
         $data = $request->validate(['claimToken' => ['required', 'uuid']]);
@@ -295,6 +308,7 @@ class OrderTableCashierController extends Controller
             'orderNo' => $order->order_no,
             'atasNama' => $order->atas_nama,
             'notes' => $order->notes,
+            'cancelReason' => $order->cancel_reason,
             'outletId' => $order->outlet_id,
             'status' => $order->status,
             'paymentMode' => $order->payment_mode,

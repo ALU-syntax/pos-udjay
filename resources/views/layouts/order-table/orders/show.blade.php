@@ -12,6 +12,9 @@
                 @if ($order->notes)
                     <p class="text-muted mb-0 mt-1"><i class="fa fa-sticky-note me-1"></i>Catatan dapur: {{ $order->notes }}</p>
                 @endif
+                @if ($order->cancel_reason)
+                    <p class="text-danger mb-0 mt-1"><i class="fa fa-times-circle me-1"></i>Alasan batal: {{ $order->cancel_reason }}</p>
+                @endif
             </div>
             <div class="d-flex gap-2">
                 <a href="{{ route('order-table/orders') }}" class="btn btn-outline-secondary"><i class="fa fa-arrow-left me-1"></i>Kembali</a>
@@ -166,7 +169,7 @@
                 });
 
                 $('.action-cancel').on('click', function () {
-                    Swal.fire({ title: 'Batalkan order?', input: 'text', inputLabel: 'Alasan pembatalan', inputValidator: v => (!v ? 'Alasan wajib diisi' : undefined), icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, batalkan', cancelButtonText: 'Batal' })
+                    Swal.fire({ title: 'Batalkan order?', input: 'text', inputLabel: 'Alasan pembatalan', inputAttributes: { maxlength: 160 }, inputValidator: v => (!v || v.trim().length < 3 ? 'Alasan minimal 3 karakter' : undefined), icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, batalkan', cancelButtonText: 'Batal' })
                         .then(r => { if (!r.isConfirmed) return; $.post(cancelUrl, { _token: token, reason: r.value }).done(res => showToast(res.status || 'success', res.message)).fail(xhr => showToast('error', xhr.responseJSON?.message || 'Gagal mengirim permintaan')); });
                 });
             });

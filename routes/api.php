@@ -119,6 +119,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/claim/heartbeat', [OrderTableCashierController::class, 'heartbeat']);
             Route::post('/{id}/quote', [OrderTableCashierController::class, 'quote']);
             Route::post('/{id}/pay', [OrderTableCashierController::class, 'pay']);
+            Route::post('/{id}/cancel', [OrderTableCashierController::class, 'cancel']);
             Route::get('/{id}/payment-state', [OrderTableCashierController::class, 'paymentState']);
             Route::get('/{id}/co', [OrderTableCashierController::class, 'co']);
             Route::get('/{id}/receipt', [OrderTableCashierController::class, 'receipt']);

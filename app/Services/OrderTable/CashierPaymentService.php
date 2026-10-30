@@ -355,6 +355,60 @@ class CashierPaymentService
         ];
     }
 
+    /**
+     * Batalkan order bayar-di-kasir yang belum dibayar. Claim dipasang atas nama kasir ini dulu
+     * supaya kasir lain tidak bisa menagih selama Node memproses. Node mengunci baris order yang
+     * sama, jadi pemanggilannya tidak boleh berada di dalam DB::transaction.
+     */
+    public function cancel(int $id, ShiftSession $context, string $reason): void
+    {
+        $token = DB::transaction(function () use ($id, $context) {
+            $order = $this->order($id, $context->outlet_id, true);
+            if ($this->transaction($order)) {
+                throw new CashierError('POS_TRANSACTION_EXISTS');
+            }
+            if ($order->payment_mode !== 'pay_at_cashier') {
+                throw new CashierError('CASHIER_MODE_REQUIRED');
+            }
+            if ($order->status !== 'placed' || $order->payment_status !== 'unpaid') {
+                throw new CashierError('ORDER_NOT_CANCELLABLE');
+            }
+            $claim = DB::table('order_table_payment_claims')->where('order_id', $id)->first();
+            $active = $claim && Carbon::parse($claim->expires_at)->isFuture();
+            $owned = $active && (int) $claim->shift_session_id === (int) $context->id
+                && (int) $claim->user_id === (int) $context->user_id && $claim->device_id === $context->android_id;
+            if ($active && ! $owned) {
+                throw new CashierError('ORDER_CLAIMED');
+            }
+            $token = $owned ? $claim->claim_token : (string) Str::uuid();
+            DB::table('order_table_payment_claims')->updateOrInsert(['order_id' => $id], [
+                'user_id' => $context->user_id, 'shift_session_id' => $context->id, 'device_id' => $context->android_id,
+                'claim_token' => $token, 'expires_at' => now()->addSeconds(config('order-table.claim_seconds', 120)),
+                'snapshot_hash' => $owned ? $claim->snapshot_hash : $this->snapshotHash($order),
+                'created_at' => $claim->created_at ?? now(), 'updated_at' => now(),
+            ]);
+
+            return $token;
+        }, 3);
+
+        $releaseClaim = fn () => DB::table('order_table_payment_claims')->where('order_id', $id)
+            ->where('claim_token', $token)->update(['expires_at' => now(), 'updated_at' => now()]);
+        try {
+            app(OrderTableNodeClient::class)->cancel($id, $reason);
+        } catch (\Throwable $e) {
+            $releaseClaim();
+            throw $e instanceof CashierError ? $e : new CashierError('ORDER_TABLE_UNAVAILABLE', 503);
+        }
+
+        DB::transaction(function () use ($id, $context, $reason, $releaseClaim) {
+            $releaseClaim();
+            app(AuditLogger::class)->log('order.cancelled-by-cashier', $this->order($id, $context->outlet_id),
+                ['status' => 'placed', 'payment_status' => 'unpaid'], ['status' => 'cancelled'], [
+                    'reason' => $reason, 'shift_session_id' => $context->id, 'device_id' => $context->android_id,
+                ]);
+        }, 3);
+    }
+
     public function pay(int $id, ShiftSession $context, array $data): array
     {
         if (! empty($data['items'])) {
