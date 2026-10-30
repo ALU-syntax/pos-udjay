@@ -1,0 +1,134 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Product;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\ImageManager;
+
+/**
+ * Versi kecil foto produk untuk menu order table. Foto asli (3–8 MB dari HP admin) tetap disimpan;
+ * HP pelanggan memakai thumb (kartu menu) dan medium (detail), masing-masing JPEG + WebP.
+ */
+class ProductImageVariants
+{
+    /** Sisi terpanjang (px). Diproses dari besar ke kecil agar foto asli cukup dibaca sekali. */
+    public const SIZES = ['medium' => 1080, 'thumb' => 320];
+
+    public const DIRECTORY = 'product/variants';
+
+    private const QUALITY = 75;
+
+    /** Simpan foto baru produk, buat versinya, lalu hapus foto lama beserta versinya. */
+    public function attach(Product $product, UploadedFile $file): void
+    {
+        // Nilai dari database, bukan atribut yang mungkin sudah diubah fill() di controller.
+        $old = [$product->getOriginal('photo'), $product->getOriginal('photo_thumb'), $product->getOriginal('photo_medium')];
+
+        $product->forceFill([
+            'photo' => $file->store('product'),
+            'photo_thumb' => null,
+            'photo_medium' => null,
+            'photo_webp' => false,
+        ])->save();
+        $this->generate($product);
+
+        $this->deleteFiles($product, ...$old);
+    }
+
+    /**
+     * Buat thumb & medium dari foto asli. Gagal (file rusak, SVG, memori kurang) tidak dilempar:
+     * dicatat ke log dan produk tetap memakai foto asli.
+     */
+    public function generate(Product $product): bool
+    {
+        $disk = Storage::disk('local');
+        if (! $product->photo || ! $disk->exists($product->photo)) {
+            return false;
+        }
+
+        // Disk local membuat folder 0700; web server harus bisa membaca versi kecil.
+        File::ensureDirectoryExists($disk->path(self::DIRECTORY), 0755);
+        @chmod($disk->path(self::DIRECTORY), 0755);
+
+        $name = pathinfo($product->photo, PATHINFO_FILENAME);
+        $written = [];
+        $paths = [];
+        $webp = function_exists('imagewebp') || extension_loaded('imagick');
+        try {
+            $manager = $this->manager();
+            $image = $manager->make($disk->path($product->photo))->orientate();
+            foreach (self::SIZES as $variant => $max) {
+                $image->resize($max, $max, function ($constraint) {
+                    $constraint->aspectRatio();
+                    $constraint->upsize();
+                });
+                $base = self::DIRECTORY."/{$name}-{$variant}";
+
+                // JPEG tidak punya transparansi: PNG transparan diberi latar putih, bukan hitam.
+                $jpeg = $manager->canvas($image->width(), $image->height(), '#ffffff')->insert($image);
+                $jpeg->save($disk->path("{$base}.jpg"), self::QUALITY, 'jpg');
+                $jpeg->destroy();
+                $written[] = "{$base}.jpg";
+
+                if ($webp) {
+                    try {
+                        $image->save($disk->path("{$base}.webp"), self::QUALITY, 'webp');
+                        $written[] = "{$base}.webp";
+                    } catch (\Throwable $e) {
+                        $webp = false;
+                    }
+                }
+                $paths[$variant] = "{$base}.jpg";
+            }
+            $image->destroy();
+        } catch (\Throwable $e) {
+            Log::warning('Gagal membuat versi kecil foto produk', [
+                'product_id' => $product->id, 'photo' => $product->photo, 'error' => $e->getMessage(),
+            ]);
+            $disk->delete($written);
+
+            return false;
+        }
+
+        foreach ($written as $path) {
+            @chmod($disk->path($path), 0644);
+        }
+        if (! $webp) {
+            // WebP gagal di tengah jalan: buang yang sempat dibuat agar tidak setengah lengkap.
+            $disk->delete(array_filter($written, fn ($path) => str_ends_with($path, '.webp')));
+        }
+
+        $product->forceFill([
+            'photo_thumb' => $paths['thumb'],
+            'photo_medium' => $paths['medium'],
+            'photo_webp' => $webp,
+        ])->saveQuietly();
+
+        return true;
+    }
+
+    /** Hapus foto asli lama + versinya, kecuali foto asli masih dipakai produk lain. */
+    private function deleteFiles(Product $product, ?string $photo, ?string $thumb, ?string $medium): void
+    {
+        $disk = Storage::disk('local');
+        foreach ([$thumb, $medium] as $variant) {
+            if ($variant && $variant !== $product->photo_thumb && $variant !== $product->photo_medium) {
+                $disk->delete([$variant, preg_replace('/\.jpe?g$/i', '.webp', $variant)]);
+            }
+        }
+        if ($photo && $photo !== $product->photo
+            && ! Product::withTrashed()->where('photo', $photo)->whereKeyNot($product->id)->exists()) {
+            $disk->delete($photo);
+        }
+    }
+
+    private function manager(): ImageManager
+    {
+        // Imagick jauh lebih hemat memori untuk foto besar; GD sebagai cadangan.
+        return new ImageManager(['driver' => extension_loaded('imagick') ? 'imagick' : 'gd']);
+    }
+}

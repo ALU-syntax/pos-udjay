@@ -8,8 +8,8 @@ use App\Models\Category;
 use App\Models\Outlets;
 use App\Models\Product;
 use App\Models\VariantProduct;
+use App\Services\ProductImageVariants;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
 
 class ProductController extends Controller
 {
@@ -31,7 +31,7 @@ class ProductController extends Controller
         ]);
     }
 
-    public function store(ProductStoreRequest $request)
+    public function store(ProductStoreRequest $request, ProductImageVariants $images)
     {
         $validatedData = $request->validated();
 
@@ -48,11 +48,12 @@ class ProductController extends Controller
                 'exclude_tax' => $validatedData['exclude_tax'] ?? false
             ];
 
-            if ($request->hasFile('photo')) {
-                $dataProduct['photo'] = $request->file('photo')->store('product');
-            }
-
             $product = Product::create($dataProduct);
+
+            // Tiap outlet mendapat salinan foto sendiri, beserta versi kecil untuk order table.
+            if ($request->hasFile('photo')) {
+                $images->attach($product, $request->file('photo'));
+            }
 
             // Buat data Variant
             $dataVariant = [];
@@ -110,7 +111,7 @@ class ProductController extends Controller
         ]);
     }
 
-    public function update(ProductStoreRequest $request, Product $product)
+    public function update(ProductStoreRequest $request, Product $product, ProductImageVariants $images)
     {
         // dd($request, $product);
         // Muat relasi `variants` hanya untuk produk ini
@@ -118,16 +119,14 @@ class ProductController extends Controller
 
         $updateRequest = $request->validated();
 
-        $product->fill($updateRequest);
+        // Foto diatur lewat ProductImageVariants, bukan fill() (berisi objek upload atau null).
+        $product->fill(collect($updateRequest)->except('photo')->all());
         // $product->harga_jual = getAmount($request->harga_jual);
         $product->harga_modal = getAmount($request->harga_modal);
         if (!empty($request->file('photo'))) {
-            $filePath = public_path('product/' . $product->photo);
-            if (File::exists($filePath)) {
-                File::delete($filePath);
-            }
-
-            $product->photo = $request->file('photo')->store('product');
+            // Sebelumnya foto lama dihapus dari public_path('product/' . photo) = product/product/..., path
+            // yang tidak pernah ada, sehingga foto lama menumpuk. Kini dihapus beserta versi kecilnya.
+            $images->attach($product, $request->file('photo'));
         }
         $excludeTax = $request->exclude_tax ?? false;
 

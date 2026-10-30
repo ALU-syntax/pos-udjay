@@ -71,6 +71,8 @@ return [
 
     'links' => [
         public_path('storage') => storage_path('app/public'),
+        // Foto produk disimpan di disk local (store('product')) dan disajikan lewat /product/...
+        public_path('product') => storage_path('app/product'),
     ],
 
 ];
