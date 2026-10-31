@@ -78,7 +78,7 @@ class ProductImageVariants
         $webp = function_exists('imagewebp') || extension_loaded('imagick');
         try {
             $manager = $this->manager();
-            $image = $manager->make($disk->path($product->photo))->orientate();
+            $image = $this->read($manager, $disk->path($product->photo))->orientate();
             foreach (self::SIZES as $variant => $max) {
                 // Foto yang lebih kecil dari target tetap dipotong persegi, tapi tidak diperbesar.
                 $image->fit($max, $max, function ($constraint) {
@@ -146,6 +146,28 @@ class ProductImageVariants
             && ! Product::withTrashed()->where('photo', $photo)->whereKeyNot($product->id)->exists()) {
             $disk->delete($photo);
         }
+    }
+
+    /**
+     * Foto HP admin bisa mencapai 126 MP (8437×15000). Dengan Imagick, JPEG didekode langsung mendekati
+     * ukuran yang dibutuhkan (DCT scaling 1/2–1/8) sehingga tidak perlu membuka seluruh piksel; tanpa ini
+     * batas sumber daya ImageMagick di hosting terlampaui dan versi kecil gagal dibuat.
+     */
+    private function read(ImageManager $manager, string $path): \Intervention\Image\Image
+    {
+        if (! extension_loaded('imagick')) {
+            return $manager->make($path);
+        }
+        $imagick = new \Imagick();
+        $hint = max(self::SIZES) * 2;
+        // Hanya untuk JPEG yang memang lebih besar dari petunjuk: ImageMagick 7 juga memperbesar JPEG kecil.
+        $size = @getimagesize($path);
+        if ($size && $size[2] === IMAGETYPE_JPEG && min($size[0], $size[1]) > $hint) {
+            $imagick->setOption('jpeg:size', "{$hint}x{$hint}");
+        }
+        $imagick->readImage($path);
+
+        return $manager->make($imagick);
     }
 
     private function hasMemoryFor(string $path): bool

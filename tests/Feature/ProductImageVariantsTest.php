@@ -65,6 +65,16 @@ class ProductImageVariantsTest extends TestCase
         $this->assertSame([1280, 1280], array_slice(getimagesize(Storage::disk('local')->path($product->refresh()->photo_medium)), 0, 2));
     }
 
+    public function test_very_large_photos_are_decoded_at_reduced_size_and_still_sharp(): void
+    {
+        // Foto HP admin hingga 126 MP gagal diproses di hosting; JPEG besar didekode lebih kecil (jpeg:size).
+        $product = $this->product();
+        app(ProductImageVariants::class)->attach($product, $this->upload(2700, 4800));
+        $product->refresh();
+        $this->assertSame([1280, 1280], array_slice(getimagesize(Storage::disk('local')->path($product->photo_medium)), 0, 2));
+        $this->assertSame([320, 320], array_slice(getimagesize(Storage::disk('local')->path($product->photo_thumb)), 0, 2));
+    }
+
     public function test_small_photos_are_cropped_square_but_not_enlarged(): void
     {
         $product = $this->product();
