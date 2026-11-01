@@ -32,6 +32,7 @@ class ProductStoreRequest extends FormRequest
             'harga_jual' => 'required|array',
             'stock' => 'required|array',
             'status' => 'required',
+            'show_in_order_table' => ['required', 'boolean'],
             'outlet_id' => 'required',
             'id_variant' => 'nullable|array',
             'description' => 'nullable',

@@ -1,99 +1,127 @@
-<x-modal title="{{ $update ? 'Update Product' : 'Tambah Product' }}" addStyle="modal-xl" update="{{ $update }}"
-    description="{{ $update ? 'Update Product berdasarkan Category' : 'Add Product berdasarkan Category' }}"
+{{-- ob-page memberi token & gaya report ke modal (modal dirender di luar .main-content) --}}
+<x-modal title="{{ $update ? 'Edit Produk' : 'Tambah Produk' }}" addStyle="modal-xl ob-page ob-modal" update="{{ $update }}"
     action="{{ $action }}" method="POST">
 
     @if ($data->id)
         @method('put')
     @endif
-    <div class="col-4">
-        <div class="form-group">
-            <label for="category_id">Category <span class="text-danger ">*</span></label>
-            <select name="category_id" id="category_id" class="select2InsideModal form-select w-100"
-                style="width: 100% !important;" required>
-                <option selected disabled>Pilih Category</option>
-                @foreach ($categorys as $category)
-                    <option value="{{ $category->id }}" @if ($data->category_id == $category->id) selected @endif data-reward="{{ $category->reward_categories }}">
-                        {{ $category->name }}</option>
-                @endforeach
-            </select>
-            {{-- <small id="category_id_feedback" class="d-none text-danger"><i>*Pilih Category Terlebih
-                    Dahulu</i></small> --}}
-        </div>
+
+    <div class="col-12">
+        <p class="ob-modal__desc">
+            {{ $update ? 'Perubahan berlaku untuk produk di outlet ini.' : 'Produk dibuat terpisah untuk setiap outlet yang dipilih.' }}
+        </p>
     </div>
-    <div class="col-4">
-        <div class="form-group">
-            <label>Name <span class="text-danger">*</span></label>
-            <input id="name" name="name" value="{{ old('name', $data->name) }}" type="text" class="form-control"
-                placeholder="nama product.." required>
-        </div>
+
+    {{-- Informasi produk --}}
+    <div class="col-12 ob-form-heading ob-form-heading--first">
+        <h3 class="ob-section-title"><i class="fas fa-mug-hot" aria-hidden="true"></i> Informasi Produk</h3>
     </div>
-    <div class="col-4">
-        <div class="form-check mt-5">
+    <div class="col-md-6 mb-3">
+        <label for="name" class="form-label">Nama Produk <span class="text-danger">*</span></label>
+        <input id="name" name="name" value="{{ old('name', $data->name) }}" type="text" class="form-control"
+            placeholder="Contoh: Caffe Latte" required>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label for="category_id" class="form-label">Kategori <span class="text-danger">*</span></label>
+        <select name="category_id" id="category_id" class="select2InsideModal form-select w-100"
+            style="width: 100% !important;" required>
+            <option selected disabled>Pilih kategori</option>
+            @foreach ($categorys as $category)
+                <option value="{{ $category->id }}" @if ($data->category_id == $category->id) selected @endif data-reward="{{ $category->reward_categories }}" data-order-table="{{ (int) ($category->show_in_order_table ?? 1) }}">
+                    {{ $category->name }}</option>
+            @endforeach
+        </select>
+    </div>
+    <div class="col-md-8 mb-3">
+        <label for="description" class="form-label">Deskripsi</label>
+        <textarea class="form-control" name="description" id="description" rows="3"
+            placeholder="Tampil di halaman detail produk Order Table. Kosongkan bila tidak ada.">{{ $data->description }}</textarea>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="photo" class="form-label">Foto</label>
+        <input id="photo" name="photo" type="file" accept="image/*" class="form-control">
+        <small class="text-muted">
+            {{ $data->photo ? 'Kosongkan bila tidak ingin mengganti foto.' : 'Versi kecil untuk Order Table dibuat otomatis.' }}
+        </small>
+    </div>
+
+    {{-- Harga & varian --}}
+    <div class="col-12 ob-form-heading">
+        <h3 class="ob-section-title"><i class="fas fa-tags" aria-hidden="true"></i> Harga &amp; Varian</h3>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="harga_modal" class="form-label">Harga Modal <span class="text-danger">*</span></label>
+        <input id="harga_modal" name="harga_modal" value="{{ $data->harga_modal }}" type="text"
+            class="form-control" placeholder="Rp. 0" required>
+    </div>
+    <div class="col-md-8 mb-3">
+        <label class="form-label">Harga Jual &amp; Stok <span class="text-danger">*</span></label>
+        {{-- Skrip varian di bawah menambah baris .list-varian tepat setelah tombol #tambah-varian --}}
+        <div id="container-list-variant">
+            <button type="button" id="tambah-varian" class="btn ob-btn ob-btn-outline ob-btn-sm w-100 mb-2">
+                <i class="fas fa-plus" aria-hidden="true"></i> Tambah Varian
+            </button>
+            <div class="input-group list-varian">
+                <input id="harga-varian" name="harga_jual[]" placeholder="Harga Jual" type="text"
+                    class="form-control harga_jual" required>
+                <input id="stok-varian" name="stock[]" type="number" class="form-control" placeholder="Stok" required>
+            </div>
+        </div>
+        <small class="text-muted">Tambah varian bila produk punya beberapa ukuran atau harga.</small>
+    </div>
+
+    {{-- Status & tampilan --}}
+    <div class="col-12 ob-form-heading">
+        <h3 class="ob-section-title"><i class="fas fa-sliders-h" aria-hidden="true"></i> Status &amp; Tampilan</h3>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+        <select name="status" id="status" class="form-select" required>
+            {{-- Perilaku lama dipertahankan: produk baru (status null) default "Tidak Aktif" --}}
+            <option disabled selected>Pilih status</option>
+            <option value="1" @if ($data->status == 1) selected @endif>Aktif</option>
+            <option value="0" @if ($data->status == 0) selected @endif>Tidak Aktif</option>
+        </select>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="show_in_order_table" class="form-label">Tampil di Order Table <span class="text-danger">*</span></label>
+        <select name="show_in_order_table" id="show_in_order_table" class="form-select" required>
+            <option value="1" @if (old('show_in_order_table', $data->show_in_order_table ?? true)) selected @endif>
+                Iya, tampilkan di menu pelanggan
+            </option>
+            <option value="0" @if (!old('show_in_order_table', $data->show_in_order_table ?? true)) selected @endif>
+                Tidak, khusus kasir
+            </option>
+        </select>
+        <small class="text-muted">Kasir tetap bisa menjual produk ini walau disembunyikan.</small>
+        <span id="order-table-category-hidden" class="ob-field-warning d-none">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Kategori yang dipilih disembunyikan dari Order Table, jadi produk ini tetap tidak tampil di menu pelanggan.
+        </span>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label class="form-label">Pajak</label>
+        <div class="form-check mt-2">
             <input class="form-check-input" type="checkbox" name="exclude_tax" value="1" id="exclude_tax" @if($data->exclude_tax) checked @endif>
-            <label class="form-check-label" for="exclude_tax">
-                Tidak Dikenakan Pajak
-            </label>
+            <label class="form-check-label" for="exclude_tax">Tidak dikenakan pajak</label>
         </div>
     </div>
 
-    <div class="col-4">
-        <div class="form-group">
-            <label for="status">Status <span class="text-danger">*</span></label>
-            <select name="status" id="status" class="form-select" required>
-                <option disabled selected>Pilih Status</option>
-                <option value="1" @if ($data->status == 1) selected @endif>Aktif</option>
-                <option value="0" @if ($data->status == 0) selected @endif>Tidak Aktif</option>
-            </select>
-        </div>
+    {{-- Outlet (hanya saat tambah; produk dibuat per outlet) --}}
+    <div class="col-12 ob-form-heading" @if ($data->id) hidden @endif>
+        <h3 class="ob-section-title"><i class="fas fa-store" aria-hidden="true"></i> Outlet</h3>
     </div>
-    <div class="col-4">
-        <div class="form-group">
-            <label>Harga Modal<span class="text-danger">*</span></label>
-            <input id="harga_modal" name="harga_modal" value="{{ $data->harga_modal }}" type="text"
-                class="form-control" placeholder="Harga Modal.." required>
-        </div>
+    <div class="col-12 mb-3" @if ($data->id) hidden @endif>
+        <label for="outlet_id" class="form-label">Outlet <span class="text-danger">*</span></label>
+        <select id="outlet_id" @if ($data->id) name="outlet_id" @else name="outlet_id[]" @endif
+            class="select2InsideModal form-select w-100" style="width: 100% !important;" required multiple
+            @if ($data->id) hidden @endif>
+            <option disabled>Pilih outlet</option>
+            @foreach (json_decode($outlets) as $outlet)
+                <option value="{{ $outlet->id }}" @if ($data->outlet_id == $outlet->id) selected @endif>
+                    {{ $outlet->name }}</option>
+            @endforeach
+        </select>
     </div>
-    <div class="col-4">
-        <div class="form-group">
-            <label>Photo</label>
-            <input id="photo" name="photo" value="{{ $data->photo }}" type="file" class="form-control"
-                placeholder="Harga Modal..">
-        </div>
-    </div>
-
-    <div class="col-md-12 mb-3">
-        <div class="form-group">
-            <label for="description" class="form-label">Deskripsi</label>
-            <textarea class="form-control" name="description" id="description"
-                placeholder="Masukkan deskripsi produk, kosongkan bila tidak ada">{{ $data->description }}</textarea>
-        </div>
-    </div>
-
-    <div class="col-12 mt-3 px-4" id="container-list-variant">
-        <button type="button" id="tambah-varian" class="btn btn-primary w-100"> Tambah Varian</button>
-        <div class="input-group col-12 list-varian">
-            <input id="harga-varian" name="harga_jual[]" placeholder="Harga Jual" type="text"
-                class="form-control harga_jual" required>
-            <input id="stok-varian" name="stock[]" type="number" class="form-control" placeholder="Stok" required>
-        </div>
-    </div>
-
-    <div class="col-12" @if ($data->id) hidden @endif>
-        <div class="form-group">
-            <label for="outlet_id">Outlet <span class="text-danger ">*</span></label>
-            <select @if ($data->id) name="outlet_id" @else name="outlet_id[]" @endif
-                class="select2InsideModal form-select w-100" style="width: 100% !important;" required multiple
-                @if ($data->id) hidden @endif>
-                <option disabled>Pilih Outlet</option>
-                @foreach (json_decode($outlets) as $outlet)
-                    <option value="{{ $outlet->id }}" @if ($data->outlet_id == $outlet->id) selected @endif>
-                        {{ $outlet->name }}</option>
-                @endforeach
-            </select>
-        </div>
-    </div>
-
-
 
     <script>
         var hargaModalInput = document.getElementById("harga_modal");
@@ -105,7 +133,7 @@
 
         $('#tambah-varian').on('click', function() {
             const newVarian = `
-        <div class="input-group col-12 mt-1 list-varian">
+        <div class="input-group list-varian">
             <input  name="nama_varian[]" type="text" class="form-control" placeholder="Nama Varian" required>
             <input id="harga-varian" name="harga_jual[]" placeholder="Harga Jual" type="text" class="form-control harga_jual" required>
             <input id="stok-varian" name="stock[]" type="number" class="form-control" placeholder="Stok" required>
@@ -123,13 +151,20 @@
             $(".list-varian").last().after(newVarian);
         });
 
+        function updateOrderTableCategoryHint() {
+            var orderTable = $category.find('option:selected').data('order-table');
+            $('#order-table-category-hidden').toggleClass('d-none', orderTable === undefined || Number(orderTable) === 1);
+        }
+        $category.on('change', updateOrderTableCategoryHint);
+        updateOrderTableCategoryHint();
+
         $category.on('change', function() {
             var rewardCategories = $(this).find('option:selected').data('reward');
 
             if(rewardCategories){
                 $('#tambah-varian').nextAll().remove();
                 $('#tambah-varian').after(`
-                            <div class="input-group col-12 list-varian">
+                            <div class="input-group list-varian">
                                 <input id="harga-varian" name="harga_jual[]" placeholder="Harga Jual" type="text"
                                     class="form-control harga_jual" value="0" readonly required>
                                 <input id="stok-varian" name="stock[]" type="number" class="form-control" placeholder="Stok"  required>
@@ -164,7 +199,7 @@
                 if (jsonListVariants.length > 1) {
                     if (index > 0) {
                         $('.list-varian').last().after(`
-                                <div class="input-group col-12 mt-1 list-varian">
+                                <div class="input-group list-varian">
                                     <input name="id_variant[]" type="hidden" value="${item.id}" class="form-control">
                                     <input name="nama_varian[]" type="text" value="${item.name}" class="form-control" placeholder="Nama Varian" required>
                                     <input id="harga-varian" name="harga_jual[]" value="Rp. ${formatRupiah(item.harga.toString())}" placeholder="Harga Jual" type="text" class="form-control harga_jual" required>
@@ -174,7 +209,7 @@
                             `);
                     } else {
                         $('#tambah-varian').after(`
-                                <div class="input-group col-12 mt-1 list-varian">
+                                <div class="input-group list-varian">
                                     <input name="id_variant[]" type="hidden" value="${item.id}" class="form-control">
                                     <input name="nama_varian[]" id="nama-varian" type="text" value="${item.name}" class="form-control" placeholder="Nama Varian" required>
                                     <input id="harga-varian" name="harga_jual[]" value="Rp. ${formatRupiah(item.harga.toString())}" placeholder="Harga Jual" type="text" class="form-control harga_jual" required>
@@ -185,7 +220,7 @@
                     }
                 } else if (jsonListVariants.length == 1 && item.name == valueNamaProduct) {
                     $('#tambah-varian').after(`
-                            <div class="input-group col-12 mt-1 list-varian">
+                            <div class="input-group list-varian">
                                 <input name="id_variant[]" type="hidden" value="${item.id}" class="form-control">
                                 <input id="harga-varian" name="harga_jual[]" value="Rp. ${formatRupiah(item.harga.toString())}" placeholder="Harga Jual" type="text" class="form-control harga_jual" required>
                                 <input id="stok-varian" name="stock[]" type="number" value="${item.stok}" class="form-control" placeholder="Stok" required>
@@ -193,7 +228,7 @@
                         `);
                 } else {
                     $('#tambah-varian').after(`
-                                <div class="input-group col-12 mt-1 list-varian">
+                                <div class="input-group list-varian">
                                     <input name="id_variant[]" type="hidden" value="${item.id}" class="form-control">
                                     <input name="nama_varian[]" id="nama-varian" type="text" value="${item.name}" class="form-control" placeholder="Nama Varian" required>
                                     <input id="harga-varian" name="harga_jual[]" value="Rp. ${formatRupiah(item.harga.toString())}" placeholder="Harga Jual" type="text" class="form-control harga_jual" required>
@@ -222,7 +257,7 @@
 
             $('#tambah-varian').off().on('click', function() {
                 const newVarian = `
-        <div class="input-group col-12 mt-1 list-varian">
+        <div class="input-group list-varian">
             <input  name="nama_varian[]" type="text" class="form-control" placeholder="Nama Varian" required>
             <input id="harga-varian" name="harga_jual[]" placeholder="Harga Jual" type="text" class="form-control harga_jual" required>
             <input id="stok-varian" name="stock[]" type="number" class="form-control" placeholder="Stok" required>

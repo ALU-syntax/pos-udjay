@@ -1,0 +1,2 @@
+{{-- Sel "Order Table" per opsi modifier. Input hidden selalu terkirim (0/1) agar sejajar dengan option_name[]. --}}
+<div class="form-check form-switch d-inline-block mb-0"><input class="form-check-input option-order-table-check" type="checkbox" role="switch" aria-label="Tampil di Order Table" @checked($checked)><input type="hidden" class="option-order-table-value" name="option_show_in_order_table[]" value="{{ $checked ? 1 : 0 }}"></div>

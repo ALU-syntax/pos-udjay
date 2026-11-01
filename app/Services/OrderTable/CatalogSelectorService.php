@@ -35,7 +35,10 @@ class CatalogSelectorService
 
     public function products(User $user, ?int $outletId, ?string $search = null): Collection
     {
+        // Pilihan baru hanya produk yang tampil di menu pelanggan. validIds()/optionsByIds() tidak
+        // disaring agar banner/voucher lama yang menunjuk produk tersembunyi tetap bisa diedit.
         return $this->productQuery($user, $outletId)
+            ->where('show_in_order_table', true)
             ->when($search, fn (Builder $query) => $query->where('name', 'like', '%'.$search.'%'))
             ->orderBy('name')
             ->limit(50)
@@ -46,6 +49,11 @@ class CatalogSelectorService
     public function categories(User $user, ?int $outletId, ?string $search = null): Collection
     {
         return $this->categoryQuery($user, $outletId)
+            ->where('show_in_order_table', true)
+            ->whereHas('products', fn (Builder $query) => $query
+                ->where('status', true)
+                ->where('show_in_order_table', true)
+                ->whereIn('outlet_id', $this->contextOutletIds($user, $outletId)))
             ->when($search, fn (Builder $query) => $query->where('name', 'like', '%'.$search.'%'))
             ->orderBy('name')
             ->limit(50)

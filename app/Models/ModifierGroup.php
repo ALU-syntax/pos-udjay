@@ -12,6 +12,11 @@ class ModifierGroup extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        // Tampil di menu Order Table (pelanggan); kasir tetap melihat semuanya.
+        'show_in_order_table' => 'boolean',
+    ];
+
     public function modifier(){
         return $this->hasMany(Modifiers::class, "modifiers_group_id", 'id');
     }

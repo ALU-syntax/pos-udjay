@@ -12,6 +12,11 @@ class Product extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        // Tampil di menu Order Table (pelanggan); kasir tetap melihat semuanya.
+        'show_in_order_table' => 'boolean',
+    ];
+
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id', 'id');

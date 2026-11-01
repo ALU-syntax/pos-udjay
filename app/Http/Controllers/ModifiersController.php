@@ -106,7 +106,10 @@ class ModifiersController extends Controller
             'price' => 'required|array',
             'stok' => 'nullable|array',
             'outlet_id' => 'required|array',
-            'is_required' => 'nullable'
+            'is_required' => 'nullable',
+            'show_in_order_table' => ['required', 'boolean'],
+            'option_show_in_order_table' => 'nullable|array',
+            'option_show_in_order_table.*' => 'boolean',
         ]);
 
         DB::transaction(function () use ($validatedData) {
@@ -114,7 +117,8 @@ class ModifiersController extends Controller
                 $dataModifierGroup = [
                     "name" => $validatedData['name'],
                     "outlet_id" => $outlet,
-                    "is_required" => $validatedData['is_required'] ?? false
+                    "is_required" => $validatedData['is_required'] ?? false,
+                    "show_in_order_table" => $validatedData['show_in_order_table'],
                 ];
 
                 // Simpan ModifierGroup
@@ -127,6 +131,8 @@ class ModifiersController extends Controller
                         'name' => $validatedData['option_name'][$x],
                         'harga' => getAmount($validatedData['price'][$x]),
                         'stok' => $validatedData['stok'][$x],
+                        // Form lama tanpa kolom ini: opsi dianggap tampil.
+                        'show_in_order_table' => (bool) ($validatedData['option_show_in_order_table'][$x] ?? true),
                         'modifiers_group_id' => $modifierGroup->id,
                         'created_at' => now(),
                         'updated_at' => now()
@@ -166,12 +172,16 @@ class ModifiersController extends Controller
             'price' => 'required|array',
             'stok' => 'nullable|array',
             'outlet_id' => 'required',
-            'is_required' => 'nullable'
+            'is_required' => 'nullable',
+            'show_in_order_table' => ['required', 'boolean'],
+            'option_show_in_order_table' => 'nullable|array',
+            'option_show_in_order_table.*' => 'boolean',
         ]);
 
         $dataModifierGroupUpdate = [
             'name' => $validateData['name'],
-            "is_required" => $validateData['is_required'] ?? false
+            "is_required" => $validateData['is_required'] ?? false,
+            "show_in_order_table" => $validateData['show_in_order_table'],
         ];
 
         $modifier->update($dataModifierGroupUpdate);
@@ -180,6 +190,8 @@ class ModifiersController extends Controller
         $listPriceModifier = $validateData['price'];
         $listStokModifier = $validateData['stok'];
         $listIdModifier = $validateData['id_modifier'];
+        // Sejajar dengan option_name[] karena tiap baris form selalu mengirim nilai 0/1.
+        $listShowModifier = $validateData['option_show_in_order_table'] ?? [];
 
         // $listModifierExist = $modifier->with('modifier')->get();
 
@@ -198,6 +210,7 @@ class ModifiersController extends Controller
                     'name' => $value,
                     'harga' => getAmount($listPriceModifier[$key]),
                     'stok' => $listStokModifier[$key],
+                    'show_in_order_table' => (bool) ($listShowModifier[$key] ?? true),
                 ];
 
                 $modifierItem->update($dataModifier);
@@ -206,6 +219,7 @@ class ModifiersController extends Controller
                     'name' => $value,
                     'harga' => getAmount($listPriceModifier[$key]),
                     'stok' => $listStokModifier[$key],
+                    'show_in_order_table' => (bool) ($listShowModifier[$key] ?? true),
                     'modifiers_group_id' => $modifier->id, // Gunakan ID langsung dari instance ModifierGroup
                     'created_at' => now(),
                     'updated_at' => now()
@@ -238,6 +252,26 @@ class ModifiersController extends Controller
         $modifier->update($data);
 
         return responseSuccess(true, "Modifiers berhasil ditambahkan kedalam product");
+    }
+
+    /**
+     * Switch "Order Table" di tabel modifier: tampilkan/sembunyikan seluruh grup dari menu pelanggan.
+     * Opsi per baris diatur lewat form edit.
+     */
+    public function toggleOrderTable(Request $request, ModifierGroup $modifier)
+    {
+        $this->authorize('update library/modifiers');
+        abort_unless(in_array((int) $modifier->outlet_id, $request->user()->outletIds(), true), 403);
+
+        $validated = $request->validate(['show' => ['required', 'boolean']]);
+        $modifier->show_in_order_table = $validated['show'];
+        $modifier->save();
+
+        return responseSuccess(true, $modifier->show_in_order_table
+            ? "{$modifier->name} ditampilkan di Order Table"
+            : "{$modifier->name} disembunyikan dari Order Table", [
+            'show_in_order_table' => $modifier->show_in_order_table,
+        ]);
     }
 
     public function destroy(ModifierGroup $modifier)

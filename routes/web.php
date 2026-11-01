@@ -278,6 +278,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/store', [ProductController::class, 'store'])->name('product/store');
             Route::get('/edit/{product}', [ProductController::class, 'edit'])->name('product/edit');
             Route::put('/update/{product}', [ProductController::class, 'update'])->name('product/update');
+            Route::patch('/order-table/{product}', [ProductController::class, 'toggleOrderTable'])->name('product/order-table');
             Route::delete('/destroy/{product}', [ProductController::class, 'destroy'])->name('product/destroy');
         });
 
@@ -297,6 +298,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/getProduct/{modifierGroup}', [ModifiersController::class, 'getProduct'])->name('modifiers/getProduct');
             Route::post('/store', [ModifiersController::class, 'store'])->name('modifiers/store');
             Route::put('/update/{modifier}', [ModifiersController::class, 'update'])->name('modifiers/update');
+            Route::patch('/order-table/{modifier}', [ModifiersController::class, 'toggleOrderTable'])->name('modifiers/order-table');
             Route::put('/update/product/{modifier}', [ModifiersController::class, 'updateProductModifier'])->name('modifiers/update-product');
             Route::delete('/destroy/{modifier}', [ModifiersController::class, 'destroy'])->name('modifiers/destroy');
         });

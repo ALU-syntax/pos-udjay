@@ -1374,4 +1374,202 @@
             justify-content: center;
         }
     }
+
+    /* ----- Halaman Library (produk, kategori, modifier) ----- */
+    .ob-stat__icon--danger {
+        background: var(--ob-danger-soft);
+        color: var(--ob-danger);
+    }
+
+    /* Beberapa filter berdampingan di ob-tabs-bar */
+    .ob-list-filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: .75rem;
+    }
+
+    .ob-list-filters .ob-list-filter {
+        width: 200px;
+    }
+
+    .ob-list-filters .ob-field label {
+        margin-bottom: .3rem;
+    }
+
+    .ob-list-filters .form-select {
+        min-height: 42px;
+        border: 1px solid var(--ob-border-strong);
+        border-radius: var(--ob-radius-sm);
+        font-size: .875rem;
+        color: var(--ob-text);
+    }
+
+    @media (max-width: 575.98px) {
+        .ob-list-filters,
+        .ob-list-filters .ob-list-filter {
+            width: 100%;
+        }
+    }
+
+    /* Sel item: thumbnail persegi + nama + keterangan */
+    .ob-item-cell {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        min-width: 220px;
+    }
+
+    .ob-item-thumb {
+        display: inline-grid;
+        place-items: center;
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        border: 1px solid var(--ob-border);
+        background: var(--ob-surface-2);
+        color: var(--ob-muted);
+        object-fit: cover;
+    }
+
+    .ob-item-cell__title {
+        font-weight: 600;
+        color: var(--ob-text);
+        overflow-wrap: anywhere;
+    }
+
+    .ob-item-cell__meta {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        max-width: 320px;
+        font-size: .75rem;
+        color: var(--ob-muted);
+    }
+
+    .ob-cell-stack--wrap {
+        white-space: normal;
+    }
+
+    /* Chip opsi modifier; opsi yang disembunyikan dari Order Table dicoret */
+    .ob-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .3rem;
+        max-width: 360px;
+    }
+
+    .ob-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        padding: .2rem .55rem;
+        border: 1px solid var(--ob-border);
+        border-radius: 999px;
+        background: var(--ob-surface-2);
+        color: var(--ob-text-2);
+        font-size: .75rem;
+        white-space: nowrap;
+    }
+
+    .ob-chip__price {
+        color: var(--ob-muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .ob-chip--hidden {
+        border-style: dashed;
+        background: var(--ob-surface);
+        color: var(--ob-muted);
+        text-decoration: line-through;
+    }
+
+    /* Switch on/off (Order Table) */
+    .ob-page .form-switch .form-check-input {
+        width: 2.5em;
+        height: 1.35em;
+        margin-top: 0;
+        cursor: pointer;
+    }
+
+    .ob-page .form-switch .form-check-input:checked {
+        background-color: var(--ob-primary);
+        border-color: var(--ob-primary);
+    }
+
+    .ob-page .form-switch .form-check-input:focus-visible {
+        box-shadow: 0 0 0 3px rgba(21, 114, 232, .2);
+    }
+
+    .ob-page .ob-switch-note {
+        display: block;
+        margin-top: .3rem;
+        font-size: .72rem;
+        color: #b45309;
+        white-space: normal;
+    }
+
+    /* Peringatan lembut di dalam form modal */
+    .ob-modal .ob-field-warning {
+        display: block;
+        margin-top: .35rem;
+        font-size: .78rem;
+        color: #b45309;
+    }
+
+    /* Baris varian produk: beberapa input dalam satu input-group */
+    .ob-modal .list-varian {
+        margin-bottom: .5rem;
+    }
+
+    .ob-modal .list-varian > .form-control {
+        border-radius: 0;
+    }
+
+    .ob-modal .list-varian > :first-child,
+    .ob-modal .list-varian > input[type="hidden"] + .form-control {
+        border-radius: var(--ob-radius-sm) 0 0 var(--ob-radius-sm);
+    }
+
+    .ob-modal .list-varian > :last-child {
+        border-radius: 0 var(--ob-radius-sm) var(--ob-radius-sm) 0;
+    }
+
+    .ob-modal .list-varian > .remove-varian {
+        min-width: 44px;
+        font-size: 1.1rem;
+    }
+
+    /* Tabel opsi di form modifier */
+    .ob-modal .ob-options-table {
+        margin-bottom: .75rem;
+        border: 1px solid var(--ob-border);
+        border-radius: var(--ob-radius-sm);
+        border-collapse: separate;
+        border-spacing: 0;
+        overflow: hidden;
+    }
+
+    .ob-modal .ob-options-table th {
+        padding: .6rem .75rem;
+        border-bottom: 1px solid var(--ob-border);
+        background: var(--ob-surface-2);
+        font-size: .7rem;
+        font-weight: 700;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        color: var(--ob-muted);
+    }
+
+    .ob-modal .ob-options-table td {
+        padding: .4rem .5rem;
+        border-bottom: 1px solid var(--ob-border);
+        vertical-align: middle;
+    }
+
+    .ob-modal .ob-options-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
 </style>

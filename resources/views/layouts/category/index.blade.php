@@ -1,135 +1,100 @@
 @extends('layouts.app')
 @section('content')
-    <div class="main-content">
-        <!-- Header Section -->
-        <div class="mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h2 class="h4 mb-0 font-weight-bold">
-                        <i class="fa fa-tag me-2"></i>Manajemen Category
-                    </h2>
-                    <p class="text-muted small mt-1">Kelola kategori produk dengan mudah dan efisien</p>
-                </div>
-                @can('create library/category')
-                    <a href="{{ route('library/category/create') }}" class="btn btn-primary btn-round action">
-                        <i class="fa fa-plus me-2"></i>Tambah Category
-                    </a>
-                @endcan
+    @include('layouts.reports.partials.ui-styles')
+
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
+            <div>
+                <div class="ob-header__eyebrow">Library</div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-tag"></i></span>
+                    Kategori
+                </h1>
+                <p class="ob-header__desc">Kelompokkan produk dan atur kategori yang tampil di menu Order Table.</p>
             </div>
+            @can('create library/category')
+                <a href="{{ route('library/category/create') }}" class="btn ob-btn ob-btn-primary action">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Tambah Kategori
+                </a>
+            @endcan
+        </div>
 
-            <!-- Stats Cards -->
-            <div class="row">
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card border-start border-primary h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p class="text-muted small mb-1">Total Categories</p>
-                                    <h3 class="mb-0 font-weight-bold" id="stats-total">{{ $stats['total'] ?? 0 }}</h3>
-                                </div>
-                                <div class="bg-primary bg-opacity-10 p-2 rounded">
-                                    <i class="fa text-white fa-list fa-lg"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        @if (session()->has('error'))
+            <div class="ob-notice" role="alert">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
+
+        {{-- Ringkasan (diperbarui dari respons simpan) --}}
+        <div class="ob-stats">
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--primary" aria-hidden="true"><i class="fas fa-list"></i></span>
+                <div>
+                    <p class="ob-stat__label">Total Kategori</p>
+                    <p class="ob-stat__value" id="stats-total">{{ number_format($stats['total'] ?? 0, 0, ',', '.') }}</p>
                 </div>
-
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card border-start border-success h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p class="text-muted small mb-1">Active</p>
-                                    <h3 class="mb-0 font-weight-bold text-success" id="stats-active">{{ $stats['active'] ?? 0 }}</h3>
-                                </div>
-                                <div class="bg-success bg-opacity-10 p-2 rounded">
-                                    <i class="fa text-white fa-check-circle fa-lg"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--success" aria-hidden="true"><i class="fas fa-check-circle"></i></span>
+                <div>
+                    <p class="ob-stat__label">Aktif</p>
+                    <p class="ob-stat__value" id="stats-active">{{ number_format($stats['active'] ?? 0, 0, ',', '.') }}</p>
                 </div>
-
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card border-start border-danger h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p class="text-muted small mb-1">Inactive</p>
-                                    <h3 class="mb-0 font-weight-bold text-danger" id="stats-inactive">{{ $stats['inactive'] ?? 0 }}</h3>
-                                </div>
-                                <div class="bg-danger bg-opacity-10 p-2 rounded">
-                                    <i class="fa text-white fa-times-circle fa-lg "></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--danger" aria-hidden="true"><i class="fas fa-times-circle"></i></span>
+                <div>
+                    <p class="ob-stat__label">Nonaktif</p>
+                    <p class="ob-stat__value" id="stats-inactive">{{ number_format($stats['inactive'] ?? 0, 0, ',', '.') }}</p>
                 </div>
-
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card border-start border-info h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p class="text-muted small mb-1">Reward Category</p>
-                                    <h3 class="mb-0 font-weight-bold text-info" id="stats-reward">{{ $stats['reward'] ?? 0 }}</h3>
-                                </div>
-                                <div class="bg-info bg-opacity-10 p-2 rounded">
-                                    <i class="fa text-white fa-star fa-lg "></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--warning" aria-hidden="true"><i class="fas fa-star"></i></span>
+                <div>
+                    <p class="ob-stat__label">Kategori Reward</p>
+                    <p class="ob-stat__value" id="stats-reward">{{ number_format($stats['reward'] ?? 0, 0, ',', '.') }}</p>
                 </div>
             </div>
         </div>
 
-        <!-- Alerts -->
-        @if (session()->has('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fa fa-check-circle me-2"></i>
-                <strong>Sukses!</strong> {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-
-        @if (session()->has('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fa fa-exclamation-circle me-2"></i>
-                <strong>Error!</strong> {{ session('error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-
-        <!-- Main Card with Filters and Table -->
-        <div class="card shadow-sm">
-            <!-- Card Header with Search & Filters -->
-            <div class="card-header bg-white border-bottom">
-                <div class="row g-2">
-                    <div class="col-md-6">
-                        <select id="filterStatus" class="form-select form-select-sm bg-light border-0">
-                            <option value="">Semua Status</option>
+        {{-- Tabel --}}
+        <div class="ob-card">
+            <div class="ob-tabs-bar">
+                <div>
+                    <h2 class="ob-section-title mb-1"><i class="fas fa-list" aria-hidden="true"></i> Daftar Kategori</h2>
+                    <span class="ob-hint"><i class="fas fa-info-circle" aria-hidden="true"></i> Kategori yang disembunyikan menyembunyikan semua produknya dari Order Table.</span>
+                </div>
+                <div class="ob-list-filters">
+                    <div class="ob-field ob-list-filter">
+                        <label for="filter-status"><i class="fas fa-toggle-on" aria-hidden="true"></i> Status</label>
+                        <select id="filter-status" class="form-select">
+                            <option value="">Semua status</option>
                             <option value="1">Aktif</option>
-                            <option value="0">Tidak Aktif</option>
+                            <option value="0">Nonaktif</option>
                         </select>
                     </div>
-
-                    <div class="col-md-6">
-                        <select id="filterReward" class="form-select form-select-sm bg-light border-0">
-                            <option value="">Semua Kategori Reward</option>
+                    <div class="ob-field ob-list-filter">
+                        <label for="filter-reward"><i class="fas fa-star" aria-hidden="true"></i> Reward</label>
+                        <select id="filter-reward" class="form-select">
+                            <option value="">Semua kategori</option>
                             <option value="1">Reward</option>
-                            <option value="0">Non-Reward</option>
+                            <option value="0">Biasa</option>
+                        </select>
+                    </div>
+                    <div class="ob-field ob-list-filter">
+                        <label for="filter-order-table"><i class="fas fa-qrcode" aria-hidden="true"></i> Order Table</label>
+                        <select id="filter-order-table" class="form-select">
+                            <option value="">Semua</option>
+                            <option value="1">Tampil</option>
+                            <option value="0">Disembunyikan</option>
                         </select>
                     </div>
                 </div>
             </div>
-
-            <!-- Table -->
-            <div class="card-body p-0">
-                <div class="table-responsive mt-4 mb-3">
-                    {!! $dataTable->table(['class' => 'table table-hover table-sm mb-0']) !!}
-                </div>
+            <div class="ob-table-wrap">
+                {!! $dataTable->table(['class' => 'table w-100']) !!}
             </div>
         </div>
     </div>
@@ -138,81 +103,36 @@
         {!! $dataTable->scripts() !!}
 
         <script>
-            // Initialize variables
-            var success = "{{ session('success') }}";
             const datatable = 'category-table';
-            var table; // Will be set after DataTable initialization
+            var success = "{{ session('success') }}";
 
-            // Wait for DataTable to be initialized, then setup custom filters
-            $(document).ready(function() {
-                // Get existing DataTable instance (already initialized by Yajra)
-                if ($.fn.DataTable.isDataTable('#' + datatable)) {
-                    table = $('#' + datatable).DataTable();
+            $(function() {
+                $('#filter-status, #filter-reward, #filter-order-table').on('change', function() {
+                    window.LaravelDataTables[datatable].ajax.reload();
+                });
 
-                    $('#filterStatus').on('change', function() {
-                        table.column('2:visible').search(this.value).draw();
-                    });
-
-                    $('#filterReward').on('change', function() {
-                        table.column('3:visible').search(this.value).draw();
-                    });
-                }
-
-                // Call existing handlers
-                handleAction(datatable, null, function(res){
-                    console.log("checkRes: ", res);
-                    const data = res.data;
-
-                    $('#stats-total').text(data.total);
-                    $('#stats-active').text(data.active);
-                    $('#stats-inactive').text(data.inactive);
-                    $('#stats-reward').text(data.reward);
+                handleAction(datatable, null, function(res) {
+                    const data = res.data || {};
+                    const format = (value) => Number(value || 0).toLocaleString('id-ID');
+                    $('#stats-total').text(format(data.total));
+                    $('#stats-active').text(format(data.active));
+                    $('#stats-inactive').text(format(data.inactive));
+                    $('#stats-reward').text(format(data.reward));
                 });
 
                 handleDelete(datatable);
             });
 
-            // Success Notification - can run immediately
             if (success) {
                 Swal.fire({
                     title: 'Sukses!',
                     text: success,
                     icon: 'success',
-                    type: 'success',
-                    customClass: {
-                        confirmButton: 'btn btn-primary'
-                    },
+                    customClass: { confirmButton: 'btn btn-primary' },
                     buttonsStyling: false,
                     timer: 3000
                 });
             }
         </script>
-
-        <style>
-            .border-start {
-                border-left-width: 4px !important;
-            }
-
-            .bg-opacity-10 {
-                background-color: rgba(255, 255, 255, 0.1);
-            }
-
-            .card {
-                border: 1px solid rgba(0, 0, 0, 0.08);
-                transition: box-shadow 0.3s ease;
-            }
-
-            .card:hover {
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            }
-
-            #category-table tbody tr:hover {
-                background-color: rgba(0, 0, 0, 0.02);
-            }
-
-            .input-group-text {
-                border-color: transparent !important;
-            }
-        </style>
     @endpush
 @endsection

@@ -44,6 +44,7 @@ class ProductController extends Controller
                 // 'stock' => $validatedData['stock'],
                 'outlet_id' => $outlet,
                 'status' => $validatedData['status'],
+                'show_in_order_table' => $validatedData['show_in_order_table'],
                 'description' => $validatedData['description'],
                 'exclude_tax' => $validatedData['exclude_tax'] ?? false
             ];
@@ -172,6 +173,25 @@ class ProductController extends Controller
         }
 
         return responseSuccess(true);
+    }
+
+    /**
+     * Switch "Order Table" di tabel produk: tampilkan/sembunyikan produk dari menu pelanggan.
+     */
+    public function toggleOrderTable(Request $request, Product $product)
+    {
+        $this->authorize('update library/product');
+        abort_unless(in_array((int) $product->outlet_id, $request->user()->outletIds(), true), 403);
+
+        $validated = $request->validate(['show' => ['required', 'boolean']]);
+        $product->show_in_order_table = $validated['show'];
+        $product->save();
+
+        return responseSuccess(true, $product->show_in_order_table
+            ? "{$product->name} ditampilkan di Order Table"
+            : "{$product->name} disembunyikan dari Order Table", [
+            'show_in_order_table' => $product->show_in_order_table,
+        ]);
     }
 
     public function destroy(Product $product)

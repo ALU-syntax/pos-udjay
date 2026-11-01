@@ -1,95 +1,106 @@
 @extends('layouts.app')
 @section('content')
-    <div class="main-content">
-        <div class="card text-center">
-            <h5 class="card-header">Product</h5>
+    @include('layouts.reports.partials.ui-styles')
+
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
+            <div>
+                <div class="ob-header__eyebrow">Library</div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-mug-hot"></i></span>
+                    Produk
+                </h1>
+                <p class="ob-header__desc">Kelola produk, varian harga, dan produk yang tampil di menu Order Table.</p>
+            </div>
+            @can('create library/product')
+                <a href="{{ route('library/product/create') }}" id="btnTambahProduct" class="btn ob-btn ob-btn-primary action">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Tambah Produk
+                </a>
+            @endcan
         </div>
-        @if (session()->has('success'))
-            <div class="alert alert-success mt-2" role="alert">
-                {{ session('success') }}
+
+        @if (session()->has('error'))
+            <div class="ob-notice" role="alert">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                <span>{{ session('error') }}</span>
             </div>
         @endif
 
-        @if (session()->has('error'))
-            <div class="alert alert-danger mt-2" role="alert">
-                {{ session('error') }}
-            </div>
-        @endif
-        <div class="card mt-4">
-            <div class="card-header d-flex justify-content-end">
-                <div class="col-4">
-                    <select id="filter-outlet" class="form-control select2">
-                        <option value="all" selected>-- Semua Outlet --</option>
-                        @foreach ($outlets as $outlet)
-                            <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
-                        @endforeach
-                    </select>
+        {{-- Tabel --}}
+        <div class="ob-card">
+            <div class="ob-tabs-bar">
+                <div>
+                    <h2 class="ob-section-title mb-1"><i class="fas fa-list" aria-hidden="true"></i> Daftar Produk</h2>
+                    <span class="ob-hint"><i class="fas fa-info-circle" aria-hidden="true"></i> Switch Order Table mengatur produk yang tampil di menu pelanggan. Kasir tetap melihat semua produk.</span>
                 </div>
-                @can('create library/product')
-                    <a href="{{ route('library/product/create') }}" type="button" id="btnTambahProduct"
-                        class="btn btn-primary btn-round ms-auto action"><i class="fa fa-plus"></i>Tambah Product</a>
-                @endcan
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    {!! $dataTable->table() !!}
+                <div class="ob-list-filters">
+                    <div class="ob-field ob-list-filter">
+                        <label for="filter-outlet"><i class="fas fa-store" aria-hidden="true"></i> Outlet</label>
+                        <select id="filter-outlet" class="form-control">
+                            <option value="all" selected>Semua outlet</option>
+                            @foreach ($outlets as $outlet)
+                                <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="ob-field ob-list-filter">
+                        <label for="filter-status"><i class="fas fa-toggle-on" aria-hidden="true"></i> Status</label>
+                        <select id="filter-status" class="form-select">
+                            <option value="">Semua status</option>
+                            <option value="1">Aktif</option>
+                            <option value="0">Nonaktif</option>
+                        </select>
+                    </div>
+                    <div class="ob-field ob-list-filter">
+                        <label for="filter-order-table"><i class="fas fa-qrcode" aria-hidden="true"></i> Order Table</label>
+                        <select id="filter-order-table" class="form-select">
+                            <option value="">Semua</option>
+                            <option value="1">Tampil</option>
+                            <option value="0">Disembunyikan</option>
+                        </select>
+                    </div>
                 </div>
+            </div>
+            <div class="ob-table-wrap">
+                {!! $dataTable->table(['class' => 'table w-100']) !!}
             </div>
         </div>
     </div>
 
     @push('js')
         {!! $dataTable->scripts() !!}
+        @include('components.order-table-switch-script', ['datatable' => 'product-table'])
 
         <script>
-            var listVarianLength = 0
-            $("#filter-outlet").select2();
-            var success = "{{ session('success') }}";
+            // Dipakai skrip varian di product-modal; direset setiap form dibuka.
+            var listVarianLength = 0;
             const datatable = 'product-table';
+            var success = "{{ session('success') }}";
 
-            $(".select2InsideModal").select2({
-                dropdownParent: $("#modal_action")
+            $(function() {
+                $('#filter-outlet').select2({ width: '100%', minimumResultsForSearch: 8 });
+                $('#filter-outlet, #filter-status, #filter-order-table').on('change', function() {
+                    window.LaravelDataTables[datatable].ajax.reload();
+                });
+
+                $('.main-content').on('click', '.action', function() {
+                    listVarianLength = 0;
+                });
+
+                handleAction(datatable);
+                handleDelete(datatable);
             });
-
-            handleAction(datatable);
-            handleDelete(datatable);
 
             if (success) {
                 Swal.fire({
                     title: 'Success!',
-                    // text: 'Data User Berhasil Disimpan',
                     text: success,
                     icon: 'success',
-                    type: 'success',
-                    customClass: {
-                        confirmButton: 'btn btn-primary'
-                    },
+                    customClass: { confirmButton: 'btn btn-primary' },
                     buttonsStyling: false
                 });
             }
-
-            $(document).ready(function() {
-                // Event listener untuk dropdown filter
-                $('#filter-outlet').on('change', function() {
-                    console.log($('#filter-outlet').val());
-                    var table = $('#' + datatable).DataTable();
-
-                    // Refresh tabel
-                    table.ajax.url("{{ route('library/product') }}?outlet=" + $('#filter-outlet').val())
-                        .load();
-                });
-
-                // Tambahkan kelas baru ke elemen <a> yang mengandung teks 'Edit'
-                $("a:contains('Edit')").addClass("edit-product");
-
-                $('.edit-product').off().on('click', function(){
-                    listVarianLength = 0;
-                });
-
-                $('#btnTambahProduct').off().on('click', function() {
-                    listVarianLength = 0;
-                })
-            })
         </script>
     @endpush
 @endsection

@@ -1,9 +1,15 @@
-<x-modal addStyle="modal-lg" title="Tambah Product Modifiers" action="{{ $action }}" method="POST">
+{{-- ob-page memberi token & gaya report ke modal (modal dirender di luar .main-content) --}}
+<x-modal addStyle="modal-lg ob-page ob-modal" title="Atur Produk: {{ $data->name }}" action="{{ $action }}" method="POST" update="1">
     @if ($data->id)
         @method('put')
     @endif
+    <div class="col-12">
+        <p class="ob-modal__desc">Centang produk yang memakai grup modifier ini. Hanya produk di outlet yang sama yang ditampilkan.</p>
+    </div>
     <input type="text" name="input-modifier-product" value="true" hidden>
-    {!! $dataTable->table(['class' => 'table table-bordered table-striped table-responsive'], true) !!}
+    <div class="col-12 table-responsive">
+        {!! $dataTable->table(['class' => 'table w-100'], true) !!}
+    </div>
 
     {!! $dataTable->scripts() !!}
     <script>
