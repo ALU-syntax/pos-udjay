@@ -23,6 +23,9 @@ class UserDataTable extends DataTable
      */
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
+        $roleNames = Role::pluck('name', 'id');
+        $outletNames = Outlets::pluck('name', 'id');
+
         return (new EloquentDataTable($query))
             ->addColumn('action', function ($row) {
                 return view('components.action', [
@@ -33,18 +36,15 @@ class UserDataTable extends DataTable
                     'routeDelete' => route('employee/user/destroy', $row->id)
                 ]);
             })
-            ->addColumn('role', function($user) {
-                $role = Role::find($user->role);
-                return $role->name; // Menampilkan nama peran dari relasi
+            ->addColumn('role', function ($user) use ($roleNames) {
+                return $roleNames[$user->role] ?? '-';
             })
-            ->addColumn('outlet_id', function($user) {
-                $dataOutlet = json_decode($user->outlet_id);
-                $listOutlet = "";
-                foreach($dataOutlet as $outlet){
-                    $outlet = Outlets::find($outlet); 
-                    $listOutlet = $listOutlet . "<span class='badge badge-primary'>{$outlet->name} </span></br>";
-                }
-                return $listOutlet; // Menampilkan nama peran dari relasi
+            ->addColumn('outlet_id', function ($user) use ($outletNames) {
+                // Outlet yang sudah dihapus dilewati agar tabel tidak error
+                return collect($user->outletIds())
+                    ->filter(fn ($id) => isset($outletNames[$id]))
+                    ->map(fn ($id) => "<span class='badge badge-primary'>" . e($outletNames[$id]) . " </span></br>")
+                    ->implode('');
             })
             ->rawColumns(['outlet_id'])
             ->addIndexColumn();
