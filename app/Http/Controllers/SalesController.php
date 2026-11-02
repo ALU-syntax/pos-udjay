@@ -90,7 +90,7 @@ class SalesController extends Controller
             $discount += $data->total_diskon;
 
             $totalTax = 0;
-            foreach (json_decode($data->total_pajak) as $itemPajak) {
+            foreach (json_decode($data->total_pajak ?? '[]') ?? [] as $itemPajak) {
                 $totalTax += $itemPajak->total;
             }
             $grossSales += $data->total + $data->total_diskon - $totalTax;
