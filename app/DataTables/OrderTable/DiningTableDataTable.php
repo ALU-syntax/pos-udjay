@@ -38,6 +38,8 @@ class DiningTableDataTable extends DataTable
     {
         $outletIds = auth()->user()->outletIds();
         $query = $model->newQuery()
+            // Pengurutan kolom outlet melakukan join ke outlets; tanpa ini kolom outlets (id, name) menimpa kolom meja
+            ->select('ot_dining_tables.*')
             ->with('outlet')
             ->whereIn('outlet_id', $outletIds);
 

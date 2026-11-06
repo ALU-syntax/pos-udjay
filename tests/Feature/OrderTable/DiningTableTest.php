@@ -94,6 +94,46 @@ class DiningTableTest extends OrderTableTestCase
         ]);
     }
 
+    public function test_rows_keep_the_table_id_and_name_when_sorted_by_outlet(): void
+    {
+        $outlet = $this->outlet('Sort By Outlet');
+        $user = $this->userFor($outlet, [
+            'read order-table/dining-tables',
+            'update order-table/dining-tables',
+            'delete order-table/dining-tables',
+        ]);
+        $table = $this->diningTable($outlet, ['name' => 'Meja Teras']);
+
+        // Bug ini hanya terlihat bila id meja berbeda dari id outlet, dan auto increment bisa kebetulan sama.
+        if ($table->id === $outlet->id) {
+            $table->forceDelete();
+            $table = $this->diningTable($outlet, ['name' => 'Meja Teras']);
+        }
+
+        $row = $this->actingAs($user)
+            ->withHeaders(['Accept' => 'application/json', 'X-Requested-With' => 'XMLHttpRequest'])
+            ->get(route('order-table/dining-tables', [
+                'draw' => 1,
+                'start' => 0,
+                'length' => 10,
+                'order' => [['column' => 1, 'dir' => 'asc']],
+                'columns' => [
+                    ['data' => 'code', 'name' => 'code', 'searchable' => 'true', 'orderable' => 'true'],
+                    ['data' => 'outlet_name', 'name' => 'outlet.name', 'searchable' => 'true', 'orderable' => 'true'],
+                    ['data' => 'action', 'name' => 'action', 'searchable' => 'false', 'orderable' => 'false'],
+                ],
+                'search' => ['value' => '', 'regex' => 'false'],
+            ]))
+            ->assertOk()
+            ->json('data.0');
+
+        $this->assertSame($table->id, (int) $row['DT_RowId']);
+        $this->assertStringContainsString('Meja Teras', $row['code']);
+        $this->assertStringContainsString(route('order-table/dining-tables/edit', $table->id), $row['action']);
+        $this->assertStringContainsString(route('order-table/dining-tables/toggle-qr', $table->id), $row['action']);
+        $this->assertStringContainsString('href="'.route('order-table/dining-tables/destroy', $table->id).'"', $row['action']);
+    }
+
     public function test_download_all_zips_active_qr_codes_grouped_by_outlet_folder(): void
     {
         $outletA = $this->outlet('Zip A');
