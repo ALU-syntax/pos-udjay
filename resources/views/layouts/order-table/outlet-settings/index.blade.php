@@ -87,6 +87,8 @@
     </div>
 
     @push('js')
+        <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
         {!! $dataTable->scripts() !!}
         <script>
             $(function () {
@@ -95,7 +97,73 @@
                 $('#outlet-filter').select2({ width: '100%', minimumResultsForSearch: 8 })
                     .on('change', () => window.LaravelDataTables[tableId].ajax.reload());
 
-                handleAction(tableId);
+                // Peta dan input koordinat saling sinkron; input tetap jadi nilai yang dikirim form
+                function initLocationPicker() {
+                    const form = $('#form_action');
+                    const container = form.find('#outlet-location-map');
+                    if (!container.length || !window.L) return;
+
+                    const modal = $('#modal_action');
+                    const latitude = form.find('#latitude');
+                    const longitude = form.find('#longitude');
+                    const radius = form.find('#geofence_radius_m');
+
+                    function readPoint() {
+                        const lat = parseFloat(latitude.val());
+                        const lng = parseFloat(longitude.val());
+                        const valid = Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+
+                        return valid ? L.latLng(lat, lng) : null;
+                    }
+
+                    const initialPoint = readPoint();
+                    // Wheel zoom dimatikan agar scroll di atas peta tetap menggulir form di modal
+                    const map = L.map(container.empty()[0], { scrollWheelZoom: false })
+                        .setView(initialPoint || [-2.5, 118], initialPoint ? 17 : 5);
+                    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+                    }).addTo(map);
+
+                    const marker = L.marker([0, 0], { draggable: true, keyboard: true, title: 'Titik outlet' });
+                    const circle = L.circle([0, 0], { radius: 1, color: '#1572e8', weight: 2, fillOpacity: .12, interactive: false });
+
+                    function render() {
+                        const point = readPoint();
+                        const meters = parseFloat(radius.val());
+
+                        if (!point) {
+                            marker.remove();
+                            circle.remove();
+                            return;
+                        }
+
+                        marker.setLatLng(point).addTo(map);
+                        circle.setLatLng(point).setRadius(meters > 0 ? meters : 1).addTo(map);
+                    }
+
+                    function setPoint(latLng) {
+                        const point = latLng.wrap();
+                        latitude.val(point.lat.toFixed(7));
+                        longitude.val(point.lng.toFixed(7));
+                        render();
+                    }
+
+                    map.on('click', event => setPoint(event.latlng));
+                    marker.on('drag', event => circle.setLatLng(event.latlng));
+                    marker.on('dragend', () => setPoint(marker.getLatLng()));
+                    form.on('input', '#latitude, #longitude, #geofence_radius_m', render);
+                    form.on('change', '#latitude, #longitude', function () {
+                        const point = readPoint();
+                        if (point) map.panTo(point);
+                    });
+
+                    render();
+                    modal.one('shown.bs.modal', () => map.invalidateSize());
+                    modal.one('hidden.bs.modal', () => map.remove());
+                }
+
+                handleAction(tableId, initLocationPicker);
 
                 $('#public-url-form').on('submit', function (event) {
                     event.preventDefault();
@@ -153,7 +221,32 @@
     @endpush
 
     @push('css')
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
         <style>
+            /* Peta pemilih koordinat; isolation menjaga z-index Leaflet tetap di dalam peta */
+            .ob-map {
+                display: grid;
+                place-items: center;
+                height: 320px;
+                border: 1px solid var(--ob-border-strong);
+                border-radius: var(--ob-radius-sm);
+                background: var(--ob-surface-2);
+                overflow: hidden;
+                isolation: isolate;
+            }
+
+            .ob-map.leaflet-container {
+                display: block;
+            }
+
+            .ob-map__fallback {
+                padding: 1rem;
+                color: var(--ob-muted);
+                font-size: .85rem;
+                text-align: center;
+            }
+
             /* Form base URL di luar modal: input setinggi tombol, bantuan di bawahnya */
             .ob-url-form {
                 padding: 1rem 1.25rem 1.25rem;
