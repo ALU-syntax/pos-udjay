@@ -212,6 +212,47 @@ class VoucherTest extends OrderTableTestCase
         $this->assertNull($voucher->fresh()->max_discount);
     }
 
+    public function test_outlet_and_global_vouchers_keep_their_ids_when_sorted_by_outlet(): void
+    {
+        $outlet = $this->outlet('Voucher Sort By Outlet');
+        $user = $this->userFor($outlet, ['read order-table/vouchers', 'update order-table/vouchers']);
+        $user->update(['outlet_id' => $this->activeOutletIds()]);
+        $outletVoucher = Voucher::create($this->modelAttributes($outlet->id, ['code' => 'SORT-OUTLET']));
+
+        // Bug ini hanya terlihat bila id voucher berbeda dari id outlet, dan auto increment bisa kebetulan sama.
+        if ($outletVoucher->id === $outlet->id) {
+            $outletVoucher->delete();
+            $outletVoucher = Voucher::create($this->modelAttributes($outlet->id, ['code' => 'SORT-OUTLET-2']));
+        }
+
+        // Voucher global tidak punya outlet, sehingga hasil join tanpa select membuat id-nya null.
+        $globalVoucher = Voucher::create($this->modelAttributes(null, ['code' => 'SORT-GLOBAL']));
+
+        $response = $this->actingAs($user)
+            ->withHeaders(['Accept' => 'application/json', 'X-Requested-With' => 'XMLHttpRequest'])
+            ->get(route('order-table/vouchers', [
+                'draw' => 1,
+                'start' => 0,
+                'length' => 25,
+                'order' => [['column' => 0, 'dir' => 'asc']],
+                'columns' => [
+                    ['data' => 'outlet_name', 'name' => 'outlet.name', 'searchable' => 'true', 'orderable' => 'true'],
+                    ['data' => 'action', 'name' => 'action', 'searchable' => 'false', 'orderable' => 'false'],
+                ],
+                'search' => ['value' => '', 'regex' => 'false'],
+            ]))
+            ->assertOk();
+
+        $this->assertNull($response->json('error'));
+        $rows = collect($response->json('data'))->keyBy(fn (array $row) => (int) $row['DT_RowId']);
+
+        foreach ([$outletVoucher, $globalVoucher] as $voucher) {
+            $this->assertTrue($rows->has($voucher->id), "Baris voucher {$voucher->code} tidak ditemukan.");
+            $this->assertStringContainsString(route('order-table/vouchers/edit', $voucher->id), $rows[$voucher->id]['action']);
+            $this->assertStringContainsString(route('order-table/vouchers/toggle', $voucher->id), $rows[$voucher->id]['action']);
+        }
+    }
+
     public function test_vouchers_have_no_delete_route(): void
     {
         $this->assertFalse(Route::has('order-table/vouchers/destroy'));

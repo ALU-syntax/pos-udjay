@@ -32,7 +32,8 @@ class VoucherDataTable extends DataTable
     {
         $outletIds = auth()->user()->outletIds();
         $canManageGlobal = app(CatalogSelectorService::class)->canUseGlobal(auth()->user());
-        $query = $model->newQuery()->with('outlet');
+        // Pengurutan kolom outlet melakukan join ke outlets; tanpa select ini outlets.id menimpa id voucher (null untuk voucher global)
+        $query = $model->newQuery()->select('ot_vouchers.*')->with('outlet');
 
         $query->where(function (QueryBuilder $query) use ($outletIds, $canManageGlobal) {
             $query->whereIn('outlet_id', $outletIds);
