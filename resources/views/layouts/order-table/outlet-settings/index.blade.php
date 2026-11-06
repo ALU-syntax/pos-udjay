@@ -117,8 +117,8 @@
                     }
 
                     const initialPoint = readPoint();
-                    // Wheel zoom dimatikan agar scroll di atas peta tetap menggulir form di modal
-                    const map = L.map(container.empty()[0], { scrollWheelZoom: false })
+                    // Scroll di atas peta untuk zoom; di luar peta tetap menggulir form
+                    const map = L.map(container.empty()[0])
                         .setView(initialPoint || [-2.5, 118], initialPoint ? 17 : 5);
                     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         maxZoom: 19,

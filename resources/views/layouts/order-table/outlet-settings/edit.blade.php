@@ -93,7 +93,7 @@
         <div id="outlet-location-map" class="ob-map" role="application" aria-label="Peta untuk memilih titik koordinat outlet">
             <span class="ob-map__fallback">Peta tidak dapat dimuat. Isi latitude dan longitude secara manual.</span>
         </div>
-        <small class="text-muted">Klik peta atau geser penanda untuk memilih titik, lalu perbesar dengan tombol + dan −. Lingkaran menunjukkan radius geofence.</small>
+        <small class="text-muted">Klik peta atau geser penanda untuk memilih titik. Scroll di atas peta untuk memperbesar atau memperkecil. Lingkaran menunjukkan radius geofence.</small>
     </div>
     <div class="col-md-4 mb-3">
         <label for="latitude" class="form-label">Latitude</label>

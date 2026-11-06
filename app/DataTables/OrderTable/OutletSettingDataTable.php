@@ -64,6 +64,8 @@ class OutletSettingDataTable extends DataTable
     {
         $outletIds = auth()->user()->outletIds();
         $query = $model->newQuery()
+            // Pengurutan kolom outlet melakukan join ke outlets; tanpa ini outlets.id menimpa id pengaturan
+            ->select('ot_outlet_settings.*')
             ->with('outlet')
             ->whereIn('outlet_id', $outletIds);
 

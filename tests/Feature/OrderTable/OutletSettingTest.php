@@ -84,6 +84,36 @@ class OutletSettingTest extends OrderTableTestCase
         ]);
     }
 
+    public function test_action_links_use_the_setting_id_when_sorted_by_outlet(): void
+    {
+        $outlet = $this->outlet('Setting Action Links');
+        $user = $this->userFor($outlet, ['read order-table/outlet-settings', 'update order-table/outlet-settings']);
+        $setting = $this->setting($outlet);
+
+        // Pastikan id pengaturan berbeda dari id outlet, karena bug ini hanya terlihat bila keduanya berbeda.
+        $this->assertNotSame($outlet->id, $setting->id);
+
+        $row = $this->actingAs($user)
+            ->withHeaders(['Accept' => 'application/json', 'X-Requested-With' => 'XMLHttpRequest'])
+            ->get(route('order-table/outlet-settings', [
+                'draw' => 1,
+                'start' => 0,
+                'length' => 10,
+                'order' => [['column' => 0, 'dir' => 'asc']],
+                'columns' => [
+                    ['data' => 'outlet_name', 'name' => 'outlet.name', 'searchable' => 'true', 'orderable' => 'true'],
+                    ['data' => 'action', 'name' => 'action', 'searchable' => 'false', 'orderable' => 'false'],
+                ],
+                'search' => ['value' => '', 'regex' => 'false'],
+            ]))
+            ->assertOk()
+            ->json('data.0');
+
+        $this->assertSame($setting->id, (int) $row['DT_RowId']);
+        $this->assertStringContainsString(route('order-table/outlet-settings/edit', $setting->id), $row['action']);
+        $this->assertStringContainsString(route('order-table/outlet-settings/toggle', $setting->id), $row['action']);
+    }
+
     public function test_global_public_url_can_be_updated_and_is_audited(): void
     {
         $outlet = $this->outlet('Public Url');
