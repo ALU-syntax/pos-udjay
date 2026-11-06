@@ -44,6 +44,8 @@ class PaymentMethodDataTable extends DataTable
     {
         $outletIds = auth()->user()->outletIds();
         $query = $model->newQuery()
+            // Pengurutan kolom outlet melakukan join ke outlets; tanpa ini outlets.id menimpa id metode
+            ->select('ot_payment_methods.*')
             ->with(['outlet', 'payment', 'categoryPayment'])
             ->whereIn('outlet_id', $outletIds);
 

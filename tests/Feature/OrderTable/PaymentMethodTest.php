@@ -107,6 +107,39 @@ class PaymentMethodTest extends OrderTableTestCase
         ]);
     }
 
+    public function test_action_links_use_the_method_id_when_sorted_by_outlet(): void
+    {
+        $outlet = $this->outlet('Payment Sort By Outlet');
+        $user = $this->userFor($outlet, ['read order-table/payment-methods', 'update order-table/payment-methods']);
+        $method = $this->paymentMethod($outlet);
+
+        // Bug ini hanya terlihat bila id metode berbeda dari id outlet, dan auto increment bisa kebetulan sama.
+        if ($method->id === $outlet->id) {
+            $method->delete();
+            $method = $this->paymentMethod($outlet);
+        }
+
+        $row = $this->actingAs($user)
+            ->withHeaders(['Accept' => 'application/json', 'X-Requested-With' => 'XMLHttpRequest'])
+            ->get(route('order-table/payment-methods', [
+                'draw' => 1,
+                'start' => 0,
+                'length' => 10,
+                'order' => [['column' => 0, 'dir' => 'asc']],
+                'columns' => [
+                    ['data' => 'outlet_name', 'name' => 'outlet.name', 'searchable' => 'true', 'orderable' => 'true'],
+                    ['data' => 'action', 'name' => 'action', 'searchable' => 'false', 'orderable' => 'false'],
+                ],
+                'search' => ['value' => '', 'regex' => 'false'],
+            ]))
+            ->assertOk()
+            ->json('data.0');
+
+        $this->assertSame($method->id, (int) $row['DT_RowId']);
+        $this->assertStringContainsString(route('order-table/payment-methods/edit', $method->id), $row['action']);
+        $this->assertStringContainsString(route('order-table/payment-methods/toggle', $method->id), $row['action']);
+    }
+
     public function test_client_cannot_supply_server_mapping_fields(): void
     {
         $outlet = $this->outlet('Payment Mapping');
