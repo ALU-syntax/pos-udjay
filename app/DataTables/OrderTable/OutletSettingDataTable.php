@@ -23,7 +23,7 @@ class OutletSettingDataTable extends DataTable
                         : ($now > $setting->close_time && $now < $setting->open_time));
 
                 if (! $setting->order_enabled) {
-                    return '<span class="badge badge-secondary">Nonaktif</span>';
+                    return '<span class="badge badge-muted">Nonaktif</span>';
                 }
                 if ($setting->forced_close) {
                     return '<span class="badge badge-danger">Dipause</span>';
@@ -49,8 +49,8 @@ class OutletSettingDataTable extends DataTable
                     return '<span class="text-muted">Koordinat belum diatur</span>';
                 }
 
-                return '<div>'.e($setting->outlet->latitude.', '.$setting->outlet->longitude).'</div>'
-                    .'<small class="text-muted">Radius '.e(number_format((int) $setting->outlet->geofence_radius_m)).' m</small>';
+                return '<div class="ob-cell-stack"><span>'.e($setting->outlet->latitude.', '.$setting->outlet->longitude).'</span>'
+                    .'<span class="ob-cell-meta">Radius '.e(number_format((int) $setting->outlet->geofence_radius_m)).' m</span></div>';
             })
             ->addColumn('action', fn (OutletSetting $setting) => view(
                 'layouts.order-table.outlet-settings.action',
@@ -81,19 +81,20 @@ class OutletSettingDataTable extends DataTable
             ->setTableId('outlet-setting-table')
             ->columns($this->getColumns())
             ->minifiedAjax('', null, ['outlet_id' => "$('#outlet-filter').val()"])
-            ->responsive(true)
-            ->orderBy(0);
+            // Default Bootstrap 4 dom, but only the table scrolls horizontally so length/search/paging stay put.
+            ->dom("<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>><'ob-table-scroll'tr><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>")
+            ->orderBy(0, 'asc');
     }
 
     public function getColumns(): array
     {
         return [
-            Column::make('outlet_name')->title('Outlet')->name('outlet.name'),
+            Column::make('outlet_name')->title('Outlet')->name('outlet.name')->addClass('ob-col-name'),
             Column::computed('effective_state')->title('Status Efektif'),
             Column::make('stock_mode')->title('Mode Stok'),
-            Column::computed('operating_hours')->title('Jam Operasional'),
+            Column::computed('operating_hours')->title('Jam Operasional')->addClass('ob-col-time'),
             Column::computed('geofence')->title('Koordinat / Radius'),
-            Column::computed('action')->title('Aksi')->exportable(false)->printable(false)->orderable(false)->searchable(false)->width(130)->addClass('text-center'),
+            Column::computed('action')->title('')->exportable(false)->printable(false)->orderable(false)->searchable(false)->width(90)->addClass('text-center'),
         ];
     }
 

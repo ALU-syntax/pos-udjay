@@ -1,69 +1,78 @@
 @extends('layouts.app')
 
 @section('content')
+    @include('layouts.reports.partials.ui-styles')
+
     @php
         $outlets = App\Models\Outlets::query()
             ->whereIn('id', auth()->user()->outletIds())
             ->orderBy('name')
             ->get();
     @endphp
-    <div class="main-content order-table-page">
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
             <div>
-                <h2 class="h4 mb-1 font-weight-bold"><i class="fa fa-store me-2"></i>Pengaturan Order Outlet</h2>
-                <p class="text-muted mb-0">Atur ketersediaan order, stok, jam operasional, biaya layanan, dan geofence outlet.</p>
+                <div class="ob-header__eyebrow">Order Table</div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-store"></i></span>
+                    Pengaturan Order Outlet
+                </h1>
+                <p class="ob-header__desc">Atur ketersediaan order, stok, jam operasional, biaya layanan, dan geofence outlet.</p>
             </div>
             @can('create order-table/outlet-settings')
-                <a href="{{ route('order-table/outlet-settings/create') }}" class="btn btn-primary btn-round action">
-                    <i class="fa fa-plus me-2"></i>Tambah Pengaturan
+                <a href="{{ route('order-table/outlet-settings/create') }}" class="btn ob-btn ob-btn-primary action">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Tambah Pengaturan
                 </a>
             @endcan
         </div>
 
-        <div class="alert alert-warning border-0 shadow-sm">
-            <i class="fa fa-exclamation-triangle me-2"></i>
-            Perubahan pause, jam operasional, dan geofence langsung memengaruhi pelanggan Order Table.
+        <div class="ob-notice" role="note">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            <span>Perubahan pause, jam operasional, dan geofence langsung memengaruhi pelanggan Order Table.</span>
         </div>
 
+        {{-- Domain halaman order --}}
         @can('update order-table/outlet-settings')
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-1">Domain Halaman Order (Global)</h5>
-                    <small class="text-muted">Base URL yang dipakai saat membuat QR meja. Berlaku untuk semua outlet.</small>
+            <div class="ob-card">
+                <div class="ob-tabs-bar">
+                    <div>
+                        <h2 class="ob-section-title mb-1"><i class="fas fa-globe" aria-hidden="true"></i> Domain Halaman Order (Global)</h2>
+                        <span class="ob-hint"><i class="fas fa-info-circle" aria-hidden="true"></i> Base URL yang dipakai saat membuat QR meja. Berlaku untuk semua outlet.</span>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <form id="public-url-form" action="{{ route('order-table/outlet-settings/public-url') }}" method="POST" class="row g-3 align-items-end">
-                        @csrf
-                        @method('put')
-                        <div class="col-md-8">
-                            <label for="public_url" class="form-label">Base URL</label>
+                <form id="public-url-form" action="{{ route('order-table/outlet-settings/public-url') }}" method="POST" class="ob-url-form">
+                    @csrf
+                    @method('put')
+                    <div class="ob-field">
+                        <label for="public_url"><i class="fas fa-link" aria-hidden="true"></i> Base URL</label>
+                        <div class="ob-url-form__row">
                             <input id="public_url" name="public_url" type="url" class="form-control"
                                 value="{{ old('public_url', $publicUrl['value']) }}"
                                 placeholder="https://order.example.com">
-                            <small class="text-muted">
-                                Kosongkan untuk memakai domain backoffice ({{ $publicUrl['fallback'] }}).
-                                URL QR saat ini: <span class="text-break">{{ $publicUrl['resolved'] }}</span>
-                            </small>
-                        </div>
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fa fa-save me-1"></i>Simpan Base URL
+                            <button type="submit" class="btn ob-btn ob-btn-primary">
+                                <i class="fas fa-save" aria-hidden="true"></i> Simpan Base URL
                             </button>
                         </div>
-                    </form>
-                </div>
+                        <small class="ob-url-form__help">
+                            Kosongkan untuk memakai domain backoffice ({{ $publicUrl['fallback'] }}).
+                            URL QR saat ini: <span class="text-break">{{ $publicUrl['resolved'] }}</span>
+                        </small>
+                    </div>
+                </form>
             </div>
         @endcan
 
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-3">
+        {{-- Tabel --}}
+        <div class="ob-card">
+            <div class="ob-tabs-bar">
                 <div>
-                    <h5 class="mb-1">Konfigurasi per Outlet</h5>
-                    <small class="text-muted">Status efektif memperhitungkan enabled, pause manual, dan jam operasional.</small>
+                    <h2 class="ob-section-title mb-1"><i class="fas fa-list" aria-hidden="true"></i> Konfigurasi per Outlet</h2>
+                    <span class="ob-hint"><i class="fas fa-info-circle" aria-hidden="true"></i> Status efektif memperhitungkan enabled, pause manual, dan jam operasional.</span>
                 </div>
-                <div class="order-table-filter">
-                    <label for="outlet-filter" class="form-label small mb-1">Filter outlet</label>
-                    <select id="outlet-filter" class="form-select form-select-sm">
+                <div class="ob-field ob-list-filter">
+                    <label for="outlet-filter"><i class="fas fa-store" aria-hidden="true"></i> Outlet</label>
+                    <select id="outlet-filter" class="form-control">
                         <option value="">Semua outlet</option>
                         @foreach ($outlets as $outlet)
                             <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
@@ -71,10 +80,8 @@
                     </select>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    {!! $dataTable->table(['class' => 'table table-hover align-middle mb-0']) !!}
-                </div>
+            <div class="ob-table-wrap">
+                {!! $dataTable->table(['class' => 'table w-100']) !!}
             </div>
         </div>
     </div>
@@ -85,9 +92,8 @@
             $(function () {
                 const tableId = 'outlet-setting-table';
 
-                $('#outlet-filter').on('change', function () {
-                    window.LaravelDataTables[tableId].ajax.reload();
-                });
+                $('#outlet-filter').select2({ width: '100%', minimumResultsForSearch: 8 })
+                    .on('change', () => window.LaravelDataTables[tableId].ajax.reload());
 
                 handleAction(tableId);
 
@@ -148,10 +154,63 @@
 
     @push('css')
         <style>
-            .order-table-page .card { border-radius: 10px; }
-            .order-table-filter { min-width: 240px; }
-            .order-table-actions { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
-            .order-table-actions .btn { width: 34px; height: 34px; padding: 7px; }
+            /* Form base URL di luar modal: input setinggi tombol, bantuan di bawahnya */
+            .ob-url-form {
+                padding: 1rem 1.25rem 1.25rem;
+            }
+
+            .ob-url-form__row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: .75rem;
+            }
+
+            .ob-url-form .form-control {
+                flex: 1 1 280px;
+                min-width: 0;
+                min-height: 42px;
+                border: 1px solid var(--ob-border-strong);
+                border-radius: var(--ob-radius-sm);
+                background-color: var(--ob-surface);
+                color: var(--ob-text);
+                font-size: .875rem !important;
+                box-shadow: none;
+                transition: border-color .15s ease, box-shadow .15s ease;
+            }
+
+            .ob-url-form .form-control:focus {
+                border-color: var(--ob-primary);
+                box-shadow: 0 0 0 3px rgba(21, 114, 232, .15);
+            }
+
+            .ob-url-form__help {
+                display: block;
+                margin-top: .5rem;
+                font-size: .78rem;
+                color: var(--ob-muted);
+            }
+
+            /* Sel koordinat + radius */
+            .ob-cell-stack {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: .2rem;
+                white-space: nowrap;
+                font-variant-numeric: tabular-nums;
+            }
+
+            .ob-page table.dataTable tbody td.ob-col-time {
+                white-space: nowrap;
+                font-size: .8rem;
+            }
+
+            @media (max-width: 575.98px) {
+                .ob-url-form__row .ob-btn {
+                    width: 100%;
+                    justify-content: center;
+                }
+            }
         </style>
     @endpush
 @endsection
