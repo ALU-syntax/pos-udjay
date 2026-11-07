@@ -51,6 +51,18 @@ class OrderLabels
         'unknown' => ['Tidak diketahui', 'muted'],
     ];
 
+    public const SESSION = [
+        'open' => ['Aktif', 'success'],
+        'closed' => ['Ditutup', 'muted'],
+    ];
+
+    public const SESSION_CLOSE_REASON = [
+        'eod' => ['Tutup hari', 'muted'],
+        'kasir' => ['Ditutup kasir', 'muted'],
+        'manual' => ['Manual', 'muted'],
+    ];
+
+    /** Dipakai untuk aktor log status order dan closed_by sesi. */
     public const ACTOR = [
         'system' => ['Sistem', 'muted'],
         'kasir' => ['Kasir', 'muted'],

@@ -1,27 +1,67 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="main-content order-table-page">
-        <div class="mb-4">
-            <h2 class="h4 mb-1 font-weight-bold"><i class="fa fa-users me-2"></i>Monitor Sesi Meja</h2>
-            <p class="text-muted mb-0">Pantau sesi device di meja. Tidak ada hard delete.</p>
+    @include('layouts.reports.partials.ui-styles')
+
+    @php
+        $labels = App\Support\OrderTable\OrderLabels::class;
+    @endphp
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
+            <div>
+                <div class="ob-header__eyebrow">Order Table</div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-users"></i></span>
+                    Monitor Sesi Meja
+                </h1>
+                <p class="ob-header__desc">Pantau sesi perangkat pelanggan di setiap meja.</p>
+            </div>
         </div>
 
         @unless ($nodeEnabled)
-            <div class="alert alert-warning border-0 shadow-sm"><i class="fa fa-plug me-2"></i>Aksi <strong>Tutup Sesi</strong> dinonaktifkan sampai integrasi layanan Node diaktifkan.</div>
+            <div class="ob-notice" role="note">
+                <i class="fas fa-plug" aria-hidden="true"></i>
+                <span>Aksi <strong>Tutup Sesi</strong> dinonaktifkan sampai integrasi layanan Node diaktifkan.</span>
+            </div>
         @endunless
 
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white">
-                <h5 class="mb-3">Daftar Sesi</h5>
-                <div class="row g-2">
-                    <div class="col-md-3"><label for="outlet-filter" class="form-label small mb-1">Outlet</label><select id="outlet-filter" class="form-select form-select-sm"><option value="">Semua</option>@foreach ($outlets as $outlet)<option value="{{ $outlet->id }}">{{ $outlet->name }}</option>@endforeach</select></div>
-                    <div class="col-md-3"><label for="status-filter" class="form-label small mb-1">Status</label><select id="status-filter" class="form-select form-select-sm"><option value="">Semua</option><option value="open">open</option><option value="closed">closed</option></select></div>
-                    <div class="col-md-3"><label for="date-from-filter" class="form-label small mb-1">Dari</label><input id="date-from-filter" type="date" class="form-control form-control-sm"></div>
-                    <div class="col-md-3"><label for="date-to-filter" class="form-label small mb-1">Sampai</label><input id="date-to-filter" type="date" class="form-control form-control-sm"></div>
+        {{-- Filter --}}
+        <div class="ob-card">
+            <div class="ob-toolbar">
+                <div class="ob-field">
+                    <label for="outlet-filter"><i class="fas fa-store" aria-hidden="true"></i> Outlet</label>
+                    <select id="outlet-filter" class="form-control">
+                        <option value="">Semua outlet</option>
+                        @foreach ($outlets as $outlet)
+                            <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="ob-field">
+                    <label for="status-filter"><i class="fas fa-toggle-on" aria-hidden="true"></i> Status</label>
+                    <select id="status-filter" class="form-control">
+                        <option value="">Semua status</option>
+                        @foreach ($labels::options($labels::SESSION) as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @include('layouts.order-table.partials.date-range-filter', ['label' => 'Tanggal Dibuka'])
+            </div>
+        </div>
+
+        {{-- Tabel --}}
+        <div class="ob-card">
+            <div class="ob-tabs-bar">
+                <div>
+                    <h2 class="ob-section-title mb-1"><i class="fas fa-list" aria-hidden="true"></i> Daftar Sesi</h2>
+                    <span class="ob-hint"><i class="fas fa-info-circle" aria-hidden="true"></i> Sesi tidak dapat dihapus. Penutupan sesi dikirim ke layanan order.</span>
                 </div>
             </div>
-            <div class="card-body"><div class="table-responsive">{!! $dataTable->table(['class' => 'table table-hover align-middle mb-0']) !!}</div></div>
+            <div class="ob-table-wrap">
+                {!! $dataTable->table(['class' => 'table w-100']) !!}
+            </div>
         </div>
     </div>
 
@@ -30,7 +70,11 @@
         <script>
             $(function () {
                 const table = window.LaravelDataTables['session-monitor-table'];
-                $('#outlet-filter,#status-filter,#date-from-filter,#date-to-filter').on('change', () => table.ajax.reload());
+                const reload = () => table.ajax.reload();
+
+                $('#outlet-filter, #status-filter').select2({ width: '100%', minimumResultsForSearch: 8 }).on('change', reload);
+                initDateRangeFilter(reload);
+
                 $('.main-content').on('click', '.action-close-session', function (event) {
                     event.preventDefault();
                     const button = this;
@@ -40,5 +84,29 @@
             });
         </script>
     @endpush
-    @push('css')<style>.order-table-page .card{border-radius:10px}</style>@endpush
+
+    @push('css')
+        <style>
+            /* Sel dua baris: nilai utama + keterangan */
+            .ob-cell-stack {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: .25rem;
+                white-space: nowrap;
+                font-variant-numeric: tabular-nums;
+            }
+
+            .ob-page table.dataTable tbody td.ob-col-time {
+                font-size: .8rem;
+            }
+
+            .ob-page table.dataTable tbody td.ob-col-device {
+                white-space: nowrap;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                font-size: .75rem;
+                color: var(--ob-muted);
+            }
+        </style>
+    @endpush
 @endsection

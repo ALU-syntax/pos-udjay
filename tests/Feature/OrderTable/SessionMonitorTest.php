@@ -34,6 +34,47 @@ class SessionMonitorTest extends OrderTableTestCase
         $this->assertStringNotContainsString('secret', json_encode($row, JSON_THROW_ON_ERROR));
     }
 
+    public function test_rows_use_indonesian_labels_and_only_open_sessions_can_be_closed(): void
+    {
+        $outlet = $this->outlet('Session Labels');
+        $user = $this->userFor($outlet, ['read order-table/sessions', 'close order-table/sessions']);
+        $open = $this->tableSession($outlet, ['opened_at' => now()->subMinutes(135)]);
+        $closed = $this->tableSession($outlet, [
+            'status' => 'closed',
+            'opened_at' => now()->subHours(3),
+            'closed_at' => now()->subHours(2),
+            'close_reason' => 'eod',
+            'closed_by' => 'system',
+        ]);
+
+        $rows = collect($this->actingAs($user)->getJson(route('order-table/sessions', [
+            'draw' => 1, 'start' => 0, 'length' => 25,
+        ]), ['X-Requested-With' => 'XMLHttpRequest'])->assertOk()->json('data'))
+            ->keyBy(fn ($row) => (int) $row['DT_RowId']);
+
+        $this->assertStringContainsString('Aktif', $rows[$open->id]['status']);
+        $this->assertStringContainsString('Berjalan 2 jam 15 mnt', $rows[$open->id]['status']);
+        $this->assertStringContainsString(route('order-table/sessions/close', $open->id), $rows[$open->id]['action']);
+
+        $this->assertStringContainsString('Ditutup', $rows[$closed->id]['status']);
+        $this->assertStringContainsString('Durasi 1 jam 0 mnt', $rows[$closed->id]['status']);
+        $this->assertStringContainsString('Tutup hari · oleh Sistem', $rows[$closed->id]['closed_at']);
+        $this->assertStringNotContainsString('sessions/close', $rows[$closed->id]['action']);
+    }
+
+    public function test_index_page_renders_filters_with_labels(): void
+    {
+        $outlet = $this->outlet('Session Index Page');
+        $user = $this->userFor($outlet, ['read order-table/sessions']);
+
+        $this->actingAs($user)->get(route('order-table/sessions'))
+            ->assertOk()
+            ->assertSee('ob-page')
+            ->assertSee('<option value="open">Aktif</option>', false)
+            ->assertSee('Tanggal Dibuka')
+            ->assertSee('window.initDateRangeFilter', false);
+    }
+
     public function test_session_close_is_blocked_while_node_disabled_and_has_no_hard_delete(): void
     {
         config(['order-table.node.enabled' => false]);

@@ -4,7 +4,9 @@ namespace App\DataTables\OrderTable;
 
 use App\Models\OrderTable\TableSession;
 use App\Support\OrderTable\Mask;
+use App\Support\OrderTable\OrderLabels;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
+use Illuminate\Support\Carbon;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
 use Yajra\DataTables\Html\Column;
@@ -14,20 +16,36 @@ class SessionMonitorDataTable extends DataTable
 {
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
+        // Kolom raw di-escape manual
         return (new EloquentDataTable($query))
-            ->editColumn('opened_at', fn (TableSession $session) => $session->opened_at?->format('d M Y H:i') ?? '-')
-            ->editColumn('closed_at', fn (TableSession $session) => $session->closed_at?->format('d M Y H:i') ?? '-')
-            ->addColumn('outlet_name', fn (TableSession $session) => $session->outlet?->name ?? '-')
-            ->addColumn('table_name', fn (TableSession $session) => $session->table?->name ?? $session->table?->code ?? '-')
-            ->editColumn('device_id', fn (TableSession $session) => Mask::value($session->device_id))
-            ->editColumn('status', fn (TableSession $session) => $session->status === 'open'
-                ? '<span class="badge bg-success">open</span>'
-                : '<span class="badge bg-secondary">closed</span>')
-            ->addColumn('orders_count', fn (TableSession $session) => $session->orders_count ?? 0)
+            ->editColumn('opened_at', fn (TableSession $session) => $this->dateStack($session->opened_at))
+            ->addColumn('outlet_table', fn (TableSession $session) => $this->stack(
+                e($session->outlet?->name ?? '-'),
+                e($session->table?->name ?? $session->table?->code ?? '-'),
+            ))
+            ->editColumn('device_id', fn (TableSession $session) => e(Mask::value($session->device_id)))
+            ->editColumn('status', fn (TableSession $session) => $this->stack(
+                OrderLabels::badge(OrderLabels::SESSION, $session->status),
+                e(($session->status === 'open' ? 'Berjalan ' : 'Durasi ').$this->duration($session)),
+            ))
+            ->editColumn('closed_at', function (TableSession $session) {
+                if (! $session->closed_at) {
+                    return '<span class="text-muted">—</span>';
+                }
+
+                $reason = OrderLabels::label(OrderLabels::SESSION_CLOSE_REASON, $session->close_reason);
+                $by = $session->closed_by ? ' · oleh '.OrderLabels::label(OrderLabels::ACTOR, $session->closed_by) : '';
+
+                return $this->stack(
+                    e($session->closed_at->format('d M Y, H:i')),
+                    e(($session->close_reason ? $reason : 'Tanpa alasan').$by),
+                );
+            })
+            ->addColumn('orders_count', fn (TableSession $session) => (int) ($session->orders_count ?? 0))
             ->addColumn('action', fn (TableSession $session) => view('layouts.order-table.sessions.action', compact('session'))->render())
             ->removeColumn('outlet')
             ->removeColumn('table')
-            ->rawColumns(['status', 'action'])
+            ->rawColumns(['opened_at', 'outlet_table', 'device_id', 'status', 'closed_at', 'action'])
             ->setRowId('id');
     }
 
@@ -67,28 +85,55 @@ class SessionMonitorDataTable extends DataTable
                 'date_from' => "$('#date-from-filter').val()",
                 'date_to' => "$('#date-to-filter').val()",
             ])
-            ->responsive(true)
+            // Default Bootstrap 4 dom, but only the table scrolls horizontally so length/search/paging stay put.
+            ->dom("<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>><'ob-table-scroll'tr><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>")
             ->orderBy(0, 'desc');
     }
 
     public function getColumns(): array
     {
         return [
-            Column::make('opened_at')->title('Dibuka'),
-            Column::computed('outlet_name')->title('Outlet')->name('outlet.name'),
-            Column::computed('table_name')->title('Meja')->name('table.name'),
-            Column::make('device_id')->title('Perangkat'),
+            Column::make('opened_at')->title('Dibuka')->addClass('ob-col-time'),
+            Column::computed('outlet_table')->title('Outlet / Meja')->addClass('ob-col-name'),
+            Column::make('device_id')->title('Perangkat')->addClass('ob-col-device'),
             Column::make('status')->title('Status'),
-            Column::make('close_reason')->title('Alasan Tutup'),
-            Column::make('closed_by')->title('Ditutup Oleh'),
-            Column::computed('orders_count')->title('Order')->orderable(false)->searchable(false),
-            Column::make('closed_at')->title('Ditutup'),
-            Column::computed('action')->title('Aksi')->exportable(false)->printable(false)->orderable(false)->searchable(false)->width(80)->addClass('text-center'),
+            Column::make('closed_at')->title('Penutupan')->addClass('ob-col-time'),
+            Column::computed('orders_count')->title('Order')->orderable(false)->searchable(false)->addClass('text-center'),
+            Column::computed('action')->title('')->exportable(false)->printable(false)->orderable(false)->searchable(false)->width(60)->addClass('text-center'),
         ];
     }
 
     protected function filename(): string
     {
         return 'SessionMonitor_'.date('YmdHis');
+    }
+
+    /** Sel dua baris; kedua argumen harus sudah di-escape. */
+    private function stack(string $main, string $meta): string
+    {
+        return '<div class="ob-cell-stack"><span>'.$main.'</span><span class="ob-cell-meta">'.$meta.'</span></div>';
+    }
+
+    private function dateStack(?Carbon $date): string
+    {
+        return $date
+            ? $this->stack(e($date->format('d M Y')), e($date->format('H:i')))
+            : '<span class="text-muted">—</span>';
+    }
+
+    /** Lama sesi sampai ditutup, atau sampai sekarang bila masih aktif. */
+    private function duration(TableSession $session): string
+    {
+        if (! $session->opened_at) {
+            return '-';
+        }
+
+        $minutes = (int) abs($session->opened_at->diffInMinutes($session->closed_at ?? now()));
+
+        return match (true) {
+            $minutes < 60 => $minutes.' mnt',
+            $minutes < 1440 => intdiv($minutes, 60).' jam '.($minutes % 60).' mnt',
+            default => intdiv($minutes, 1440).' hari '.intdiv($minutes % 1440, 60).' jam',
+        };
     }
 }

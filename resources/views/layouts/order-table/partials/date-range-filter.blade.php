@@ -1,10 +1,10 @@
 {{--
     Filter rentang tanggal untuk toolbar gaya report.
     Nilai ke server ada di #date-from-filter dan #date-to-filter (YYYY-MM-DD); kosong berarti semua tanggal.
-    Halaman memanggil initDateRangeFilter(onChange) setelah DataTable siap.
+    Halaman memanggil initDateRangeFilter(onChange) setelah DataTable siap. Opsional: $label.
 --}}
 <div class="ob-field">
-    <label for="date-range-filter"><i class="far fa-calendar-alt" aria-hidden="true"></i> Rentang Tanggal</label>
+    <label for="date-range-filter"><i class="far fa-calendar-alt" aria-hidden="true"></i> {{ $label ?? 'Rentang Tanggal' }}</label>
     <div class="ob-daterange">
         <input id="date-range-filter" type="text" class="form-control" placeholder="Semua tanggal" autocomplete="off" readonly>
         <button type="button" id="date-range-clear" class="ob-daterange__btn d-none" title="Hapus filter tanggal" aria-label="Hapus filter tanggal">
