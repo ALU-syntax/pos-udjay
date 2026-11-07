@@ -40,18 +40,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="ob-field">
-                    <label for="date-range-filter"><i class="far fa-calendar-alt" aria-hidden="true"></i> Rentang Tanggal</label>
-                    <div class="ob-daterange">
-                        <input id="date-range-filter" type="text" class="form-control" placeholder="Semua tanggal" autocomplete="off" readonly>
-                        <button type="button" id="date-range-clear" class="ob-daterange__btn d-none" title="Hapus filter tanggal" aria-label="Hapus filter tanggal">
-                            <i class="fas fa-times" aria-hidden="true"></i>
-                        </button>
-                    </div>
-                    {{-- Nilai yang dikirim ke server (YYYY-MM-DD); kosong berarti semua tanggal --}}
-                    <input id="date-from-filter" type="hidden">
-                    <input id="date-to-filter" type="hidden">
-                </div>
+                @include('layouts.order-table.partials.date-range-filter')
                 <div class="ob-field">
                     <label for="order-filter"><i class="fas fa-search" aria-hidden="true"></i> Nomor order</label>
                     <input id="order-filter" type="search" class="form-control" placeholder="Cari nomor order" autocomplete="off">
@@ -82,49 +71,7 @@
                 let timer;
 
                 $('#outlet-filter, #voucher-filter').select2({ width: '100%', minimumResultsForSearch: 8 }).on('change', reload);
-
-                // Rentang tanggal: tampilan DD/MM/YYYY, nilai ke server lewat input tersembunyi
-                const range = $('#date-range-filter');
-                const from = $('#date-from-filter');
-                const to = $('#date-to-filter');
-                const clear = $('#date-range-clear');
-
-                function setRange(start, end) {
-                    range.val(start ? start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY') : '');
-                    from.val(start ? start.format('YYYY-MM-DD') : '');
-                    to.val(end ? end.format('YYYY-MM-DD') : '');
-                    clear.toggleClass('d-none', !start);
-                    reload();
-                }
-
-                range.daterangepicker({
-                    autoUpdateInput: false,
-                    linkedCalendars: false,
-                    maxDate: moment().endOf('day'),
-                    drops: 'auto',
-                    buttonClasses: 'btn btn-sm',
-                    applyButtonClasses: 'btn-primary',
-                    cancelButtonClasses: 'btn-light',
-                    ranges: {
-                        'Hari ini': [moment(), moment()],
-                        'Kemarin': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-                        '7 hari terakhir': [moment().subtract(6, 'days'), moment()],
-                        '30 hari terakhir': [moment().subtract(29, 'days'), moment()],
-                        'Bulan ini': [moment().startOf('month'), moment().endOf('month')],
-                        'Bulan lalu': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
-                    },
-                    locale: {
-                        format: 'DD/MM/YYYY',
-                        applyLabel: 'Terapkan',
-                        cancelLabel: 'Batal',
-                        customRangeLabel: 'Pilih tanggal',
-                        daysOfWeek: ['Mg', 'Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb'],
-                        monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
-                        firstDay: 1,
-                    },
-                });
-                range.on('apply.daterangepicker', (event, picker) => setRange(picker.startDate, picker.endDate));
-                clear.on('click', () => setRange(null, null));
+                initDateRangeFilter(reload);
                 $('#order-filter').on('input', function () {
                     clearTimeout(timer);
                     timer = setTimeout(reload, 350);
