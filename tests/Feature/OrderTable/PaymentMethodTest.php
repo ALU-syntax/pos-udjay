@@ -140,6 +140,97 @@ class PaymentMethodTest extends OrderTableTestCase
         $this->assertStringContainsString(route('order-table/payment-methods/toggle', $method->id), $row['action']);
     }
 
+    public function test_search_matches_method_label_and_code(): void
+    {
+        $outlet = $this->outlet('Payment Search');
+        $user = $this->userFor($outlet, ['read order-table/payment-methods']);
+        $method = $this->paymentMethod($outlet, ['code' => 'qris', 'label' => 'Scan Barcode']);
+
+        foreach (['Scan Barcode', 'qris'] as $keyword) {
+            // Yajra menyimpan request pertama; tanpa ini kata kunci kedua tidak terpakai
+            $this->app->forgetInstance('datatables.request');
+
+            $row = $this->actingAs($user)
+                ->withHeaders(['Accept' => 'application/json', 'X-Requested-With' => 'XMLHttpRequest'])
+                ->get(route('order-table/payment-methods', [
+                    'draw' => 1,
+                    'start' => 0,
+                    'length' => 10,
+                    'outlet_id' => $outlet->id,
+                    'columns' => [
+                        ['data' => 'label', 'name' => 'label', 'searchable' => 'true', 'orderable' => 'true'],
+                    ],
+                    'search' => ['value' => $keyword, 'regex' => 'false'],
+                ]))
+                ->assertOk()
+                ->json('data.0');
+
+            $this->assertSame($method->id, (int) $row['DT_RowId'], "Kata kunci: {$keyword}");
+        }
+    }
+
+    public function test_default_order_groups_by_outlet_then_sort_order(): void
+    {
+        $outlet = $this->outlet('Payment Order');
+        $user = $this->userFor($outlet, ['read order-table/payment-methods']);
+        $second = $this->paymentMethod($outlet, ['code' => 'pay_at_cashier', 'sort_order' => 2]);
+        $first = $this->paymentMethod($outlet, ['code' => 'qris', 'label' => 'QRIS', 'sort_order' => 1]);
+
+        // Indeks kolom di bawah harus sama dengan orders() pada PaymentMethodDataTable::html()
+        $columns = (new \App\DataTables\OrderTable\PaymentMethodDataTable)->getColumns();
+        $this->assertSame('outlet_name', $columns[0]->data);
+        $this->assertSame('sort_order', $columns[5]->data);
+
+        // Membuat DataTable di atas ikut menyimpan request Yajra; tanpa ini respons berikutnya HTML, bukan JSON
+        $this->app->forgetInstance('datatables.request');
+
+        $rows = $this->actingAs($user)
+            ->withHeaders(['Accept' => 'application/json', 'X-Requested-With' => 'XMLHttpRequest'])
+            ->get(route('order-table/payment-methods', [
+                'draw' => 1,
+                'start' => 0,
+                'length' => 10,
+                'outlet_id' => $outlet->id,
+                'order' => [['column' => 0, 'dir' => 'asc'], ['column' => 1, 'dir' => 'asc']],
+                'columns' => [
+                    ['data' => 'outlet_name', 'name' => 'outlet.name', 'searchable' => 'true', 'orderable' => 'true'],
+                    ['data' => 'sort_order', 'name' => 'sort_order', 'searchable' => 'false', 'orderable' => 'true'],
+                ],
+                'search' => ['value' => '', 'regex' => 'false'],
+            ]))
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame([$first->id, $second->id], array_map(fn ($row) => (int) $row['DT_RowId'], $rows));
+    }
+
+    public function test_form_modal_renders_for_create_and_edit(): void
+    {
+        $outlet = $this->outlet('Payment Form');
+        $user = $this->userFor($outlet, ['create order-table/payment-methods', 'update order-table/payment-methods']);
+        $method = $this->paymentMethod($outlet);
+
+        $this->actingAs($user)->get(route('order-table/payment-methods/create'))
+            ->assertOk()->assertSee('Tambah Metode Pembayaran')->assertSee('ob-modal');
+
+        $this->actingAs($user)->get(route('order-table/payment-methods/edit', $method->id))
+            ->assertOk()->assertSee('Edit Metode Pembayaran')->assertSee('ob-modal');
+    }
+
+    public function test_cashier_warning_only_shows_when_environment_disallows_it(): void
+    {
+        $outlet = $this->outlet('Payment Cashier Warning');
+        $user = $this->userFor($outlet, ['create order-table/payment-methods']);
+
+        config(['order-table.pay_at_cashier_enabled' => false]);
+        $this->actingAs($user)->get(route('order-table/payment-methods/create'))
+            ->assertOk()->assertSee('cashier-mapping-warning')->assertSee('belum diizinkan di environment ini');
+
+        config(['order-table.pay_at_cashier_enabled' => true]);
+        $this->actingAs($user)->get(route('order-table/payment-methods/create'))
+            ->assertOk()->assertDontSee('cashier-mapping-warning')->assertDontSee('belum diizinkan di environment ini');
+    }
+
     public function test_client_cannot_supply_server_mapping_fields(): void
     {
         $outlet = $this->outlet('Payment Mapping');

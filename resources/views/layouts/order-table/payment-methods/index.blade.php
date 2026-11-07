@@ -1,39 +1,52 @@
 @extends('layouts.app')
 
 @section('content')
+    @include('layouts.reports.partials.ui-styles')
+
     @php
         $outlets = App\Models\Outlets::query()
             ->whereIn('id', auth()->user()->outletIds())
             ->orderBy('name')
             ->get();
     @endphp
-    <div class="main-content order-table-page">
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
             <div>
-                <h2 class="h4 mb-1 font-weight-bold"><i class="fa fa-credit-card me-2"></i>Metode Pembayaran Order Table</h2>
-                <p class="text-muted mb-0">Kelola metode pembayaran dan mapping master POS untuk setiap outlet.</p>
+                <div class="ob-header__eyebrow">Order Table</div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-credit-card"></i></span>
+                    Metode Pembayaran
+                </h1>
+                <p class="ob-header__desc">Kelola metode pembayaran dan mapping master POS untuk setiap outlet.</p>
             </div>
             @can('create order-table/payment-methods')
-                <a href="{{ route('order-table/payment-methods/create') }}" class="btn btn-primary btn-round action">
-                    <i class="fa fa-plus me-2"></i>Tambah Metode
+                <a href="{{ route('order-table/payment-methods/create') }}" class="btn ob-btn ob-btn-primary action">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Tambah Metode
                 </a>
             @endcan
         </div>
 
-        <div class="alert alert-warning border-0 shadow-sm">
-            <i class="fa fa-flask me-2"></i>
-            Mapping <strong>Bayar di Kasir</strong> masih khusus development. Konfirmasi mapping kategori dan POS sebelum production.
+        <div class="ob-notice" role="note">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            <span>
+                Perubahan status langsung menentukan metode yang dapat dipilih pelanggan Order Table.
+                @unless (config('order-table.pay_at_cashier_enabled'))
+                    <strong>Bayar di Kasir</strong> belum diizinkan di environment ini, jadi metode tersebut tidak dapat diaktifkan.
+                @endunless
+            </span>
         </div>
 
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-3">
+        {{-- Tabel --}}
+        <div class="ob-card">
+            <div class="ob-tabs-bar">
                 <div>
-                    <h5 class="mb-1">Konfigurasi Pembayaran</h5>
-                    <small class="text-muted">Metode pembayaran wajib dikonfigurasi per outlet.</small>
+                    <h2 class="ob-section-title mb-1"><i class="fas fa-list" aria-hidden="true"></i> Konfigurasi Pembayaran</h2>
+                    <span class="ob-hint"><i class="fas fa-info-circle" aria-hidden="true"></i> Metode pembayaran wajib dikonfigurasi per outlet.</span>
                 </div>
-                <div class="order-table-filter">
-                    <label for="outlet-filter" class="form-label small mb-1">Filter outlet</label>
-                    <select id="outlet-filter" class="form-select form-select-sm">
+                <div class="ob-field ob-list-filter">
+                    <label for="outlet-filter"><i class="fas fa-store" aria-hidden="true"></i> Outlet</label>
+                    <select id="outlet-filter" class="form-control">
                         <option value="">Semua outlet</option>
                         @foreach ($outlets as $outlet)
                             <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
@@ -41,10 +54,8 @@
                     </select>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    {!! $dataTable->table(['class' => 'table table-hover align-middle mb-0']) !!}
-                </div>
+            <div class="ob-table-wrap">
+                {!! $dataTable->table(['class' => 'table w-100']) !!}
             </div>
         </div>
     </div>
@@ -55,9 +66,8 @@
             $(function () {
                 const tableId = 'payment-method-table';
 
-                $('#outlet-filter').on('change', function () {
-                    window.LaravelDataTables[tableId].ajax.reload();
-                });
+                $('#outlet-filter').select2({ width: '100%', minimumResultsForSearch: 8 })
+                    .on('change', () => window.LaravelDataTables[tableId].ajax.reload());
 
                 handleAction(tableId, function () {
                     const form = $('#form_action');
@@ -113,10 +123,24 @@
 
     @push('css')
         <style>
-            .order-table-page .card { border-radius: 10px; }
-            .order-table-filter { min-width: 240px; }
-            .order-table-actions { display: inline-flex; justify-content: center; gap: 5px; }
-            .order-table-actions .btn { width: 34px; height: 34px; padding: 7px; }
+            /* Sel dua baris: nilai utama + keterangan */
+            .ob-cell-stack {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: .2rem;
+                white-space: nowrap;
+            }
+
+            .ob-method-code {
+                padding: .1rem .45rem;
+                border: 1px solid var(--ob-border-strong);
+                border-radius: 6px;
+                background: var(--ob-surface-2);
+                color: var(--ob-text-2);
+                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                font-size: .72rem;
+            }
         </style>
     @endpush
 @endsection

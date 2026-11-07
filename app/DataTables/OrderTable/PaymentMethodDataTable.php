@@ -15,28 +15,37 @@ class PaymentMethodDataTable extends DataTable
     {
         return (new EloquentDataTable($query))
             ->addColumn('outlet_name', fn (PaymentMethod $method) => e($method->outlet?->name ?? '-'))
-            ->editColumn('code', fn (PaymentMethod $method) => '<code>'.e($method->code).'</code>')
+            ->editColumn('label', fn (PaymentMethod $method) => '<div class="ob-cell-stack">'
+                .'<span>'.e($method->label).'</span>'
+                .'<span class="ob-method-code">'.e($method->code).'</span></div>')
+            // Kolom metode menampilkan label + kode, jadi pencarian mencakup keduanya
+            ->filterColumn('label', fn (QueryBuilder $query, string $keyword) => $query->where(
+                fn (QueryBuilder $query) => $query->where('ot_payment_methods.label', 'like', "%{$keyword}%")
+                    ->orWhere('ot_payment_methods.code', 'like', "%{$keyword}%")
+            ))
             ->addColumn('master_mapping', function (PaymentMethod $method) {
                 $payment = $method->payment?->name ?? 'Tanpa payment';
                 $category = $method->categoryPayment?->name ?? 'Tanpa kategori';
 
-                return '<div>'.e($payment).'</div><small class="text-muted">'.e($category).'</small>';
+                return '<div class="ob-cell-stack"><span>'.e($payment).'</span>'
+                    .'<span class="ob-cell-meta">'.e($category).'</span></div>';
             })
             ->addColumn('deadline', function (PaymentMethod $method) {
-                if ($method->code === 'qris') {
-                    return e(($method->qris_expiry_minutes ?? '-').' menit (QRIS)');
-                }
+                [$minutes, $description] = $method->code === 'qris'
+                    ? [$method->qris_expiry_minutes, 'Masa berlaku QRIS']
+                    : [$method->payment_due_minutes, 'Batas bayar di kasir'];
 
-                return e(($method->payment_due_minutes ?? '-').' menit');
+                return '<div class="ob-cell-stack"><span>'.e(($minutes ?? '-').' menit').'</span>'
+                    .'<span class="ob-cell-meta">'.e($description).'</span></div>';
             })
             ->editColumn('enabled', fn (PaymentMethod $method) => $method->enabled
                 ? '<span class="badge badge-success">Aktif</span>'
-                : '<span class="badge badge-secondary">Nonaktif</span>')
+                : '<span class="badge badge-muted">Nonaktif</span>')
             ->addColumn('action', fn (PaymentMethod $method) => view(
                 'layouts.order-table.payment-methods.action',
                 compact('method')
             )->render())
-            ->rawColumns(['code', 'master_mapping', 'enabled', 'action'])
+            ->rawColumns(['label', 'master_mapping', 'deadline', 'enabled', 'action'])
             ->setRowId('id');
     }
 
@@ -63,21 +72,22 @@ class PaymentMethodDataTable extends DataTable
             ->setTableId('payment-method-table')
             ->columns($this->getColumns())
             ->minifiedAjax('', null, ['outlet_id' => "$('#outlet-filter').val()"])
-            ->responsive(true)
-            ->orderBy(6);
+            // Default Bootstrap 4 dom, but only the table scrolls horizontally so length/search/paging stay put.
+            ->dom("<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>><'ob-table-scroll'tr><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>")
+            // Per outlet lalu Urutan, sama seperti urutan metode yang dilihat pelanggan
+            ->orders([[0, 'asc'], [5, 'asc']]);
     }
 
     public function getColumns(): array
     {
         return [
-            Column::make('outlet_name')->title('Outlet')->name('outlet.name'),
-            Column::make('code')->title('Kode'),
-            Column::make('label')->title('Label'),
+            Column::make('outlet_name')->title('Outlet')->name('outlet.name')->addClass('ob-col-name'),
+            Column::make('label')->title('Metode'),
             Column::computed('master_mapping')->title('Mapping Master'),
             Column::computed('deadline')->title('Batas Waktu'),
-            Column::make('enabled')->title('Status'),
-            Column::make('sort_order')->title('Urutan'),
-            Column::computed('action')->title('Aksi')->exportable(false)->printable(false)->orderable(false)->searchable(false)->width(120)->addClass('text-center'),
+            Column::make('enabled')->title('Status')->searchable(false),
+            Column::make('sort_order')->title('Urutan')->searchable(false),
+            Column::computed('action')->title('')->exportable(false)->printable(false)->orderable(false)->searchable(false)->width(90)->addClass('text-center'),
         ];
     }
 
