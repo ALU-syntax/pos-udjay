@@ -149,6 +149,19 @@ class OrderMonitorTest extends OrderTableTestCase
             ->assertDontSee('<script>alert(1)</script>', false);
     }
 
+    public function test_order_detail_labels_cashier_payment_method(): void
+    {
+        $outlet = $this->outlet('Order Detail Cashier');
+        $user = $this->userFor($outlet, ['read order-table/orders']);
+        $order = $this->order($outlet, ['payment_mode' => 'pay_at_cashier']);
+        $this->orderPayment($order, ['method' => 'cashier', 'gateway_ref' => null, 'status' => 'paid', 'paid_at' => now()]);
+
+        $this->actingAs($user)->get(route('order-table/orders/show', $order->id))
+            ->assertOk()
+            ->assertSee('<td>Bayar di Kasir</td>', false)
+            ->assertDontSee('<td>cashier</td>', false);
+    }
+
     public function test_serve_and_cancel_are_blocked_while_node_integration_is_disabled(): void
     {
         config(['order-table.node.enabled' => false]);

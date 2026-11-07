@@ -171,7 +171,7 @@
                             <tbody>
                                 @forelse ($order->payments as $payment)
                                     <tr>
-                                        <td>{{ $labels::label($labels::PAYMENT_MODE, $payment->method) }}</td>
+                                        <td>{{ $labels::label($labels::PAYMENT_METHOD, $payment->method) }}</td>
                                         <td class="ob-mono">{{ \App\Support\OrderTable\Mask::gatewayRef($payment->gateway_ref) }}</td>
                                         <td class="text-end ob-num fw-bold">{{ $rupiah($payment->amount) }}</td>
                                         <td>{!! $labels::badge($labels::PAYMENT, $payment->status) !!}</td>

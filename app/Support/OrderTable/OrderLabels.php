@@ -32,6 +32,12 @@ class OrderLabels
         'pay_at_cashier' => ['Bayar di Kasir', 'primary'],
     ];
 
+    /** Metode di ot_order_payments ("cashier"), berbeda dengan payment_mode order ("pay_at_cashier"). */
+    public const PAYMENT_METHOD = [
+        'qris' => ['QRIS', 'primary'],
+        'cashier' => ['Bayar di Kasir', 'primary'],
+    ];
+
     public const BRIDGE = [
         'pending' => ['Menunggu', 'warning'],
         'linked' => ['Tersambung', 'success'],
