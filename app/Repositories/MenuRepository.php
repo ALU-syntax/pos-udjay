@@ -7,7 +7,11 @@ use App\Models\Menu;
 class MenuRepository{
 
     public function getMainMenuWithPermissions(){
-        return Menu::with('permissions', 'subMenus.permissions')->whereNull('main_menu_id')->get();
+        // Urutan sama dengan sidebar agar mudah dicocokkan saat mengatur hak akses
+        return Menu::with(['permissions', 'subMenus' => fn ($query) => $query->orderBy('orders'), 'subMenus.permissions'])
+            ->whereNull('main_menu_id')
+            ->orderBy('orders')
+            ->get();
     }
 
     public function getMainMenus(){
