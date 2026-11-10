@@ -235,7 +235,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/{id}', [UserController::class, 'edit'])->name('user/edit');
             Route::post('/store', [UserController::class, 'store'])->name('user/store');
             Route::post('/update/{id}', [UserController::class, 'update'])->name('user/update');
-            Route::post('/destroy/{id}', [UserController::class, 'destroy'])->name('user/destroy');
+            Route::delete('/destroy/{id}', [UserController::class, 'destroy'])->name('user/destroy');
         });
 
         Route::prefix('roles')->group(function () {
