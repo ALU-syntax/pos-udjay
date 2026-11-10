@@ -91,6 +91,7 @@ class TransactionsPosFormatExport implements
                 't.rounding_amount',
                 't.catatan',
                 't.nominal_bayar',
+                't.atas_nama',
                 DB::raw("COALESCE(t.nama_tipe_pembayaran, cp.name) AS payment_method"),
                 DB::raw('COALESCE(si.items_total,0) AS items_total'),
                 DB::raw('COALESCE(ic.items_str, "") AS items_str'),
@@ -118,6 +119,8 @@ class TransactionsPosFormatExport implements
             'Customer Phone',
             'Items',
             'Payment Method',
+            // Di akhir agar urutan kolom format Moka di depannya tidak bergeser
+            'Atas Nama',
         ];
     }
 
@@ -183,6 +186,7 @@ class TransactionsPosFormatExport implements
             $r->customer_phone,
             $r->items_str,
             $r->payment_method,
+            $r->atas_nama,                  // Nama pemesan Order Table; kosong untuk transaksi kasir biasa
         ];
     }
 
