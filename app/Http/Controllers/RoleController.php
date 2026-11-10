@@ -4,86 +4,100 @@ namespace App\Http\Controllers;
 
 use App\DataTables\RoleDataTable;
 use App\Models\Role;
-use Illuminate\Validation\Rule;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(RoleDataTable $roleDataTable)
     {
         return $roleDataTable->render('layouts.role.index');
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        return view('layouts.role.create');
+        return view('layouts.role.create', ['role' => new Role]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        $requestValidate = $request->validate([
-            'name' => 'required|unique:roles,name',
-            'guard_name' => 'required'
+        $validated = $this->validateRole($request);
+
+        Role::create([
+            'name' => $validated['name'],
+            // Aplikasi hanya punya guard web; dulu diketik manual dan rawan salah isi
+            'guard_name' => config('auth.defaults.guard'),
         ]);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $requestValidate['guard_name'] = strtolower($request->guard_name);
-        $role = new Role($requestValidate);
-        $role->save();
-
-        return redirect()->route('employee/roles')->with('success','Role Berhasil dibuat!');
+        return redirect()->route('employee/roles')->with('success', 'Role berhasil ditambahkan.');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit($id)
     {
-        $role = Role::find($id);
-        return view('layouts.role.edit',[
-            'data'=> $role
-        ]);
+        $role = Role::findOrFail($id);
+
+        if ($role->isSystemRole()) {
+            return redirect()->route('employee/roles')->with('error', 'Role sistem tidak dapat diubah.');
+        }
+
+        return view('layouts.role.edit', ['role' => $role]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, $id)
     {
-        $requestValidate = $request->validate([
-            'name' => [
-                'required',
-                Rule::unique('roles')->ignore($id), // pengecualian untuk role yang sedang di-update
-            ],
-            'guard_name' => 'required'
-        ]);
+        $role = Role::findOrFail($id);
 
-        $role = Role::find($id);
-        $role->update([
-            'name' => $requestValidate['name'],
-            'guard_name' => strtolower($requestValidate['guard_name'])
-        ]);
+        if ($role->isSystemRole()) {
+            return redirect()->route('employee/roles')->with('error', 'Role sistem tidak dapat diubah.');
+        }
 
-        return redirect()->route('employee/roles')->with('success','Role Berhasil diupdate!');
-        
+        $role->update(['name' => $this->validateRole($request, $role)['name']]);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return redirect()->route('employee/roles')->with('success', 'Role berhasil diperbarui.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy($id)
     {
-        $role = Role::find($id);
+        $role = Role::findOrFail($id);
+
+        if ($role->isSystemRole()) {
+            return response()->json(['status' => 'error', 'message' => 'Role sistem tidak dapat dihapus.'], 422);
+        }
+
+        $usedBy = User::where('role', $role->id)->where('deleted', '!=', 1)->count();
+        if ($usedBy > 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Role masih dipakai {$usedBy} user. Pindahkan user ke role lain terlebih dahulu.",
+            ], 422);
+        }
+
         $role->delete();
-        return redirect()->back()->with('success','Role Berhasil dihapus!');
-        // return response()->json(['success' => true, 'message' => 'Item deleted successfully']);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return responseSuccess(false, 'Role berhasil dihapus.');
+    }
+
+    private function validateRole(Request $request, ?Role $role = null): array
+    {
+        return $request->validate([
+            'name' => [
+                'required', 'string', 'max:125',
+                // Role yang sudah dihapus tetap menempati nama, karena Spatie mencari role tanpa melihat soft delete
+                Rule::unique('roles', 'name')->ignore($role?->id),
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (in_array(strtolower(trim((string) $value)), Role::SYSTEM_ROLES, true)) {
+                        $fail('Nama ini dipakai role sistem.');
+                    }
+                },
+            ],
+        ], [
+            'name.required' => 'Nama role wajib diisi.',
+            'name.unique' => 'Nama role sudah dipakai (termasuk role yang pernah dihapus).',
+        ]);
     }
 }
