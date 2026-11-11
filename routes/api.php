@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BirthdayEmailLogController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\ConfigController;
@@ -45,6 +46,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/outlets', [AuthController::class, 'outlets'])->name('api.v1.outlets');
     Route::get('/outlets/{outletId}/users', [AuthController::class, 'usersByOutlet'])->name('api.v1.outlets.users');
     Route::post('/login', [AuthController::class, 'login'])->name('api.v1.login');
+
+    // Ringkasan log email ulang tahun (publik, rate limit ketat: lihat RouteServiceProvider)
+    Route::get('/birthday-email-log', [BirthdayEmailLogController::class, 'show'])
+        ->middleware('throttle:birthday-log')
+        ->name('api.v1.birthday-email-log');
 
     // Protected routes (Sanctum token required)
     Route::middleware(['auth:sanctum', 'token.expiry'])->group(function () {

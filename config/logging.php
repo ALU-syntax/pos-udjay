@@ -73,6 +73,15 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Log khusus pengiriman email ulang tahun member. Isi yang lebih tua dari
+        // 30 hari dibersihkan tiap 00:30 WIB oleh command email:birthday-log-prune.
+        'birthday' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/birthday-email.log'),
+            'level' => 'info',
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

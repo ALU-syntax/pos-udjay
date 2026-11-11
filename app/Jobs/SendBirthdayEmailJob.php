@@ -33,10 +33,18 @@ class SendBirthdayEmailJob implements ShouldQueue
     {
         Mail::to($this->user['email'])
             ->send(new BirthdayMail($this->user));
+
+        Log::channel('birthday')->info('Email ulang tahun terkirim', [
+            'customer_id' => $this->user['id'] ?? null,
+        ]);
     }
-     public function failed(?Throwable $exception): void
+
+    public function failed(?Throwable $exception): void
     {
-        Log::error("Email gagal ke {$this->user->email}: " . $exception->getMessage() );
+        Log::channel('birthday')->error('Email ulang tahun gagal', [
+            'customer_id' => $this->user['id'] ?? null,
+            'error' => $exception?->getMessage(),
+        ]);
     }
 
 }

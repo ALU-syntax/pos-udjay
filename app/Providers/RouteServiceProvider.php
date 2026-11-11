@@ -28,6 +28,15 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Endpoint publik log email ulang tahun: sengaja ketat karena hanya
+        // dipakai beberapa kali sehari. Per IP: 2 per menit dan 10 per hari.
+        RateLimiter::for('birthday-log', function (Request $request) {
+            return [
+                Limit::perMinute(2)->by('minute:' . $request->ip()),
+                Limit::perDay(10)->by('day:' . $request->ip()),
+            ];
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')

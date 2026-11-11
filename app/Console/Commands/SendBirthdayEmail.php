@@ -6,6 +6,7 @@ use App\Jobs\SendBirthdayEmailJob;
 use App\Models\Customer;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class SendBirthdayEmail extends Command
 {
@@ -32,6 +33,8 @@ class SendBirthdayEmail extends Command
 
         $users = Customer::whereMonth('tanggal_lahir', $today->month)
             ->whereDay('tanggal_lahir', $today->day)
+            // hanya member yang sudah terdaftar minimal 30 hari
+            ->whereDate('created_at', '<=', $today->copy()->subDays(30))
             ->where(function ($q) {
                 $q->whereNull('birthday_email_sent_at')
                 ->orWhereYear('birthday_email_sent_at', '!=', now()->year);
@@ -42,6 +45,7 @@ class SendBirthdayEmail extends Command
 
         foreach ($users as $user) {
             $data = [
+                'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email
             ];
@@ -51,6 +55,10 @@ class SendBirthdayEmail extends Command
                 'birthday_email_sent_at' => now()
             ]);
         }
+
+        Log::channel('birthday')->info('email:birthday dijalankan', [
+            'jumlah_member' => $users->count(),
+        ]);
 
         $this->info("Processed " . $users->count() . " users");
     }
