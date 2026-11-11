@@ -82,7 +82,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/getDataOutletCompare', [DashboardController::class, 'getDataOutletCompare'])->name('getDataOutletCompare');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::put('/profile/pin', [ProfileController::class, 'updatePin'])->name('profile.pin');
 
     Route::group(['prefix' => 'order-table', 'as' => 'order-table/'], function () {
         Route::put('/outlet-settings/public-url', [OrderTableOutletSettingController::class, 'updatePublicUrl'])->name('outlet-settings/public-url');

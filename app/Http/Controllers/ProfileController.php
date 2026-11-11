@@ -3,58 +3,61 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Outlets;
+use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Halaman profil milik user yang sedang login.
      */
     public function edit(Request $request): View
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
+        $user = $request->user();
+
+        return view('layouts.profile.index', [
+            'user' => $user,
+            'roleName' => Role::withTrashed()->find($user->role)?->name,
+            'outletNames' => Outlets::whereIn('id', $user->outletIds())->orderBy('name')->pluck('name'),
         ]);
     }
 
     /**
-     * Update the user's profile information.
+     * Perbarui nama, username, dan email milik sendiri.
+     * Role, outlet, dan status tetap dikelola admin lewat Employee > Users.
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $request->user()->update($request->validated());
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
-
-        $request->user()->save();
-
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return redirect()->route('profile.edit')->with('success', 'Profil berhasil diperbarui.');
     }
 
     /**
-     * Delete the user's account.
+     * Ganti PIN kasir milik sendiri. Dikonfirmasi dengan password, bukan PIN lama,
+     * supaya user yang belum punya PIN atau lupa PIN tetap bisa mengaturnya.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function updatePin(Request $request): RedirectResponse
     {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
+        $validated = $request->validateWithBag('updatePin', [
+            'current_password' => ['required', 'current_password'],
+            'pin' => ['required', 'digits:6', 'confirmed'],
+        ], [
+            'current_password.required' => 'Password wajib diisi.',
+            'current_password.current_password' => 'Password salah.',
+            'pin.required' => 'PIN baru wajib diisi.',
+            'pin.digits' => 'PIN harus 6 digit angka.',
+            'pin.confirmed' => 'Konfirmasi PIN tidak sama.',
         ]);
 
-        $user = $request->user();
+        $request->user()->update([
+            'pin' => Hash::make($validated['pin']),
+        ]);
 
-        Auth::logout();
-
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
+        return redirect()->route('profile.edit')->with('success', 'PIN berhasil diganti.');
     }
 }

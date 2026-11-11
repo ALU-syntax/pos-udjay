@@ -275,6 +275,10 @@
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="#">Account Setting</a> --}}
                                 <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                    <i class="fas fa-user-cog me-2" aria-hidden="true"></i> Profil Saya
+                                </a>
+                                <div class="dropdown-divider"></div>
                                 <form action="{{ route('logout') }}" method="post" class="dropdown-item">
                                     @csrf
                                     {{-- <i class="bx bx-power-off me-2"></i> --}}
