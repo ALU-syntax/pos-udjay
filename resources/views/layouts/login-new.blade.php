@@ -9,6 +9,61 @@
 
     <link rel="stylesheet" href="{{ asset('css/login.css') }}">
     <link rel="stylesheet" href="{{ asset('css/iziToast.min.css') }}">
+
+    {{-- Gaya tombol show/hide password ditaruh inline agar tidak tertahan cache login.css --}}
+    <style>
+        .password-field {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .password-field input {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .password-toggle {
+            flex: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            margin: -10px -6px -8px 0;
+            padding: 0;
+            border: 0;
+            border-radius: 4px;
+            background: transparent;
+            color: #8c7569;
+            cursor: pointer;
+            transition: 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .password-toggle:hover {
+            color: #55311c;
+        }
+
+        .password-toggle:focus-visible {
+            outline: 2px solid #8c7569;
+            outline-offset: -2px;
+        }
+
+        .password-toggle svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .password-toggle .icon-hide,
+        .password-toggle[aria-pressed="true"] .icon-show {
+            display: none;
+        }
+
+        .password-toggle[aria-pressed="true"] .icon-hide {
+            display: block;
+        }
+    </style>
 </head>
 
 <body>
@@ -55,7 +110,30 @@
 
                     <div class="input-block">
                         <label for="password" class="form-label">Password</label>
-                        <input id="password" name="password" type="password" class="form-control" required>
+                        <div class="password-field">
+                            <input id="password" name="password" type="password" class="form-control"
+                                autocomplete="current-password" required>
+                            <button type="button" class="password-toggle" id="toggle-password"
+                                aria-label="Tampilkan password" aria-pressed="false" title="Tampilkan password">
+                                {{-- mata terbuka: tampil saat password disembunyikan --}}
+                                <svg class="icon-show" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                {{-- mata dicoret: tampil saat password terlihat --}}
+                                <svg class="icon-hide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" aria-hidden="true">
+                                    <path
+                                        d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                                    <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                                    <line x1="1" y1="1" x2="23" y2="23" />
+                                </svg>
+                            </button>
+                        </div>
                         <div class="invalid-feedback" id="password-error"></div>
                     </div>
 
@@ -119,6 +197,25 @@
 
         modalButton.addEventListener("click", openModal);
         closeButton.addEventListener("click", closeModal);
+
+        // Tombol show/hide password
+        const passwordInput = document.getElementById("password");
+        const togglePassword = document.getElementById("toggle-password");
+
+        togglePassword.addEventListener("click", () => {
+            const show = passwordInput.type === "password";
+            const label = show ? "Sembunyikan password" : "Tampilkan password";
+
+            passwordInput.type = show ? "text" : "password";
+            togglePassword.setAttribute("aria-pressed", show ? "true" : "false");
+            togglePassword.setAttribute("aria-label", label);
+            togglePassword.title = label;
+
+            // kembalikan fokus ke input, kursor di akhir teks
+            passwordInput.focus();
+            const end = passwordInput.value.length;
+            passwordInput.setSelectionRange(end, end);
+        });
 
         document.onkeydown = evt => {
             evt = evt || window.event;
