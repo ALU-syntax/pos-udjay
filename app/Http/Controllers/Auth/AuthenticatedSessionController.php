@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Http\Requests\LoginKasirRequest;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -80,29 +79,6 @@ class AuthenticatedSessionController extends Controller
         throw ValidationException::withMessages([
             'email' => 'Email atau password salah',
         ]);
-    }
-
-    public function storeKasir(LoginKasirRequest $request)
-    {
-        // dd($request);
-        $request->authenticate();
-
-        $request->session()->regenerate();
-
-        // Mendapatkan pengguna yang sedang login
-        // $user = $request->user();
-
-        // // Memeriksa role ID
-        // if ($user->role == 3) {
-        //     // dd($user);
-        //     // Jika role ID adalah 3, arahkan ke '/kasir'
-        //     return redirect()->intended('/kasir');
-        // }
-
-        return redirect()->intended('/kasir');
-
-        // Jika bukan, arahkan ke '/'
-        // return redirect()->intended(RouteServiceProvider::HOME);
     }
 
     /**
