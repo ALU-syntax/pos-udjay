@@ -1,25 +1,31 @@
-<x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
-    </div>
+@extends('layouts.auth-page')
 
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+@section('title', 'Lupa Password')
 
-    <form method="POST" action="{{ route('password.email') }}">
+@section('content')
+    <h1 class="modal-title">Lupa password?</h1>
+    <p class="modal-desc">
+        Masukkan email akun Anda. Kami akan mengirim link untuk mengatur ulang password.
+    </p>
+
+    @if (session('status'))
+        <div class="auth-alert auth-alert--success" role="status">{{ session('status') }}</div>
+    @endif
+
+    <form method="POST" action="{{ route('password.email') }}" data-auth-form novalidate>
         @csrf
 
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        <div class="input-block @error('email') is-invalid @enderror">
+            <label for="email" class="form-label">Email</label>
+            <input id="email" name="email" type="email" value="{{ old('email') }}" autocomplete="email"
+                @error('email') aria-invalid="true" aria-describedby="email-error" @enderror required autofocus>
         </div>
+        @error('email')
+            <p class="auth-error" id="email-error">{{ $message }}</p>
+        @enderror
 
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Email Password Reset Link') }}
-            </x-primary-button>
-        </div>
+        <button type="submit" class="input-button auth-submit" data-loading-text="Mengirim...">Kirim Link Reset</button>
     </form>
-</x-guest-layout>
+
+    <p class="auth-links"><a href="{{ route('login') }}">Kembali ke halaman login</a></p>
+@endsection

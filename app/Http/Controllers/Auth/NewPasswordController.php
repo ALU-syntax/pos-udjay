@@ -9,13 +9,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
 class NewPasswordController extends Controller
 {
     /**
-     * Display the password reset view.
+     * Halaman atur ulang password (dibuka dari link di email).
      */
     public function create(Request $request): View
     {
@@ -23,7 +22,7 @@ class NewPasswordController extends Controller
     }
 
     /**
-     * Handle an incoming new password request.
+     * Simpan password baru.
      *
      * @throws \Illuminate\Validation\ValidationException
      */
@@ -32,14 +31,19 @@ class NewPasswordController extends Controller
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'token.required' => 'Link atur ulang password tidak valid.',
+            'email.required' => 'Link atur ulang password tidak valid.',
+            'email.email' => 'Link atur ulang password tidak valid.',
+            'password.required' => 'Password baru wajib diisi.',
+            'password.min' => 'Password baru minimal :min karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak sama.',
         ]);
 
-        // Here we will attempt to reset the user's password. If it is successful we
-        // will update the password on an actual user model and persist it to the
-        // database. Otherwise we will parse the error and return the response.
+        // Sama seperti login: user yang sudah dihapus (deleted = 1) tidak dilayani
         $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
+            $request->only('email', 'password', 'password_confirmation', 'token') + ['deleted' => 0],
             function ($user) use ($request) {
                 $user->forceFill([
                     'password' => Hash::make($request->password),
@@ -50,12 +54,14 @@ class NewPasswordController extends Controller
             }
         );
 
-        // If the password was successfully reset, we will redirect the user back to
-        // the application's home authenticated view. If there is an error we can
-        // redirect them back to where they came from with their error message.
-        return $status == Password::PASSWORD_RESET
-                    ? redirect()->route('login')->with('status', __($status))
-                    : back()->withInput($request->only('email'))
-                            ->withErrors(['email' => __($status)]);
+        if ($status === Password::PASSWORD_RESET) {
+            return redirect()->route('login')
+                ->with('status', 'Password berhasil diatur ulang. Silakan login dengan password baru.');
+        }
+
+        // Token salah, sudah dipakai, kedaluwarsa, atau email tidak cocok: pesannya disamakan
+        return back()->withInput($request->only('email'))->withErrors([
+            'email' => 'Link atur ulang password tidak valid atau sudah kedaluwarsa.',
+        ]);
     }
 }
