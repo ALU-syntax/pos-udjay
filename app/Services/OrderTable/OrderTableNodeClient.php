@@ -50,11 +50,10 @@ class OrderTableNodeClient
      *
      * @param  array<int, array<string, mixed>>  $items  daftar item AKHIR
      */
-    public function quoteEdit(int $orderId, array $items, bool $dropVoucher): array
+    public function quoteEdit(int $orderId, array $items, bool $dropVoucher, ?string $voucherCode = null): array
     {
-        $body = $this->send('post', "/api/v1/internal/orders/{$orderId}/quote", [
-            'items' => $items, 'dropVoucher' => $dropVoucher,
-        ]);
+        $body = $this->send('post', "/api/v1/internal/orders/{$orderId}/quote",
+            $this->editPayload($items, $dropVoucher, $voucherCode));
 
         // Hanya angka & nama item yang diteruskan ke kasir, bukan body Node apa adanya.
         return [
@@ -87,13 +86,19 @@ class OrderTableNodeClient
     }
 
     /** Simpan edit kasir secara atomik di Node; idempoten per $idempotencyKey. */
-    public function updateItems(int $orderId, array $items, bool $dropVoucher, string $idempotencyKey): array
+    public function updateItems(int $orderId, array $items, bool $dropVoucher, string $idempotencyKey, ?string $voucherCode = null): array
     {
-        $body = $this->send('put', "/api/v1/internal/orders/{$orderId}/items", [
-            'items' => $items, 'dropVoucher' => $dropVoucher,
-        ], $idempotencyKey);
+        $body = $this->send('put', "/api/v1/internal/orders/{$orderId}/items",
+            $this->editPayload($items, $dropVoucher, $voucherCode), $idempotencyKey);
 
         return ['changed' => (bool) ($body['changed'] ?? false), 'grandTotal' => (int) ($body['grandTotal'] ?? 0)];
+    }
+
+    /** `voucherCode` hanya dikirim bila kasir memasukkan kode; tanpa itu Node memakai voucher order apa adanya. */
+    private function editPayload(array $items, bool $dropVoucher, ?string $voucherCode): array
+    {
+        return ['items' => $items, 'dropVoucher' => $dropVoucher]
+            + (filled($voucherCode) ? ['voucherCode' => $voucherCode] : []);
     }
 
     private function post(string $path, array $payload = [], ?string $idempotencyKey = null): array
@@ -107,12 +112,12 @@ class OrderTableNodeClient
     /** Kode bisnis Node yang aman diteruskan ke kasir. */
     private const RELAYED_CODES = ['ORDER_NOT_FOUND', 'NOT_FOUND', 'ORDER_NOT_SETTLEABLE', 'PAYMENT_NOT_PENDING',
         'POS_TRANSACTION_NOT_FOUND', 'POS_TRANSACTION_AMOUNT_MISMATCH', 'ORDER_NOT_SERVEABLE',
-        'ORDER_NOT_EDITABLE', 'ORDER_ITEMS_CHANGED', 'VOUCHER_NO_LONGER_ELIGIBLE', 'OUT_OF_STOCK',
+        'ORDER_NOT_EDITABLE', 'ORDER_ITEMS_CHANGED', 'VOUCHER_NO_LONGER_ELIGIBLE', 'VOUCHER_NOT_APPLICABLE', 'OUT_OF_STOCK',
         'MODIFIER_OUT_OF_STOCK', 'INVALID_VARIANT', 'INVALID_MODIFIER', 'REQUIRED_MODIFIER_MISSING',
         'DUPLICATE_MODIFIER', 'ORDER_NOT_CANCELLABLE'];
 
     /** Kode yang pesannya (nama produk / alasan voucher) boleh ditampilkan ke kasir. */
-    private const MESSAGE_CODES = ['VOUCHER_NO_LONGER_ELIGIBLE', 'OUT_OF_STOCK', 'MODIFIER_OUT_OF_STOCK',
+    private const MESSAGE_CODES = ['VOUCHER_NO_LONGER_ELIGIBLE', 'VOUCHER_NOT_APPLICABLE', 'OUT_OF_STOCK', 'MODIFIER_OUT_OF_STOCK',
         'REQUIRED_MODIFIER_MISSING', 'INVALID_VARIANT', 'INVALID_MODIFIER', 'DUPLICATE_MODIFIER'];
 
     private function send(string $method, string $path, array $payload = [], ?string $idempotencyKey = null): array
@@ -145,7 +150,7 @@ class OrderTableNodeClient
         }
         $message = mb_substr(preg_replace('/[^\P{C}]/u', '', (string) $response->json('message')), 0, 160);
         $details = array_filter(['message' => $message ?: null]);
-        if ($code === 'VOUCHER_NO_LONGER_ELIGIBLE') {
+        if (in_array($code, ['VOUCHER_NO_LONGER_ELIGIBLE', 'VOUCHER_NOT_APPLICABLE'], true)) {
             $details += array_filter([
                 'reason' => is_string($response->json('details.reason')) ? mb_substr($response->json('details.reason'), 0, 40) : null,
                 'reasonMessage' => is_string($response->json('details.message')) ? mb_substr($response->json('details.message'), 0, 160) : null,

@@ -304,7 +304,9 @@ class CashierPaymentService
         $this->payable($order);
         $this->assertOwnedClaim($id, $context, $data['claimToken']);
 
-        return app(OrderTableNodeClient::class)->quoteEdit($id, $data['items'], (bool) ($data['dropVoucher'] ?? false));
+        return app(OrderTableNodeClient::class)->quoteEdit(
+            $id, $data['items'], (bool) ($data['dropVoucher'] ?? false), $data['voucherCode'] ?? null
+        );
     }
 
     /**
@@ -321,12 +323,15 @@ class CashierPaymentService
         $this->payable($order);
         $this->assertOwnedClaim($id, $context, $data['claimToken']);
         $dropVoucher = (bool) ($data['dropVoucher'] ?? false);
+        $voucherCode = $data['voucherCode'] ?? null;
         $before = $this->itemSummary($order);
         // Payload sama → key sama (retry aman); edit berbeda dengan claim yang sama → key baru.
-        $key = 'cashier-edit-'.$id.'-'.substr(hash('sha256', $data['claimToken'].json_encode([$data['items'], $dropVoucher])), 0, 40);
-        $result = app(OrderTableNodeClient::class)->updateItems($id, $data['items'], $dropVoucher, $key);
+        $key = 'cashier-edit-'.$id.'-'.substr(hash('sha256', $data['claimToken'].json_encode(
+            $voucherCode === null ? [$data['items'], $dropVoucher] : [$data['items'], $dropVoucher, $voucherCode]
+        )), 0, 40);
+        $result = app(OrderTableNodeClient::class)->updateItems($id, $data['items'], $dropVoucher, $key, $voucherCode);
 
-        DB::transaction(function () use ($id, $context, $data, $before, $result, $dropVoucher) {
+        DB::transaction(function () use ($id, $context, $data, $before, $result, $dropVoucher, $voucherCode) {
             $order = $this->order($id, $context->outlet_id, true);
             $this->assertOwnedClaim($id, $context, $data['claimToken']);
             DB::table('order_table_payment_claims')->where('order_id', $id)->update([
@@ -335,6 +340,7 @@ class CashierPaymentService
             if ($result['changed']) {
                 app(AuditLogger::class)->log('order.items-edited-by-cashier', $order, $before, $this->itemSummary($order), [
                     'shift_session_id' => $context->id, 'device_id' => $context->android_id, 'drop_voucher' => $dropVoucher,
+                    'voucher_code' => $voucherCode,
                 ]);
             }
         }, 3);

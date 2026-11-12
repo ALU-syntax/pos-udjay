@@ -45,7 +45,7 @@ class OrderTableCashierController extends Controller
         $until = \Carbon\Carbon::parse($validated['sync_until'] ?? now()->subSeconds(2))
             ->setTimezone(date_default_timezone_get())->startOfSecond();
         $query = Order::query()
-            ->with(['table:id,code,name', 'items.modifiers', 'payments'])
+            ->with(['table:id,code,name', 'items.modifiers', 'payments', 'voucher:id,code'])
             ->where('outlet_id', $outletId)
             ->where('updated_at', '<=', $until)
             ->when($validated['payment_mode'] ?? null, fn ($q, $mode) => $q->where('payment_mode', $mode))
@@ -95,6 +95,7 @@ class OrderTableCashierController extends Controller
             ...$this->editRules(required: false),
         ]);
         $data['items'] = empty($data['items']) ? null : $this->normalizeEditItems($data['items']);
+        $data['voucherCode'] = $this->normalizeVoucherCode($data['voucherCode'] ?? null);
 
         return response()->json(['status' => 'success', 'data' => $this->payments->pay(
             $id, $request->attributes->get('order_table_shift'), $data
@@ -110,6 +111,7 @@ class OrderTableCashierController extends Controller
     {
         $data = $request->validate(['claimToken' => ['required', 'uuid'], ...$this->editRules(required: true)]);
         $data['items'] = $this->normalizeEditItems($data['items']);
+        $data['voucherCode'] = $this->normalizeVoucherCode($data['voucherCode'] ?? null);
 
         return response()->json(['status' => 'success', 'data' => $this->payments->quoteEdit(
             $id, $request->attributes->get('order_table_shift'), $data
@@ -121,7 +123,8 @@ class OrderTableCashierController extends Controller
     {
         return [
             // Di pay(): kosong/tidak dikirim = bayar tanpa edit. Di quote(): wajib minimal 1 item.
-            'items' => $required ? ['required', 'array', 'min:1', 'max:100'] : ['nullable', 'array', 'max:100'],
+            // Voucher dari kasir ikut alur edit, jadi daftar item wajib dikirim bersamanya.
+            'items' => $required ? ['required', 'array', 'min:1', 'max:100'] : ['nullable', 'required_with:voucherCode', 'array', 'max:100'],
             'items.*.orderItemId' => ['nullable', 'integer', 'min:1'],
             'items.*.productId' => ['required', 'integer', 'min:1'],
             'items.*.variantId' => ['required', 'integer', 'min:1'],
@@ -131,7 +134,16 @@ class OrderTableCashierController extends Controller
             'items.*.modifiers.*.modifierId' => ['required', 'integer', 'min:1'],
             'items.*.modifiers.*.qty' => ['required', 'integer', 'min:1', 'max:20'],
             'dropVoucher' => ['sometimes', 'boolean'],
+            // Kode voucher yang dimasukkan kasir (pasang baru / ganti); tidak bisa bersamaan dengan lepas voucher.
+            'voucherCode' => ['sometimes', 'nullable', 'string', 'max:50', 'prohibited_if:dropVoucher,true,1'],
         ];
+    }
+
+    private function normalizeVoucherCode(mixed $code): ?string
+    {
+        $code = strtoupper(trim((string) $code));
+
+        return $code === '' ? null : $code;
     }
 
     /** Format kasir (qty/notes) → format Node (quantity/note). */
@@ -285,7 +297,7 @@ class OrderTableCashierController extends Controller
     private function order(Request $request, int $id): Order
     {
         return Order::query()
-            ->with(['table:id,code,name', 'items.modifiers', 'payments'])
+            ->with(['table:id,code,name', 'items.modifiers', 'payments', 'voucher:id,code'])
             ->whereKey($id)
             ->where('outlet_id', $this->outletId($request))
             ->firstOrFail();
@@ -318,6 +330,8 @@ class OrderTableCashierController extends Controller
             'subtotal' => $order->subtotal,
             'discountItemTotal' => $order->discount_item_total,
             'voucherDiscount' => $order->voucher_discount,
+            // Kode voucher yang sedang terpasang (dari pelanggan atau kasir); null bila tanpa voucher.
+            'voucherCode' => $order->voucher_id ? $order->voucher?->code : null,
             'modifierTotal' => $order->modifier_total,
             'taxTotal' => $order->tax_total,
             'taxBreakdown' => $order->tax_breakdown,
