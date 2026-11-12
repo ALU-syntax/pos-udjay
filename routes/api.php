@@ -115,6 +115,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/transactions/refund', [TransactionController::class, 'refund'])->name('api.v1.transactions.refund');
         Route::post('/transactions/{id}/resend-receipt', [TransactionController::class, 'resendReceipt'])->name('api.v1.transactions.resend-receipt');
 
+        // Voucher Order Table untuk transaksi POS reguler: hanya menghitung potongan.
+        // Pemakaiannya dicatat saat transaksi masuk lewat /transactions/pay.
+        Route::post('/vouchers/quote', [\App\Http\Controllers\Api\PosVoucherController::class, 'quote'])->name('api.v1.vouchers.quote');
+
         // Order Table pay-at-cashier queue. Transaction creation stays in POS;
         // settle only forwards the existing transaction ID to Order Table.
         Route::middleware(\App\Http\Middleware\OrderTableDevice::class)->prefix('order-table/orders')->group(function () {

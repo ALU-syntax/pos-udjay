@@ -135,6 +135,40 @@ class VoucherRedemptionTest extends OrderTableTestCase
         }
     }
 
+    public function test_cashier_redemptions_are_listed_for_their_own_outlet_without_order_or_device(): void
+    {
+        $own = $this->outlet('Redemption Kasir Own');
+        $other = $this->outlet('Redemption Kasir Other');
+        $user = $this->userFor($own, ['read order-table/voucher-redemptions']);
+        $pos = fn ($outlet, string $reference) => VoucherRedemption::forceCreate([
+            'voucher_id' => Voucher::create(['outlet_id' => $outlet->id, 'code' => 'KASIR-'.$reference, 'type' => 'fixed',
+                'value' => 1000, 'min_spend' => 0, 'scope' => 'all', 'status' => true])->id,
+            'source' => 'pos', 'outlet_id' => $outlet->id, 'pos_reference' => $reference,
+            'discount_amount' => 1000, 'user_agent' => 'kasir:Budi',
+        ]);
+        $ownRow = $pos($own, 'REF-OWN-0001');
+        $otherRow = $pos($other, 'REF-OTHER-0001');
+        $fetch = fn (array $filter = []) => collect($this->actingAs($user)->getJson(route('order-table/voucher-redemptions', [
+            'draw' => 1, 'start' => 0, 'length' => 25,
+        ] + $filter), ['X-Requested-With' => 'XMLHttpRequest'])->assertOk()->json('data'));
+
+        $rows = $fetch();
+        $ids = $rows->map(fn ($row) => (int) $row['DT_RowId'])->all();
+        $this->assertContains($ownRow->id, $ids);
+        $this->assertNotContains($otherRow->id, $ids);
+        $row = $rows->first(fn ($row) => (int) $row['DT_RowId'] === $ownRow->id);
+        $this->assertStringContainsString('Transaksi kasir', $row['order_table']);
+        $this->assertStringContainsString('REF-OWN-0001', $row['order_table']);
+        $this->assertStringContainsString('Kasir', $row['device_id']);
+        $this->assertStringContainsString('Redemption Kasir Own', $row['outlet_name']);
+        $this->assertStringContainsString('kasir:Budi', $row['ip_address']);
+
+        // Filter nomor order ikut mencari referensi transaksi kasir; filter outlet tetap berlaku.
+        $this->assertSame([$ownRow->id], $fetch(['order_no' => 'REF-OWN'])->map(fn ($row) => (int) $row['DT_RowId'])->all());
+        $this->assertContains($ownRow->id, $fetch(['outlet_id' => $own->id])->map(fn ($row) => (int) $row['DT_RowId'])->all());
+        $this->assertSame([], $fetch(['order_no' => 'REF-OTHER'])->all());
+    }
+
     private function redemption($outlet, string $orderNo, string $deviceId, string $ip): VoucherRedemption
     {
         $table = $this->diningTable($outlet, ['code' => substr($orderNo, 0, 10), 'name' => $orderNo.' Table']);

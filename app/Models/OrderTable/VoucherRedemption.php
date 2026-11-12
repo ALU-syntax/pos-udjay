@@ -2,6 +2,7 @@
 
 namespace App\Models\OrderTable;
 
+use App\Models\Outlets;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -17,6 +18,7 @@ class VoucherRedemption extends Model
         'voucher_id' => 'integer',
         'order_id' => 'integer',
         'session_id' => 'integer',
+        'outlet_id' => 'integer',
         'discount_amount' => 'integer',
         'created_at' => 'datetime',
     ];
@@ -34,5 +36,16 @@ class VoucherRedemption extends Model
     public function session(): BelongsTo
     {
         return $this->belongsTo(TableSession::class, 'session_id');
+    }
+
+    /** Outlet pemakaian di kasir (`source = pos`); pemakaian Order Table memakai outlet order-nya. */
+    public function outlet(): BelongsTo
+    {
+        return $this->belongsTo(Outlets::class, 'outlet_id');
+    }
+
+    public function isPos(): bool
+    {
+        return $this->source === 'pos';
     }
 }

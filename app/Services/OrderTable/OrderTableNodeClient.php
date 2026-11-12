@@ -94,6 +94,28 @@ class OrderTableNodeClient
         return ['changed' => (bool) ($body['changed'] ?? false), 'grandTotal' => (int) ($body['grandTotal'] ?? 0)];
     }
 
+    /**
+     * Hitung voucher untuk keranjang POS reguler (Node tidak menulis apa pun).
+     *
+     * @param  array<int, array{productId: ?int, amount: int}>  $lines
+     */
+    public function quotePosVoucher(int $outletId, string $code, array $lines): array
+    {
+        $body = $this->send('post', '/api/v1/internal/vouchers/quote', [
+            'outletId' => $outletId, 'voucherCode' => $code, 'lines' => $lines,
+        ]);
+
+        return [
+            'voucher' => [
+                'id' => (int) ($body['voucher']['id'] ?? 0), 'code' => (string) ($body['voucher']['code'] ?? ''),
+                'type' => (string) ($body['voucher']['type'] ?? ''), 'value' => (int) ($body['voucher']['value'] ?? 0),
+            ],
+            'subtotal' => (int) ($body['subtotal'] ?? 0),
+            'eligibleSubtotal' => (int) ($body['eligibleSubtotal'] ?? 0),
+            'discount' => (int) ($body['discount'] ?? 0),
+        ];
+    }
+
     /** `voucherCode` hanya dikirim bila kasir memasukkan kode; tanpa itu Node memakai voucher order apa adanya. */
     private function editPayload(array $items, bool $dropVoucher, ?string $voucherCode): array
     {
@@ -114,11 +136,14 @@ class OrderTableNodeClient
         'POS_TRANSACTION_NOT_FOUND', 'POS_TRANSACTION_AMOUNT_MISMATCH', 'ORDER_NOT_SERVEABLE',
         'ORDER_NOT_EDITABLE', 'ORDER_ITEMS_CHANGED', 'VOUCHER_NO_LONGER_ELIGIBLE', 'VOUCHER_NOT_APPLICABLE', 'OUT_OF_STOCK',
         'MODIFIER_OUT_OF_STOCK', 'INVALID_VARIANT', 'INVALID_MODIFIER', 'REQUIRED_MODIFIER_MISSING',
-        'DUPLICATE_MODIFIER', 'ORDER_NOT_CANCELLABLE'];
+        'DUPLICATE_MODIFIER', 'ORDER_NOT_CANCELLABLE',
+        // Penolakan voucher untuk transaksi POS reguler (quotePosVoucher).
+        'VOUCHER_INVALID', 'VOUCHER_QUOTA_EXHAUSTED', 'VOUCHER_MIN_SPEND', 'VOUCHER_SCOPE_MISMATCH'];
 
     /** Kode yang pesannya (nama produk / alasan voucher) boleh ditampilkan ke kasir. */
     private const MESSAGE_CODES = ['VOUCHER_NO_LONGER_ELIGIBLE', 'VOUCHER_NOT_APPLICABLE', 'OUT_OF_STOCK', 'MODIFIER_OUT_OF_STOCK',
-        'REQUIRED_MODIFIER_MISSING', 'INVALID_VARIANT', 'INVALID_MODIFIER', 'DUPLICATE_MODIFIER'];
+        'REQUIRED_MODIFIER_MISSING', 'INVALID_VARIANT', 'INVALID_MODIFIER', 'DUPLICATE_MODIFIER',
+        'VOUCHER_INVALID', 'VOUCHER_QUOTA_EXHAUSTED', 'VOUCHER_MIN_SPEND', 'VOUCHER_SCOPE_MISMATCH'];
 
     private function send(string $method, string $path, array $payload = [], ?string $idempotencyKey = null): array
     {

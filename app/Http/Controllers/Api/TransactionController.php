@@ -496,6 +496,12 @@ class TransactionController extends Controller
 
                 $transaction = Transaction::create($dataTransaction);
 
+                // Voucher Order Table yang dipakai di kasir (entri `ot-voucher:{id}`) dicatat sebagai
+                // pemakaian voucher; tidak pernah menggagalkan transaksi yang sudah dibayar.
+                app(\App\Services\OrderTable\PosVoucherService::class)->recordRedemption(
+                    $transaction, is_iterable($diskonAllItemsPayload) ? $diskonAllItemsPayload : [], $user
+                );
+
                 // 6. Insert Transaction Items & Stok Decrement
                 $itemIndexCounter = 0;
                 foreach ($validated['items'] as $itemPayload) {

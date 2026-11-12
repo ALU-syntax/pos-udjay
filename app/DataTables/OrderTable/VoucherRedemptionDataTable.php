@@ -19,19 +19,26 @@ class VoucherRedemptionDataTable extends DataTable
             ->editColumn('created_at', fn (VoucherRedemption $redemption) => $redemption->created_at
                 ? $this->stack(e($redemption->created_at->format('d M Y')), e($redemption->created_at->format('H:i:s')))
                 : '<span class="text-muted">—</span>')
-            ->addColumn('outlet_name', fn (VoucherRedemption $redemption) => e($redemption->order?->outlet?->name ?? '-'))
+            ->addColumn('outlet_name', fn (VoucherRedemption $redemption) => e(
+                ($redemption->isPos() ? $redemption->outlet?->name : $redemption->order?->outlet?->name) ?? '-'
+            ))
             ->addColumn('voucher_code', fn (VoucherRedemption $redemption) => $redemption->voucher
                 ? '<span class="ob-voucher-code">'.e(strtoupper($redemption->voucher->code)).'</span>'
                 : '<span class="text-muted">—</span>')
-            ->addColumn('order_table', fn (VoucherRedemption $redemption) => $this->stack(
-                e($redemption->order?->order_no ?? '-'),
-                e($redemption->order?->table?->name ?? $redemption->order?->table?->code ?? '-'),
-            ))
+            // Pemakaian di kasir (transaksi POS reguler) tidak punya order/meja: tampilkan referensi transaksinya.
+            ->addColumn('order_table', fn (VoucherRedemption $redemption) => $redemption->isPos()
+                ? $this->stack('Transaksi kasir', '<span title="'.e($redemption->pos_reference).'">'.e(Str::limit((string) $redemption->pos_reference, 18)).'</span>')
+                : $this->stack(
+                    e($redemption->order?->order_no ?? '-'),
+                    e($redemption->order?->table?->name ?? $redemption->order?->table?->code ?? '-'),
+                ))
             ->editColumn('discount_amount', fn (VoucherRedemption $redemption) => e('Rp '.number_format($redemption->discount_amount, 0, ',', '.')))
-            ->editColumn('device_id', fn (VoucherRedemption $redemption) => $this->stack(
-                e($this->mask($redemption->device_id, 8, 4)),
-                e('Sesi #'.$redemption->session_id),
-            ))
+            ->editColumn('device_id', fn (VoucherRedemption $redemption) => $redemption->isPos()
+                ? $this->stack('Kasir', 'Tanpa perangkat pelanggan')
+                : $this->stack(
+                    e($this->mask($redemption->device_id, 8, 4)),
+                    e('Sesi #'.$redemption->session_id),
+                ))
             ->editColumn('ip_address', fn (VoucherRedemption $redemption) => $this->stack(
                 e($this->mask($redemption->ip_address, 3, 2)),
                 $redemption->user_agent
@@ -42,6 +49,7 @@ class VoucherRedemptionDataTable extends DataTable
             ->removeColumn('voucher')
             ->removeColumn('order')
             ->removeColumn('session')
+            ->removeColumn('outlet')
             ->removeColumn('user_agent')
             ->setRowId('id');
     }
@@ -49,13 +57,16 @@ class VoucherRedemptionDataTable extends DataTable
     public function query(VoucherRedemption $model): QueryBuilder
     {
         $outletIds = auth()->user()->outletIds();
-        $query = $model->newQuery()
-            ->with(['voucher', 'order.outlet', 'order.table', 'session'])
-            ->whereHas('order', fn (QueryBuilder $order) => $order->whereIn('outlet_id', $outletIds));
+        // Pemakaian Order Table mengikuti outlet order-nya; pemakaian di kasir menyimpan outlet-nya sendiri.
+        $inOutlets = fn (QueryBuilder $query, array $ids) => $query->where(fn (QueryBuilder $scope) => $scope
+            ->whereHas('order', fn (QueryBuilder $order) => $order->whereIn('outlet_id', $ids))
+            ->orWhere(fn (QueryBuilder $pos) => $pos->where('source', 'pos')->whereIn('outlet_id', $ids)));
+        $query = $model->newQuery()->with(['voucher', 'order.outlet', 'order.table', 'session', 'outlet']);
+        $inOutlets($query, $outletIds);
 
         $outletId = request()->integer('outlet_id');
         if ($outletId && in_array($outletId, $outletIds, true)) {
-            $query->whereHas('order', fn (QueryBuilder $order) => $order->where('outlet_id', $outletId));
+            $inOutlets($query, [$outletId]);
         }
         if (request()->filled('voucher_id')) {
             $query->where('voucher_id', request()->integer('voucher_id'));
@@ -69,7 +80,9 @@ class VoucherRedemptionDataTable extends DataTable
         // Bukan "order": nama itu dipakai DataTables untuk pengurutan kolom dan akan tertimpa
         if (request()->filled('order_no')) {
             $term = request('order_no');
-            $query->whereHas('order', fn (QueryBuilder $order) => $order->where('order_no', 'like', '%'.$term.'%'));
+            $query->where(fn (QueryBuilder $scope) => $scope
+                ->whereHas('order', fn (QueryBuilder $order) => $order->where('order_no', 'like', '%'.$term.'%'))
+                ->orWhere('pos_reference', 'like', '%'.$term.'%'));
         }
 
         return $query;
