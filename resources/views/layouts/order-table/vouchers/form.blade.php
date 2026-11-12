@@ -4,6 +4,16 @@
     $canManageGlobal = $canManageGlobal ?? false;
     $selectedScopeIds = collect(old('scope_ids', $voucher->scope_ids ?? []))->map(fn ($id) => (string) $id)->all();
     $targetOptions = collect($targetOptions ?? []);
+    $periodFrom = (string) old('valid_from', $voucher->valid_from?->format('Y-m-d'));
+    $periodTo = (string) old('valid_to', $voucher->valid_to?->format('Y-m-d'));
+    $periodDate = fn (string $date) => \Illuminate\Support\Carbon::parse($date)->format('d/m/Y');
+    // Voucher lama bisa hanya punya salah satu batas; tetap ditampilkan agar tidak hilang diam-diam.
+    $periodLabel = match (true) {
+        $periodFrom !== '' && $periodTo !== '' => $periodDate($periodFrom).' - '.$periodDate($periodTo),
+        $periodFrom !== '' => 'Mulai '.$periodDate($periodFrom),
+        $periodTo !== '' => 'Sampai '.$periodDate($periodTo),
+        default => '',
+    };
 @endphp
 
 {{-- ob-page memberi token & gaya report ke modal (modal dirender di luar .main-content) --}}
@@ -47,6 +57,11 @@
         <input id="code" name="code" type="text" maxlength="50" class="form-control text-uppercase"
             value="{{ old('code', $voucher->code) }}" autocomplete="off" placeholder="Contoh: HEMAT10" required>
         <small class="text-muted">Otomatis huruf kapital. Kode ini yang diketik pelanggan.</small>
+    </div>
+    <div class="col-12 mb-3">
+        <label for="description" class="form-label">Deskripsi <span class="text-muted fw-normal">(opsional)</span></label>
+        <textarea id="description" name="description" class="form-control" rows="2" maxlength="255" placeholder="Contoh: Promo pembukaan outlet, berlaku untuk semua minuman">{{ old('description', $voucher->description) }}</textarea>
+        <small class="text-muted">Catatan singkat tentang voucher ini, maksimal 255 karakter.</small>
     </div>
 
     {{-- Nilai --}}
@@ -105,11 +120,11 @@
         <input id="quota_total" name="quota_total" type="number" min="1" class="form-control" value="{{ old('quota_total', $voucher->quota_total) }}" placeholder="Tanpa batas">
         <small class="text-muted">Jumlah pemakaian dari semua pelanggan. Kosongkan untuk tanpa batas.</small>
     </div>
-    {{-- Batas per perangkat dijaga UNIQUE(voucher_id, device_id), jadi selalu 1x dan tidak bisa diatur --}}
+    {{-- Voucher baru diawali 1× agar tidak langsung tanpa batas; kosong (NULL) = tanpa batas --}}
     <div class="col-md-4 mb-3">
-        <label for="quota_per_device_info" class="form-label">Kuota / Perangkat</label>
-        <input id="quota_per_device_info" type="text" class="form-control" value="1× per perangkat" readonly>
-        <small class="text-muted">Ditetapkan sistem agar voucher terbagi ke lebih banyak pelanggan.</small>
+        <label for="quota_per_device" class="form-label">Kuota / Perangkat</label>
+        <input id="quota_per_device" name="quota_per_device" type="number" min="1" class="form-control" value="{{ old('quota_per_device', $editing ? $voucher->quota_per_device : 1) }}" placeholder="Tanpa batas">
+        <small class="text-muted">Berapa kali satu perangkat boleh memakai voucher ini. Kosongkan untuk tanpa batas.</small>
     </div>
     @if ($editing)
         <div class="col-md-4 mb-3">
@@ -122,14 +137,18 @@
     <div class="col-12 ob-form-heading">
         <h3 class="ob-section-title"><i class="far fa-calendar-alt" aria-hidden="true"></i> Periode &amp; Status</h3>
     </div>
-    <div class="col-md-4 mb-3">
-        <label for="valid_from" class="form-label">Berlaku Mulai</label>
-        <input id="valid_from" name="valid_from" type="datetime-local" class="form-control" value="{{ old('valid_from', $voucher->valid_from?->format('Y-m-d\TH:i')) }}">
-    </div>
-    <div class="col-md-4 mb-3">
-        <label for="valid_to" class="form-label">Berlaku Sampai</label>
-        <input id="valid_to" name="valid_to" type="datetime-local" class="form-control" value="{{ old('valid_to', $voucher->valid_to?->format('Y-m-d\TH:i')) }}">
-        <small class="text-muted">Kosongkan keduanya untuk berlaku tanpa batas.</small>
+    {{-- Satu rentang tanggal; nilai ke server ada di input hidden valid_from / valid_to (YYYY-MM-DD) --}}
+    <div class="col-md-8 mb-3">
+        <label for="valid_period" class="form-label">Periode Berlaku</label>
+        <div class="input-group">
+            <input id="valid_period" type="text" class="form-control" value="{{ $periodLabel }}" placeholder="Tanpa batas" autocomplete="off" readonly>
+            <button type="button" id="valid_period_clear" class="btn btn-outline-secondary @if ($periodLabel === '') d-none @endif" title="Hapus periode" aria-label="Hapus periode">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
+        </div>
+        <input id="valid_from" name="valid_from" type="hidden" value="{{ $periodFrom }}">
+        <input id="valid_to" name="valid_to" type="hidden" value="{{ $periodTo }}">
+        <small class="text-muted">Berlaku dari awal hari pertama sampai akhir hari terakhir. Kosongkan untuk berlaku tanpa batas.</small>
     </div>
     @if (!$editing)
         <div class="col-md-4 mb-3">

@@ -5,6 +5,7 @@ namespace App\DataTables\OrderTable;
 use App\Models\OrderTable\Voucher;
 use App\Services\OrderTable\CatalogSelectorService;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
+use Illuminate\Support\Str;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
 use Yajra\DataTables\Html\Column;
@@ -92,9 +93,15 @@ class VoucherDataTable extends DataTable
                 .($voucher->max_discount ? ' · maks. '.$this->rupiah($voucher->max_discount) : '')
             : 'Potongan '.$this->rupiah($voucher->value);
 
+        // Deskripsi opsional; dipotong agar baris tabel tidak melebar, teks lengkap ada di title.
+        $description = filled($voucher->description)
+            ? '<span class="ob-cell-meta" title="'.e($voucher->description).'">'.e(Str::limit($voucher->description, 60)).'</span>'
+            : '';
+
         return '<div class="ob-voucher-cell">'
             .'<span class="ob-voucher-code">'.e(strtoupper($voucher->code)).'</span>'
             .'<span class="ob-cell-meta">'.e($benefit).'</span>'
+            .$description
             .'</div>';
     }
 
@@ -115,11 +122,14 @@ class VoucherDataTable extends DataTable
     private function quota(Voucher $voucher): string
     {
         $used = number_format($voucher->quota_used, 0, ',', '.');
-        // "1× per perangkat" selalu berlaku: UNIQUE(voucher_id, device_id) di ot_voucher_redemptions.
+        // NULL = tanpa batas per perangkat; batasnya ditegakkan Node order-table.
+        $perDevice = $voucher->quota_per_device === null
+            ? 'Tanpa batas per perangkat'
+            : number_format($voucher->quota_per_device, 0, ',', '.').'× per perangkat';
 
         if ($voucher->quota_total === null) {
             return '<div class="ob-cell-stack"><span>'.$used.' terpakai</span>'
-                .'<span class="ob-cell-meta">Total tanpa batas · 1× per perangkat</span></div>';
+                .'<span class="ob-cell-meta">Total tanpa batas · '.$perDevice.'</span></div>';
         }
 
         $percent = $voucher->quota_total > 0 ? min(100, (int) round($voucher->quota_used / $voucher->quota_total * 100)) : 100;
@@ -133,7 +143,7 @@ class VoucherDataTable extends DataTable
             .'<span>'.$used.' / '.number_format($voucher->quota_total, 0, ',', '.').'</span>'
             .'<span class="ob-quota__bar" role="img" aria-label="Kuota terpakai '.$percent.'%">'
             .'<span class="ob-quota__fill ob-quota__fill--'.$tone.'" style="width: '.$percent.'%"></span></span>'
-            .'<span class="ob-cell-meta">1× per perangkat</span></div>';
+            .'<span class="ob-cell-meta">'.$perDevice.'</span></div>';
     }
 
     private function period(Voucher $voucher): string
@@ -142,9 +152,14 @@ class VoucherDataTable extends DataTable
             return '<span class="text-muted">Tanpa batas</span>';
         }
 
-        $format = fn ($date) => $date ? $date->translatedFormat('d M Y, H:i') : '…';
+        // Periode kini diisi per tanggal; jam hanya ditampilkan untuk voucher lama yang bukan batas hari.
+        $format = fn ($date, string $boundary) => match (true) {
+            ! $date => '…',
+            $date->format('H:i') === $boundary => $date->translatedFormat('d M Y'),
+            default => $date->translatedFormat('d M Y, H:i'),
+        };
 
-        return e($format($voucher->valid_from).' – '.$format($voucher->valid_to));
+        return e($format($voucher->valid_from, '00:00').' – '.$format($voucher->valid_to, '23:59'));
     }
 
     private function statusBadge(Voucher $voucher): string

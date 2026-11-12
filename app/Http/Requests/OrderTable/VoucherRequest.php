@@ -19,7 +19,17 @@ abstract class VoucherRequest extends FormRequest
         $this->merge([
             'code' => strtoupper(trim((string) $this->input('code'))),
             'scope_ids' => $scope === 'all' ? null : $this->input('scope_ids'),
+            'valid_from' => $this->dayBoundary($this->input('valid_from'), '00:00:00'),
+            'valid_to' => $this->dayBoundary($this->input('valid_to'), '23:59:59'),
         ]);
+    }
+
+    /** Form mengirim tanggal saja: periode berlaku dari awal hari pertama sampai akhir hari terakhir. */
+    private function dayBoundary(mixed $value, string $time): mixed
+    {
+        return is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1
+            ? $value.' '.$time
+            : $value;
     }
 
     public function authorize(): bool
@@ -50,6 +60,7 @@ abstract class VoucherRequest extends FormRequest
         return [
             'outlet_id' => ['nullable', 'integer', 'exists:outlets,id'],
             'code' => ['required', 'string', 'max:50', Rule::unique('ot_vouchers', 'code')->ignore($voucherId)],
+            'description' => ['nullable', 'string', 'max:255'],
             'type' => ['required', Rule::in(['percent', 'fixed'])],
             'value' => $type === 'percent'
                 ? ['required', 'integer', 'min:1', 'max:100']
@@ -59,8 +70,9 @@ abstract class VoucherRequest extends FormRequest
                 ? ['nullable', 'integer', 'min:0']
                 : ['prohibited'],
             'quota_total' => ['nullable', 'integer', 'min:1'],
-            'quota_per_device' => ['nullable', 'integer', 'min:1', 'max:1'],
-            'quota_per_session' => ['nullable', 'integer', 'min:1', 'max:1'],
+            // Kosong (NULL) = tanpa batas; Node order-table yang menegakkan batasnya.
+            'quota_per_device' => ['nullable', 'integer', 'min:1'],
+            'quota_per_session' => ['nullable', 'integer', 'min:1'],
             'quota_used' => ['prohibited'],
             'valid_from' => ['nullable', 'date'],
             'valid_to' => $this->filled('valid_from')

@@ -70,17 +70,108 @@ class VoucherTest extends OrderTableTestCase
         ]))->assertUnprocessable()->assertJsonValidationErrors('quota_used');
     }
 
-    public function test_per_device_and_session_quotas_are_limited_to_one(): void
+    public function test_per_device_quota_is_configurable_and_empty_means_unlimited(): void
     {
         $outlet = $this->outlet('Voucher Quotas');
         $user = $this->userFor($outlet, ['create order-table/vouchers']);
 
-        foreach (['quota_per_device', 'quota_per_session'] as $field) {
+        $response = $this->actingAs($user)->postJson(route('order-table/vouchers/store'), $this->payload($outlet->id, [
+            'code' => 'DEVICE-THREE',
+            'quota_per_device' => 3,
+        ]))->assertOk();
+        $this->assertSame(3, Voucher::findOrFail($response->json('data.id'))->quota_per_device);
+
+        $response = $this->actingAs($user)->postJson(route('order-table/vouchers/store'), $this->payload($outlet->id, [
+            'code' => 'DEVICE-UNLIMITED',
+            'quota_per_device' => null,
+        ]))->assertOk();
+        $this->assertNull(Voucher::findOrFail($response->json('data.id'))->quota_per_device);
+
+        $this->actingAs($user)->postJson(route('order-table/vouchers/store'), $this->payload($outlet->id, [
+            'code' => 'DEVICE-ZERO',
+            'quota_per_device' => 0,
+        ]))->assertUnprocessable()->assertJsonValidationErrors('quota_per_device');
+    }
+
+    public function test_negative_quotas_are_rejected(): void
+    {
+        $outlet = $this->outlet('Voucher Negative Quota');
+        $user = $this->userFor($outlet, ['create order-table/vouchers']);
+
+        foreach (['quota_total', 'quota_per_device'] as $field) {
             $this->actingAs($user)->postJson(route('order-table/vouchers/store'), $this->payload($outlet->id, [
-                'code' => strtoupper($field),
-                $field => 2,
+                'code' => strtoupper($field).'-NEGATIVE',
+                $field => -1,
             ]))->assertUnprocessable()->assertJsonValidationErrors($field);
         }
+    }
+
+    public function test_date_only_period_covers_whole_first_and_last_day(): void
+    {
+        $outlet = $this->outlet('Voucher Period');
+        $user = $this->userFor($outlet, ['create order-table/vouchers', 'update order-table/vouchers']);
+
+        $response = $this->actingAs($user)->postJson(route('order-table/vouchers/store'), $this->payload($outlet->id, [
+            'code' => 'PERIOD-RANGE',
+            'valid_from' => '2026-11-12',
+            'valid_to' => '2026-11-15',
+        ]))->assertOk();
+        $voucher = Voucher::findOrFail($response->json('data.id'));
+        $this->assertSame('2026-11-12 00:00:00', $voucher->valid_from->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-11-15 23:59:59', $voucher->valid_to->format('Y-m-d H:i:s'));
+
+        // Satu hari yang sama tetap sah: 00:00:00 sampai 23:59:59.
+        $this->actingAs($user)->postJson(route('order-table/vouchers/store'), $this->payload($outlet->id, [
+            'code' => 'PERIOD-ONE-DAY',
+            'valid_from' => '2026-11-12',
+            'valid_to' => '2026-11-12',
+        ]))->assertOk();
+
+        $this->actingAs($user)->postJson(route('order-table/vouchers/store'), $this->payload($outlet->id, [
+            'code' => 'PERIOD-REVERSED',
+            'valid_from' => '2026-11-15',
+            'valid_to' => '2026-11-12',
+        ]))->assertUnprocessable()->assertJsonValidationErrors('valid_to');
+
+        $this->actingAs($user)->get(route('order-table/vouchers/edit', $voucher->id))
+            ->assertOk()
+            ->assertSee('12/11/2026 - 15/11/2026')
+            ->assertSee('name="valid_from" type="hidden" value="2026-11-12"', false)
+            ->assertSee('name="valid_to" type="hidden" value="2026-11-15"', false);
+    }
+
+    public function test_description_is_optional_and_limited_to_255_characters(): void
+    {
+        $outlet = $this->outlet('Voucher Description');
+        $user = $this->userFor($outlet, ['create order-table/vouchers', 'update order-table/vouchers']);
+
+        $response = $this->actingAs($user)->postJson(route('order-table/vouchers/store'), $this->payload($outlet->id, [
+            'code' => 'NO-DESCRIPTION',
+        ]))->assertOk();
+        $this->assertNull(Voucher::findOrFail($response->json('data.id'))->description);
+
+        $response = $this->actingAs($user)->postJson(route('order-table/vouchers/store'), $this->payload($outlet->id, [
+            'code' => 'WITH-DESCRIPTION',
+            'description' => 'Promo pembukaan outlet',
+        ]))->assertOk();
+        $voucher = Voucher::findOrFail($response->json('data.id'));
+        $this->assertSame('Promo pembukaan outlet', $voucher->description);
+
+        $this->actingAs($user)->get(route('order-table/vouchers/edit', $voucher->id))
+            ->assertOk()
+            ->assertSee('Promo pembukaan outlet');
+
+        // Mengosongkan deskripsi saat edit menghapusnya (status tidak boleh ikut dikirim saat update).
+        $this->actingAs($user)->putJson(route('order-table/vouchers/update', $voucher->id), collect($this->payload($outlet->id, [
+            'code' => 'WITH-DESCRIPTION',
+            'description' => '',
+        ]))->except('status')->all())->assertOk();
+        $this->assertNull($voucher->fresh()->description);
+
+        $this->actingAs($user)->postJson(route('order-table/vouchers/store'), $this->payload($outlet->id, [
+            'code' => 'LONG-DESCRIPTION',
+            'description' => str_repeat('a', 256),
+        ]))->assertUnprocessable()->assertJsonValidationErrors('description');
     }
 
     public function test_all_scope_normalizes_scope_ids_to_null(): void
@@ -269,7 +360,7 @@ class VoucherTest extends OrderTableTestCase
             'max_discount' => 10000,
             'quota_total' => null,
             'quota_per_device' => 1,
-            'quota_per_session' => 1,
+            'quota_per_session' => null,
             'valid_from' => null,
             'valid_to' => null,
             'scope' => 'all',

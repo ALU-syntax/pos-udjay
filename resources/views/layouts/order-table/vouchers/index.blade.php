@@ -85,10 +85,58 @@
                         target.select2({ dropdownParent: $('#modal_action'), width: '100%', placeholder: 'Pilih target', ajax: { url: selectorUrls[effectiveScope], dataType: 'json', delay: 250, data: params => ({ q: params.term, outlet_id: outlet }), processResults: response => ({ results: response.data || [] }) } });
                     }
                     function updateGlobalWarning() { form.find('.global-impact-warning').toggleClass('d-none', form.find('#outlet_id').val() !== ''); }
+                    // Input angka hanya menerima digit; nilai di bawah atribut min dinaikkan ke min saat keluar dari input.
+                    function initNumberGuards() {
+                        form.on('keydown', 'input[type="number"]', function (event) {
+                            if (['-', '+', 'e', 'E', '.', ','].includes(event.key)) event.preventDefault();
+                        });
+                        form.on('input', 'input[type="number"]', function () {
+                            const digits = this.value.replace(/\D/g, '');
+                            if (this.value !== digits) this.value = digits;
+                        });
+                        form.on('blur', 'input[type="number"]', function () {
+                            if (this.value !== '' && this.min !== '' && Number(this.value) < Number(this.min)) this.value = this.min;
+                        });
+                    }
+                    // Satu rentang tanggal mengisi input hidden valid_from / valid_to (YYYY-MM-DD).
+                    function initPeriod() {
+                        const period = form.find('#valid_period');
+                        const from = form.find('#valid_from');
+                        const to = form.find('#valid_to');
+                        const clear = form.find('#valid_period_clear');
+                        function setPeriod(start, end) {
+                            period.val(start ? start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY') : '');
+                            from.val(start ? start.format('YYYY-MM-DD') : '');
+                            to.val(end ? end.format('YYYY-MM-DD') : '');
+                            clear.toggleClass('d-none', !start);
+                        }
+                        const start = from.val() ? moment(from.val(), 'YYYY-MM-DD') : null;
+                        const end = to.val() ? moment(to.val(), 'YYYY-MM-DD') : null;
+                        period.daterangepicker({
+                            autoUpdateInput: false,
+                            parentEl: '#modal_action',
+                            startDate: start || end || moment(),
+                            endDate: end || start || moment(),
+                            drops: 'auto',
+                            buttonClasses: 'btn btn-sm',
+                            applyButtonClasses: 'btn-primary',
+                            cancelButtonClasses: 'btn-light',
+                            locale: {
+                                format: 'DD/MM/YYYY',
+                                applyLabel: 'Terapkan',
+                                cancelLabel: 'Batal',
+                                daysOfWeek: ['Mg', 'Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb'],
+                                monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+                                firstDay: 1,
+                            },
+                        });
+                        period.on('apply.daterangepicker', (event, picker) => setPeriod(picker.startDate, picker.endDate));
+                        clear.on('click', () => setPeriod(null, null));
+                    }
                     form.on('input', '#code', function () { this.value = this.value.toUpperCase(); });
                     form.on('change', '#type', updateType);
                     form.on('change', '#scope, #outlet_id', function () { initTarget(true); updateGlobalWarning(); });
-                    updateType(); initTarget(false); updateGlobalWarning();
+                    updateType(); initTarget(false); updateGlobalWarning(); initNumberGuards(); initPeriod();
                 });
                 $('.main-content').on('click', '.toggle-voucher', function (event) {
                     event.preventDefault(); const button = this;
