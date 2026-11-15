@@ -31,7 +31,10 @@ class ItemSalesExport implements FromQuery, WithHeadings, WithMapping, WithChunk
             ? Carbon::parse($this->to)->endOfDay()
             : Carbon::now()->endOfDay();
 
+        // Samakan dengan tampilan Item Sales (inner join products & outlets):
+        // lewati varian yang produknya sudah dihapus atau outletnya sudah tidak ada.
         $query = VariantProduct::query()
+            ->whereHas('product.outlet')
             ->with([
                 'itemTransaction' => function ($transaction) use ($startDate, $endDate) {
                     $transaction->whereBetween('created_at', [$startDate, $endDate]);
