@@ -19,6 +19,12 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ModifiersController;
 use App\Http\Controllers\NoteReceiptSchedulingController;
 use App\Http\Controllers\OpenBillController;
+use App\Http\Controllers\B2b\CashierController as B2bCashierController;
+use App\Http\Controllers\B2b\CatalogSelectorController as B2bCatalogSelectorController;
+use App\Http\Controllers\B2b\ContractController as B2bContractController;
+use App\Http\Controllers\B2b\CustomerController as B2bCustomerController;
+use App\Http\Controllers\B2b\InvoiceController as B2bInvoiceController;
+use App\Http\Controllers\B2b\OrderController as B2bOrderController;
 use App\Http\Controllers\OrderTable\BannerController as OrderTableBannerController;
 use App\Http\Controllers\OrderTable\BridgeMonitorController as OrderTableBridgeMonitorController;
 use App\Http\Controllers\OrderTable\CatalogSelectorController as OrderTableCatalogSelectorController;
@@ -83,6 +89,59 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/pin', [ProfileController::class, 'updatePin'])->name('profile.pin');
+
+    Route::group(['prefix' => 'b2b', 'as' => 'b2b/'], function () {
+        Route::prefix('customers')->group(function () {
+            Route::get('/', [B2bCustomerController::class, 'index'])->name('customers');
+            Route::get('/create', [B2bCustomerController::class, 'create'])->name('customers/create');
+            Route::post('/', [B2bCustomerController::class, 'store'])->name('customers/store');
+            Route::get('/{customer}', [B2bCustomerController::class, 'show'])->whereNumber('customer')->name('customers/show');
+            Route::get('/{customer}/edit', [B2bCustomerController::class, 'edit'])->whereNumber('customer')->name('customers/edit');
+            Route::put('/{customer}', [B2bCustomerController::class, 'update'])->whereNumber('customer')->name('customers/update');
+            Route::post('/{customer}/toggle', [B2bCustomerController::class, 'toggle'])->whereNumber('customer')->name('customers/toggle');
+            Route::delete('/{customer}', [B2bCustomerController::class, 'destroy'])->whereNumber('customer')->name('customers/destroy');
+        });
+
+        Route::prefix('contracts')->group(function () {
+            Route::get('/', [B2bContractController::class, 'index'])->name('contracts');
+            Route::get('/create', [B2bContractController::class, 'create'])->name('contracts/create');
+            Route::post('/', [B2bContractController::class, 'store'])->name('contracts/store');
+            Route::get('/{contract}', [B2bContractController::class, 'show'])->whereNumber('contract')->name('contracts/show');
+            Route::get('/{contract}/edit', [B2bContractController::class, 'edit'])->whereNumber('contract')->name('contracts/edit');
+            Route::put('/{contract}', [B2bContractController::class, 'update'])->whereNumber('contract')->name('contracts/update');
+            Route::delete('/{contract}', [B2bContractController::class, 'destroy'])->whereNumber('contract')->name('contracts/destroy');
+            Route::post('/{contract}/activate', [B2bContractController::class, 'activate'])->whereNumber('contract')->name('contracts/activate');
+            Route::post('/{contract}/terminate', [B2bContractController::class, 'terminate'])->whereNumber('contract')->name('contracts/terminate');
+            Route::get('/{contract}/attachment', [B2bContractController::class, 'attachment'])->whereNumber('contract')->name('contracts/attachment');
+        });
+
+        Route::prefix('selectors')->group(function () {
+            Route::get('/categories', [B2bCatalogSelectorController::class, 'categories'])->name('selectors/categories');
+            Route::get('/products', [B2bCatalogSelectorController::class, 'products'])->name('selectors/products');
+            Route::get('/variants', [B2bCatalogSelectorController::class, 'variants'])->name('selectors/variants');
+        });
+
+        Route::prefix('cashier')->group(function () {
+            Route::get('/', [B2bCashierController::class, 'index'])->name('cashier');
+            Route::get('/customers', [B2bCashierController::class, 'customers'])->name('cashier/customers');
+            Route::get('/customers/{customer}', [B2bCashierController::class, 'customer'])->whereNumber('customer')->name('cashier/customer');
+            Route::get('/products', [B2bCashierController::class, 'products'])->name('cashier/products');
+            Route::post('/quote', [B2bCashierController::class, 'quote'])->name('cashier/quote');
+            Route::post('/', [B2bCashierController::class, 'store'])->name('cashier/store');
+        });
+
+        Route::prefix('orders')->group(function () {
+            Route::get('/', [B2bOrderController::class, 'index'])->name('orders');
+            Route::get('/{order}', [B2bOrderController::class, 'show'])->whereNumber('order')->name('orders/show');
+            Route::post('/{order}/complete', [B2bOrderController::class, 'complete'])->whereNumber('order')->name('orders/complete');
+            Route::post('/{order}/cancel', [B2bOrderController::class, 'cancel'])->whereNumber('order')->name('orders/cancel');
+        });
+
+        Route::prefix('invoices')->group(function () {
+            Route::get('/', [B2bInvoiceController::class, 'index'])->name('invoices');
+            Route::get('/{invoice}/print', [B2bInvoiceController::class, 'print'])->whereNumber('invoice')->name('invoices/print');
+        });
+    });
 
     Route::group(['prefix' => 'order-table', 'as' => 'order-table/'], function () {
         Route::put('/outlet-settings/public-url', [OrderTableOutletSettingController::class, 'updatePublicUrl'])->name('outlet-settings/public-url');
