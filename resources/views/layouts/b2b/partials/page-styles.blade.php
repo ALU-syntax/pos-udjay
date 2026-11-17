@@ -1,4 +1,4 @@
-{{-- Gaya menu Customer B2B (daftar, detail, form). Include setelah layouts.b2b.partials.assets. --}}
+{{-- Gaya halaman B2B (kartu, daftar, detail, form) dipakai menu Customer & Kontrak. Include setelah layouts.b2b.partials.assets. --}}
 @push('css')
     <style>
         /* ----- Kartu: ob-card tidak punya padding sendiri, jadi isinya dibagi kepala / badan / kaki ----- */

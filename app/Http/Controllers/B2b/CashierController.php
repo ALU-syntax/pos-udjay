@@ -71,7 +71,7 @@ class CashierController extends Controller
             'contract' => $contract ? [
                 'number' => $contract->contract_number,
                 'end_date' => $contract->end_date->translatedFormat('d M Y'),
-                'rules_count' => $contract->rules()->count(),
+                'items_count' => $contract->items()->distinct()->count('variant_id'),
                 'url' => route('b2b/contracts/show', $contract->id),
             ] : null,
             'address' => $customer->hasAddress() ? $customer->fullAddress() : null,
@@ -113,7 +113,7 @@ class CashierController extends Controller
         return responseSuccess(false, false, $data->values()->all());
     }
 
-    /** Preview harga dari server (aturan kontrak). Layar kasir tidak pernah menghitung diskon sendiri. */
+    /** Preview harga dari server (harga kontrak). Layar kasir tidak pernah menghitung harga sendiri. */
     public function quote(CashierOrderRequest $request)
     {
         $customer = Customer::query()->active()->findOrFail($request->integer('b2b_customer_id'));
@@ -125,15 +125,14 @@ class CashierController extends Controller
                 'variant_id' => $item['variant_id'],
                 'qty' => $item['qty'],
                 'base_price' => $item['base_price'],
-                'discount_label' => $item['discount_label'],
-                'discount_per_unit' => $item['discount_per_unit'],
+                'contract_price' => $item['b2b_contract_item_id'] !== null,
+                'min_qty' => $item['min_qty'],
                 'final_price' => $item['final_price'],
                 'line_total' => $item['line_total'],
                 'stock' => $item['stock'],
                 'stock_insufficient' => $item['stock_insufficient'],
             ], $quote['items']),
             'subtotal' => $quote['subtotal'],
-            'discount_total' => $quote['discount_total'],
             'grand_total' => $quote['grand_total'],
             'has_insufficient_stock' => $quote['has_insufficient_stock'],
         ]);

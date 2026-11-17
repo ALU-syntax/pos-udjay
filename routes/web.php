@@ -110,14 +110,11 @@ Route::middleware('auth')->group(function () {
             Route::get('/{contract}/edit', [B2bContractController::class, 'edit'])->whereNumber('contract')->name('contracts/edit');
             Route::put('/{contract}', [B2bContractController::class, 'update'])->whereNumber('contract')->name('contracts/update');
             Route::delete('/{contract}', [B2bContractController::class, 'destroy'])->whereNumber('contract')->name('contracts/destroy');
-            Route::post('/{contract}/activate', [B2bContractController::class, 'activate'])->whereNumber('contract')->name('contracts/activate');
             Route::post('/{contract}/terminate', [B2bContractController::class, 'terminate'])->whereNumber('contract')->name('contracts/terminate');
             Route::get('/{contract}/attachment', [B2bContractController::class, 'attachment'])->whereNumber('contract')->name('contracts/attachment');
         });
 
         Route::prefix('selectors')->group(function () {
-            Route::get('/categories', [B2bCatalogSelectorController::class, 'categories'])->name('selectors/categories');
-            Route::get('/products', [B2bCatalogSelectorController::class, 'products'])->name('selectors/products');
             Route::get('/variants', [B2bCatalogSelectorController::class, 'variants'])->name('selectors/variants');
         });
 

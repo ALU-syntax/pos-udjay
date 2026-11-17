@@ -18,8 +18,7 @@ return new class extends Migration
             $table->dateTime('order_date');
             $table->date('due_date')->comment('jatuh tempo pilihan kasir; disalin ke invoice');
             $table->enum('status', ['draft', 'confirmed', 'completed', 'cancelled'])->default('confirmed');
-            $table->bigInteger('subtotal')->default(0);
-            $table->bigInteger('discount_total')->default(0);
+            $table->bigInteger('subtotal')->default(0)->comment('jumlah line_total item');
             $table->bigInteger('tax_total')->default(0);
             $table->bigInteger('shipping_cost')->default(0);
             $table->bigInteger('grand_total')->default(0);
@@ -52,12 +51,9 @@ return new class extends Migration
             $table->string('product_name');
             $table->string('variant_name');
             $table->unsignedInteger('qty');
-            $table->bigInteger('base_price');
-            $table->foreignId('b2b_contract_rule_id')->nullable()->constrained('b2b_contract_rules')->nullOnDelete();
-            $table->string('discount_type', 20)->nullable();
-            $table->decimal('discount_value', 15, 2)->nullable();
-            $table->bigInteger('discount_per_unit')->default(0);
-            $table->bigInteger('final_price');
+            $table->bigInteger('base_price')->comment('harga normal varian saat transaksi');
+            $table->foreignId('b2b_contract_item_id')->nullable()->comment('kosong = harga normal')->constrained('b2b_contract_items');
+            $table->bigInteger('final_price')->comment('harga yang dipakai: harga kontrak atau harga normal');
             $table->bigInteger('line_total');
             $table->boolean('stock_insufficient')->default(false);
             $table->text('notes')->nullable();

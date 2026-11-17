@@ -14,25 +14,18 @@ class Contract extends Model
 {
     use SoftDeletes;
 
-    public const STATUS_DRAFT = 'draft';
-
     public const STATUS_ACTIVE = 'active';
-
-    public const STATUS_EXPIRED = 'expired';
 
     public const STATUS_TERMINATED = 'terminated';
 
-    /** Status yang masih "memakan" periode, sehingga periodenya tidak boleh tumpang tindih. */
-    public const BLOCKING_STATUSES = [self::STATUS_DRAFT, self::STATUS_ACTIVE];
-
     protected $table = 'b2b_contracts';
 
-    protected $guarded = ['id', 'contract_number'];
+    /** Kolom audit & penghentian hanya diisi oleh ContractService, tidak lewat fill(). */
+    protected $guarded = ['id', 'contract_number', 'status', 'created_by', 'modified_by', 'terminated_by', 'terminated_at', 'termination_reason'];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
-        'activated_at' => 'datetime',
         'terminated_at' => 'datetime',
     ];
 
@@ -41,9 +34,9 @@ class Contract extends Model
         return $this->belongsTo(Customer::class, 'b2b_customer_id')->withTrashed();
     }
 
-    public function rules(): HasMany
+    public function items(): HasMany
     {
-        return $this->hasMany(ContractRule::class, 'b2b_contract_id')->orderBy('id');
+        return $this->hasMany(ContractItem::class, 'b2b_contract_id')->orderBy('variant_id')->orderBy('min_qty');
     }
 
     public function creator(): BelongsTo
@@ -51,9 +44,9 @@ class Contract extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function activator(): BelongsTo
+    public function modifier(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'activated_by');
+        return $this->belongsTo(User::class, 'modified_by');
     }
 
     public function terminator(): BelongsTo
@@ -61,6 +54,7 @@ class Contract extends Model
         return $this->belongsTo(User::class, 'terminated_by');
     }
 
+    /** Kontrak yang harganya dipakai pada tanggal tertentu: belum dihentikan dan tanggal masuk periode. */
     public function scopeEffectiveOn(Builder $query, Carbon $date): Builder
     {
         $day = $date->toDateString();
@@ -70,50 +64,79 @@ class Contract extends Model
             ->whereDate('end_date', '>=', $day);
     }
 
-    public function isDraft(): bool
+    public function isTerminated(): bool
     {
-        return $this->status === self::STATUS_DRAFT;
+        return $this->status === self::STATUS_TERMINATED;
     }
 
-    public function isActive(): bool
-    {
-        return $this->status === self::STATUS_ACTIVE;
-    }
-
-    /** Aktif dan tanggal hari ini masuk periode. Kontrak aktif dengan tanggal mulai di masa depan belum berlaku. */
-    public function isEffective(?Carbon $date = null): bool
+    /** Berjalan = belum dihentikan dan hari ini (atau $date) masuk periode. */
+    public function isRunning(?Carbon $date = null): bool
     {
         $date = ($date ?? now())->copy()->startOfDay();
 
-        return $this->isActive()
+        return ! $this->isTerminated()
             && $this->start_date->lte($date)
             && $this->end_date->gte($date);
     }
 
+    /** Label tampilan, dihitung dari status + tanggal (tidak ada status draft/expired di database). */
     public function statusLabel(): string
     {
         return match (true) {
-            $this->status === self::STATUS_ACTIVE && $this->start_date->isFuture() => 'Terjadwal',
-            default => match ($this->status) {
-                self::STATUS_DRAFT => 'Draft',
-                self::STATUS_ACTIVE => 'Aktif',
-                self::STATUS_EXPIRED => 'Berakhir',
-                self::STATUS_TERMINATED => 'Dihentikan',
-                default => ucfirst((string) $this->status),
-            },
+            $this->isTerminated() => 'Dihentikan',
+            $this->start_date->gt(today()) => 'Terjadwal',
+            $this->end_date->lt(today()) => 'Berakhir',
+            default => 'Berjalan',
         };
+    }
+
+    /** Lama periode dalam hari, termasuk tanggal mulai dan berakhir. */
+    public function durationDays(): int
+    {
+        return (int) $this->start_date->diffInDays($this->end_date) + 1;
+    }
+
+    /** Persentase periode yang sudah lewat (0–100), untuk bilah progres. */
+    public function periodProgress(): int
+    {
+        $today = today();
+        if ($today->lt($this->start_date)) {
+            return 0;
+        }
+        if ($today->gt($this->end_date)) {
+            return 100;
+        }
+
+        return (int) round(($this->start_date->diffInDays($today) + 1) / $this->durationDays() * 100);
+    }
+
+    /** Keterangan singkat posisi hari ini terhadap periode, mis. "Berakhir dalam 12 hari". */
+    public function periodHint(): string
+    {
+        $today = today();
+
+        return match (true) {
+            $this->isTerminated() => 'Dihentikan '.($this->terminated_at?->translatedFormat('d M Y') ?? ''),
+            $today->lt($this->start_date) => 'Mulai dalam '.$today->diffInDays($this->start_date).' hari',
+            $today->gt($this->end_date) => 'Berakhir '.$this->end_date->diffInDays($today).' hari lalu',
+            $today->equalTo($this->end_date) => 'Berakhir hari ini',
+            default => 'Berakhir dalam '.$today->diffInDays($this->end_date).' hari',
+        };
+    }
+
+    /** Berjalan dan berakhir dalam $days hari ke depan. */
+    public function isEndingSoon(int $days = 30): bool
+    {
+        return $this->isRunning() && today()->diffInDays($this->end_date, false) <= $days;
     }
 
     public function statusVariant(): string
     {
-        return match (true) {
-            $this->status === self::STATUS_ACTIVE && $this->start_date->isFuture() => 'primary',
-            default => match ($this->status) {
-                self::STATUS_ACTIVE => 'success',
-                self::STATUS_TERMINATED => 'danger',
-                self::STATUS_EXPIRED => 'warning',
-                default => 'muted',
-            },
+        return match ($this->statusLabel()) {
+            'Dihentikan' => 'danger',
+            'Terjadwal' => 'primary',
+            'Berakhir' => 'muted',
+            default => 'success',
         };
     }
 }

@@ -25,7 +25,7 @@ class OrderServiceTest extends B2bTestCase
         $user = $this->userFor($outlet);
         $variant = $this->variant($outlet, 10000, 3);
         $customer = $this->customer();
-        $contract = $this->contract($customer, [['discount_value' => 10]]);
+        $contract = $this->contract($customer, [['variant_id' => $variant->id, 'price' => 9000]]);
 
         $order = $this->place([
             'user' => $user,
@@ -38,12 +38,13 @@ class OrderServiceTest extends B2bTestCase
         $this->assertSame(Order::STATUS_CONFIRMED, $order->status);
         $this->assertSame($contract->id, $order->b2b_contract_id);
         $this->assertMatchesRegularExpression('#^SO/B2B/\d{4}/\d{2}/\d{4}$#', $order->order_number);
-        $this->assertSame(50000, $order->subtotal);
-        $this->assertSame(5000, $order->discount_total);
+        $this->assertSame(45000, $order->subtotal);
         $this->assertSame(45000, $order->grand_total);
 
         $item = $order->items->first();
+        $this->assertSame(10000, $item->base_price);
         $this->assertSame(9000, $item->final_price);
+        $this->assertSame($contract->items->first()->id, $item->b2b_contract_item_id);
         $this->assertTrue($item->stock_insufficient);
         $this->assertSame('Bungkus terpisah', $item->notes);
         $this->assertSame(-2, (int) $variant->fresh()->stok);
@@ -66,14 +67,20 @@ class OrderServiceTest extends B2bTestCase
         $user = $this->userFor($outlet);
         $variant = $this->variant($outlet, 10000);
         $customer = $this->customer();
-        $contract = $this->contract($customer, [['discount_value' => 10]]);
+        $contract = $this->contract($customer, [['variant_id' => $variant->id, 'price' => 9000]]);
 
         $order = $this->place(['user' => $user, 'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id,
             'items' => [['variant_id' => $variant->id, 'qty' => 1]]]);
-        $contract->rules()->update(['discount_value' => 50]);
+        $contractItem = $contract->items->first();
+        $contractItem->update(['price' => 5000]);
+        $contractItem->delete();
         $variant->update(['harga' => 20000]);
 
-        $this->assertSame(9000, $order->items()->first()->final_price);
+        $item = $order->items()->first();
+        $this->assertSame(9000, $item->final_price);
+        $this->assertSame(10000, $item->base_price);
+        // Item kontrak yang dibuang (soft delete) tetap bisa dirujuk dari pesanan lama.
+        $this->assertSame($contractItem->id, $item->contractItem?->id);
     }
 
     public function test_order_numbers_are_sequential(): void

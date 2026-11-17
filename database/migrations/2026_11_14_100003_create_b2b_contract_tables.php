@@ -8,46 +8,48 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Tanpa draft: kontrak langsung aktif. Label Terjadwal/Berjalan/Berakhir dihitung dari tanggal.
         Schema::create('b2b_contracts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('b2b_customer_id')->constrained('b2b_customers')->cascadeOnDelete();
+            $table->foreignId('b2b_customer_id')->constrained('b2b_customers');
             $table->string('contract_number', 40)->unique();
             $table->date('start_date');
             $table->date('end_date');
-            $table->enum('status', ['draft', 'active', 'expired', 'terminated'])->default('draft');
+            $table->enum('status', ['active', 'terminated'])->default('active');
             $table->string('attachment_path')->nullable();
             $table->string('attachment_name')->nullable();
             $table->text('notes')->nullable();
-            $table->foreignId('activated_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('activated_at')->nullable();
-            $table->foreignId('terminated_by')->nullable()->constrained('users')->nullOnDelete();
+            // Audit trail: id user disimpan apa adanya, tanpa foreign key/index (sama dengan b2b_customers).
+            $table->unsignedBigInteger('terminated_by')->nullable();
             $table->timestamp('terminated_at')->nullable();
             $table->string('termination_reason')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('modified_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
             $table->index(['b2b_customer_id', 'status', 'start_date', 'end_date'], 'b2b_contracts_lookup_index');
         });
 
-        Schema::create('b2b_contract_rules', function (Blueprint $table) {
+        // Harga kontrak per varian (varian sudah menentukan outlet). Beberapa baris per varian = harga bertingkat per qty.
+        // Soft delete supaya item yang dibuang saat kontrak diedit tetap bisa dirujuk pesanan lama.
+        // Kombinasi (kontrak, varian, min_qty) divalidasi unik di aplikasi, bukan unique index (bentrok dengan baris terhapus).
+        Schema::create('b2b_contract_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('b2b_contract_id')->constrained('b2b_contracts')->cascadeOnDelete();
-            $table->enum('scope', ['all', 'category', 'product', 'variant']);
-            $table->foreignId('outlet_id')->nullable()->comment('kosong = semua outlet')->constrained('outlets')->cascadeOnDelete();
-            $table->foreignId('category_id')->nullable()->constrained('categories')->cascadeOnDelete();
-            $table->foreignId('product_id')->nullable()->constrained('products')->cascadeOnDelete();
-            $table->foreignId('variant_id')->nullable()->constrained('variant_products')->cascadeOnDelete();
-            $table->enum('discount_type', ['percent', 'nominal', 'fixed_price']);
-            $table->decimal('discount_value', 15, 2);
-            $table->unsignedInteger('min_qty')->default(1);
+            $table->foreignId('b2b_contract_id')->constrained('b2b_contracts');
+            $table->foreignId('variant_id')->constrained('variant_products');
+            $table->unsignedInteger('min_qty')->default(1)->comment('harga berlaku mulai qty ini');
+            $table->bigInteger('price')->comment('harga kontrak per unit (rupiah), boleh di atas harga normal');
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index(['b2b_contract_id', 'variant_id']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('b2b_contract_rules');
+        Schema::dropIfExists('b2b_contract_items');
         Schema::dropIfExists('b2b_contracts');
     }
 };

@@ -2,7 +2,7 @@
 
 @section('content')
     @include('layouts.b2b.partials.assets')
-    @include('layouts.b2b.customers.partials.styles')
+    @include('layouts.b2b.partials.page-styles')
 
     <div class="main-content ob-page">
         <div class="ob-header">

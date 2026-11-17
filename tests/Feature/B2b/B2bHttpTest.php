@@ -13,7 +13,7 @@ class B2bHttpTest extends B2bTestCase
 {
     private const ALL = [
         'read b2b', 'read b2b/customers', 'create b2b/customers', 'update b2b/customers', 'delete b2b/customers',
-        'read b2b/contracts', 'create b2b/contracts', 'update b2b/contracts', 'delete b2b/contracts', 'activate b2b/contracts', 'terminate b2b/contracts',
+        'read b2b/contracts', 'create b2b/contracts', 'update b2b/contracts', 'delete b2b/contracts', 'terminate b2b/contracts',
         'read b2b/cashier', 'create b2b/cashier', 'read b2b/orders', 'complete b2b/orders', 'cancel b2b/orders', 'read b2b/invoices',
     ];
 
@@ -26,7 +26,7 @@ class B2bHttpTest extends B2bTestCase
         foreach (['b2b/cashier', 'b2b/orders', 'b2b/invoices', 'b2b/customers', 'b2b/contracts'] as $url) {
             $this->assertSame(1, \App\Models\Menu::where('url', $url)->count());
         }
-        $this->assertDatabaseHas('permissions', ['name' => 'activate b2b/contracts']);
+        $this->assertDatabaseHas('permissions', ['name' => 'terminate b2b/contracts']);
         $this->assertDatabaseHas('permissions', ['name' => 'cancel b2b/orders']);
     }
 
@@ -205,71 +205,120 @@ class B2bHttpTest extends B2bTestCase
         $this->assertNotSoftDeleted('b2b_customers', ['id' => $customer->id]);
     }
 
-    public function test_contract_store_normalizes_rules_and_stores_attachment(): void
+    public function test_contract_store_saves_item_prices_and_attachment(): void
     {
         Storage::fake('local');
         $outlet = $this->outlet();
-        $variant = $this->variant($outlet);
-        $category = $this->category();
-        $user = $this->userFor(null, ['create b2b/contracts', 'activate b2b/contracts']);
+        $otherOutlet = $this->outlet('B');
+        $variant = $this->variant($outlet, 40000);
+        $otherVariant = $this->variant($otherOutlet, 40000);
+        $user = $this->userFor(null, ['create b2b/contracts']);
         $customer = $this->customer();
 
         $response = $this->actingAs($user)->post(route('b2b/contracts/store'), [
             'b2b_customer_id' => $customer->id,
             'start_date' => today()->toDateString(),
             'end_date' => today()->addYear()->toDateString(),
-            'activate' => 1,
             'attachment' => UploadedFile::fake()->create('kontrak.pdf', 100, 'application/pdf'),
-            'rules' => [
-                ['scope' => 'category', 'category_id' => $category->id, 'product_id' => $variant->product_id, 'discount_type' => 'percent', 'discount_value' => 10, 'min_qty' => 1],
-                ['scope' => 'variant', 'variant_id' => $variant->id, 'outlet_id' => '', 'discount_type' => 'fixed_price', 'discount_value' => 7000, 'min_qty' => 5],
+            'items' => [
+                ['variant_id' => $variant->id, 'min_qty' => 1, 'price' => 38000],
+                ['variant_id' => $variant->id, 'min_qty' => 10, 'price' => 36000],
+                ['variant_id' => $otherVariant->id, 'min_qty' => 1, 'price' => 42000],
             ],
         ], ['Accept' => 'application/json'])->assertOk();
 
-        $contract = Contract::with('rules')->findOrFail($response->json('data.id'));
+        $contract = Contract::with('items')->findOrFail($response->json('data.id'));
         $this->assertSame(Contract::STATUS_ACTIVE, $contract->status);
         Storage::disk('local')->assertExists($contract->attachment_path);
-        $categoryRule = $contract->rules->firstWhere('scope', 'category');
-        $this->assertNull($categoryRule->product_id);
-        $variantRule = $contract->rules->firstWhere('scope', 'variant');
-        $this->assertSame($outlet->id, $variantRule->outlet_id);
-        $this->assertSame($variant->product_id, $variantRule->product_id);
+        $this->assertCount(3, $contract->items);
+        $this->assertSame(42000, $contract->items->firstWhere('variant_id', $otherVariant->id)->price);
     }
 
-    public function test_contract_store_rejects_invalid_and_duplicate_rules(): void
+    public function test_contract_update_can_remove_saved_attachment(): void
     {
-        $user = $this->userFor(null, ['create b2b/contracts']);
+        Storage::fake('local');
+        $variant = $this->variant($this->outlet());
+        $user = $this->userFor(null, ['update b2b/contracts']);
+        $contract = $this->contract($this->customer(), [['variant_id' => $variant->id, 'price' => 9000]]);
+        Storage::disk('local')->put('b2b/contracts/'.$contract->id.'/lama.pdf', 'isi');
+        $contract->forceFill(['attachment_path' => 'b2b/contracts/'.$contract->id.'/lama.pdf', 'attachment_name' => 'lama.pdf'])->save();
+        $payload = [
+            'start_date' => $contract->start_date->toDateString(), 'end_date' => $contract->end_date->toDateString(),
+            'items' => [['id' => $contract->items->first()->id, 'variant_id' => $variant->id, 'min_qty' => 1, 'price' => 9000]],
+        ];
+
+        // File baru menang atas permintaan hapus: file lama diganti, bukan dikosongkan.
+        $this->actingAs($user)->put(route('b2b/contracts/update', $contract->id), $payload + [
+            'remove_attachment' => '1', 'attachment' => UploadedFile::fake()->create('baru.pdf', 10, 'application/pdf'),
+        ], ['Accept' => 'application/json'])->assertOk();
+        $contract->refresh();
+        $this->assertSame('baru.pdf', $contract->attachment_name);
+        Storage::disk('local')->assertMissing('b2b/contracts/'.$contract->id.'/lama.pdf');
+
+        $newPath = $contract->attachment_path;
+        $this->actingAs($user)->putJson(route('b2b/contracts/update', $contract->id), $payload + ['remove_attachment' => '1'])->assertOk();
+        $contract->refresh();
+        $this->assertNull($contract->attachment_path);
+        $this->assertNull($contract->attachment_name);
+        Storage::disk('local')->assertMissing($newPath);
+    }
+
+    public function test_contract_store_rejects_missing_invalid_and_duplicate_items(): void
+    {
+        $user = $this->userFor(null, ['create b2b/contracts', 'update b2b/contracts']);
         $customer = $this->customer();
+        $variant = $this->variant($this->outlet());
         $base = ['b2b_customer_id' => $customer->id, 'start_date' => today()->toDateString(), 'end_date' => today()->addMonth()->toDateString()];
 
-        $this->actingAs($user)->postJson(route('b2b/contracts/store'), $base + ['rules' => [
-            ['scope' => 'all', 'discount_type' => 'percent', 'discount_value' => 150, 'min_qty' => 1],
-        ]])->assertUnprocessable()->assertJsonValidationErrors('rules.0.discount_value');
-
-        $this->actingAs($user)->postJson(route('b2b/contracts/store'), $base + ['rules' => [
-            ['scope' => 'product', 'discount_type' => 'percent', 'discount_value' => 5, 'min_qty' => 1],
-        ]])->assertUnprocessable()->assertJsonValidationErrors('rules.0.product_id');
-
-        $this->actingAs($user)->postJson(route('b2b/contracts/store'), $base + ['rules' => [
-            ['scope' => 'all', 'discount_type' => 'percent', 'discount_value' => 5, 'min_qty' => 1],
-            ['scope' => 'all', 'discount_type' => 'nominal', 'discount_value' => 500, 'min_qty' => 1],
-        ]])->assertUnprocessable()->assertJsonValidationErrors('rules.1.min_qty');
-
         $this->actingAs($user)->postJson(route('b2b/contracts/store'), $base)
-            ->assertUnprocessable()->assertJsonValidationErrors('rules');
+            ->assertUnprocessable()->assertJsonValidationErrors('items');
+        $this->actingAs($user)->postJson(route('b2b/contracts/store'), $base + ['items' => [
+            ['variant_id' => $variant->id, 'min_qty' => 0, 'price' => -1],
+        ]])->assertUnprocessable()->assertJsonValidationErrors(['items.0.min_qty', 'items.0.price']);
+        $this->actingAs($user)->postJson(route('b2b/contracts/store'), $base + ['items' => [
+            ['variant_id' => $variant->id, 'min_qty' => 5, 'price' => 9000],
+            ['variant_id' => $variant->id, 'min_qty' => 5, 'price' => 8000],
+        ]])->assertUnprocessable()->assertJsonValidationErrors('items.1.min_qty');
+        $this->actingAs($user)->postJson(route('b2b/contracts/store'), array_merge($base, ['end_date' => today()->subDay()->toDateString()]) + ['items' => [
+            ['variant_id' => $variant->id, 'min_qty' => 1, 'price' => 9000],
+        ]])->assertUnprocessable()->assertJsonValidationErrors('end_date');
+
+        // Customer kontrak tidak bisa diganti lewat edit.
+        $contract = $this->contract($customer, [['variant_id' => $variant->id, 'price' => 9000]]);
+        $this->actingAs($user)->putJson(route('b2b/contracts/update', $contract->id), [
+            'b2b_customer_id' => $this->customer()->id, 'start_date' => today()->toDateString(), 'end_date' => today()->addMonth()->toDateString(),
+            'items' => [['variant_id' => $variant->id, 'min_qty' => 1, 'price' => 9000]],
+        ])->assertUnprocessable()->assertJsonValidationErrors('b2b_customer_id');
     }
 
-    public function test_activating_on_store_requires_activate_permission(): void
+    public function test_variant_selector_lists_every_variant_of_one_outlet(): void
     {
-        $user = $this->userFor(null, ['create b2b/contracts']);
+        $outlet = $this->outlet();
+        $variant = $this->variant($outlet, 25000, 10, $this->category('Minuman'), 'Teh Tarik');
+        $this->variant($this->outlet('B'), 30000, 10, null, 'Outlet Lain');
 
-        $this->actingAs($user)->postJson(route('b2b/contracts/store'), [
-            'b2b_customer_id' => $this->customer()->id,
-            'start_date' => today()->toDateString(),
-            'end_date' => today()->addMonth()->toDateString(),
-            'activate' => 1,
-            'rules' => [['scope' => 'all', 'discount_type' => 'percent', 'discount_value' => 5, 'min_qty' => 1]],
-        ])->assertForbidden();
+        $this->actingAs($this->userFor())->getJson(route('b2b/selectors/variants', ['outlet_id' => $outlet->id]))->assertForbidden();
+
+        $user = $this->userFor(null, ['create b2b/contracts']);
+        $this->actingAs($user)->getJson(route('b2b/selectors/variants'))->assertUnprocessable()->assertJsonValidationErrors('outlet_id');
+        $data = $this->actingAs($user)->getJson(route('b2b/selectors/variants', ['outlet_id' => $outlet->id]))->assertOk()->json('data');
+
+        $this->assertSame([$variant->id], array_column($data, 'id'));
+        $this->assertSame('Teh Tarik', $data[0]['product']);
+        $this->assertSame(25000, $data[0]['price']);
+        $this->assertStringStartsWith('Minuman', $data[0]['category']);
+    }
+
+    public function test_running_contract_cannot_be_deleted_via_http(): void
+    {
+        $user = $this->userFor(null, ['delete b2b/contracts']);
+        $running = $this->contract($this->customer());
+        $ended = $this->contract($this->customer(), [], ['start_date' => today()->subMonths(3), 'end_date' => today()->subMonths(2)]);
+
+        $this->actingAs($user)->deleteJson(route('b2b/contracts/destroy', $running->id))
+            ->assertUnprocessable()->assertJsonValidationErrors('status');
+        $this->actingAs($user)->deleteJson(route('b2b/contracts/destroy', $ended->id))->assertOk();
+        $this->assertSoftDeleted('b2b_contracts', ['id' => $ended->id]);
     }
 
     public function test_terminate_requires_reason(): void
@@ -290,19 +339,24 @@ class B2bHttpTest extends B2bTestCase
         $user = $this->userFor($outlet, ['read b2b/cashier', 'create b2b/cashier']);
         $variant = $this->variant($outlet, 20000, 50);
         $customer = $this->customer();
-        $this->contract($customer, [['scope' => 'variant', 'variant_id' => $variant->id, 'discount_type' => 'nominal', 'discount_value' => 2500]]);
+        $this->contract($customer, [
+            ['variant_id' => $variant->id, 'price' => 17500],
+            ['variant_id' => $variant->id, 'min_qty' => 10, 'price' => 16000],
+        ]);
 
         $this->actingAs($user)->getJson(route('b2b/cashier/products', ['outlet_id' => $outlet->id]))
             ->assertOk()->assertJsonFragment(['id' => $variant->id, 'price' => 20000, 'stock' => 50]);
         $this->actingAs($user)->getJson(route('b2b/cashier/customer', $customer->id))
-            ->assertOk()->assertJsonPath('data.contract.rules_count', 1);
+            ->assertOk()->assertJsonPath('data.contract.items_count', 1);
 
         $payload = ['outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id, 'items' => [['variant_id' => $variant->id, 'qty' => 4]]];
         $this->actingAs($user)->postJson(route('b2b/cashier/quote'), $payload)
             ->assertOk()
             ->assertJsonPath('data.items.0.final_price', 17500)
-            ->assertJsonPath('data.grand_total', 70000)
-            ->assertJsonPath('data.discount_total', 10000);
+            ->assertJsonPath('data.items.0.base_price', 20000)
+            ->assertJsonPath('data.items.0.contract_price', true)
+            ->assertJsonPath('data.items.0.min_qty', 1)
+            ->assertJsonPath('data.grand_total', 70000);
 
         $this->actingAs($user)->postJson(route('b2b/cashier/store'), $payload + ['delivery_method' => 'pickup'])
             ->assertUnprocessable()->assertJsonValidationErrors('due_date');
@@ -395,16 +449,25 @@ class B2bHttpTest extends B2bTestCase
         $outlet = $this->outlet();
         $user = $this->userFor($outlet, self::ALL);
         $customer = $this->customer(['address' => 'Jl. Kantor A']);
-        $contract = $this->contract($customer, [['scope' => 'all', 'discount_value' => 5]]);
-        $draft = $this->contract($customer, [['scope' => 'all', 'discount_value' => 6]], [
-            'status' => Contract::STATUS_DRAFT, 'start_date' => today()->addMonths(2), 'end_date' => today()->addMonths(3),
+        $variant = $this->variant($outlet, 40000, 100, null, 'Kopi Kontrak');
+        $contract = $this->contract($customer, [
+            ['variant_id' => $variant->id, 'price' => 38000],
+            ['variant_id' => $variant->id, 'min_qty' => 10, 'price' => 36000],
+        ]);
+        $terminated = $this->contract($customer, [['variant_id' => $variant->id, 'price' => 39000]], [
+            'status' => Contract::STATUS_TERMINATED, 'start_date' => today()->addMonths(2), 'end_date' => today()->addMonths(3),
         ]);
 
         $this->actingAs($user)->get(route('b2b/customers/show', $customer->id))->assertOk()->assertSee($contract->contract_number);
         $this->actingAs($user)->get(route('b2b/customers/edit', $customer->id))->assertOk()->assertSee('Jl. Kantor A');
-        $this->actingAs($user)->get(route('b2b/contracts/show', $contract->id))->assertOk()->assertSee('Diskon 5%');
-        $this->actingAs($user)->get(route('b2b/contracts/edit', $draft->id))->assertOk();
-        $this->actingAs($user)->get(route('b2b/contracts/edit', $contract->id))->assertForbidden();
-        $this->actingAs($user)->get(route('b2b/contracts/create', ['copy_from' => $contract->id]))->assertOk()->assertSee('Disalin dari');
+        $this->actingAs($user)->get(route('b2b/contracts/show', $contract->id))->assertOk()
+            ->assertSee('Kopi Kontrak')->assertSee('Rp 38.000')->assertSee('Rp 36.000')->assertSee('sedang berjalan');
+        // Harga yang sudah ada dikirim sebagai data awal tabel pilih produk (dirender JavaScript).
+        $this->actingAs($user)->get(route('b2b/contracts/edit', $contract->id))->assertOk()
+            ->assertSee('Kopi Kontrak')->assertSee('"min_qty":10', false)->assertSee('"price":36000', false);
+        $this->actingAs($user)->get(route('b2b/contracts/edit', $terminated->id))->assertForbidden();
+        $this->actingAs($user)->get(route('b2b/contracts/create'))->assertOk();
+        $this->actingAs($user)->get(route('b2b/contracts/create', ['copy_from' => $contract->id]))->assertOk()
+            ->assertSee('Disalin dari')->assertSee('Kopi Kontrak');
     }
 }

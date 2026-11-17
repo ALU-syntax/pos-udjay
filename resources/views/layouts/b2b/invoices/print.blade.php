@@ -126,7 +126,6 @@
                     <th>Produk</th>
                     <th class="num">Qty</th>
                     <th class="num">Harga</th>
-                    <th class="num">Diskon/unit</th>
                     <th class="num">Jumlah</th>
                 </tr>
             </thead>
@@ -139,8 +138,7 @@
                             @if ($item->notes)<div class="muted">{{ $item->notes }}</div>@endif
                         </td>
                         <td class="num">{{ number_format($item->qty, 0, ',', '.') }}</td>
-                        <td class="num">{{ $rupiah($item->base_price) }}</td>
-                        <td class="num">{{ $item->discount_per_unit ? $rupiah($item->discount_per_unit) : '-' }}</td>
+                        <td class="num">{{ $rupiah($item->final_price) }}</td>
                         <td class="num">{{ $rupiah($item->line_total) }}</td>
                     </tr>
                 @endforeach
@@ -149,9 +147,6 @@
 
         <div class="totals">
             <div><span>Subtotal</span><span class="num">{{ $rupiah($order->subtotal) }}</span></div>
-            @if ($order->discount_total)
-                <div><span>Diskon kontrak</span><span class="num">− {{ $rupiah($order->discount_total) }}</span></div>
-            @endif
             @if ($order->shipping_cost)
                 <div><span>Ongkos kirim</span><span class="num">{{ $rupiah($order->shipping_cost) }}</span></div>
             @endif

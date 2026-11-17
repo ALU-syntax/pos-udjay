@@ -2,7 +2,7 @@
 
 @section('content')
     @include('layouts.b2b.partials.assets')
-    @include('layouts.b2b.customers.partials.styles')
+    @include('layouts.b2b.partials.page-styles')
 
     <div class="main-content ob-page">
         <div class="ob-header">
@@ -71,13 +71,13 @@
                     @else
                         <div class="table-responsive">
                             <table class="b2b-table b2b-table--card">
-                                <thead><tr><th>No. Kontrak</th><th>Periode</th><th>Aturan diskon</th><th>Status</th></tr></thead>
+                                <thead><tr><th>No. Kontrak</th><th>Periode</th><th>Harga</th><th>Status</th></tr></thead>
                                 <tbody>
                                     @foreach ($contracts as $contract)
                                         <tr>
                                             <td><a href="{{ route('b2b/contracts/show', $contract->id) }}">{{ $contract->contract_number }}</a></td>
                                             <td class="text-nowrap">{{ $contract->start_date->translatedFormat('d M Y') }} – {{ $contract->end_date->translatedFormat('d M Y') }}</td>
-                                            <td>{{ $contract->rules_count }} aturan</td>
+                                            <td>{{ $contract->items_count }} harga</td>
                                             <td><span class="badge badge-{{ $contract->statusVariant() }}">{{ $contract->statusLabel() }}</span></td>
                                         </tr>
                                     @endforeach

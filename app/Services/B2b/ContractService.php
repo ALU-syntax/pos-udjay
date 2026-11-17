@@ -11,98 +11,92 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Kontrak langsung aktif saat dibuat dan tetap bisa diedit (tanggal & harga) selama belum dihentikan.
+ * Pesanan lama tidak terpengaruh karena harga disalin ke item pesanan.
+ */
 class ContractService
 {
     public const ATTACHMENT_DISK = 'local';
+
+    private const CONTRACT_FIELDS = ['start_date', 'end_date', 'notes'];
 
     public function __construct(
         private readonly SequenceService $sequences,
         private readonly ActivityLogger $logger,
     ) {}
 
-    /** @param  array{rules?:array}  $data hasil validasi ContractRequest */
-    public function create(array $data, ?UploadedFile $attachment = null, bool $activate = false): Contract
+    /** @param  array{b2b_customer_id:int, start_date:string, end_date:string, notes?:string|null, items:array}  $data */
+    public function create(array $data, ?UploadedFile $attachment = null): Contract
     {
-        return DB::transaction(function () use ($data, $attachment, $activate) {
-            $this->lockCustomer((int) $data['b2b_customer_id']);
-            $this->assertNoOverlap((int) $data['b2b_customer_id'], $data['start_date'], $data['end_date']);
+        return DB::transaction(function () use ($data, $attachment) {
+            $customerId = (int) $data['b2b_customer_id'];
+            $this->lockCustomer($customerId);
+            $this->assertNoOverlap($customerId, $data['start_date'], $data['end_date']);
 
-            $contract = new Contract(Arr::except($data, ['rules']));
+            $contract = new Contract(Arr::only($data, self::CONTRACT_FIELDS));
+            $contract->forceFill([
+                'b2b_customer_id' => $customerId,
+                'status' => Contract::STATUS_ACTIVE,
+                'created_by' => auth()->id(),
+            ]);
             $contract->contract_number = $this->sequences->contractNumber();
-            $contract->status = Contract::STATUS_DRAFT;
-            $contract->created_by = auth()->id();
             $contract->save();
 
-            $contract->rules()->createMany($data['rules'] ?? []);
+            $changes = $this->syncItems($contract, $data['items']);
             $this->storeAttachment($contract, $attachment);
-            $this->logger->log('contract.created', $contract, ['rules' => count($data['rules'] ?? [])]);
+            $this->logger->log('contract.created', $contract, ['items' => $changes]);
 
-            if ($activate) {
-                $this->activate($contract);
-            }
-
-            return $contract->fresh('rules');
+            return $contract->fresh('items');
         });
     }
 
-    /** Hanya kontrak draft yang bisa diubah; aturan diganti seluruhnya. */
-    public function update(Contract $contract, array $data, ?UploadedFile $attachment = null): Contract
+    /** Tanggal, catatan, dan harga bisa diubah kapan saja selama kontrak belum dihentikan. Customer tidak bisa diganti. */
+    public function update(Contract $contract, array $data, ?UploadedFile $attachment = null, bool $removeAttachment = false): Contract
     {
-        return DB::transaction(function () use ($contract, $data, $attachment) {
+        return DB::transaction(function () use ($contract, $data, $attachment, $removeAttachment) {
             $contract = Contract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
-            if (! $contract->isDraft()) {
-                throw ValidationException::withMessages([
-                    'status' => 'Hanya kontrak draft yang bisa diubah. Untuk mengubah diskon kontrak aktif, hentikan kontrak lalu buat kontrak baru.',
-                ]);
-            }
-
-            $this->lockCustomer((int) $data['b2b_customer_id']);
-            $this->assertNoOverlap((int) $data['b2b_customer_id'], $data['start_date'], $data['end_date'], $contract->id);
-
-            $before = $contract->only(['b2b_customer_id', 'start_date', 'end_date']);
-            $contract->fill(Arr::except($data, ['rules']));
-            $contract->save();
-
-            $contract->rules()->delete();
-            $contract->rules()->createMany($data['rules'] ?? []);
-            $this->storeAttachment($contract, $attachment);
-            $this->logger->log('contract.updated', $contract, ['before' => $before, 'rules' => count($data['rules'] ?? [])]);
-
-            return $contract->fresh('rules');
-        });
-    }
-
-    public function activate(Contract $contract): Contract
-    {
-        return DB::transaction(function () use ($contract) {
-            $contract = Contract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
-            if (! $contract->isDraft()) {
-                throw ValidationException::withMessages(['status' => 'Hanya kontrak draft yang bisa diaktifkan.']);
-            }
-            if ($contract->end_date->lt(today())) {
-                throw ValidationException::withMessages(['end_date' => 'Tanggal berakhir kontrak sudah lewat. Ubah periodenya terlebih dahulu.']);
+            if ($contract->isTerminated()) {
+                throw ValidationException::withMessages(['status' => 'Kontrak yang sudah dihentikan tidak bisa diubah. Buat kontrak baru sebagai gantinya.']);
             }
 
             $this->lockCustomer($contract->b2b_customer_id);
-            $this->assertNoOverlap($contract->b2b_customer_id, $contract->start_date, $contract->end_date, $contract->id);
+            $this->assertNoOverlap($contract->b2b_customer_id, $data['start_date'], $data['end_date'], $contract->id);
 
-            $contract->forceFill([
-                'status' => Contract::STATUS_ACTIVE,
-                'activated_by' => auth()->id(),
-                'activated_at' => now(),
-            ])->save();
-            $this->logger->log('contract.activated', $contract);
+            $before = ['start_date' => $contract->start_date->toDateString(), 'end_date' => $contract->end_date->toDateString()];
+            $contract->fill(Arr::only($data, self::CONTRACT_FIELDS));
+            $contract->modified_by = auth()->id();
+            $contract->save();
 
-            return $contract;
+            $changes = $this->syncItems($contract, $data['items']);
+            // File baru selalu menang atas permintaan hapus.
+            $attachmentChange = null;
+            if ($attachment) {
+                $this->storeAttachment($contract, $attachment);
+                $attachmentChange = 'replaced';
+            } elseif ($removeAttachment && $this->removeAttachment($contract)) {
+                $attachmentChange = 'removed';
+            }
+            $this->logger->log('contract.updated', $contract, [
+                'before' => $before,
+                'after' => ['start_date' => $contract->start_date->toDateString(), 'end_date' => $contract->end_date->toDateString()],
+                'items' => $changes,
+            ] + array_filter(['attachment' => $attachmentChange]));
+
+            return $contract->fresh('items');
         });
     }
 
+    /** Hentikan kontrak yang belum dihentikan dan belum berakhir. Pesanan berikutnya memakai harga normal. */
     public function terminate(Contract $contract, string $reason): Contract
     {
         return DB::transaction(function () use ($contract, $reason) {
             $contract = Contract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
-            if (! $contract->isActive()) {
-                throw ValidationException::withMessages(['status' => 'Hanya kontrak aktif yang bisa dihentikan.']);
+            if ($contract->isTerminated()) {
+                throw ValidationException::withMessages(['status' => 'Kontrak ini sudah dihentikan.']);
+            }
+            if ($contract->end_date->lt(today())) {
+                throw ValidationException::withMessages(['status' => 'Kontrak ini sudah berakhir, jadi tidak perlu dihentikan.']);
             }
 
             $contract->forceFill([
@@ -110,6 +104,7 @@ class ContractService
                 'terminated_by' => auth()->id(),
                 'terminated_at' => now(),
                 'termination_reason' => $reason,
+                'modified_by' => auth()->id(),
             ])->save();
             $this->logger->log('contract.terminated', $contract, ['reason' => $reason]);
 
@@ -117,40 +112,26 @@ class ContractService
         });
     }
 
+    /** Soft delete. Kontrak yang sedang berjalan harus dihentikan dulu. */
     public function delete(Contract $contract): void
     {
         DB::transaction(function () use ($contract) {
             $contract = Contract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
-            if (! $contract->isDraft()) {
-                throw ValidationException::withMessages(['status' => 'Hanya kontrak draft yang bisa dihapus.']);
+            if ($contract->isRunning()) {
+                throw ValidationException::withMessages([
+                    'status' => 'Kontrak sedang berjalan, jadi tidak bisa dihapus. Hentikan kontrak dulu kalau memang tidak dipakai lagi.',
+                ]);
             }
 
+            $contract->forceFill(['modified_by' => auth()->id()])->save();
             $contract->delete();
             $this->logger->log('contract.deleted', $contract);
         });
     }
 
-    /** Kontrak aktif yang sudah lewat tanggal berakhir → expired. Dijalankan harian oleh b2b:sync-contract-status. */
-    public function expireEndedContracts(?Carbon $today = null): int
-    {
-        $today ??= today();
-        $count = 0;
-
-        Contract::query()
-            ->where('status', Contract::STATUS_ACTIVE)
-            ->whereDate('end_date', '<', $today->toDateString())
-            ->each(function (Contract $contract) use (&$count) {
-                $contract->forceFill(['status' => Contract::STATUS_EXPIRED])->save();
-                $this->logger->log('contract.expired', $contract, null, null);
-                $count++;
-            });
-
-        return $count;
-    }
-
     /**
-     * Periode kontrak draft/aktif milik customer yang sama tidak boleh tumpang tindih,
-     * sehingga pada satu tanggal paling banyak ada satu kontrak yang berlaku.
+     * Periode kontrak yang belum dihentikan milik customer yang sama tidak boleh tumpang tindih,
+     * sehingga pada satu tanggal paling banyak ada satu kontrak yang berlaku. Kontrak terhapus tidak dihitung.
      */
     public function assertNoOverlap(int $customerId, Carbon|string $start, Carbon|string $end, ?int $ignoreId = null): void
     {
@@ -159,7 +140,7 @@ class ContractService
 
         $conflict = Contract::query()
             ->where('b2b_customer_id', $customerId)
-            ->whereIn('status', Contract::BLOCKING_STATUSES)
+            ->where('status', Contract::STATUS_ACTIVE)
             ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
             ->whereDate('start_date', '<=', $end)
             ->whereDate('end_date', '>=', $start)
@@ -168,7 +149,7 @@ class ContractService
         if ($conflict) {
             throw ValidationException::withMessages([
                 'start_date' => sprintf(
-                    'Periode bertabrakan dengan kontrak %s (%s, %s – %s).',
+                    'Customer ini sudah punya kontrak %s (%s, %s – %s) di periode yang sama.',
                     $conflict->contract_number,
                     $conflict->statusLabel(),
                     $conflict->start_date->translatedFormat('d M Y'),
@@ -176,6 +157,42 @@ class ContractService
                 ),
             ]);
         }
+    }
+
+    /**
+     * Baris dengan id milik kontrak ini diupdate di tempat, baris baru dibuat, dan baris yang dibuang
+     * di-soft-delete supaya pesanan lama tetap bisa merujuk harga yang dipakai.
+     *
+     * @return array{created:int, updated:int, deleted:int}
+     */
+    private function syncItems(Contract $contract, array $rows): array
+    {
+        $existing = $contract->items()->get()->keyBy('id');
+        $keptIds = [];
+        $changes = ['created' => 0, 'updated' => 0, 'deleted' => 0];
+
+        foreach ($rows as $row) {
+            $attributes = Arr::only($row, ['variant_id', 'min_qty', 'price']);
+            $item = $row['id'] ? $existing->get($row['id']) : null;
+
+            if ($item) {
+                $item->fill($attributes);
+                if ($item->isDirty()) {
+                    $item->save();
+                    $changes['updated']++;
+                }
+                $keptIds[] = $item->id;
+            } else {
+                $keptIds[] = $contract->items()->create($attributes)->id;
+                $changes['created']++;
+            }
+        }
+
+        $removed = $existing->except($keptIds);
+        $removed->each->delete();
+        $changes['deleted'] = $removed->count();
+
+        return $changes;
     }
 
     /** Kunci baris customer supaya dua kontrak untuk customer yang sama tidak lolos cek overlap bersamaan. */
@@ -200,5 +217,21 @@ class ContractService
         if ($oldPath && $oldPath !== $path) {
             DB::afterCommit(fn () => Storage::disk(self::ATTACHMENT_DISK)->delete($oldPath));
         }
+    }
+
+    /** Lepas file kontrak tersimpan; file fisiknya baru dihapus setelah transaksi berhasil. */
+    private function removeAttachment(Contract $contract): bool
+    {
+        $oldPath = $contract->attachment_path;
+        if (! $oldPath && ! $contract->attachment_name) {
+            return false;
+        }
+
+        $contract->forceFill(['attachment_path' => null, 'attachment_name' => null])->save();
+        if ($oldPath) {
+            DB::afterCommit(fn () => Storage::disk(self::ATTACHMENT_DISK)->delete($oldPath));
+        }
+
+        return true;
     }
 }

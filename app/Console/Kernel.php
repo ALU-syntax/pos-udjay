@@ -24,10 +24,6 @@ class Kernel extends ConsoleKernel
         $schedule->command('email:birthday-log-prune')
             ->timezone('Asia/Jakarta')
             ->dailyAt('00:30');
-        // Tiap 00:01 WIB: kontrak B2B aktif yang sudah lewat tanggal berakhir → expired.
-        $schedule->command('b2b:sync-contract-status')
-            ->timezone('Asia/Jakarta')
-            ->dailyAt('00:01');
     }
 
     /**

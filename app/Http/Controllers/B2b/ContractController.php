@@ -23,45 +23,52 @@ class ContractController extends Controller
     {
         $this->authorize('read b2b/contracts');
 
-        return $dataTable->render('layouts.b2b.contracts.index');
+        $today = today()->toDateString();
+        $active = fn () => Contract::query()->where('status', Contract::STATUS_ACTIVE);
+
+        return $dataTable->render('layouts.b2b.contracts.index', [
+            'stats' => [
+                'running' => $active()->whereDate('start_date', '<=', $today)->whereDate('end_date', '>=', $today)->count(),
+                'ending_soon' => $active()->whereDate('start_date', '<=', $today)->whereDate('end_date', '>=', $today)
+                    ->whereDate('end_date', '<=', today()->addDays(30)->toDateString())->count(),
+                'scheduled' => $active()->whereDate('start_date', '>', $today)->count(),
+                'customers' => $active()->whereDate('start_date', '<=', $today)->whereDate('end_date', '>=', $today)->distinct()->count('b2b_customer_id'),
+            ],
+        ]);
     }
 
-    /** ?customer_id= untuk memilih customer, ?copy_from= untuk menyalin aturan dari kontrak lama (perpanjangan). */
+    /** ?customer_id= untuk memilih customer, ?copy_from= untuk menyalin harga dari kontrak lama (perpanjangan). */
     public function create(Request $request)
     {
         $this->authorize('create b2b/contracts');
 
         $contract = new Contract([
-            'b2b_customer_id' => $request->integer('customer_id') ?: null,
             'start_date' => today(),
             'end_date' => today()->addYear()->subDay(),
         ]);
+        $contract->b2b_customer_id = $request->integer('customer_id') ?: null;
+        $contract->setRelation('items', collect());
+        $copiedFrom = null;
 
         if ($request->filled('copy_from')) {
-            $source = Contract::with('rules')->findOrFail($request->integer('copy_from'));
-            $length = $source->start_date->diffInDays($source->end_date);
-            $start = $source->end_date->copy()->addDay()->max(today());
+            $copiedFrom = Contract::with('items')->findOrFail($request->integer('copy_from'));
+            $length = $copiedFrom->start_date->diffInDays($copiedFrom->end_date);
+            $start = $copiedFrom->end_date->copy()->addDay()->max(today());
             $contract->fill([
-                'b2b_customer_id' => $source->b2b_customer_id,
                 'start_date' => $start,
                 'end_date' => $start->copy()->addDays($length),
-                'notes' => $source->notes,
+                'notes' => $copiedFrom->notes,
             ]);
-            $contract->setRelation('rules', $source->rules->map(fn ($rule) => $rule->replicate(['b2b_contract_id'])));
-        } else {
-            $contract->setRelation('rules', collect());
+            $contract->b2b_customer_id = $copiedFrom->b2b_customer_id;
+            $contract->setRelation('items', $copiedFrom->items->map(fn ($item) => $item->replicate(['b2b_contract_id'])));
         }
 
-        return $this->form($contract, $request->filled('copy_from') ? Contract::find($request->integer('copy_from')) : null);
+        return $this->form($contract, $copiedFrom);
     }
 
     public function store(ContractRequest $request)
     {
-        if ($request->boolean('activate')) {
-            $this->authorize('activate b2b/contracts');
-        }
-
-        $contract = $this->contracts->create($request->contractData(), $request->file('attachment'), $request->boolean('activate'));
+        $contract = $this->contracts->create($request->contractData(), $request->file('attachment'));
 
         return responseSuccess(false, 'Kontrak '.$contract->contract_number.' berhasil dibuat', [
             'id' => $contract->id,
@@ -72,7 +79,7 @@ class ContractController extends Controller
     public function show(Contract $contract)
     {
         $this->authorize('read b2b/contracts');
-        $contract->load(['customer', 'rules.outlet', 'rules.category', 'rules.product', 'rules.variant.product', 'creator', 'activator', 'terminator']);
+        $contract->load(['customer', 'items.variant.product.outlet', 'creator', 'modifier', 'terminator']);
 
         return view('layouts.b2b.contracts.show', [
             'contract' => $contract,
@@ -83,27 +90,19 @@ class ContractController extends Controller
     public function edit(Contract $contract)
     {
         $this->authorize('update b2b/contracts');
-        abort_unless($contract->isDraft(), 403, 'Hanya kontrak draft yang bisa diubah.');
+        abort_if($contract->isTerminated(), 403, 'Kontrak yang sudah dihentikan tidak bisa diubah.');
 
-        return $this->form($contract->load('rules'));
+        return $this->form($contract);
     }
 
     public function update(ContractRequest $request, Contract $contract)
     {
-        $this->contracts->update($contract, $request->contractData(), $request->file('attachment'));
+        $this->contracts->update($contract, $request->contractData(), $request->file('attachment'), $request->boolean('remove_attachment'));
 
         return responseSuccess(true, 'Kontrak berhasil diperbarui', [
             'id' => $contract->id,
             'redirect' => route('b2b/contracts/show', $contract->id),
         ]);
-    }
-
-    public function activate(Contract $contract)
-    {
-        $this->authorize('activate b2b/contracts');
-        $this->contracts->activate($contract);
-
-        return responseSuccess(true, 'Kontrak diaktifkan');
     }
 
     public function terminate(Request $request, Contract $contract)
@@ -120,7 +119,7 @@ class ContractController extends Controller
         $this->authorize('delete b2b/contracts');
         $this->contracts->delete($contract);
 
-        return responseSuccess(true, 'Kontrak draft dihapus', ['redirect' => route('b2b/contracts')]);
+        return responseSuccess(true, 'Kontrak dihapus', ['redirect' => route('b2b/contracts')]);
     }
 
     public function attachment(Contract $contract)
@@ -133,11 +132,32 @@ class ContractController extends Controller
 
     private function form(Contract $contract, ?Contract $copiedFrom = null)
     {
-        $contract->loadMissing(['rules.category', 'rules.product', 'rules.variant.product', 'rules.outlet']);
+        $contract->loadMissing('items.variant.product.category');
+
+        // Data awal tabel pilih produk: satu entri per varian, tingkat qty di dalamnya.
+        $initialItems = $contract->items->groupBy('variant_id')->map(function ($tiers) {
+            $variant = $tiers->first()->variant;
+            $product = $variant?->product;
+
+            return [
+                'id' => (int) $tiers->first()->variant_id,
+                'outlet_id' => $product?->outlet_id,
+                'product' => $product?->name ?? 'Varian #'.$tiers->first()->variant_id,
+                'variant' => $variant && $product && $variant->name !== $product->name ? $variant->name : null,
+                'category' => $product?->category?->name,
+                'price' => $variant ? (int) $variant->harga : null,
+                'active' => (bool) ($product?->status ?? false),
+                'deleted' => ! $variant || $variant->trashed() || ! $product,
+                'tiers' => $tiers->sortBy('min_qty')->map(fn ($tier) => [
+                    'id' => $tier->id, 'min_qty' => $tier->min_qty, 'price' => $tier->price,
+                ])->values()->all(),
+            ];
+        })->values();
 
         return view('layouts.b2b.contracts.form', [
             'contract' => $contract,
             'copiedFrom' => $copiedFrom,
+            'initialItems' => $initialItems,
             // Customer nonaktif tetap muncul kalau sudah terpilih di kontrak ini.
             'customers' => Customer::query()
                 ->where(fn ($query) => $query->where('is_active', true)->orWhere('id', $contract->b2b_customer_id))

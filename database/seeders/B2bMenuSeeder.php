@@ -48,7 +48,7 @@ class B2bMenuSeeder extends Seeder
             ],
             'b2b/contracts' => [
                 'name' => 'Kontrak',
-                'permissions' => ['create ', 'read ', 'update ', 'delete ', 'activate ', 'terminate '],
+                'permissions' => ['create ', 'read ', 'update ', 'delete ', 'terminate '],
             ],
         ];
 

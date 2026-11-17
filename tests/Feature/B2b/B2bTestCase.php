@@ -73,10 +73,15 @@ abstract class B2bTestCase extends TestCase
         return $customer;
     }
 
-    /** @param  array<int, array>  $rules */
-    protected function contract(Customer $customer, array $rules = [], array $attributes = []): Contract
+    /**
+     * Kontrak berjalan (default 10 hari lalu s.d. 20 hari lagi) dengan harga per varian.
+     *
+     * @param  array<int, array{variant_id:int, price:int, min_qty?:int}>  $items
+     */
+    protected function contract(Customer $customer, array $items = [], array $attributes = []): Contract
     {
-        $contract = new Contract(array_merge([
+        $contract = new Contract;
+        $contract->forceFill(array_merge([
             'b2b_customer_id' => $customer->id,
             'start_date' => today()->subDays(10),
             'end_date' => today()->addDays(20),
@@ -84,13 +89,8 @@ abstract class B2bTestCase extends TestCase
         ], $attributes));
         $contract->contract_number = 'KTR-TEST-'.uniqid();
         $contract->save();
-        $contract->rules()->createMany(array_map(fn (array $rule) => array_merge([
-            'scope' => 'all',
-            'discount_type' => 'percent',
-            'discount_value' => 10,
-            'min_qty' => 1,
-        ], $rule), $rules));
+        $contract->items()->createMany(array_map(fn (array $item) => array_merge(['min_qty' => 1], $item), $items));
 
-        return $contract->load('rules');
+        return $contract->load('items');
     }
 }

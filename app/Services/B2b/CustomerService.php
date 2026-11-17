@@ -2,6 +2,7 @@
 
 namespace App\Services\B2b;
 
+use App\Models\B2b\Contract;
 use App\Models\B2b\Customer;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -69,7 +70,9 @@ class CustomerService
         }
 
         DB::transaction(function () use ($customer) {
-            $customer->contracts()->whereIn('status', ['draft', 'active'])->update(['status' => 'terminated', 'terminated_at' => now(), 'termination_reason' => 'Customer dihapus']);
+            $customer->contracts()->where('status', Contract::STATUS_ACTIVE)->update([
+                'status' => Contract::STATUS_TERMINATED, 'terminated_at' => now(), 'terminated_by' => auth()->id(), 'termination_reason' => 'Customer dihapus',
+            ]);
             $customer->forceFill(['modified_by' => auth()->id()])->save();
             $customer->delete();
             $this->logger->log('customer.deleted', $customer);

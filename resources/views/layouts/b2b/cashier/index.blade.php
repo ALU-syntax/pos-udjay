@@ -64,7 +64,6 @@
 
                     <div class="ob-summary mt-3 mb-3">
                         <div class="ob-summary__row"><div>Subtotal</div><div id="sum-subtotal">Rp 0</div></div>
-                        <div class="ob-summary__row"><div>Diskon kontrak</div><div id="sum-discount">Rp 0</div></div>
                         <div class="ob-summary__row ob-summary__row--total"><div>Total</div><div id="sum-total">Rp 0</div></div>
                     </div>
                     <div id="quote-status" class="b2b-muted mb-2"></div>
@@ -341,7 +340,9 @@
                         if (!p) return '';
                         const q = quoteItem(id);
                         const finalPrice = q ? q.final_price : p.price;
-                        const discounted = q && q.discount_per_unit > 0;
+                        // Harga kontrak bisa lebih murah atau lebih mahal dari harga normal; harga normal dicoret kalau berbeda.
+                        const contractPrice = q && q.contract_price;
+                        const priceChanged = contractPrice && q.final_price !== q.base_price;
                         const stockShort = item.qty > p.stock;
                         return `
                             <div class="b2b-cart-item ${stockShort ? 'warn' : ''}" data-variant="${id}">
@@ -349,8 +350,8 @@
                                     <div>
                                         <div class="b2b-cart-item__name">${B2b.escape(p.name)}</div>
                                         <div class="b2b-cart-item__price">
-                                            ${discounted ? `<s>${B2b.rupiah(p.price)}</s>` : ''}${B2b.rupiah(finalPrice)} / unit
-                                            ${discounted ? `<span class="badge badge-success ms-1">${B2b.escape(q.discount_label)}</span>` : ''}
+                                            ${priceChanged ? `<s>${B2b.rupiah(q.base_price)}</s>` : ''}${B2b.rupiah(finalPrice)} / unit
+                                            ${contractPrice ? `<span class="badge badge-success ms-1">Harga kontrak${q.min_qty > 1 ? ` · qty ≥ ${q.min_qty.toLocaleString('id-ID')}` : ''}</span>` : ''}
                                         </div>
                                         ${stockShort ? `<div class="small text-warning fw-bold"><i class="fas fa-exclamation-triangle"></i> Stok tinggal ${p.stock.toLocaleString('id-ID')}, stok akan minus</div>` : ''}
                                     </div>
@@ -376,7 +377,6 @@
                     const fallbackTotal = [...state.cart.entries()].reduce((sum, [id, item]) => sum + (state.products.get(id)?.price || 0) * item.qty, 0);
                     const quote = state.quote;
                     $('#sum-subtotal').text(B2b.rupiah(quote ? quote.subtotal : fallbackTotal));
-                    $('#sum-discount').text(quote && quote.discount_total ? '− ' + B2b.rupiah(quote.discount_total) : 'Rp 0');
                     $('#sum-total').text(B2b.rupiah(quote ? quote.grand_total : fallbackTotal));
                     updateSubmit();
                 }

@@ -68,8 +68,8 @@
                                 <tr>
                                     <td>
                                         <div class="fw-bold">{{ $item->displayName() }}</div>
-                                        @if ($item->discount_per_unit > 0)
-                                            <div class="b2b-muted">Normal Rp {{ number_format($item->base_price, 0, ',', '.') }} · diskon Rp {{ number_format($item->discount_per_unit, 0, ',', '.') }}/unit</div>
+                                        @if ($item->b2b_contract_item_id)
+                                            <div class="b2b-muted">Harga kontrak · normal Rp {{ number_format($item->base_price, 0, ',', '.') }}</div>
                                         @endif
                                         @if ($item->stock_insufficient)
                                             <div class="small text-warning fw-bold"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Stok kurang saat transaksi</div>
@@ -87,8 +87,7 @@
                     </table>
                 </div>
                 <div class="ob-summary mt-3 mb-0">
-                    <div class="ob-summary__row"><div>Subtotal (harga normal)</div><div>Rp {{ number_format($order->subtotal, 0, ',', '.') }}</div></div>
-                    <div class="ob-summary__row"><div>Diskon kontrak</div><div>− Rp {{ number_format($order->discount_total, 0, ',', '.') }}</div></div>
+                    <div class="ob-summary__row"><div>Subtotal</div><div>Rp {{ number_format($order->subtotal, 0, ',', '.') }}</div></div>
                     <div class="ob-summary__row ob-summary__row--total"><div>Total</div><div>Rp {{ number_format($order->grand_total, 0, ',', '.') }}</div></div>
                 </div>
             </div>

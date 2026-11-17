@@ -48,14 +48,14 @@ class CustomerController extends Controller
         $this->authorize('read b2b/customers');
         $customer->load(['creator', 'modifier']);
 
-        $contracts = $customer->contracts()->withCount('rules')->latest('start_date')->get();
+        $contracts = $customer->contracts()->withCount('items')->latest('start_date')->get();
         $recentOrders = $customer->orders()->with(['outlet', 'invoice'])->latest('order_date')->limit(10)->get();
         $openInvoices = $customer->invoices()->whereIn('status', [Invoice::STATUS_UNPAID, Invoice::STATUS_PARTIAL, Invoice::STATUS_OVERDUE]);
 
         return view('layouts.b2b.customers.show', [
             'customer' => $customer,
             'contracts' => $contracts,
-            'effectiveContract' => $contracts->first(fn ($contract) => $contract->isEffective()),
+            'effectiveContract' => $contracts->first(fn ($contract) => $contract->isRunning()),
             'recentOrders' => $recentOrders,
             'stats' => [
                 'orders' => $customer->orders()->where('status', '!=', 'cancelled')->count(),

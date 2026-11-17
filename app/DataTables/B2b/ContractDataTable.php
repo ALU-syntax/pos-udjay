@@ -4,6 +4,7 @@ namespace App\DataTables\B2b;
 
 use App\Models\B2b\Contract;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
 use Yajra\DataTables\Html\Column;
@@ -14,22 +15,32 @@ class ContractDataTable extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
-            ->editColumn('contract_number', fn (Contract $contract) => '<a href="'.route('b2b/contracts/show', $contract->id).'" class="fw-bold">'.e($contract->contract_number).'</a>')
-            ->addColumn('customer_name', fn (Contract $contract) => '<div class="ob-cell-stack">'
-                .'<a href="'.route('b2b/customers/show', $contract->b2b_customer_id).'">'.e($contract->customer?->name).'</a>'
-                .'<span class="ob-cell-meta">'.e($contract->customer?->code).'</span></div>')
-            ->addColumn('period', function (Contract $contract) {
-                $remaining = $contract->isEffective() ? today()->diffInDays($contract->end_date, false) : null;
-                $hint = $remaining !== null && $remaining <= 30
-                    ? '<span class="ob-cell-meta text-danger">Berakhir '.($remaining === 0 ? 'hari ini' : 'dalam '.$remaining.' hari').'</span>'
-                    : '';
+            ->editColumn('contract_number', fn (Contract $contract) => '<div class="b2b-cust-cell">'
+                .'<span class="b2b-doc-icon b2b-doc-icon--'.$contract->statusVariant().'" aria-hidden="true"><i class="fas fa-file-signature"></i></span>'
+                .'<div class="ob-cell-stack">'
+                .'<a href="'.route('b2b/contracts/show', $contract->id).'" class="b2b-cust-cell__name b2b-mono">'.e($contract->contract_number).'</a>'
+                .'<span class="ob-cell-meta">Dibuat '.$contract->created_at?->translatedFormat('d M Y').'</span>'
+                .'</div></div>')
+            ->addColumn('customer_name', function (Contract $contract) {
+                $customer = $contract->customer;
 
-                return '<div class="ob-cell-stack"><span>'.$contract->start_date->translatedFormat('d M Y').' – '.$contract->end_date->translatedFormat('d M Y').'</span>'.$hint.'</div>';
+                return '<div class="b2b-cust-cell">'
+                    .'<span class="b2b-avatar b2b-avatar--sm b2b-avatar--'.e($customer?->type).'" aria-hidden="true">'.e($customer?->initials()).'</span>'
+                    .'<div class="ob-cell-stack">'
+                    .'<a href="'.route('b2b/customers/show', $contract->b2b_customer_id).'" class="b2b-cust-cell__name">'.e($customer?->name).'</a>'
+                    .'<span class="ob-cell-meta">'.e($customer?->code).'</span>'
+                    .'</div></div>';
             })
-            ->editColumn('rules_count', fn (Contract $contract) => $contract->rules_count.' aturan')
+            ->addColumn('period', fn (Contract $contract) => view('layouts.b2b.contracts.partials.period', compact('contract'))->render())
+            ->editColumn('items_count', fn (Contract $contract) => '<div class="ob-cell-stack">'
+                .'<span class="b2b-cell-strong">'.number_format($contract->products_count, 0, ',', '.').' produk</span>'
+                .($contract->items_count > $contract->products_count
+                    ? '<span class="ob-cell-meta">'.number_format($contract->items_count, 0, ',', '.').' harga termasuk tingkat qty</span>'
+                    : '')
+                .'</div>')
             ->editColumn('status', fn (Contract $contract) => '<span class="badge badge-'.$contract->statusVariant().'">'.$contract->statusLabel().'</span>')
             ->addColumn('action', fn (Contract $contract) => view('layouts.b2b.contracts.action', compact('contract'))->render())
-            ->rawColumns(['contract_number', 'customer_name', 'period', 'status', 'action'])
+            ->rawColumns(['contract_number', 'customer_name', 'period', 'items_count', 'status', 'action'])
             ->setRowId('id');
     }
 
@@ -38,11 +49,19 @@ class ContractDataTable extends DataTable
         $query = $model->newQuery()
             ->select('b2b_contracts.*')
             ->with('customer')
-            ->withCount('rules');
+            ->withCount(['items', 'items as products_count' => fn ($items) => $items->select(DB::raw('count(distinct variant_id)'))]);
 
-        if (request()->filled('status')) {
-            $query->where('status', request('status'));
-        }
+        // Status tampilan dihitung dari status + tanggal (lihat Contract::statusLabel()).
+        $today = today()->toDateString();
+        match (request('status')) {
+            'scheduled' => $query->where('status', Contract::STATUS_ACTIVE)->whereDate('start_date', '>', $today),
+            'running' => $query->where('status', Contract::STATUS_ACTIVE)->whereDate('start_date', '<=', $today)->whereDate('end_date', '>=', $today),
+            'ending' => $query->where('status', Contract::STATUS_ACTIVE)->whereDate('start_date', '<=', $today)->whereDate('end_date', '>=', $today)
+                ->whereDate('end_date', '<=', today()->addDays(30)->toDateString()),
+            'ended' => $query->where('status', Contract::STATUS_ACTIVE)->whereDate('end_date', '<', $today),
+            'terminated' => $query->where('status', Contract::STATUS_TERMINATED),
+            default => null,
+        };
         if (request()->filled('customer_id')) {
             $query->where('b2b_customer_id', request()->integer('customer_id'));
         }
@@ -66,9 +85,9 @@ class ContractDataTable extends DataTable
             Column::make('contract_number')->title('No. Kontrak'),
             Column::make('customer_name')->title('Customer')->name('customer.name'),
             Column::computed('period')->title('Periode')->orderable(true)->name('start_date'),
-            Column::make('rules_count')->title('Aturan')->searchable(false),
+            Column::make('items_count')->title('Isi kontrak')->searchable(false),
             Column::make('status')->title('Status')->searchable(false),
-            Column::computed('action')->title('')->exportable(false)->printable(false)->width(110)->addClass('text-center'),
+            Column::computed('action')->title('')->exportable(false)->printable(false)->width(120)->addClass('text-end'),
         ];
     }
 

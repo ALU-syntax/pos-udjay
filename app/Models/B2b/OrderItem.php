@@ -16,8 +16,6 @@ class OrderItem extends Model
     protected $casts = [
         'qty' => 'integer',
         'base_price' => 'integer',
-        'discount_value' => 'float',
-        'discount_per_unit' => 'integer',
         'final_price' => 'integer',
         'line_total' => 'integer',
         'stock_insufficient' => 'boolean',
@@ -26,6 +24,11 @@ class OrderItem extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class, 'b2b_order_id');
+    }
+
+    public function contractItem(): BelongsTo
+    {
+        return $this->belongsTo(ContractItem::class, 'b2b_contract_item_id')->withTrashed();
     }
 
     public function product(): BelongsTo

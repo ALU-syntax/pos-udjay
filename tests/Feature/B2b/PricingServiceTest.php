@@ -3,7 +3,9 @@
 namespace Tests\Feature\B2b;
 
 use App\Models\B2b\Contract;
+use App\Models\VariantProduct;
 use App\Services\B2b\PricingService;
+use Illuminate\Validation\ValidationException;
 
 class PricingServiceTest extends B2bTestCase
 {
@@ -17,122 +19,131 @@ class PricingServiceTest extends B2bTestCase
     {
         $outlet = $this->outlet();
         $variant = $this->variant($outlet, 12000);
-        $customer = $this->customer();
 
-        $item = $this->quoteOne($customer, $variant, 3);
+        $item = $this->quoteOne($this->customer(), $variant, 3);
 
-        $this->assertNull($item['rule']);
+        $this->assertNull($item['contract_item']);
         $this->assertSame(12000, $item['final_price']);
         $this->assertSame(36000, $item['line_total']);
     }
 
-    public function test_most_specific_rule_wins_over_broader_rules(): void
+    public function test_contract_sets_price_per_variant_and_other_items_stay_normal(): void
     {
         $outlet = $this->outlet();
-        $category = $this->category();
-        $variant = $this->variant($outlet, 10000, 100, $category);
+        $a = $this->variant($outlet, 40000, 100, null, 'A');
+        $b = $this->variant($outlet, 30000, 100, null, 'B');
+        $c = $this->variant($outlet, 35000, 100, null, 'C');
         $customer = $this->customer();
         $this->contract($customer, [
-            ['scope' => 'all', 'discount_type' => 'percent', 'discount_value' => 5],
-            ['scope' => 'category', 'category_id' => $category->id, 'discount_type' => 'percent', 'discount_value' => 10],
-            ['scope' => 'product', 'product_id' => $variant->product_id, 'outlet_id' => $outlet->id, 'discount_type' => 'nominal', 'discount_value' => 1500],
-            ['scope' => 'variant', 'variant_id' => $variant->id, 'product_id' => $variant->product_id, 'outlet_id' => $outlet->id, 'discount_type' => 'fixed_price', 'discount_value' => 7000],
+            ['variant_id' => $a->id, 'price' => 38000],
+            ['variant_id' => $b->id, 'price' => 27000],
         ]);
 
-        $item = $this->quoteOne($customer, $variant, 1);
+        $quote = app(PricingService::class)->quote($customer, $outlet->id, [
+            ['variant_id' => $a->id, 'qty' => 2],
+            ['variant_id' => $b->id, 'qty' => 1],
+            ['variant_id' => $c->id, 'qty' => 1],
+        ]);
 
-        $this->assertSame('variant', $item['rule']->scope);
-        $this->assertSame(3000, $item['discount_per_unit']);
-        $this->assertSame(7000, $item['final_price']);
+        $this->assertSame([38000, 27000, 35000], array_column($quote['items'], 'final_price'));
+        $this->assertSame([40000, 30000, 35000], array_column($quote['items'], 'base_price'));
+        $this->assertNull($quote['items'][2]['b2b_contract_item_id']);
+        $this->assertSame(138000, $quote['subtotal']);
+        $this->assertSame(138000, $quote['grand_total']);
     }
 
-    public function test_tiered_min_qty_picks_the_largest_tier_not_above_qty(): void
+    public function test_variants_of_the_same_product_can_have_different_prices(): void
+    {
+        $outlet = $this->outlet();
+        $regular = $this->variant($outlet, 20000, 100, null, 'Kopi Susu');
+        $large = VariantProduct::create(['product_id' => $regular->product_id, 'name' => 'Large', 'harga' => 25000, 'stok' => 100])->load('product');
+        $customer = $this->customer();
+        $this->contract($customer, [
+            ['variant_id' => $regular->id, 'price' => 18000],
+            ['variant_id' => $large->id, 'price' => 23000],
+        ]);
+
+        $this->assertSame(18000, $this->quoteOne($customer, $regular, 1)['final_price']);
+        $this->assertSame(23000, $this->quoteOne($customer, $large, 1)['final_price']);
+    }
+
+    public function test_tier_with_largest_min_qty_not_above_qty_is_used(): void
+    {
+        $outlet = $this->outlet();
+        $variant = $this->variant($outlet, 40000);
+        $customer = $this->customer();
+        $this->contract($customer, [
+            ['variant_id' => $variant->id, 'min_qty' => 1, 'price' => 38000],
+            ['variant_id' => $variant->id, 'min_qty' => 10, 'price' => 36000],
+            ['variant_id' => $variant->id, 'min_qty' => 50, 'price' => 35000],
+        ]);
+
+        $this->assertSame(38000, $this->quoteOne($customer, $variant, 9)['final_price']);
+        $tier = $this->quoteOne($customer, $variant, 10);
+        $this->assertSame(36000, $tier['final_price']);
+        $this->assertSame(10, $tier['min_qty']);
+        $this->assertSame(35000, $this->quoteOne($customer, $variant, 80)['final_price']);
+    }
+
+    public function test_qty_below_every_tier_falls_back_to_normal_price(): void
+    {
+        $outlet = $this->outlet();
+        $variant = $this->variant($outlet, 40000);
+        $customer = $this->customer();
+        $this->contract($customer, [['variant_id' => $variant->id, 'min_qty' => 10, 'price' => 36000]]);
+
+        $item = $this->quoteOne($customer, $variant, 5);
+
+        $this->assertNull($item['contract_item']);
+        $this->assertSame(40000, $item['final_price']);
+    }
+
+    public function test_contract_price_above_normal_price_is_used_as_is(): void
+    {
+        $outlet = $this->outlet();
+        $variant = $this->variant($outlet, 30000);
+        $customer = $this->customer();
+        $this->contract($customer, [['variant_id' => $variant->id, 'price' => 32000]]);
+
+        $this->assertSame(32000, $this->quoteOne($customer, $variant, 1)['final_price']);
+    }
+
+    public function test_one_contract_holds_prices_for_several_outlets(): void
+    {
+        $outletA = $this->outlet('A');
+        $outletB = $this->outlet('B');
+        $variantA = $this->variant($outletA, 40000);
+        $variantB = $this->variant($outletB, 40000);
+        $customer = $this->customer();
+        $this->contract($customer, [
+            ['variant_id' => $variantA->id, 'price' => 38000],
+            ['variant_id' => $variantB->id, 'price' => 39000],
+        ]);
+
+        $this->assertSame(38000, $this->quoteOne($customer, $variantA, 1)['final_price']);
+        $this->assertSame(39000, $this->quoteOne($customer, $variantB, 1)['final_price']);
+    }
+
+    public function test_only_running_contract_and_existing_items_are_used(): void
     {
         $outlet = $this->outlet();
         $variant = $this->variant($outlet, 10000);
         $customer = $this->customer();
-        $this->contract($customer, [
-            ['scope' => 'product', 'product_id' => $variant->product_id, 'outlet_id' => $outlet->id, 'discount_value' => 5, 'min_qty' => 1],
-            ['scope' => 'product', 'product_id' => $variant->product_id, 'outlet_id' => $outlet->id, 'discount_value' => 10, 'min_qty' => 10],
-            ['scope' => 'product', 'product_id' => $variant->product_id, 'outlet_id' => $outlet->id, 'discount_value' => 15, 'min_qty' => 50],
+        $this->contract($customer, [['variant_id' => $variant->id, 'price' => 5000]], ['status' => Contract::STATUS_TERMINATED]);
+        $this->contract($customer, [['variant_id' => $variant->id, 'price' => 6000]], [
+            'start_date' => today()->subMonths(3), 'end_date' => today()->subMonths(2),
         ]);
-
-        $this->assertSame(9500, $this->quoteOne($customer, $variant, 9)['final_price']);
-        $this->assertSame(9000, $this->quoteOne($customer, $variant, 10)['final_price']);
-        $this->assertSame(8500, $this->quoteOne($customer, $variant, 80)['final_price']);
-    }
-
-    public function test_falls_back_to_broader_rule_when_specific_tier_is_not_reached(): void
-    {
-        $outlet = $this->outlet();
-        $variant = $this->variant($outlet, 10000);
-        $customer = $this->customer();
-        $this->contract($customer, [
-            ['scope' => 'all', 'discount_value' => 5],
-            ['scope' => 'product', 'product_id' => $variant->product_id, 'outlet_id' => $outlet->id, 'discount_value' => 20, 'min_qty' => 100],
+        $this->contract($customer, [['variant_id' => $variant->id, 'price' => 7000]], [
+            'start_date' => today()->addDays(30), 'end_date' => today()->addDays(60),
         ]);
+        $this->contract($customer, [['variant_id' => $variant->id, 'price' => 8000]])->delete();
 
-        $item = $this->quoteOne($customer, $variant, 2);
+        $this->assertSame(10000, $this->quoteOne($customer, $variant, 1)['final_price']);
 
-        $this->assertSame('all', $item['rule']->scope);
-        $this->assertSame(9500, $item['final_price']);
-    }
+        $running = $this->contract($customer, [['variant_id' => $variant->id, 'price' => 9000]]);
+        $this->assertSame(9000, $this->quoteOne($customer, $variant, 1)['final_price']);
 
-    public function test_outlet_specific_rule_beats_all_outlet_rule_and_other_outlet_rules_are_ignored(): void
-    {
-        $outlet = $this->outlet('A');
-        $otherOutlet = $this->outlet('B');
-        $category = $this->category();
-        $variant = $this->variant($outlet, 10000, 100, $category);
-        $customer = $this->customer();
-        $this->contract($customer, [
-            ['scope' => 'category', 'category_id' => $category->id, 'discount_value' => 10],
-            ['scope' => 'category', 'category_id' => $category->id, 'outlet_id' => $outlet->id, 'discount_value' => 12],
-            ['scope' => 'category', 'category_id' => $category->id, 'outlet_id' => $otherOutlet->id, 'discount_value' => 50],
-        ]);
-
-        $this->assertSame(8800, $this->quoteOne($customer, $variant, 1)['final_price']);
-    }
-
-    public function test_discount_never_goes_below_zero_or_raises_price(): void
-    {
-        $outlet = $this->outlet();
-        $cheap = $this->variant($outlet, 3000, 100, null, 'Air');
-        $pricey = $this->variant($outlet, 3000, 100, null, 'Teh');
-        $customer = $this->customer();
-        $this->contract($customer, [
-            ['scope' => 'variant', 'variant_id' => $cheap->id, 'discount_type' => 'nominal', 'discount_value' => 5000],
-            ['scope' => 'variant', 'variant_id' => $pricey->id, 'discount_type' => 'fixed_price', 'discount_value' => 4000],
-        ]);
-
-        $this->assertSame(0, $this->quoteOne($customer, $cheap, 1)['final_price']);
-        $this->assertSame(3000, $this->quoteOne($customer, $pricey, 1)['final_price']);
-    }
-
-    public function test_percent_discount_is_rounded_to_rupiah(): void
-    {
-        $outlet = $this->outlet();
-        $variant = $this->variant($outlet, 9999);
-        $customer = $this->customer();
-        $this->contract($customer, [['scope' => 'all', 'discount_type' => 'percent', 'discount_value' => 12.5]]);
-
-        // 12,5% dari 9.999 = 1.249,875 → 1.250
-        $this->assertSame(1250, $this->quoteOne($customer, $variant, 1)['discount_per_unit']);
-    }
-
-    public function test_only_effective_active_contract_is_used(): void
-    {
-        $outlet = $this->outlet();
-        $variant = $this->variant($outlet, 10000);
-        $customer = $this->customer();
-        $this->contract($customer, [['discount_value' => 50]], ['status' => Contract::STATUS_DRAFT]);
-        $this->contract($customer, [['discount_value' => 40]], [
-            'start_date' => today()->subMonths(3), 'end_date' => today()->subMonths(2), 'status' => Contract::STATUS_ACTIVE,
-        ]);
-        $this->contract($customer, [['discount_value' => 30]], [
-            'start_date' => today()->addDays(30), 'end_date' => today()->addDays(60), 'status' => Contract::STATUS_ACTIVE,
-        ]);
-
+        $running->items->first()->delete();
         $this->assertSame(10000, $this->quoteOne($customer, $variant, 1)['final_price']);
     }
 
@@ -140,10 +151,9 @@ class PricingServiceTest extends B2bTestCase
     {
         $outlet = $this->outlet('A');
         $otherVariant = $this->variant($this->outlet('B'));
-        $customer = $this->customer();
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
-        app(PricingService::class)->quote($customer, $outlet->id, [['variant_id' => $otherVariant->id, 'qty' => 1]]);
+        $this->expectException(ValidationException::class);
+        app(PricingService::class)->quote($this->customer(), $outlet->id, [['variant_id' => $otherVariant->id, 'qty' => 1]]);
     }
 
     public function test_insufficient_stock_is_flagged_not_blocked(): void

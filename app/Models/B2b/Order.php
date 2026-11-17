@@ -43,7 +43,6 @@ class Order extends Model
         'order_date' => 'datetime',
         'due_date' => 'date',
         'subtotal' => 'integer',
-        'discount_total' => 'integer',
         'tax_total' => 'integer',
         'shipping_cost' => 'integer',
         'grand_total' => 'integer',

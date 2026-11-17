@@ -3,7 +3,7 @@
 namespace App\Services\B2b;
 
 use App\Models\B2b\Contract;
-use App\Models\B2b\ContractRule;
+use App\Models\B2b\ContractItem;
 use App\Models\B2b\Customer;
 use App\Models\VariantProduct;
 use Illuminate\Support\Carbon;
@@ -14,10 +14,10 @@ use Illuminate\Validation\ValidationException;
  * Perhitungan harga B2B. Satu-satunya sumber kebenaran harga: layar kasir hanya menampilkan
  * hasil quote(), dan OrderService memanggil quote() lagi saat pesanan disimpan.
  *
- * Aturan kontrak:
- * - hanya aturan dengan min_qty <= qty yang dipertimbangkan;
- * - yang paling spesifik menang: varian → produk → kategori → semua produk;
- * - di level yang sama, aturan khusus outlet menang atas aturan semua outlet, lalu min_qty terbesar.
+ * Harga kontrak ditulis langsung per varian (bukan diskon):
+ * - dipakai baris dengan min_qty terbesar yang masih <= qty (harga bertingkat);
+ * - varian tanpa baris yang memenuhi (tidak ada di kontrak / qty belum mencapai min_qty) memakai harga normal;
+ * - harga kontrak boleh lebih tinggi dari harga normal.
  */
 class PricingService
 {
@@ -28,7 +28,7 @@ class PricingService
     public function quote(Customer $customer, int $outletId, array $lines, ?Carbon $date = null, ?Collection $variants = null): array
     {
         $date ??= now();
-        $contract = $customer->contracts()->effectiveOn($date)->with('rules')->first();
+        $contract = $customer->contracts()->effectiveOn($date)->with('items')->first();
         $variants ??= $this->loadVariants($outletId, array_column($lines, 'variant_id'));
 
         $items = [];
@@ -40,18 +40,16 @@ class PricingService
                 ]);
             }
 
-            $items[] = $this->priceLine($variant, max(1, (int) $line['qty']), $contract, $outletId, $line['notes'] ?? null);
+            $items[] = $this->priceLine($variant, max(1, (int) $line['qty']), $contract, $line['notes'] ?? null);
         }
 
-        $subtotal = array_sum(array_map(fn ($item) => $item['base_price'] * $item['qty'], $items));
-        $grandTotal = array_sum(array_column($items, 'line_total'));
+        $subtotal = array_sum(array_column($items, 'line_total'));
 
         return [
             'contract' => $contract,
             'items' => $items,
             'subtotal' => $subtotal,
-            'discount_total' => $subtotal - $grandTotal,
-            'grand_total' => $grandTotal,
+            'grand_total' => $subtotal,
             'has_insufficient_stock' => collect($items)->contains('stock_insufficient', true),
         ];
     }
@@ -71,12 +69,11 @@ class PricingService
         return $query->get()->keyBy('id');
     }
 
-    public function priceLine(VariantProduct $variant, int $qty, ?Contract $contract, int $outletId, ?string $notes = null): array
+    public function priceLine(VariantProduct $variant, int $qty, ?Contract $contract, ?string $notes = null): array
     {
         $basePrice = (int) $variant->harga;
-        $rule = $contract ? $this->resolveRule($contract->rules, $variant, $outletId, $qty) : null;
-        $discountPerUnit = $rule ? $this->discountPerUnit($rule, $basePrice) : 0;
-        $finalPrice = $basePrice - $discountPerUnit;
+        $contractItem = $contract ? $this->resolveItem($contract->items, (int) $variant->id, $qty) : null;
+        $finalPrice = $contractItem ? $contractItem->price : $basePrice;
 
         return [
             'variant_id' => $variant->id,
@@ -85,12 +82,9 @@ class PricingService
             'variant_name' => $variant->name,
             'qty' => $qty,
             'base_price' => $basePrice,
-            'rule' => $rule,
-            'b2b_contract_rule_id' => $rule?->id,
-            'discount_type' => $rule?->discount_type,
-            'discount_value' => $rule?->discount_value,
-            'discount_label' => $rule?->discountLabel(),
-            'discount_per_unit' => $discountPerUnit,
+            'contract_item' => $contractItem,
+            'b2b_contract_item_id' => $contractItem?->id,
+            'min_qty' => $contractItem?->min_qty,
             'final_price' => $finalPrice,
             'line_total' => $finalPrice * $qty,
             'stock' => (int) $variant->stok,
@@ -99,41 +93,12 @@ class PricingService
         ];
     }
 
-    /** @param  Collection<int, ContractRule>  $rules */
-    public function resolveRule(Collection $rules, VariantProduct $variant, int $outletId, int $qty): ?ContractRule
+    /** @param  Collection<int, ContractItem>  $items */
+    public function resolveItem(Collection $items, int $variantId, int $qty): ?ContractItem
     {
-        $product = $variant->product;
-
-        return $rules
-            ->filter(fn (ContractRule $rule) => $rule->min_qty <= $qty)
-            ->filter(fn (ContractRule $rule) => $rule->outlet_id === null || $rule->outlet_id === $outletId)
-            ->filter(fn (ContractRule $rule) => match ($rule->scope) {
-                'variant' => $rule->variant_id === (int) $variant->id,
-                'product' => $rule->product_id === (int) $variant->product_id,
-                'category' => $product && $product->category_id !== null && $rule->category_id === (int) $product->category_id,
-                'all' => true,
-                default => false,
-            })
-            ->sortBy([
-                fn (ContractRule $a, ContractRule $b) => $a->specificity() <=> $b->specificity(),
-                fn (ContractRule $a, ContractRule $b) => ($a->outlet_id === null) <=> ($b->outlet_id === null),
-                fn (ContractRule $a, ContractRule $b) => $b->min_qty <=> $a->min_qty,
-                fn (ContractRule $a, ContractRule $b) => $a->id <=> $b->id,
-            ])
+        return $items
+            ->filter(fn (ContractItem $item) => $item->variant_id === $variantId && $item->min_qty <= $qty)
+            ->sortByDesc('min_qty')
             ->first();
-    }
-
-    /** Potongan per unit dalam rupiah, tidak pernah negatif dan tidak melebihi harga dasar. */
-    public function discountPerUnit(ContractRule $rule, int $basePrice): int
-    {
-        $discount = match ($rule->discount_type) {
-            'percent' => (int) round($basePrice * min(100, max(0, $rule->discount_value)) / 100),
-            'nominal' => (int) round($rule->discount_value),
-            // Harga khusus lebih tinggi dari harga normal tidak menaikkan harga.
-            'fixed_price' => $basePrice - (int) round($rule->discount_value),
-            default => 0,
-        };
-
-        return max(0, min($basePrice, $discount));
     }
 }
