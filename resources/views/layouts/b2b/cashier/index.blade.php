@@ -2,15 +2,18 @@
 
 @section('content')
     @include('layouts.b2b.partials.assets')
+    @include('layouts.b2b.partials.page-styles')
+    @include('layouts.b2b.cashier.partials.styles')
 
     <div class="main-content ob-page b2b-cashier">
-        <div class="ob-header mb-3">
+        <div class="ob-header">
             <div>
                 <div class="ob-header__eyebrow">Kasir B2B</div>
                 <h1 class="ob-header__title">
                     <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-cash-register"></i></span>
                     Pesanan Baru
                 </h1>
+                <p class="ob-header__desc">Pilih outlet dan customer, lalu ketuk produk. Harga kontrak dihitung ulang oleh server saat pesanan disimpan.</p>
             </div>
             @can('read b2b/orders')
                 <a href="{{ route('b2b/orders') }}" class="btn ob-btn ob-btn-outline"><i class="fas fa-list" aria-hidden="true"></i> Daftar Pesanan</a>
@@ -23,152 +26,114 @@
                 <span>Akun Anda belum punya akses outlet. Minta admin menambahkan outlet di pengaturan user.</span>
             </div>
         @else
+            {{-- Langkah 1–2: outlet & customer --}}
             <div class="ob-card mb-3">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label for="outlet" class="form-label fw-bold">Outlet</label>
-                        <select id="outlet" class="form-select form-select-lg">
-                            @foreach ($outlets as $outlet)
-                                <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
-                            @endforeach
-                        </select>
+                <div class="b2b-setup__grid">
+                    <div>
+                        <label for="outlet" class="b2b-setup__label"><span class="b2b-step" aria-hidden="true">1</span> Outlet</label>
+                        <div class="b2b-select-icon">
+                            <i class="fas fa-store" aria-hidden="true"></i>
+                            <select id="outlet" class="form-select">
+                                @foreach ($outlets as $outlet)
+                                    <option value="{{ $outlet->id }}">{{ $outlet->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-md-8">
-                        <label for="customer" class="form-label fw-bold">Customer</label>
+                    <div>
+                        <label for="customer" class="b2b-setup__label"><span class="b2b-step" aria-hidden="true">2</span> Customer</label>
                         <select id="customer" class="form-select"></select>
                     </div>
                 </div>
-                <div id="customer-info" class="b2b-customer-info d-none mt-3"></div>
+                <div id="customer-info" class="b2b-cust-panel" aria-live="polite"></div>
             </div>
 
             <div class="b2b-cashier__layout">
-                {{-- Katalog --}}
-                <section class="ob-card b2b-cashier__catalog" aria-label="Katalog produk">
-                    <div class="b2b-search">
-                        <i class="fas fa-search" aria-hidden="true"></i>
-                        <input id="product-search" type="search" class="form-control form-control-lg" placeholder="Cari produk..." autocomplete="off">
-                    </div>
-                    <div id="category-chips" class="b2b-chips" role="tablist" aria-label="Filter kategori"></div>
-                    <div id="product-grid" class="b2b-product-grid" aria-live="polite">
-                        <div class="b2b-muted p-3">Memuat produk...</div>
-                    </div>
-                </section>
-
-                {{-- Keranjang --}}
-                <section class="ob-card b2b-cashier__cart" aria-label="Keranjang">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h2 class="ob-section-title mb-0"><i class="fas fa-shopping-cart" aria-hidden="true"></i> Keranjang <span id="cart-count" class="badge badge-primary ms-1">0</span></h2>
-                        <button type="button" id="clear-cart" class="btn btn-link btn-sm text-danger p-0">Kosongkan</button>
-                    </div>
-                    <div id="cart-list" class="b2b-cart-list"></div>
-
-                    <div class="ob-summary mt-3 mb-3">
-                        <div class="ob-summary__row"><div>Subtotal</div><div id="sum-subtotal">Rp 0</div></div>
-                        <div class="ob-summary__row ob-summary__row--total"><div>Total</div><div id="sum-total">Rp 0</div></div>
-                    </div>
-                    <div id="quote-status" class="b2b-muted mb-2"></div>
-
-                    <div class="mb-3">
-                        <label for="due-date" class="form-label fw-bold">Jatuh tempo <span class="text-danger">*</span></label>
-                        <input id="due-date" type="date" class="form-control form-control-lg" required
-                            min="{{ today()->toDateString() }}" max="{{ today()->addDays($maxDueDays)->toDateString() }}">
-                        <div class="b2b-quick-days mt-2" role="group" aria-label="Pilih cepat jatuh tempo">
-                            @foreach ([7, 14, 30, 45] as $days)
-                                <button type="button" data-days="{{ $days }}">+{{ $days }} hari</button>
-                            @endforeach
+                {{-- Langkah 3: katalog --}}
+                <section class="ob-card b2b-catalog" aria-labelledby="catalog-title">
+                    <div class="b2b-card__head">
+                        <div>
+                            <h2 class="b2b-card__title" id="catalog-title"><span class="b2b-step" aria-hidden="true">3</span> Pilih Produk</h2>
+                            <p class="b2b-card__desc" id="catalog-desc">Memuat produk...</p>
                         </div>
-                        <small id="due-date-hint" class="text-muted d-block mt-1"></small>
-                    </div>
-
-                    <div class="mb-3">
-                        <span class="form-label fw-bold d-block">Pengiriman</span>
-                        <div class="b2b-segment" role="radiogroup" aria-label="Metode pengiriman">
-                            <label><input type="radio" name="delivery_method" value="pickup" checked> <span><i class="fas fa-store" aria-hidden="true"></i> Diambil</span></label>
-                            <label><input type="radio" name="delivery_method" value="internal"> <span><i class="fas fa-truck" aria-hidden="true"></i> Diantar</span></label>
+                        <div class="b2b-catalog-search">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            <input id="product-search" type="search" class="form-control" placeholder="Cari produk atau varian" autocomplete="off" aria-label="Cari produk">
                         </div>
                     </div>
-                    <div class="mb-3 d-none" id="address-field">
-                        <span class="form-label fw-bold d-block">Alamat pengiriman</span>
-                        <div id="shipping-address" class="text-muted small" aria-live="polite"></div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="order-notes" class="form-label fw-bold">Catatan pesanan</label>
-                        <textarea id="order-notes" class="form-control" rows="2" maxlength="1000" placeholder="Opsional"></textarea>
+                    <div id="category-chips" class="b2b-cat-tabs" role="tablist" aria-label="Filter kategori"></div>
+                    <div id="product-grid" class="b2b-product-grid" aria-live="polite"></div>
+                </section>
+
+                {{-- Panel pesanan --}}
+                <aside class="ob-card b2b-order" id="order-panel" aria-labelledby="order-title">
+                    <div class="b2b-card__head b2b-order__head">
+                        <h2 class="b2b-card__title" id="order-title"><i class="fas fa-receipt" aria-hidden="true"></i> Pesanan <span id="cart-count" class="b2b-count">0</span></h2>
+                        <button type="button" id="clear-cart" class="b2b-link-btn" hidden><i class="fas fa-trash-alt me-1" aria-hidden="true"></i>Kosongkan</button>
                     </div>
 
-                    @can('create b2b/cashier')
-                        <button type="button" id="submit-order" class="btn btn-primary btn-lg w-100 b2b-submit" disabled>
-                            <i class="fas fa-check-circle me-1" aria-hidden="true"></i> Konfirmasi Pesanan
-                        </button>
-                    @else
-                        <div class="ob-notice" role="note"><i class="fas fa-lock" aria-hidden="true"></i><span>Anda hanya bisa melihat harga. Hubungi admin untuk izin membuat pesanan.</span></div>
-                    @endcan
-                </section>
+                    <div class="b2b-order__scroll">
+                        <div id="cart-list" class="b2b-cart"></div>
+
+                        <div class="b2b-order__details b2b-form">
+                            <div>
+                                <label for="due-date" class="form-label">Jatuh tempo <span class="b2b-required">*</span></label>
+                                <input id="due-date" type="date" class="form-control" required
+                                    min="{{ today()->toDateString() }}" max="{{ today()->addDays($maxDueDays)->toDateString() }}">
+                                <div class="b2b-quick-days" role="group" aria-label="Pilih cepat jatuh tempo">
+                                    @foreach ([7, 14, 30, 45] as $days)
+                                        <button type="button" data-days="{{ $days }}">{{ $days }} hari</button>
+                                    @endforeach
+                                </div>
+                                <small id="due-date-hint" class="b2b-help"></small>
+                            </div>
+
+                            <div>
+                                <span class="form-label">Pengiriman</span>
+                                <div class="b2b-segment" role="radiogroup" aria-label="Metode pengiriman">
+                                    <label><input type="radio" name="delivery_method" value="pickup" checked> <span><i class="fas fa-store" aria-hidden="true"></i> Diambil</span></label>
+                                    <label><input type="radio" name="delivery_method" value="internal"> <span><i class="fas fa-truck" aria-hidden="true"></i> Diantar</span></label>
+                                </div>
+                                <div id="address-field" class="b2b-address" aria-live="polite" hidden>
+                                    <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+                                    <span id="shipping-address"></span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="order-notes" class="form-label">Catatan pesanan <span class="b2b-optional">(opsional)</span></label>
+                                <textarea id="order-notes" class="form-control" rows="2" maxlength="1000" placeholder="Misalnya: antar sebelum jam 9 pagi"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="b2b-order__summary">
+                        <div class="b2b-sum-row" id="sum-subtotal-row"><span id="sum-subtotal-label">Subtotal</span><span id="sum-subtotal">Rp 0</span></div>
+                        <div class="b2b-sum-row" id="sum-delta-row" hidden><span id="sum-delta-label"></span><span id="sum-delta"></span></div>
+                        <div class="b2b-sum-total"><span>Total</span><strong id="sum-total">Rp 0</strong></div>
+                        <div id="quote-status" class="b2b-quote-status" role="status"></div>
+
+                        @can('create b2b/cashier')
+                            <button type="button" id="submit-order" class="b2b-submit" disabled>
+                                <span><i class="fas fa-check-circle me-2" aria-hidden="true"></i><span class="b2b-submit__label">Konfirmasi Pesanan</span></span>
+                                <span class="b2b-submit__total" id="submit-total"></span>
+                            </button>
+                        @else
+                            <div class="ob-notice mb-0" role="note"><i class="fas fa-lock" aria-hidden="true"></i><span>Anda hanya bisa melihat harga. Hubungi admin untuk izin membuat pesanan.</span></div>
+                        @endcan
+                    </div>
+                </aside>
+            </div>
+
+            <div class="b2b-mobile-bar" id="mobile-bar" hidden>
+                <div>
+                    <small id="mobile-bar-count">0 item</small>
+                    <strong id="mobile-bar-total">Rp 0</strong>
+                </div>
+                <a href="#order-panel" class="btn ob-btn ob-btn-primary" id="mobile-bar-link">Lihat pesanan <i class="fas fa-arrow-down ms-1" aria-hidden="true"></i></a>
             </div>
         @endif
     </div>
-
-    @push('css')
-        <style>
-            .b2b-cashier__layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); gap: 1rem; align-items: start; }
-            .b2b-cashier__cart { position: sticky; top: 80px; }
-            @media (max-width: 991.98px) {
-                .b2b-cashier__layout { grid-template-columns: minmax(0, 1fr); }
-                .b2b-cashier__cart { position: static; }
-            }
-            .b2b-search { position: relative; margin-bottom: .75rem; }
-            .b2b-search i { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); color: var(--ob-muted); }
-            .b2b-search input { padding-left: 2.5rem; }
-            .b2b-chips { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .5rem; margin-bottom: .5rem; }
-            .b2b-chips button {
-                flex-shrink: 0; min-height: 40px; padding: .35rem .9rem; border-radius: 999px;
-                border: 1px solid var(--ob-border-strong); background: var(--ob-surface); font-size: .85rem; font-weight: 600; color: var(--ob-text);
-            }
-            .b2b-chips button[aria-selected="true"] { background: var(--ob-primary); border-color: var(--ob-primary); color: #fff; }
-            .b2b-product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .6rem; max-height: 62vh; overflow-y: auto; padding: 2px; }
-            .b2b-product {
-                display: flex; flex-direction: column; justify-content: space-between; gap: .35rem;
-                min-height: 104px; padding: .7rem .75rem; text-align: left;
-                border: 1px solid var(--ob-border); border-radius: var(--ob-radius-sm); background: var(--ob-surface);
-                transition: border-color .15s ease, box-shadow .15s ease, transform .05s ease;
-            }
-            .b2b-product:hover { border-color: var(--ob-primary); box-shadow: 0 0 0 3px var(--ob-primary-soft); }
-            .b2b-product:active { transform: scale(.98); }
-            .b2b-product.in-cart { border-color: var(--ob-primary); background: var(--ob-primary-soft); }
-            .b2b-product__name { font-weight: 600; font-size: .88rem; line-height: 1.25; color: var(--ob-text); overflow-wrap: anywhere; }
-            .b2b-product__meta { display: flex; justify-content: space-between; align-items: center; gap: .4rem; font-size: .8rem; }
-            .b2b-product__price { font-weight: 700; color: var(--ob-primary); font-variant-numeric: tabular-nums; }
-            .b2b-stock { font-size: .72rem; font-weight: 600; color: var(--ob-muted); white-space: nowrap; }
-            .b2b-stock--low { color: var(--ob-danger); }
-            .b2b-cart-list { display: flex; flex-direction: column; gap: .5rem; max-height: 46vh; overflow-y: auto; }
-            .b2b-cart-item { padding: .65rem .7rem; border: 1px solid var(--ob-border); border-radius: var(--ob-radius-sm); }
-            .b2b-cart-item.warn { border-color: #f59e0b; background: #fffbeb; }
-            .b2b-cart-item__top { display: flex; justify-content: space-between; gap: .5rem; }
-            .b2b-cart-item__name { font-weight: 600; font-size: .88rem; overflow-wrap: anywhere; }
-            .b2b-cart-item__price { font-size: .8rem; color: var(--ob-muted); }
-            .b2b-cart-item__price s { margin-right: .25rem; }
-            .b2b-cart-item__bottom { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-top: .5rem; }
-            .b2b-qty { display: inline-flex; align-items: stretch; border: 1px solid var(--ob-border-strong); border-radius: 10px; overflow: hidden; }
-            .b2b-qty button { width: 42px; min-height: 42px; border: 0; background: var(--ob-surface-2, #f1f5f9); font-size: 1rem; font-weight: 700; }
-            .b2b-qty input { width: 64px; border: 0; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
-            .b2b-qty input::-webkit-outer-spin-button, .b2b-qty input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-            .b2b-line-total { font-weight: 700; font-variant-numeric: tabular-nums; }
-            .b2b-cart-item__note { margin-top: .45rem; }
-            .b2b-cart-item__note input { font-size: .82rem; }
-            .b2b-submit { min-height: 56px; font-weight: 700; }
-            .b2b-quick-days { display: flex; flex-wrap: wrap; gap: .4rem; }
-            .b2b-quick-days button {
-                min-height: 40px; padding: .3rem .8rem; border-radius: 999px;
-                border: 1px solid var(--ob-border-strong); background: var(--ob-surface); font-size: .82rem; font-weight: 600; color: var(--ob-text);
-            }
-            .b2b-quick-days button[aria-pressed="true"] { background: var(--ob-primary-soft); border-color: var(--ob-primary); color: var(--ob-primary); }
-            .b2b-customer-info { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
-            .b2b-customer-info .badge { font-size: .78rem; }
-            .b2b-cashier .select2-container .select2-selection--single { height: 48px; }
-            .b2b-cashier .select2-container .select2-selection--single .select2-selection__rendered { line-height: 46px; font-size: 1rem; }
-            .b2b-cashier .select2-container .select2-selection--single .select2-selection__arrow { height: 46px; }
-        </style>
-    @endpush
 
     @push('js')
         <script>
@@ -188,6 +153,8 @@
                 const DEFAULT_TERM_DAYS = @json($defaultTermDays);
                 const MAX_DUE_DAYS = @json($maxDueDays);
                 const STORAGE_KEY = 'b2b-cashier-draft';
+                const LOW_STOCK = 5;
+                const SUBMIT_LABEL = 'Konfirmasi Pesanan';
 
                 const state = {
                     outletId: null,
@@ -195,10 +162,20 @@
                     category: '',
                     customer: null,
                     cart: new Map(),      // variantId -> { qty, notes }
+                    openNotes: new Set(), // baris yang kolom catatannya sedang dibuka
                     quote: null,
                     quoteSeq: 0,
                     submitting: false,
                 };
+
+                const number = value => Number(value || 0).toLocaleString('id-ID');
+                const initials = name => String(name || '').replace(/^(PT|CV)\.?\s+/i, '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+                const emptyState = (icon, title, text) => `
+                    <div class="b2b-empty">
+                        <span class="b2b-empty__icon"><i class="fas ${icon}" aria-hidden="true"></i></span>
+                        <p class="b2b-empty__title">${title}</p>
+                        ${text ? `<p class="b2b-empty__text">${text}</p>` : ''}
+                    </div>`;
 
                 // ---------- Draft keranjang (per perangkat) ----------
                 function saveDraft() {
@@ -220,21 +197,36 @@
                 // ---------- Katalog ----------
                 function loadProducts(outletId) {
                     state.outletId = Number(outletId);
-                    $('#product-grid').html('<div class="b2b-muted p-3">Memuat produk...</div>');
+                    $('#catalog-desc').text('Memuat produk...');
+                    $('#category-chips').empty();
+                    $('#product-grid').html('<div class="b2b-skeleton"></div>'.repeat(8));
                     return $.getJSON(urls.products, { outlet_id: outletId }).done(response => {
                         state.products = new Map((response.data || []).map(p => [p.id, p]));
                         renderCategories();
                         renderProducts();
-                    }).fail(() => $('#product-grid').html('<div class="text-danger p-3">Gagal memuat produk.</div>'));
+                    }).fail(() => {
+                        $('#catalog-desc').text('Produk gagal dimuat.');
+                        $('#product-grid').html(emptyState('fa-exclamation-triangle', 'Gagal memuat produk', 'Periksa koneksi lalu pilih ulang outlet.'));
+                    });
                 }
 
                 function renderCategories() {
-                    const categories = [...new Set([...state.products.values()].map(p => p.category).filter(Boolean))].sort();
-                    const chips = [{ value: '', label: 'Semua' }, ...categories.map(c => ({ value: c, label: c }))];
+                    const counts = new Map();
+                    state.products.forEach(p => { if (p.category) counts.set(p.category, (counts.get(p.category) || 0) + 1); });
+                    const categories = [...counts.keys()].sort();
                     if (!categories.includes(state.category)) state.category = '';
-                    $('#category-chips').html(chips.map(c =>
-                        `<button type="button" role="tab" data-category="${B2b.escape(c.value)}" aria-selected="${c.value === state.category}">${B2b.escape(c.label)}</button>`
+                    const tabs = [{ value: '', label: 'Semua', count: state.products.size }, ...categories.map(c => ({ value: c, label: c, count: counts.get(c) }))];
+                    $('#category-chips').toggle(categories.length > 0).html(tabs.map(t =>
+                        `<button type="button" class="b2b-cat-tab" role="tab" data-category="${B2b.escape(t.value)}" aria-selected="${t.value === state.category}">
+                            ${B2b.escape(t.label)} <span class="b2b-cat-tab__count">${number(t.count)}</span>
+                        </button>`
                     ).join(''));
+                }
+
+                function stockBadge(stock) {
+                    if (stock <= 0) return `<span class="b2b-stock b2b-stock--out">Habis</span>`;
+                    if (stock <= LOW_STOCK) return `<span class="b2b-stock b2b-stock--low">Sisa ${number(stock)}</span>`;
+                    return `<span class="b2b-stock">Stok ${number(stock)}</span>`;
                 }
 
                 function renderProducts() {
@@ -242,18 +234,28 @@
                     const list = [...state.products.values()].filter(p =>
                         (!state.category || p.category === state.category) && (!q || p.name.toLowerCase().includes(q))
                     );
+                    $('#catalog-desc').text(state.products.size
+                        ? (list.length === state.products.size ? `${number(state.products.size)} produk di outlet ini` : `${number(list.length)} dari ${number(state.products.size)} produk`)
+                        : 'Outlet ini belum punya produk aktif.');
                     if (!list.length) {
-                        $('#product-grid').html('<div class="b2b-muted p-3">Produk tidak ditemukan.</div>');
+                        $('#product-grid').html(state.products.size
+                            ? emptyState('fa-search', 'Produk tidak ditemukan', 'Coba kata kunci lain atau pilih kategori "Semua".')
+                            : emptyState('fa-box-open', 'Belum ada produk', 'Tambahkan produk aktif untuk outlet ini di menu produk.'));
                         return;
                     }
-                    $('#product-grid').html(list.map(p => `
-                        <button type="button" class="b2b-product ${state.cart.has(p.id) ? 'in-cart' : ''}" data-variant="${p.id}" aria-label="Tambah ${B2b.escape(p.name)}">
+                    $('#product-grid').html(list.map(p => {
+                        const qty = state.cart.get(p.id)?.qty || 0;
+                        return `
+                        <button type="button" class="b2b-product ${qty ? 'in-cart' : ''}" data-variant="${p.id}" aria-label="Tambah ${B2b.escape(p.name)}${qty ? `, sudah ${qty} di pesanan` : ''}">
+                            ${qty ? `<span class="b2b-product__qty">${number(qty)}</span>` : ''}
+                            <span class="b2b-product__cat">${B2b.escape(p.category || 'Tanpa kategori')}</span>
                             <span class="b2b-product__name">${B2b.escape(p.name)}</span>
-                            <span class="b2b-product__meta">
+                            <span class="b2b-product__foot">
                                 <span class="b2b-product__price">${B2b.rupiah(p.price)}</span>
-                                <span class="b2b-stock ${p.stock <= 0 ? 'b2b-stock--low' : ''}">Stok ${p.stock.toLocaleString('id-ID')}</span>
+                                ${stockBadge(p.stock)}
                             </span>
-                        </button>`).join(''));
+                        </button>`;
+                    }).join(''));
                 }
 
                 // ---------- Customer ----------
@@ -281,15 +283,41 @@
                 function renderCustomer() {
                     const c = state.customer;
                     const info = $('#customer-info');
-                    if (!c) { info.addClass('d-none').empty(); renderAddress(); updateSubmit(); return; }
+                    if (!c) {
+                        info.html('<div class="b2b-cust-panel__empty"><i class="fas fa-user-tie" aria-hidden="true"></i> Pilih customer untuk melihat kontrak, piutang, dan alamatnya.</div>');
+                        renderAddress();
+                        updateSubmit();
+                        return;
+                    }
                     const r = c.receivables;
-                    info.removeClass('d-none').html(`
-                        ${c.contract
-                            ? `<span class="badge badge-success"><i class="fas fa-file-signature me-1"></i>Kontrak ${B2b.escape(c.contract.number)} · s.d. ${B2b.escape(c.contract.end_date)}</span>`
-                            : '<span class="badge badge-muted">Tanpa kontrak · harga normal</span>'}
-                        ${r.open_invoices ? `<span class="badge badge-warning">${r.open_invoices} invoice belum lunas · ${B2b.rupiah(r.outstanding)}</span>` : ''}
-                        ${r.overdue_invoices ? `<span class="badge badge-danger"><i class="fas fa-exclamation-triangle me-1"></i>${r.overdue_invoices} lewat jatuh tempo</span>` : ''}
-                    `);
+                    const contractFact = c.contract
+                        ? `<a class="b2b-fact b2b-fact--success" href="${B2b.escape(c.contract.url)}" target="_blank" rel="noopener" title="Buka kontrak">
+                                <span class="b2b-fact__icon"><i class="fas fa-file-signature" aria-hidden="true"></i></span>
+                                <span class="b2b-fact__text"><strong>${B2b.escape(c.contract.number)}</strong><small>${number(c.contract.items_count)} produk · s.d. ${B2b.escape(c.contract.end_date)}</small></span>
+                           </a>`
+                        : `<div class="b2b-fact">
+                                <span class="b2b-fact__icon"><i class="fas fa-file" aria-hidden="true"></i></span>
+                                <span class="b2b-fact__text"><strong>Tanpa kontrak</strong><small>Semua produk harga normal</small></span>
+                           </div>`;
+                    const receivableVariant = r.overdue_invoices ? 'danger' : (r.open_invoices ? 'warning' : 'success');
+                    const receivableFact = `
+                        <div class="b2b-fact b2b-fact--${receivableVariant}">
+                            <span class="b2b-fact__icon"><i class="fas ${r.overdue_invoices ? 'fa-exclamation-triangle' : 'fa-file-invoice-dollar'}" aria-hidden="true"></i></span>
+                            <span class="b2b-fact__text">
+                                <strong>${r.open_invoices ? B2b.rupiah(r.outstanding) : 'Tidak ada piutang'}</strong>
+                                <small>${r.open_invoices
+                                    ? `${number(r.open_invoices)} invoice belum lunas${r.overdue_invoices ? ` · ${number(r.overdue_invoices)} lewat jatuh tempo` : ''}`
+                                    : 'Semua invoice lunas'}</small>
+                            </span>
+                        </div>`;
+                    info.html(`
+                        <div class="b2b-cust-panel__body">
+                            <div class="b2b-cust-panel__id">
+                                <span class="b2b-avatar" aria-hidden="true">${B2b.escape(initials(c.name))}</span>
+                                <div><strong>${B2b.escape(c.name)}</strong><small>${B2b.escape([c.code, c.phone].filter(Boolean).join(' · '))}</small></div>
+                            </div>
+                            <div class="b2b-cust-panel__facts">${contractFact}${receivableFact}</div>
+                        </div>`);
                     renderAddress();
                     updateSubmit();
                 }
@@ -297,9 +325,9 @@
                 // Satu alamat per customer; kosong berarti pesanan hanya bisa "Diambil".
                 function renderAddress() {
                     const address = state.customer?.address;
-                    $('#shipping-address')
-                        .toggleClass('text-danger', !address).toggleClass('text-muted', !!address)
-                        .text(address || 'Customer belum punya alamat. Lengkapi di data customer atau pilih "Diambil".');
+                    $('#address-field').toggleClass('is-missing', !address);
+                    $('#shipping-address').text(address
+                        || (state.customer ? 'Customer belum punya alamat. Lengkapi di data customer atau pilih "Diambil".' : 'Pilih customer dulu untuk melihat alamat pengiriman.'));
                 }
 
                 // ---------- Keranjang ----------
@@ -318,6 +346,7 @@
                 }
 
                 function cartChanged() {
+                    [...state.openNotes].forEach(id => { if (!state.cart.has(id)) state.openNotes.delete(id); });
                     renderCart();
                     renderProducts();
                     requote();
@@ -330,8 +359,9 @@
 
                 function renderCart() {
                     $('#cart-count').text(state.cart.size);
+                    $('#clear-cart').prop('hidden', !state.cart.size);
                     if (!state.cart.size) {
-                        $('#cart-list').html('<div class="b2b-repeater-empty">Ketuk produk di katalog untuk menambahkan.</div>');
+                        $('#cart-list').html(emptyState('fa-shopping-basket', 'Pesanan masih kosong', 'Ketuk produk di katalog untuk menambahkannya ke pesanan.'));
                         renderTotals();
                         return;
                     }
@@ -344,30 +374,30 @@
                         const contractPrice = q && q.contract_price;
                         const priceChanged = contractPrice && q.final_price !== q.base_price;
                         const stockShort = item.qty > p.stock;
+                        const noteOpen = state.openNotes.has(id) || !!item.notes;
                         return `
-                            <div class="b2b-cart-item ${stockShort ? 'warn' : ''}" data-variant="${id}">
-                                <div class="b2b-cart-item__top">
-                                    <div>
-                                        <div class="b2b-cart-item__name">${B2b.escape(p.name)}</div>
-                                        <div class="b2b-cart-item__price">
-                                            ${priceChanged ? `<s>${B2b.rupiah(q.base_price)}</s>` : ''}${B2b.rupiah(finalPrice)} / unit
-                                            ${contractPrice ? `<span class="badge badge-success ms-1">Harga kontrak${q.min_qty > 1 ? ` · qty ≥ ${q.min_qty.toLocaleString('id-ID')}` : ''}</span>` : ''}
+                            <div class="b2b-line ${stockShort ? 'warn' : ''}" data-variant="${id}">
+                                <div class="b2b-line__main">
+                                    <div class="b2b-line__info">
+                                        <div class="b2b-line__name">${B2b.escape(p.name)}</div>
+                                        <div class="b2b-line__price">
+                                            ${priceChanged ? `<s>${B2b.rupiah(q.base_price)}</s>` : ''}<span>${B2b.rupiah(finalPrice)} / unit</span>
+                                            ${contractPrice ? `<span class="b2b-line__tag"><i class="fas fa-file-signature" aria-hidden="true"></i>Kontrak${q.min_qty > 1 ? ` · qty ≥ ${number(q.min_qty)}` : ''}</span>` : ''}
                                         </div>
-                                        ${stockShort ? `<div class="small text-warning fw-bold"><i class="fas fa-exclamation-triangle"></i> Stok tinggal ${p.stock.toLocaleString('id-ID')}, stok akan minus</div>` : ''}
+                                        ${stockShort ? `<div class="b2b-line__warn"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i>Stok tinggal ${number(p.stock)}, stok akan minus</div>` : ''}
                                     </div>
-                                    <button type="button" class="ob-icon-btn ob-icon-btn--sm ob-icon-btn--danger" data-remove title="Hapus" aria-label="Hapus ${B2b.escape(p.name)}"><i class="fas fa-times"></i></button>
+                                    <button type="button" class="b2b-line__remove" data-remove title="Hapus dari pesanan" aria-label="Hapus ${B2b.escape(p.name)}"><i class="fas fa-times" aria-hidden="true"></i></button>
                                 </div>
-                                <div class="b2b-cart-item__bottom">
+                                <div class="b2b-line__foot">
                                     <div class="b2b-qty">
-                                        <button type="button" data-step="-1" aria-label="Kurangi">−</button>
+                                        <button type="button" data-step="-1" aria-label="Kurangi ${B2b.escape(p.name)}"><i class="fas fa-minus" aria-hidden="true"></i></button>
                                         <input type="number" inputmode="numeric" min="1" value="${item.qty}" aria-label="Qty ${B2b.escape(p.name)}">
-                                        <button type="button" data-step="1" aria-label="Tambah">+</button>
+                                        <button type="button" data-step="1" aria-label="Tambah ${B2b.escape(p.name)}"><i class="fas fa-plus" aria-hidden="true"></i></button>
                                     </div>
-                                    <span class="b2b-line-total">${B2b.rupiah(q ? q.line_total : p.price * item.qty)}</span>
+                                    ${noteOpen ? '' : '<button type="button" class="b2b-line__note-toggle" data-note-toggle><i class="fas fa-plus me-1" aria-hidden="true"></i>Catatan</button>'}
+                                    <span class="b2b-line__total">${B2b.rupiah(q ? q.line_total : p.price * item.qty)}</span>
                                 </div>
-                                <div class="b2b-cart-item__note">
-                                    <input type="text" class="form-control form-control-sm" maxlength="255" placeholder="Catatan item (opsional)" value="${B2b.escape(item.notes)}">
-                                </div>
+                                ${noteOpen ? `<input type="text" class="b2b-line__note" maxlength="255" placeholder="Catatan item (opsional)" value="${B2b.escape(item.notes)}" aria-label="Catatan ${B2b.escape(p.name)}">` : ''}
                             </div>`;
                     }).join(''));
                     renderTotals();
@@ -376,8 +406,23 @@
                 function renderTotals() {
                     const fallbackTotal = [...state.cart.entries()].reduce((sum, [id, item]) => sum + (state.products.get(id)?.price || 0) * item.qty, 0);
                     const quote = state.quote;
-                    $('#sum-subtotal').text(B2b.rupiah(quote ? quote.subtotal : fallbackTotal));
-                    $('#sum-total').text(B2b.rupiah(quote ? quote.grand_total : fallbackTotal));
+                    const total = quote ? quote.grand_total : fallbackTotal;
+                    // Selisih harga kontrak terhadap harga normal (minus = lebih hemat).
+                    const normal = quote ? quote.items.reduce((sum, i) => sum + i.base_price * i.qty, 0) : fallbackTotal;
+                    const delta = quote ? quote.subtotal - normal : 0;
+
+                    $('#sum-subtotal-label').text(delta ? 'Harga normal' : 'Subtotal');
+                    $('#sum-subtotal').text(B2b.rupiah(delta ? normal : (quote ? quote.subtotal : fallbackTotal)));
+                    $('#sum-delta-row').prop('hidden', !delta).toggleClass('is-down', delta < 0).toggleClass('is-up', delta > 0);
+                    $('#sum-delta-label').text(delta < 0 ? 'Hemat harga kontrak' : 'Selisih harga kontrak');
+                    $('#sum-delta').text((delta < 0 ? '− ' : '+ ') + B2b.rupiah(Math.abs(delta)));
+                    $('#sum-total').text(B2b.rupiah(total));
+                    $('#submit-total').text(state.cart.size ? B2b.rupiah(total) : '');
+
+                    const units = [...state.cart.values()].reduce((sum, item) => sum + item.qty, 0);
+                    $('#mobile-bar-count').text(`${number(state.cart.size)} produk · ${number(units)} unit`);
+                    $('#mobile-bar-total').text(B2b.rupiah(total));
+                    updateMobileBar();
                     updateSubmit();
                 }
 
@@ -387,15 +432,21 @@
                     return [...state.cart.entries()].map(([id, item]) => ({ variant_id: id, qty: item.qty, notes: item.notes || null }));
                 }
 
+                function setQuoteStatus(html, variant = '') {
+                    $('#quote-status').removeClass('is-error is-contract').addClass(variant ? `is-${variant}` : '').html(html);
+                }
+
                 function requote() {
                     clearTimeout(quoteTimer);
                     state.quote = null;
                     if (!state.customer || !state.cart.size) {
-                        $('#quote-status').text(state.cart.size && !state.customer ? 'Pilih customer untuk menghitung harga kontrak.' : '');
+                        setQuoteStatus(state.cart.size && !state.customer
+                            ? '<i class="fas fa-info-circle" aria-hidden="true"></i> Pilih customer untuk menghitung harga kontrak.'
+                            : '');
                         renderCart();
                         return;
                     }
-                    $('#quote-status').html('<span class="spinner-border spinner-border-sm me-1"></span>Menghitung harga...');
+                    setQuoteStatus('<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Menghitung harga...');
                     updateSubmit();
                     quoteTimer = setTimeout(() => {
                         const seq = ++state.quoteSeq;
@@ -406,12 +457,16 @@
                         }).done(response => {
                             if (seq !== state.quoteSeq) return;
                             state.quote = response.data;
-                            $('#quote-status').text(state.quote.contract ? `Harga mengikuti kontrak ${state.quote.contract.number}.` : 'Harga normal (customer tanpa kontrak berlaku).');
+                            if (state.quote.contract) {
+                                setQuoteStatus(`<i class="fas fa-check-circle" aria-hidden="true"></i> Harga mengikuti kontrak ${B2b.escape(state.quote.contract.number)}`, 'contract');
+                            } else {
+                                setQuoteStatus('<i class="fas fa-tag" aria-hidden="true"></i> Harga normal, customer tanpa kontrak berlaku');
+                            }
                             renderCart();
                         }).fail(xhr => {
                             if (seq !== state.quoteSeq) return;
                             const errors = xhr.responseJSON?.errors;
-                            $('#quote-status').html(`<span class="text-danger">${B2b.escape(errors ? Object.values(errors)[0][0] : 'Gagal menghitung harga.')}</span>`);
+                            setQuoteStatus(`<i class="fas fa-exclamation-circle" aria-hidden="true"></i> ${B2b.escape(errors ? Object.values(errors)[0][0] : 'Gagal menghitung harga.')}`, 'error');
                             updateSubmit();
                         });
                     }, 300);
@@ -420,6 +475,22 @@
                 function updateSubmit() {
                     $('#submit-order').prop('disabled', state.submitting || !state.customer || !state.cart.size || !state.quote);
                 }
+
+                // Bilah bawah tablet/HP muncul selama panel pesanan belum terlihat.
+                let orderPanelVisible = false;
+                function updateMobileBar() {
+                    $('#mobile-bar').prop('hidden', !state.cart.size || orderPanelVisible);
+                }
+                if ('IntersectionObserver' in window) {
+                    new IntersectionObserver(entries => {
+                        orderPanelVisible = entries[0].isIntersecting;
+                        updateMobileBar();
+                    }, { threshold: 0.15 }).observe(document.getElementById('order-panel'));
+                }
+                $('#mobile-bar-link').on('click', function (event) {
+                    event.preventDefault();
+                    document.getElementById('order-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
 
                 // ---------- Simpan pesanan ----------
                 function submitOrder() {
@@ -435,14 +506,17 @@
                         return;
                     }
                     const shortItems = state.quote.items.filter(i => i.stock_insufficient).length;
+                    const row = (label, value) => `<tr><td style="padding:.3rem 0;color:#64748b">${label}</td><td style="padding:.3rem 0;text-align:right;font-weight:600">${value}</td></tr>`;
                     Swal.fire({
                         title: 'Konfirmasi pesanan?',
-                        html: `<div class="text-start">
-                                <div><strong>${B2b.escape(state.customer.name)}</strong></div>
-                                <div>${state.cart.size} item · Total <strong>${B2b.rupiah(state.quote.grand_total)}</strong></div>
-                                <div>Jatuh tempo <strong>${B2b.escape(formatDate(dueDate))}</strong> (${daysFromToday(dueDate)} hari)</div>
-                                ${shortItems ? `<div class="text-warning mt-2"><i class="fas fa-exclamation-triangle"></i> ${shortItems} item melebihi stok. Stok akan menjadi minus.</div>` : ''}
-                               </div>`,
+                        html: `<table style="width:100%;font-size:.9rem;text-align:left">
+                                ${row('Customer', B2b.escape(state.customer.name))}
+                                ${row('Produk', `${number(state.cart.size)} produk`)}
+                                ${row('Pengiriman', delivery === 'internal' ? 'Diantar' : 'Diambil')}
+                                ${row('Jatuh tempo', `${B2b.escape(formatDate(dueDate))} (${daysFromToday(dueDate)} hari)`)}
+                                <tr><td style="padding:.6rem 0 0;border-top:1px dashed #cbd5e1;font-weight:700">Total</td><td style="padding:.6rem 0 0;border-top:1px dashed #cbd5e1;text-align:right;font-size:1.15rem;font-weight:800">${B2b.rupiah(state.quote.grand_total)}</td></tr>
+                               </table>
+                               ${shortItems ? `<div style="margin-top:.85rem;padding:.6rem .75rem;border-radius:8px;background:#fffbeb;color:#b45309;font-size:.85rem;text-align:left"><i class="fas fa-exclamation-triangle"></i> ${shortItems} produk melebihi stok. Stok akan menjadi minus.</div>` : ''}`,
                         icon: 'question',
                         showCancelButton: true,
                         confirmButtonText: 'Ya, simpan pesanan',
@@ -451,7 +525,7 @@
                         if (!result.isConfirmed) return;
                         state.submitting = true;
                         updateSubmit();
-                        $('#submit-order').html('<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...');
+                        $('#submit-order .b2b-submit__label').html('<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Menyimpan...');
                         $.ajax({
                             url: urls.store, method: 'POST', contentType: 'application/json',
                             headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
@@ -485,7 +559,7 @@
                             showToast('error', errors ? Object.values(errors)[0][0] : (xhr.responseJSON?.message || 'Gagal menyimpan pesanan'));
                         }).always(() => {
                             state.submitting = false;
-                            $('#submit-order').html('<i class="fas fa-check-circle me-1"></i> Konfirmasi Pesanan');
+                            $('#submit-order .b2b-submit__label').text(SUBMIT_LABEL);
                             updateSubmit();
                         });
                     });
@@ -493,6 +567,7 @@
 
                 function resetOrder() {
                     state.cart.clear();
+                    state.openNotes.clear();
                     state.quote = null;
                     $('#order-notes').val('');
                     setDueDays(DEFAULT_TERM_DAYS);
@@ -542,34 +617,41 @@
                     const next = this.value;
                     const apply = () => { state.cart.clear(); state.quote = null; loadProducts(next).then(() => { renderCart(); requote(); saveDraft(); }); };
                     if (!state.cart.size) return apply();
-                    Swal.fire({ title: 'Ganti outlet?', text: 'Keranjang akan dikosongkan karena produk berbeda per outlet.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, ganti', cancelButtonText: 'Batal' })
+                    Swal.fire({ title: 'Ganti outlet?', text: 'Pesanan akan dikosongkan karena produk berbeda per outlet.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, ganti', cancelButtonText: 'Batal' })
                         .then(result => result.isConfirmed ? apply() : $('#outlet').val(state.outletId));
                 });
                 $('#product-search').on('input', renderProducts);
                 $('#category-chips').on('click', 'button', function () { state.category = this.dataset.category; renderCategories(); renderProducts(); });
                 $('#product-grid').on('click', '.b2b-product', function () { addToCart(Number(this.dataset.variant), 1); });
+                const lineId = el => Number($(el).closest('.b2b-line').data('variant'));
                 $('#cart-list')
-                    .on('click', '[data-step]', function () { addToCart(Number($(this).closest('.b2b-cart-item').data('variant')), Number(this.dataset.step)); })
-                    .on('click', '[data-remove]', function () { setQty(Number($(this).closest('.b2b-cart-item').data('variant')), 0); })
-                    .on('change', '.b2b-qty input', function () { setQty(Number($(this).closest('.b2b-cart-item').data('variant')), this.value); })
+                    .on('click', '[data-step]', function () { addToCart(lineId(this), Number(this.dataset.step)); })
+                    .on('click', '[data-remove]', function () { setQty(lineId(this), 0); })
+                    .on('click', '[data-note-toggle]', function () {
+                        const id = lineId(this);
+                        state.openNotes.add(id);
+                        renderCart();
+                        $(`.b2b-line[data-variant="${id}"] .b2b-line__note`).trigger('focus');
+                    })
+                    .on('change', '.b2b-qty input', function () { setQty(lineId(this), this.value); })
                     .on('keydown', '.b2b-qty input', function (event) { if (['-', '+', 'e', 'E', '.', ','].includes(event.key)) event.preventDefault(); })
-                    .on('change', '.b2b-cart-item__note input', function () {
-                        const id = Number($(this).closest('.b2b-cart-item').data('variant'));
-                        const item = state.cart.get(id);
+                    .on('change', '.b2b-line__note', function () {
+                        const item = state.cart.get(lineId(this));
                         if (item) { item.notes = this.value.trim(); saveDraft(); }
                     });
                 $('#clear-cart').on('click', function () {
                     if (!state.cart.size) return;
-                    Swal.fire({ title: 'Kosongkan keranjang?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, kosongkan', cancelButtonText: 'Batal' })
+                    Swal.fire({ title: 'Kosongkan pesanan?', text: 'Semua produk di pesanan ini akan dihapus.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, kosongkan', cancelButtonText: 'Batal' })
                         .then(result => { if (result.isConfirmed) { state.cart.clear(); cartChanged(); } });
                 });
                 $('input[name="delivery_method"]').on('change', function () {
-                    $('#address-field').toggleClass('d-none', $('input[name="delivery_method"]:checked').val() !== 'internal');
+                    $('#address-field').prop('hidden', $('input[name="delivery_method"]:checked').val() !== 'internal');
                 });
                 $('#submit-order').on('click', submitOrder);
 
                 // ---------- Mulai ----------
                 setDueDays(DEFAULT_TERM_DAYS);
+                renderCustomer();
                 const draft = loadDraft();
                 if (draft && draft.outletId && $(`#outlet option[value="${draft.outletId}"]`).length) {
                     $('#outlet').val(draft.outletId);
@@ -581,7 +663,7 @@
                             $('#customer').append(new Option(draft.customer.text, draft.customer.id, true, true)).trigger('change');
                             selectCustomer(draft.customer.id);
                         }
-                        if (state.cart.size) showToast('success', 'Keranjang sebelumnya dipulihkan');
+                        if (state.cart.size) showToast('success', 'Pesanan sebelumnya dipulihkan');
                     }
                     renderCart();
                     renderProducts();
