@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\B2b;
 
-use App\Models\B2b\CustomerAddress;
 use App\Models\B2b\Invoice;
 use App\Models\B2b\Order;
 use App\Models\Config;
@@ -92,36 +91,37 @@ class OrderServiceTest extends B2bTestCase
         $this->assertSame((int) substr($first->order_number, -4) + 1, (int) substr($second->order_number, -4));
     }
 
-    public function test_internal_delivery_requires_an_address_of_the_customer(): void
+    public function test_internal_delivery_requires_customer_address(): void
     {
         $outlet = $this->outlet();
         $user = $this->userFor($outlet);
         $variant = $this->variant($outlet);
         $customer = $this->customer();
-        $otherAddress = CustomerAddress::create(['b2b_customer_id' => $this->customer()->id, 'label' => 'Lain', 'address' => 'Jl. Lain']);
 
         $this->expectException(ValidationException::class);
         $this->place(['user' => $user, 'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id,
-            'delivery_method' => 'internal', 'shipping_address_id' => $otherAddress->id,
-            'items' => [['variant_id' => $variant->id, 'qty' => 1]]]);
+            'delivery_method' => 'internal', 'items' => [['variant_id' => $variant->id, 'qty' => 1]]]);
     }
 
-    public function test_internal_delivery_snapshots_shipping_and_billing_address(): void
+    public function test_customer_address_is_snapshotted_to_order_and_invoice(): void
     {
         $outlet = $this->outlet();
         $user = $this->userFor($outlet);
         $variant = $this->variant($outlet);
-        $customer = $this->customer();
-        $billing = CustomerAddress::create(['b2b_customer_id' => $customer->id, 'label' => 'Kantor', 'address' => 'Jl. Kantor', 'city' => 'Bogor', 'is_default_billing' => true]);
-        $warehouse = CustomerAddress::create(['b2b_customer_id' => $customer->id, 'label' => 'Gudang', 'address' => 'Jl. Gudang']);
+        $customer = $this->customer(['contact_name' => 'Budi', 'address' => 'Jl. Kantor', 'city' => 'Bogor']);
+        $items = [['variant_id' => $variant->id, 'qty' => 1]];
 
-        $order = $this->place(['user' => $user, 'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id,
-            'delivery_method' => 'internal', 'shipping_address_id' => $warehouse->id,
-            'items' => [['variant_id' => $variant->id, 'qty' => 1]]]);
-        $billing->update(['address' => 'Jl. Pindah']);
+        $internal = $this->place(['user' => $user, 'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id,
+            'delivery_method' => 'internal', 'items' => $items]);
+        $pickup = $this->place(['user' => $user, 'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id, 'items' => $items]);
+        $customer->update(['address' => 'Jl. Pindah']);
 
-        $this->assertSame('Gudang', $order->shipping_address_snapshot['label']);
-        $this->assertSame('Jl. Kantor, Bogor', $order->invoice->fresh()->billing_address_snapshot['full_address']);
+        $this->assertSame('Jl. Kantor, Bogor', $internal->fresh()->shipping_address_snapshot['full_address']);
+        $this->assertSame('Budi', $internal->shipping_address_snapshot['recipient_name']);
+        $this->assertSame('Jl. Kantor, Bogor', $internal->invoice->fresh()->billing_address_snapshot['full_address']);
+        // Ambil sendiri: tidak ada alamat kirim, tapi alamat tagihan tetap dicetak di invoice.
+        $this->assertNull($pickup->fresh()->shipping_address_snapshot);
+        $this->assertSame('Jl. Kantor, Bogor', $pickup->invoice->fresh()->billing_address_snapshot['full_address']);
     }
 
     public function test_inactive_customer_cannot_order(): void

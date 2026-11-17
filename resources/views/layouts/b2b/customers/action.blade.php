@@ -11,7 +11,7 @@
             data-text="{{ $customer->is_active ? 'Customer nonaktif tidak bisa dipilih di Kasir B2B.' : 'Customer akan bisa dipilih lagi di Kasir B2B.' }}"
             class="ob-icon-btn ob-icon-btn--sm {{ $customer->is_active ? 'ob-icon-btn--danger' : 'ob-icon-btn--success' }}"
             title="{{ $customer->is_active ? 'Nonaktifkan' : 'Aktifkan' }}" aria-label="{{ $customer->is_active ? 'Nonaktifkan' : 'Aktifkan' }}">
-            <i class="fas {{ $customer->is_active ? 'fa-eye-slash' : 'fa-check' }}" aria-hidden="true"></i>
+            <i class="fas {{ $customer->is_active ? 'fa-ban' : 'fa-check' }}" aria-hidden="true"></i>
         </a>
     @endcan
 </div>

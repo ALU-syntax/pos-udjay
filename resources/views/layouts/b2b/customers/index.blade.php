@@ -2,6 +2,7 @@
 
 @section('content')
     @include('layouts.b2b.partials.assets')
+    @include('layouts.b2b.customers.partials.styles')
 
     <div class="main-content ob-page">
         <div class="ob-header">
@@ -22,27 +23,30 @@
 
         <div class="ob-card">
             <div class="ob-tabs-bar">
-                <h2 class="ob-section-title mb-0"><i class="fas fa-list" aria-hidden="true"></i> Daftar Customer</h2>
-                <div class="d-flex flex-wrap gap-2">
-                <div class="ob-field ob-list-filter">
-                    <label for="type-filter"><i class="fas fa-tag" aria-hidden="true"></i> Jenis</label>
-                    <select id="type-filter" class="form-control">
-                        <option value="">Semua jenis</option>
-                        @foreach (\App\Models\B2b\Customer::TYPES as $value => $label)
-                            <option value="{{ $value }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
+                <div>
+                    <h2 class="ob-section-title mb-1"><i class="fas fa-list" aria-hidden="true"></i> Daftar Customer</h2>
+                    <span class="ob-hint"><i class="fas fa-info-circle" aria-hidden="true"></i> Customer tanpa kontrak berlaku tetap bisa belanja dengan harga normal.</span>
                 </div>
-                <div class="ob-field ob-list-filter">
-                    <label for="status-filter"><i class="fas fa-filter" aria-hidden="true"></i> Tampilkan</label>
-                    <select id="status-filter" class="form-control">
-                        <option value="">Semua customer</option>
-                        <option value="active">Aktif</option>
-                        <option value="inactive">Nonaktif</option>
-                        <option value="contract">Punya kontrak berlaku</option>
-                        <option value="no_contract">Tanpa kontrak (harga normal)</option>
-                    </select>
-                </div>
+                <div class="ob-list-filters">
+                    <div class="ob-field ob-list-filter">
+                        <label for="type-filter"><i class="fas fa-tag" aria-hidden="true"></i> Jenis</label>
+                        <select id="type-filter" class="form-select">
+                            <option value="">Semua jenis</option>
+                            @foreach (\App\Models\B2b\Customer::TYPES as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="ob-field ob-list-filter">
+                        <label for="status-filter"><i class="fas fa-filter" aria-hidden="true"></i> Tampilkan</label>
+                        <select id="status-filter" class="form-select">
+                            <option value="">Semua customer</option>
+                            <option value="active">Aktif</option>
+                            <option value="inactive">Nonaktif</option>
+                            <option value="contract">Punya kontrak berlaku</option>
+                            <option value="no_contract">Tanpa kontrak (harga normal)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="ob-table-wrap">

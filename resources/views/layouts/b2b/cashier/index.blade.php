@@ -89,8 +89,8 @@
                         </div>
                     </div>
                     <div class="mb-3 d-none" id="address-field">
-                        <label for="shipping-address" class="form-label fw-bold">Alamat pengiriman</label>
-                        <select id="shipping-address" class="form-select"></select>
+                        <span class="form-label fw-bold d-block">Alamat pengiriman</span>
+                        <div id="shipping-address" class="text-muted small" aria-live="polite"></div>
                     </div>
                     <div class="mb-3">
                         <label for="order-notes" class="form-label fw-bold">Catatan pesanan</label>
@@ -282,7 +282,7 @@
                 function renderCustomer() {
                     const c = state.customer;
                     const info = $('#customer-info');
-                    if (!c) { info.addClass('d-none').empty(); renderAddresses(); updateSubmit(); return; }
+                    if (!c) { info.addClass('d-none').empty(); renderAddress(); updateSubmit(); return; }
                     const r = c.receivables;
                     info.removeClass('d-none').html(`
                         ${c.contract
@@ -291,16 +291,16 @@
                         ${r.open_invoices ? `<span class="badge badge-warning">${r.open_invoices} invoice belum lunas · ${B2b.rupiah(r.outstanding)}</span>` : ''}
                         ${r.overdue_invoices ? `<span class="badge badge-danger"><i class="fas fa-exclamation-triangle me-1"></i>${r.overdue_invoices} lewat jatuh tempo</span>` : ''}
                     `);
-                    renderAddresses();
+                    renderAddress();
                     updateSubmit();
                 }
 
-                function renderAddresses() {
-                    const select = $('#shipping-address');
-                    const addresses = state.customer?.addresses || [];
-                    select.html(addresses.length
-                        ? addresses.map(a => `<option value="${a.id}" ${a.is_default_shipping ? 'selected' : ''}>${B2b.escape(a.label)} — ${B2b.escape(a.full_address)}</option>`).join('')
-                        : '<option value="">Customer belum punya alamat</option>');
+                // Satu alamat per customer; kosong berarti pesanan hanya bisa "Diambil".
+                function renderAddress() {
+                    const address = state.customer?.address;
+                    $('#shipping-address')
+                        .toggleClass('text-danger', !address).toggleClass('text-muted', !!address)
+                        .text(address || 'Customer belum punya alamat. Lengkapi di data customer atau pilih "Diambil".');
                 }
 
                 // ---------- Keranjang ----------
@@ -430,8 +430,8 @@
                         return;
                     }
                     const delivery = $('input[name="delivery_method"]:checked').val();
-                    if (delivery === 'internal' && !$('#shipping-address').val()) {
-                        showToast('error', 'Pilih alamat pengiriman atau gunakan "Diambil".');
+                    if (delivery === 'internal' && !state.customer.address) {
+                        showToast('error', 'Customer belum punya alamat. Lengkapi alamat customer atau gunakan "Diambil".');
                         return;
                     }
                     const shortItems = state.quote.items.filter(i => i.stock_insufficient).length;
@@ -461,7 +461,6 @@
                                 items: cartPayload(),
                                 delivery_method: delivery,
                                 due_date: dueDate,
-                                shipping_address_id: delivery === 'internal' ? Number($('#shipping-address').val()) : null,
                                 notes: $('#order-notes').val() || null,
                             }),
                         }).done(response => {

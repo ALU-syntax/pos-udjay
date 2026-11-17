@@ -115,7 +115,7 @@
                             <dd>
                                 {{ $order->deliveryLabel() }}
                                 @if ($order->shipping_address_snapshot)
-                                    <div class="b2b-muted">{{ $order->shipping_address_snapshot['label'] ?? '' }} — {{ $order->shipping_address_snapshot['full_address'] ?? '' }}</div>
+                                    <div class="b2b-muted">{{ $order->shipping_address_snapshot['full_address'] ?? '' }}</div>
                                 @endif
                             </dd>
                         </div>

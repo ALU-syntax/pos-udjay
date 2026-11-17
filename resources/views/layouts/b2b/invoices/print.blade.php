@@ -101,7 +101,6 @@
             <div>
                 <div class="label">Dikirim ke</div>
                 @if ($shipping)
-                    <strong>{{ $shipping['label'] ?? '' }}</strong>
                     <div>{{ $shipping['full_address'] ?? '' }}</div>
                     @if (!empty($shipping['recipient_name']))<div class="muted">{{ $shipping['recipient_name'] }} {{ $shipping['phone'] ?? '' }}</div>@endif
                 @else

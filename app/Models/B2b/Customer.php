@@ -47,16 +47,6 @@ class Customer extends Model
         'is_active' => 'boolean',
     ];
 
-    public function contacts(): HasMany
-    {
-        return $this->hasMany(CustomerContact::class, 'b2b_customer_id')->orderByDesc('is_primary')->orderBy('id');
-    }
-
-    public function addresses(): HasMany
-    {
-        return $this->hasMany(CustomerAddress::class, 'b2b_customer_id')->orderBy('id');
-    }
-
     public function contracts(): HasMany
     {
         return $this->hasMany(Contract::class, 'b2b_customer_id');
@@ -87,6 +77,16 @@ class Customer extends Model
         return self::TYPES[$this->type] ?? (string) $this->type;
     }
 
+    /** Inisial untuk avatar, tanpa awalan badan usaha: "PT Kantor Sejahtera" → "KS". */
+    public function initials(): string
+    {
+        $name = preg_replace('/^(pt|cv|ud)\.?\s+/i', '', trim((string) $this->name));
+        $words = preg_split('/\s+/', (string) $name, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $initials = implode('', array_map(fn (string $word) => mb_substr($word, 0, 1), array_slice($words, 0, 2)));
+
+        return mb_strtoupper($initials !== '' ? $initials : '?');
+    }
+
     /** Ringkasan pengaturan reminder untuk ditampilkan, mis. "Email · H-3, H-1, Hari H, harian setelah jatuh tempo". */
     public function reminderSummary(): string
     {
@@ -114,13 +114,34 @@ class Customer extends Model
         return $this->contracts()->effectiveOn($date ?? now())->first();
     }
 
-    public function defaultBillingAddress(): ?CustomerAddress
+    public function hasAddress(): bool
     {
-        return $this->addresses->firstWhere('is_default_billing', true) ?? $this->addresses->first();
+        return filled($this->address);
     }
 
-    public function defaultShippingAddress(): ?CustomerAddress
+    /** Alamat lengkap satu baris, dipakai di invoice dan pesanan. */
+    public function fullAddress(): string
     {
-        return $this->addresses->firstWhere('is_default_shipping', true) ?? $this->addresses->first();
+        return collect([$this->address, $this->city, $this->province, $this->postal_code])
+            ->filter(fn ($part) => filled($part))
+            ->implode(', ');
+    }
+
+    /** Salinan alamat untuk pesanan/invoice supaya tidak ikut berubah kalau data customer diedit. Null kalau alamat kosong. */
+    public function addressSnapshot(): ?array
+    {
+        if (! $this->hasAddress()) {
+            return null;
+        }
+
+        return [
+            'recipient_name' => $this->contact_name,
+            'phone' => $this->phone,
+            'address' => $this->address,
+            'city' => $this->city,
+            'province' => $this->province,
+            'postal_code' => $this->postal_code,
+            'full_address' => $this->fullAddress(),
+        ];
     }
 }

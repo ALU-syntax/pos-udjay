@@ -46,7 +46,7 @@ class CustomerController extends Controller
     public function show(Customer $customer)
     {
         $this->authorize('read b2b/customers');
-        $customer->load(['contacts', 'addresses', 'creator', 'modifier']);
+        $customer->load(['creator', 'modifier']);
 
         $contracts = $customer->contracts()->withCount('rules')->latest('start_date')->get();
         $recentOrders = $customer->orders()->with(['outlet', 'invoice'])->latest('order_date')->limit(10)->get();
@@ -70,7 +70,7 @@ class CustomerController extends Controller
     {
         $this->authorize('update b2b/customers');
 
-        return view('layouts.b2b.customers.form', ['customer' => $customer->load(['contacts', 'addresses'])]);
+        return view('layouts.b2b.customers.form', ['customer' => $customer]);
     }
 
     public function update(CustomerRequest $request, Customer $customer)

@@ -17,6 +17,12 @@ return new class extends Migration
             $table->string('npwp', 30)->nullable();
             $table->string('phone', 30)->nullable();
             $table->string('email')->nullable();
+            // Satu kontak (PIC) dan satu alamat per customer; telepon & email di atas juga jadi tujuan reminder.
+            $table->string('contact_name')->nullable()->comment('nama PIC');
+            $table->text('address')->nullable()->comment('alamat penagihan sekaligus pengiriman');
+            $table->string('city', 100)->nullable();
+            $table->string('province', 100)->nullable();
+            $table->string('postal_code', 10)->nullable();
             // Reminder diatur per customer. Tidak diatur = tidak ada yang dikirim (tidak ada pengaturan global).
             $table->boolean('reminder_enabled')->default(false);
             $table->json('reminder_channels')->nullable()->comment('["email"], ["whatsapp"], atau keduanya');
@@ -33,43 +39,10 @@ return new class extends Migration
             $table->index('name');
             $table->index('type');
         });
-
-        Schema::create('b2b_customer_contacts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('b2b_customer_id')->constrained('b2b_customers');
-            $table->string('name');
-            $table->string('phone', 30)->nullable();
-            $table->string('email')->nullable();
-            $table->string('position', 100)->nullable();
-            $table->boolean('is_primary')->default(false);
-            $table->boolean('receive_reminder')->default(false)->comment('lewat channel yang dipilih di customer');
-            $table->timestamps();
-            $table->softDeletes();
-        });
-
-        Schema::create('b2b_customer_addresses', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('b2b_customer_id')->constrained('b2b_customers');
-            $table->string('label', 100);
-            $table->string('recipient_name')->nullable();
-            $table->string('phone', 30)->nullable();
-            $table->text('address');
-            $table->string('city', 100)->nullable();
-            $table->string('province', 100)->nullable();
-            $table->string('postal_code', 10)->nullable();
-            $table->decimal('latitude', 10, 7)->nullable();
-            $table->decimal('longitude', 10, 7)->nullable();
-            $table->boolean('is_default_billing')->default(false);
-            $table->boolean('is_default_shipping')->default(false);
-            $table->timestamps();
-            $table->softDeletes();
-        });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('b2b_customer_addresses');
-        Schema::dropIfExists('b2b_customer_contacts');
         Schema::dropIfExists('b2b_customers');
     }
 };

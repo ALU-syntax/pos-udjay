@@ -3,7 +3,6 @@
 namespace App\Services\B2b;
 
 use App\Models\B2b\Customer;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -11,13 +10,10 @@ use Illuminate\Validation\ValidationException;
 class CustomerService
 {
     private const CUSTOMER_FIELDS = [
-        'type', 'name', 'npwp', 'phone', 'email', 'is_active', 'notes',
+        'type', 'name', 'npwp', 'phone', 'email', 'contact_name',
+        'address', 'city', 'province', 'postal_code', 'is_active', 'notes',
         'reminder_enabled', 'reminder_channels', 'reminder_days', 'reminder_overdue_daily',
     ];
-
-    private const CONTACT_FIELDS = ['name', 'phone', 'email', 'position', 'is_primary', 'receive_reminder'];
-
-    private const ADDRESS_FIELDS = ['label', 'recipient_name', 'phone', 'address', 'city', 'province', 'postal_code', 'is_default_billing', 'is_default_shipping'];
 
     public function __construct(
         private readonly SequenceService $sequences,
@@ -32,10 +28,9 @@ class CustomerService
             $customer->created_by = auth()->id();
             $customer->save();
 
-            $this->syncChildren($customer, $data);
             $this->logger->log('customer.created', $customer);
 
-            return $customer->fresh(['contacts', 'addresses']);
+            return $customer->fresh();
         });
     }
 
@@ -47,13 +42,12 @@ class CustomerService
             $customer->modified_by = auth()->id();
             $customer->save();
 
-            $this->syncChildren($customer, $data);
             $this->logger->log('customer.updated', $customer, [
                 'before' => $before,
                 'after' => $customer->only(self::CUSTOMER_FIELDS),
             ]);
 
-            return $customer->fresh(['contacts', 'addresses']);
+            return $customer->fresh();
         });
     }
 
@@ -80,69 +74,5 @@ class CustomerService
             $customer->delete();
             $this->logger->log('customer.deleted', $customer);
         });
-    }
-
-    private function syncChildren(Customer $customer, array $data): void
-    {
-        $contacts = $this->onlyOneFlag(
-            array_map(fn ($row) => $this->withBooleans($row, ['is_primary', 'receive_reminder']), $data['contacts'] ?? []),
-            'is_primary',
-        );
-        $addresses = $this->onlyOneFlag(
-            $this->onlyOneFlag(
-                array_map(fn ($row) => $this->withBooleans($row, ['is_default_billing', 'is_default_shipping']), $data['addresses'] ?? []),
-                'is_default_billing',
-            ),
-            'is_default_shipping',
-        );
-
-        $this->syncRelation($customer->contacts(), $contacts, self::CONTACT_FIELDS);
-        $this->syncRelation($customer->addresses(), $addresses, self::ADDRESS_FIELDS);
-    }
-
-    /** Update baris yang punya id milik customer ini, buat baris baru, dan soft delete yang dihapus dari form. */
-    private function syncRelation(HasMany $relation, array $rows, array $fields): void
-    {
-        $existing = $relation->getQuery()->clone()->get()->keyBy('id');
-        $keptIds = [];
-
-        foreach ($rows as $row) {
-            $attributes = Arr::only($row, $fields);
-            $model = filled($row['id'] ?? null) ? $existing->get((int) $row['id']) : null;
-
-            if ($model) {
-                $model->fill($attributes)->save();
-                $keptIds[] = $model->id;
-            } else {
-                $keptIds[] = $relation->create($attributes)->id;
-            }
-        }
-
-        $existing->except($keptIds)->each->delete();
-    }
-
-    private function withBooleans(array $row, array $keys): array
-    {
-        foreach ($keys as $key) {
-            $row[$key] = filter_var($row[$key] ?? false, FILTER_VALIDATE_BOOLEAN);
-        }
-
-        return $row;
-    }
-
-    /** Paling banyak satu baris yang ditandai; kalau tidak ada yang ditandai, baris pertama dipakai. */
-    private function onlyOneFlag(array $rows, string $flag): array
-    {
-        $found = false;
-        foreach ($rows as $index => $row) {
-            $rows[$index][$flag] = $row[$flag] && ! $found;
-            $found = $found || $row[$flag];
-        }
-
-        if (! $found && $rows !== []) {
-            $rows[array_key_first($rows)][$flag] = true;
-        }
-
-        return $rows;
     }
 }

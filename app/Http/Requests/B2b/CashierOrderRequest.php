@@ -30,7 +30,6 @@ class CashierOrderRequest extends FormRequest
             'delivery_method' => [Rule::requiredIf($placing), Rule::in(['pickup', 'internal'])],
             'due_date' => [Rule::requiredIf($placing), 'nullable', 'date_format:Y-m-d', 'after_or_equal:today',
                 'before_or_equal:'.app(B2bSettings::class)->maxDueDate()->toDateString()],
-            'shipping_address_id' => ['nullable', 'required_if:delivery_method,internal', 'integer'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }
@@ -42,7 +41,6 @@ class CashierOrderRequest extends FormRequest
             'b2b_customer_id' => 'customer',
             'items' => 'item pesanan',
             'items.*.qty' => 'qty',
-            'shipping_address_id' => 'alamat pengiriman',
             'due_date' => 'jatuh tempo',
         ];
     }

@@ -15,24 +15,28 @@ class CustomerDataTable extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
-            ->editColumn('name', fn (Customer $customer) => '<div class="ob-cell-stack">'
-                .'<a href="'.route('b2b/customers/show', $customer->id).'" class="fw-bold">'.e($customer->name).'</a>'
-                .'<span><span class="badge badge-muted">'.e($customer->typeLabel()).'</span></span>'
-                .'<span class="ob-cell-meta">'.e($customer->code).($customer->npwp ? ' · NPWP '.e($customer->npwp) : '').'</span></div>')
+            ->editColumn('name', fn (Customer $customer) => '<div class="b2b-cust-cell">'
+                .'<span class="b2b-avatar b2b-avatar--'.e($customer->type).($customer->is_active ? '' : ' is-inactive').'" aria-hidden="true">'.e($customer->initials()).'</span>'
+                .'<div class="ob-cell-stack">'
+                .'<a href="'.route('b2b/customers/show', $customer->id).'" class="b2b-cust-cell__name">'.e($customer->name).'</a>'
+                .'<span class="ob-cell-meta">'.e($customer->typeLabel()).' · '.e($customer->code).'</span>'
+                .'</div></div>')
             ->addColumn('contact', function (Customer $customer) {
-                $contact = $customer->contacts->first();
-                $lines = array_filter([
-                    $contact ? e($contact->name).($contact->position ? ' <span class="ob-cell-meta">('.e($contact->position).')</span>' : '') : null,
-                    e($customer->phone ?: $contact?->phone),
-                    e($customer->email ?: $contact?->email),
-                ]);
+                $details = array_values(array_filter([$customer->phone, $customer->email]));
+                if (blank($customer->contact_name) && ! $details) {
+                    return '<span class="ob-cell-meta">Belum ada kontak</span>';
+                }
 
-                return $lines ? '<div class="ob-cell-stack">'.implode('<br>', $lines).'</div>' : '<span class="text-muted">-</span>';
+                // Baris atas: nama PIC; tanpa PIC, telepon/email naik ke atas.
+                $title = filled($customer->contact_name) ? $customer->contact_name : array_shift($details);
+
+                return '<div class="ob-cell-stack"><span class="b2b-cell-strong">'.e($title).'</span>'
+                    .($details ? '<span class="ob-cell-meta">'.e(implode(' · ', $details)).'</span>' : '').'</div>';
             })
             ->addColumn('contract', function (Customer $customer) {
                 $contract = $customer->contracts->first();
                 if (! $contract) {
-                    return '<span class="badge badge-muted">Harga normal</span>';
+                    return '<span class="ob-cell-meta">Harga normal</span>';
                 }
 
                 return '<div class="ob-cell-stack"><span class="badge badge-success">'.e($contract->contract_number).'</span>'
@@ -52,7 +56,6 @@ class CustomerDataTable extends DataTable
 
         $query = $model->newQuery()
             ->with([
-                'contacts' => fn ($contacts) => $contacts->where('is_primary', true),
                 'contracts' => fn ($contracts) => $contracts->effectiveOn(today()),
             ]);
 

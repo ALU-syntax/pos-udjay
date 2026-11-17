@@ -64,7 +64,7 @@ class B2bHttpTest extends B2bTestCase
         $this->actingAs($user)->get(route('b2b/contracts/create', ['customer_id' => $customer->id]))->assertOk();
     }
 
-    public function test_customer_store_creates_code_contacts_addresses_and_single_flags(): void
+    public function test_customer_store_creates_code_and_saves_contact_and_address(): void
     {
         $user = $this->userFor(null, ['create b2b/customers']);
 
@@ -72,18 +72,15 @@ class B2bHttpTest extends B2bTestCase
             'type' => 'pt',
             'name' => '  PT Maju Jaya  ',
             'email' => 'FINANCE@MAJU.CO.ID',
+            'phone' => '0812345',
+            'contact_name' => 'Budi',
+            'address' => 'Jl. Sudirman 1',
+            'city' => 'Jakarta',
+            'postal_code' => '10220',
             'is_active' => 1,
-            'contacts' => [
-                ['name' => 'Budi', 'is_primary' => 1, 'receive_reminder' => 1],
-                ['name' => 'Sari', 'is_primary' => 1],
-            ],
-            'addresses' => [
-                ['label' => 'Kantor', 'address' => 'Jl. Sudirman 1', 'city' => 'Jakarta'],
-                ['label' => 'Gudang', 'address' => 'Jl. Gudang 2', 'is_default_shipping' => 1],
-            ],
         ])->assertOk();
 
-        $customer = Customer::with(['contacts', 'addresses'])->findOrFail($response->json('data.id'));
+        $customer = Customer::findOrFail($response->json('data.id'));
         $this->assertSame('PT Maju Jaya', $customer->name);
         $this->assertSame($user->id, $customer->created_by);
         $this->assertNull($customer->modified_by);
@@ -91,9 +88,8 @@ class B2bHttpTest extends B2bTestCase
         $this->assertSame('PT', $customer->typeLabel());
         $this->assertSame('finance@maju.co.id', $customer->email);
         $this->assertMatchesRegularExpression('/^CUS-B2B-\d{4,}$/', $customer->code);
-        $this->assertSame([true, false], $customer->contacts->sortBy('id')->pluck('is_primary')->all());
-        $this->assertTrue($customer->addresses->firstWhere('label', 'Kantor')->is_default_billing);
-        $this->assertTrue($customer->addresses->firstWhere('label', 'Gudang')->is_default_shipping);
+        $this->assertSame('Budi', $customer->contact_name);
+        $this->assertSame('Jl. Sudirman 1, Jakarta, 10220', $customer->fullAddress());
     }
 
     public function test_audit_columns_are_filled_by_the_system_not_by_the_form(): void
@@ -145,63 +141,53 @@ class B2bHttpTest extends B2bTestCase
             'reminder_channels' => ['email', 'whatsapp'],
             'reminder_days' => [-3, 0, -3],
             'reminder_overdue_daily' => 1,
-            'contacts' => [
-                ['name' => 'Finance', 'email' => 'finance@rajin.test', 'receive_reminder' => 1],
-                ['name' => 'Owner', 'phone' => '0812', 'receive_reminder' => 1],
-                ['name' => 'Gudang', 'phone' => '0813'],
-            ],
+            'email' => 'finance@rajin.test',
+            'phone' => '0812',
         ])->assertOk();
 
-        $customer = Customer::with('contacts')->findOrFail($response->json('data.id'));
+        $customer = Customer::findOrFail($response->json('data.id'));
         $this->assertTrue($customer->reminder_enabled);
         $this->assertSame(['email', 'whatsapp'], $customer->reminder_channels);
         $this->assertSame([-3, 0], $customer->reminder_days);
         $this->assertTrue($customer->reminder_overdue_daily);
-        $this->assertSame(['Finance', 'Owner'], $customer->contacts->where('receive_reminder', true)->pluck('name')->values()->all());
         $this->assertSame('Email + WhatsApp · H-3, Hari H, harian setelah jatuh tempo', $customer->reminderSummary());
     }
 
-    public function test_enabled_reminder_must_have_channel_schedule_and_reachable_recipient(): void
+    public function test_enabled_reminder_must_have_channel_schedule_and_reachable_destination(): void
     {
         $user = $this->userFor(null, ['create b2b/customers']);
         $store = fn (array $data) => $this->actingAs($user)->postJson(route('b2b/customers/store'), array_merge(['type' => 'pt', 'name' => 'PT Uji', 'reminder_enabled' => 1], $data));
 
-        $store([])->assertUnprocessable()->assertJsonValidationErrors(['reminder_channels', 'reminder_days', 'reminder_recipients']);
+        $store([])->assertUnprocessable()->assertJsonValidationErrors(['reminder_channels', 'reminder_days']);
         $store(['reminder_channels' => ['fax'], 'reminder_days' => [5]])
             ->assertUnprocessable()->assertJsonValidationErrors(['reminder_channels.0', 'reminder_days.0']);
-        $store([
-            'reminder_channels' => ['email'], 'reminder_days' => [-1],
-            'contacts' => [['name' => 'Tanpa Email', 'phone' => '0812', 'receive_reminder' => 1]],
-        ])->assertUnprocessable()->assertJsonValidationErrors('reminder_recipients');
-        $store([
-            'reminder_channels' => ['whatsapp'], 'reminder_overdue_daily' => 1,
-            'contacts' => [['name' => 'Tanpa Nomor', 'email' => 'a@b.test', 'receive_reminder' => 1]],
-        ])->assertUnprocessable()->assertJsonValidationErrors('reminder_recipients');
+        $store(['reminder_channels' => ['email'], 'reminder_days' => [-1], 'phone' => '0812'])
+            ->assertUnprocessable()->assertJsonValidationErrors('email')->assertJsonMissingValidationErrors('phone');
+        $store(['reminder_channels' => ['whatsapp'], 'reminder_overdue_daily' => 1, 'email' => 'a@b.test'])
+            ->assertUnprocessable()->assertJsonValidationErrors('phone')->assertJsonMissingValidationErrors('email');
+        $store(['reminder_channels' => ['email', 'whatsapp'], 'reminder_days' => [0], 'email' => 'a@b.test', 'phone' => '0812'])->assertOk();
 
         // Reminder mati: pengaturan kosong tidak divalidasi.
         $store(['reminder_enabled' => 0])->assertOk();
     }
 
-    public function test_customer_update_syncs_children_and_validates_nested_fields(): void
+    public function test_customer_update_saves_contact_and_address(): void
     {
         $user = $this->userFor(null, ['update b2b/customers']);
-        $customer = $this->customer();
-        $keep = $customer->contacts()->create(['name' => 'Lama']);
-        $drop = $customer->contacts()->create(['name' => 'Dihapus']);
+        $customer = $this->customer(['contact_name' => 'Lama', 'address' => 'Jl. Lama']);
 
         $this->actingAs($user)->putJson(route('b2b/customers/update', $customer->id), [
-            'type' => 'pt', 'name' => 'PT Baru',
-            'contacts' => [['id' => $keep->id, 'name' => 'Lama Diubah'], ['name' => 'Baru']],
+            'type' => 'pt', 'name' => 'PT Baru', 'contact_name' => 'Baru', 'address' => 'Jl. Baru 2', 'province' => 'Jawa Barat',
         ])->assertOk();
 
-        $this->assertSame('Lama Diubah', $keep->fresh()->name);
-        $this->assertSame($user->id, $customer->fresh()->modified_by);
-        $this->assertSoftDeleted('b2b_customer_contacts', ['id' => $drop->id]);
-        $this->assertSame(2, $customer->contacts()->count());
+        $customer->refresh();
+        $this->assertSame('Baru', $customer->contact_name);
+        $this->assertSame('Jl. Baru 2, Jawa Barat', $customer->fullAddress());
+        $this->assertSame($user->id, $customer->modified_by);
 
         $this->actingAs($user)->putJson(route('b2b/customers/update', $customer->id), [
-            'type' => 'pt', 'name' => 'PT Baru', 'addresses' => [['label' => 'X']],
-        ])->assertUnprocessable()->assertJsonValidationErrors('addresses.0.address');
+            'type' => 'pt', 'name' => 'PT Baru', 'postal_code' => '12345678901',
+        ])->assertUnprocessable()->assertJsonValidationErrors('postal_code');
     }
 
     public function test_customer_with_orders_cannot_be_deleted(): void
@@ -408,15 +394,14 @@ class B2bHttpTest extends B2bTestCase
     {
         $outlet = $this->outlet();
         $user = $this->userFor($outlet, self::ALL);
-        $customer = $this->customer();
-        $customer->addresses()->create(['label' => 'Kantor', 'address' => 'Jl. A', 'is_default_billing' => true]);
+        $customer = $this->customer(['address' => 'Jl. Kantor A']);
         $contract = $this->contract($customer, [['scope' => 'all', 'discount_value' => 5]]);
         $draft = $this->contract($customer, [['scope' => 'all', 'discount_value' => 6]], [
             'status' => Contract::STATUS_DRAFT, 'start_date' => today()->addMonths(2), 'end_date' => today()->addMonths(3),
         ]);
 
         $this->actingAs($user)->get(route('b2b/customers/show', $customer->id))->assertOk()->assertSee($contract->contract_number);
-        $this->actingAs($user)->get(route('b2b/customers/edit', $customer->id))->assertOk()->assertSee('Kantor');
+        $this->actingAs($user)->get(route('b2b/customers/edit', $customer->id))->assertOk()->assertSee('Jl. Kantor A');
         $this->actingAs($user)->get(route('b2b/contracts/show', $contract->id))->assertOk()->assertSee('Diskon 5%');
         $this->actingAs($user)->get(route('b2b/contracts/edit', $draft->id))->assertOk();
         $this->actingAs($user)->get(route('b2b/contracts/edit', $contract->id))->assertForbidden();

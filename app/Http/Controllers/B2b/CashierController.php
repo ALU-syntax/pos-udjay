@@ -60,7 +60,6 @@ class CashierController extends Controller
         $this->authorize('read b2b/cashier');
         abort_unless($customer->is_active, 404);
 
-        $customer->load('addresses');
         $contract = $customer->effectiveContract();
         $openInvoices = $customer->invoices()->whereIn('status', [Invoice::STATUS_UNPAID, Invoice::STATUS_PARTIAL, Invoice::STATUS_OVERDUE]);
 
@@ -75,12 +74,7 @@ class CashierController extends Controller
                 'rules_count' => $contract->rules()->count(),
                 'url' => route('b2b/contracts/show', $contract->id),
             ] : null,
-            'addresses' => $customer->addresses->map(fn ($address) => [
-                'id' => $address->id,
-                'label' => $address->label,
-                'full_address' => $address->fullAddress(),
-                'is_default_shipping' => $address->is_default_shipping,
-            ])->values(),
+            'address' => $customer->hasAddress() ? $customer->fullAddress() : null,
             'receivables' => [
                 'open_invoices' => (clone $openInvoices)->count(),
                 'outstanding' => (int) (clone $openInvoices)->selectRaw('COALESCE(SUM(total_to_pay - paid_amount), 0) as total')->value('total'),

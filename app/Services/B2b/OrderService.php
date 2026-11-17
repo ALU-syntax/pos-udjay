@@ -3,7 +3,6 @@
 namespace App\Services\B2b;
 
 use App\Models\B2b\Customer;
-use App\Models\B2b\CustomerAddress;
 use App\Models\B2b\Invoice;
 use App\Models\B2b\Order;
 use App\Models\User;
@@ -27,13 +26,13 @@ class OrderService
 
     /**
      * @param  array{outlet_id:int, b2b_customer_id:int, items:array, delivery_method:string, due_date:string,
-     *               shipping_address_id?:int|null, notes?:string|null}  $data
+     *               notes?:string|null}  $data
      */
     public function place(User $user, array $data): Order
     {
         return DB::transaction(function () use ($user, $data) {
             $outletId = (int) $data['outlet_id'];
-            $customer = Customer::query()->with('addresses')->lockForUpdate()->findOrFail($data['b2b_customer_id']);
+            $customer = Customer::query()->lockForUpdate()->findOrFail($data['b2b_customer_id']);
             if (! $customer->is_active) {
                 throw ValidationException::withMessages(['b2b_customer_id' => 'Customer sedang nonaktif.']);
             }
@@ -44,8 +43,12 @@ class OrderService
             $variants = $this->pricing->loadVariants($outletId, array_column($data['items'], 'variant_id'), lock: true);
             $quote = $this->pricing->quote($customer, $outletId, $data['items'], $orderDate, $variants);
 
-            $shippingAddress = $this->shippingAddress($customer, $data);
-            $billingAddress = $customer->defaultBillingAddress();
+            // Satu alamat customer dipakai untuk penagihan dan pengiriman.
+            if ($data['delivery_method'] === 'internal' && ! $customer->hasAddress()) {
+                throw ValidationException::withMessages([
+                    'delivery_method' => 'Customer belum punya alamat. Lengkapi alamat customer dulu untuk pengiriman internal.',
+                ]);
+            }
 
             $order = new Order([
                 'b2b_customer_id' => $customer->id,
@@ -61,7 +64,7 @@ class OrderService
                 'shipping_cost' => 0,
                 'grand_total' => $quote['grand_total'],
                 'delivery_method' => $data['delivery_method'],
-                'shipping_address_snapshot' => $shippingAddress?->toSnapshot(),
+                'shipping_address_snapshot' => $data['delivery_method'] === 'internal' ? $customer->addressSnapshot() : null,
                 'confirmed_by' => $user->id,
                 'confirmed_at' => $orderDate,
                 'notes' => $data['notes'] ?? null,
@@ -91,7 +94,7 @@ class OrderService
                 VariantProduct::whereKey($item['variant_id'])->decrement('stok', $item['qty']);
             }
 
-            $invoice = $this->createInvoice($order, $billingAddress);
+            $invoice = $this->createInvoice($order, $customer->addressSnapshot());
 
             $this->logger->log('order.placed', $order, [
                 'invoice_number' => $invoice->invoice_number,
@@ -186,7 +189,7 @@ class OrderService
         return $dueDate;
     }
 
-    private function createInvoice(Order $order, ?CustomerAddress $billingAddress): Invoice
+    private function createInvoice(Order $order, ?array $billingAddress): Invoice
     {
         $issueDate = $order->order_date->copy()->startOfDay();
         $dueDate = $order->due_date->copy();
@@ -201,7 +204,7 @@ class OrderService
             'total_to_pay' => $order->grand_total,
             'paid_amount' => 0,
             'status' => Invoice::STATUS_UNPAID,
-            'billing_address_snapshot' => $billingAddress?->toSnapshot(),
+            'billing_address_snapshot' => $billingAddress,
         ]);
         $invoice->invoice_number = $this->sequences->invoiceNumber($order->order_date);
         $invoice->save();
@@ -217,19 +220,5 @@ class OrderService
         ]);
 
         return $invoice;
-    }
-
-    private function shippingAddress(Customer $customer, array $data): ?CustomerAddress
-    {
-        if ($data['delivery_method'] !== 'internal') {
-            return null;
-        }
-
-        $address = $customer->addresses->firstWhere('id', (int) ($data['shipping_address_id'] ?? 0));
-        if (! $address) {
-            throw ValidationException::withMessages(['shipping_address_id' => 'Pilih alamat pengiriman milik customer ini.']);
-        }
-
-        return $address;
     }
 }

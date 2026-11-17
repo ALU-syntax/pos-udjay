@@ -1,0 +1,1932 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kasir B2B</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  /* Layout: panggung slide 16:9 (1280×720) yang diskalakan ke layar; di layar sempit slide ditumpuk dan digulir */
+  --bg:#E8EEEB;
+  --surface:#FFFFFF;
+  --surface-2:#F2F6F4;
+  --paper:#FFFFFF;
+  --bezel:#1C2723;
+  --ink:#12201A;
+  --ink-2:#33443D;
+  --muted:#5C6E66;
+  --line:#D3DDD8;
+  --line-strong:#A9BAB2;
+  --accent:#0E7A5A;
+  --on-accent:#FFFFFF;
+  --accent-soft:#D9EEE5;
+  --amber:#965F00;
+  --amber-soft:#F6E7CA;
+  --red:#B2382B;
+  --red-soft:#F6DED9;
+  --m1:#2a78d6; --m2:#eb6834; --m3:#1baf7a; --m4:#eda100; --m5:#e87ba4; --m6:#008300; --m7:#6250d6; --m8:#7c8b85;
+  --shadow:0 1px 2px rgba(18,32,26,.06),0 14px 36px rgba(18,32,26,.10);
+  --font-display:"Bricolage Grotesque","Plus Jakarta Sans",system-ui,sans-serif;
+  --font-body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --bar-h:56px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0A110E; --surface:#111A16; --surface-2:#17221D; --paper:#18241F; --bezel:#2B3833;
+    --ink:#E3ECE7; --ink-2:#C0CDC7; --muted:#8C9E96; --line:#24322C; --line-strong:#3A4A43;
+    --accent:#3EC497; --on-accent:#04241A; --accent-soft:#11372A;
+    --amber:#E2A73D; --amber-soft:#382A11; --red:#EF6C5C; --red-soft:#3C1D18;
+    --m1:#3987e5; --m2:#d95926; --m3:#199e70; --m4:#c98500; --m5:#d55181; --m6:#0ca30c; --m7:#9085e9; --m8:#7f8f88;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px rgba(0,0,0,.45);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0A110E; --surface:#111A16; --surface-2:#17221D; --paper:#18241F; --bezel:#2B3833;
+  --ink:#E3ECE7; --ink-2:#C0CDC7; --muted:#8C9E96; --line:#24322C; --line-strong:#3A4A43;
+  --accent:#3EC497; --on-accent:#04241A; --accent-soft:#11372A;
+  --amber:#E2A73D; --amber-soft:#382A11; --red:#EF6C5C; --red-soft:#3C1D18;
+  --m1:#3987e5; --m2:#d95926; --m3:#199e70; --m4:#c98500; --m5:#d55181; --m6:#0ca30c; --m7:#9085e9; --m8:#7f8f88;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px rgba(0,0,0,.45);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--font-body);-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+img{max-width:100%}
+h1,h2,h3,p,ul,ol,dl,dd,figure{margin:0}
+ul,ol{padding:0;list-style:none}
+h1,h2,h3{text-wrap:balance}
+code{font-family:var(--font-mono);font-size:.9em}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- Deck: default = mode tumpuk (layar sempit) ---------- */
+.deck{display:flex;flex-direction:column;gap:20px;padding-block:20px calc(var(--bar-h) + 28px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.slide{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px 20px;display:flex;flex-direction:column;gap:20px;min-width:0;overflow:hidden;scroll-margin-top:16px}
+.head{display:flex;flex-direction:column;gap:8px;max-width:920px}
+.eyebrow{font:600 12px/1.3 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.title{font:800 28px/1.08 var(--font-display);letter-spacing:-.02em;color:var(--ink)}
+.lede{font-size:16px;line-height:1.5;color:var(--ink-2);max-width:72ch}
+.body{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:16px}
+.note{font-size:13px;color:var(--muted)}
+.table-scroll{overflow-x:auto;min-width:0}
+
+.chip{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 var(--font-body);padding:5px 9px;border-radius:999px;white-space:nowrap;font-style:normal}
+.chip.ok{background:var(--accent-soft);color:var(--accent)}
+.chip.warn{background:var(--amber-soft);color:var(--amber)}
+.chip.bad{background:var(--red-soft);color:var(--red)}
+.chip.mute{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 14px;font:600 13px/1 var(--font-body);cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:999px;padding:3px;gap:2px;background:var(--surface)}
+.seg button{border:none;background:transparent;padding:6px 12px;border-radius:999px;cursor:pointer;font:600 13px/1 var(--font-body);color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+
+/* ---------- Bar navigasi ---------- */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;gap:10px;height:calc(var(--bar-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--bg);background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);transition:opacity .3s ease}
+.bar.is-idle{opacity:0}
+.ibtn{width:36px;height:36px;flex:none;border-radius:9px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+.ibtn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.ibtn:disabled{opacity:.4;cursor:default}
+.ibtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.counter{font:600 13px/1 var(--font-mono);font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.bar-title{font-size:13.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:240px}
+.progress{flex:1;height:3px;background:var(--line);border-radius:3px;overflow:hidden;min-width:32px}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s ease}
+.hint{font:500 12px/1 var(--font-mono);color:var(--muted);white-space:nowrap;display:none}
+@media (max-width:520px){.bar-title{display:none}}
+
+/* ---------- Slide 1: judul ---------- */
+.title-grid{display:grid;gap:28px;flex:1;min-height:0}
+.title-copy{display:flex;flex-direction:column;gap:18px;justify-content:center;min-width:0}
+.display{font:800 72px/.92 var(--font-display);letter-spacing:-.035em;color:var(--ink)}
+.display span{color:var(--accent)}
+.meta-list{display:grid;gap:10px;border-top:1px solid var(--line);padding-top:16px}
+.meta-list li{display:grid;grid-template-columns:92px 1fr;gap:12px;font-size:15px;color:var(--ink-2)}
+.meta-list span{font:500 11.5px/1.7 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.invoice-wrap{display:flex;align-items:center;justify-content:center;min-width:0;padding:8px}
+.invoice{position:relative;width:100%;max-width:440px;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:22px 24px 18px;box-shadow:var(--shadow);transform:rotate(2deg);font-size:13px;color:var(--ink)}
+.invoice header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:12px;gap:10px}
+.inv-label{font:800 20px/1 var(--font-display);letter-spacing:.04em}
+.inv-no{font:500 11.5px/1.2 var(--font-mono);color:var(--ink-2)}
+.tag{font:600 10px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 6px;border-radius:4px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.inv-meta{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:6px 14px;margin-bottom:10px}
+.inv-meta span{display:block;font:500 10px/1.5 var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.inv-meta strong{font-weight:600}
+.inv-lines{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.inv-lines td{padding:6px 0;border-bottom:1px dashed var(--line);vertical-align:top}
+.inv-lines td:last-child{text-align:right;font-family:var(--font-mono);font-size:12px;white-space:nowrap}
+.inv-lines small{display:block;color:var(--muted);font-family:var(--font-mono);font-size:11px}
+.inv-total{display:grid;gap:4px;margin-top:10px;font-variant-numeric:tabular-nums}
+.inv-total > div{display:flex;justify-content:space-between;gap:12px}
+.inv-total dt{color:var(--muted)}
+.inv-total dd{font-family:var(--font-mono)}
+.inv-total .code dd{color:var(--amber);font-weight:600}
+.inv-total .pay{border-top:1px solid var(--ink);padding-top:8px;margin-top:4px}
+.inv-total .pay dt{color:var(--ink);font-weight:700}
+.inv-total .pay dd{font-size:16px;font-weight:600}
+.invoice footer{margin-top:12px;font-size:11.5px;color:var(--muted)}
+.stamp{position:absolute;right:24px;bottom:62px;font:700 32px/1 var(--font-mono);letter-spacing:.16em;color:var(--accent);border:3px solid var(--accent);border-radius:6px;padding:6px 10px 6px 16px;transform:rotate(-14deg);opacity:.92;pointer-events:none;background:transparent}
+
+/* ---------- Slide 2: kebutuhan ---------- */
+.needs{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.need{display:flex;flex-direction:column;gap:10px;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);min-width:0}
+.need svg{width:34px;height:34px;stroke:var(--accent);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.need h3{font:700 18px/1.25 var(--font-body)}
+.need p{color:var(--ink-2);font-size:14.5px}
+.need .chip{align-self:flex-start}
+
+/* ---------- Slide 3: alasan ---------- */
+.split{display:grid;gap:22px}
+.compare{width:100%;border-collapse:collapse;font-size:14.5px;min-width:560px}
+.compare th{font:600 11.5px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;color:var(--muted);padding:0 14px 10px 0;border-bottom:1px solid var(--line-strong)}
+.compare th.b2b{color:var(--accent)}
+.compare td{padding:12px 14px 12px 0;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+.compare td:first-child{font-weight:700;color:var(--ink);width:84px}
+.compare td.b2b{color:var(--ink);font-weight:500}
+.risks{display:flex;flex-direction:column;gap:10px}
+.risks h3{font:700 15px/1.3 var(--font-body);color:var(--red)}
+.risk{display:grid;grid-template-columns:26px 1fr;gap:12px;padding:13px 15px;border-radius:10px;background:var(--red-soft);color:var(--ink)}
+.risk .ic{width:24px;height:24px;border-radius:50%;border:2px solid var(--red);color:var(--red);display:grid;place-items:center;font:700 13px/1 var(--font-mono)}
+.risk p{font-size:14px}
+.risk code{display:block;margin-top:3px;color:var(--ink-2);font-size:11.5px}
+
+/* ---------- Slide 4: keputusan ---------- */
+.decisions{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.decision{padding:16px 18px;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;gap:6px;min-width:0;background:var(--surface)}
+.decision dt{font:600 11px/1.3 var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.decision dd{font:700 17px/1.3 var(--font-body);color:var(--ink)}
+.decision dd small{display:block;font-weight:400;font-size:13.5px;line-height:1.45;color:var(--ink-2);margin-top:4px}
+
+/* ---------- Slide 5: alur ---------- */
+.flow-wrap{position:relative;display:flex;flex-direction:column;gap:12px}
+.flow-scroll{overflow-x:auto;min-width:0}
+.flow-stage{position:relative;min-width:760px;aspect-ratio:1144/440}
+.flow-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.fnode{cursor:pointer;transform-box:fill-box;transform-origin:center;outline:none}
+.fnode rect{fill:var(--surface);stroke:var(--line-strong);stroke-width:1.5;transition:fill .3s ease,stroke .3s ease}
+.fnode .num{font:600 12px var(--font-mono);fill:var(--muted)}
+.fnode .lbl{font:700 17px var(--font-body);fill:var(--ink)}
+.fnode .sub{font:400 13px var(--font-body);fill:var(--muted)}
+.fnode:hover rect,.fnode:focus-visible rect{stroke:var(--accent)}
+.fnode.is-done rect{stroke:var(--accent)}
+.fnode.is-on rect{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2.5}
+.fnode.alt rect{stroke:var(--amber);stroke-dasharray:6 5}
+.fnode.alt.is-on rect{fill:var(--amber-soft);stroke:var(--amber);stroke-width:2.5}
+.fnode.final rect{stroke:var(--accent);stroke-width:2}
+.fnode.final .lbl{fill:var(--accent)}
+.fedge{fill:none;stroke:var(--line-strong);stroke-width:2}
+.fedge.alt{stroke:var(--amber);stroke-dasharray:6 6}
+.arrow-head{fill:var(--line-strong)}
+.arrow-head.alt{fill:var(--amber)}
+.edge-label{font:500 12px var(--font-mono);fill:var(--muted)}
+.edge-label.alt{fill:var(--amber)}
+.token .core{fill:var(--accent)}
+.token .ring{fill:none;stroke:var(--accent);stroke-width:2;opacity:.45;transform-box:fill-box;transform-origin:center;animation:pulse 1.3s ease-out infinite}
+.token.alt .core{fill:var(--amber)}
+.token.alt .ring{stroke:var(--amber)}
+@keyframes pulse{from{transform:scale(.7);opacity:.6}to{transform:scale(1.6);opacity:0}}
+.flow-caption{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.cap-body{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cap-n{font:600 11.5px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.cap-t{font:700 17px/1.25 var(--font-body)}
+.cap-d{font-size:13.5px;line-height:1.45;color:var(--ink-2)}
+
+/* ---------- Slide 6: kasir ---------- */
+.kasir{display:grid;gap:22px}
+.tablet-scroll{overflow-x:auto;min-width:0}
+.tablet{min-width:640px;border-radius:28px;background:var(--bezel);padding:14px;box-shadow:var(--shadow)}
+.screen{background:var(--surface);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.pos-top{display:grid;grid-template-columns:140px 1fr 90px;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface-2);align-items:start}
+.pos-field{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pos-field span{font:500 10.5px/1.3 var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.pos-field strong{font-size:15px;font-weight:700}
+.pos-field .chip{align-self:flex-start;margin-top:3px}
+.pos-table{padding:2px 16px}
+.pos-row{display:grid;grid-template-columns:1fr 48px 132px 118px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.pos-row.head{font:600 10.5px/1.3 var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:9px 0 7px}
+.pos-row > :not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+.pname{display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-weight:600}
+.pname small{font:500 11px/1.2 var(--font-mono);color:var(--accent)}
+.price{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.old{position:relative;color:var(--muted);font-size:12.5px}
+.old .strike{position:absolute;left:-2px;right:-2px;top:52%;height:1.5px;background:var(--red);transform-origin:left center}
+.new{font-weight:700;color:var(--ink)}
+.pos-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;padding:12px 16px 14px}
+.pos-foot dl{display:grid;grid-template-columns:auto auto;gap:3px 22px;font-variant-numeric:tabular-nums}
+.pos-foot dl > div{display:contents}
+.pos-foot dt{color:var(--muted);font-size:13px}
+.pos-foot dd{text-align:right;font-family:var(--font-mono);font-size:13.5px}
+.pos-foot .grand dt,.pos-foot .grand dd{font-size:18px;font-weight:700;color:var(--ink)}
+.pos-btn{background:var(--accent);color:var(--on-accent);border-radius:10px;padding:12px 18px;font-weight:700;font-size:15px;white-space:nowrap}
+.pos-toast{margin:0 16px 14px;padding:10px 14px;border-radius:10px;background:var(--accent-soft);color:var(--ink);font-size:13.5px;display:flex;gap:8px;align-items:center}
+.pos-toast svg{width:16px;height:16px;flex:none;fill:none;stroke:var(--accent);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ksteps{display:flex;flex-direction:column;gap:8px}
+.kstep{display:grid;grid-template-columns:32px 1fr;gap:12px;padding:12px 14px;border-radius:12px;border:1px solid transparent;transition:background .3s ease,border-color .3s ease}
+.kstep .n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:600 13px/1 var(--font-mono);background:var(--surface-2);color:var(--muted);border:1px solid var(--line);transition:all .3s ease}
+.kstep h3{font:700 16px/1.3 var(--font-body)}
+.kstep p{font-size:13.5px;line-height:1.45;color:var(--ink-2);margin-top:2px}
+.kstep.is-on{background:var(--accent-soft);border-color:var(--accent)}
+.kstep.is-on .n{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+
+/* ---------- Slide 7: diskon ---------- */
+.disc{display:grid;gap:22px}
+.disc-left{display:flex;flex-direction:column;gap:12px;min-width:0}
+.probe{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--ink-2)}
+.probe strong{color:var(--ink)}
+.ladder{display:flex;flex-direction:column;gap:8px}
+.rung{display:grid;grid-template-columns:24px 78px 1fr;gap:6px 10px;align-items:center;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);transition:background .3s ease,border-color .3s ease,box-shadow .3s ease}
+.rung .rank{font:600 13px/1 var(--font-mono);color:var(--muted)}
+.rung .lvl{font-weight:700;font-size:14.5px}
+.rung .rules{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.rule{font:500 11.5px/1.3 var(--font-mono);padding:4px 8px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);transition:all .3s ease}
+.rule.is-match{border-color:var(--line-strong);border-style:dashed;color:var(--ink)}
+.rule.is-hit{border-color:var(--accent);background:var(--accent-soft);color:var(--ink);font-weight:600}
+.rung .verdict{grid-column:2 / -1;font-size:12.5px;color:var(--muted);min-height:1.3em}
+.rung.is-check{border-color:var(--line-strong);background:var(--surface-2)}
+.rung.is-win{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--surface)}
+.rung.is-win .verdict{color:var(--accent);font-weight:600}
+.result{padding:12px 14px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);font-size:14px;color:var(--ink-2)}
+.result strong{font-family:var(--font-mono);color:var(--ink);font-weight:600}
+.disc-right{display:flex;flex-direction:column;gap:10px;min-width:0}
+.chart-title{font-weight:700;font-size:15px}
+.chart-sub{font-size:13px;color:var(--muted)}
+.chart{width:100%;min-width:0;height:320px}
+.types{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- Slide 8: reminder ---------- */
+.tl-scroll{overflow-x:auto;min-width:0}
+.tl-stage{min-width:760px}
+.tl-svg{display:block;width:100%;height:auto;overflow:visible}
+.tl-axis{stroke:var(--line-strong);stroke-width:2}
+.tl-tick{stroke:var(--line-strong);stroke-width:1;opacity:.6}
+.tl-due line{stroke:var(--ink);stroke-width:1.2;stroke-dasharray:4 4}
+.tl-due text{font:600 12px var(--font-mono);fill:var(--ink)}
+.tl-start circle{fill:var(--ink)}
+.tl-marker circle{fill:var(--surface);stroke:var(--accent);stroke-width:2.5}
+.tl-marker.over circle{stroke:var(--red)}
+.tl-marker.skip circle{stroke:var(--line-strong);stroke-dasharray:2 2}
+.tl-svg .k{font:700 11.5px var(--font-mono);fill:var(--ink)}
+.tl-svg .d{font:400 12px var(--font-body);fill:var(--muted)}
+.tl-marker.skip .k{fill:var(--muted);font-weight:500}
+.ch{fill:var(--surface);stroke:var(--ink-2);stroke-width:1.4}
+.ch-line{fill:none;stroke:var(--ink-2);stroke-width:1.4}
+.tl-paid{transform-box:fill-box;transform-origin:center}
+.tl-paid circle{fill:var(--accent)}
+.tl-paid path{fill:none;stroke:var(--on-accent);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.tl-paid .k{fill:var(--accent)}
+.tl-lane .unpaid{fill:var(--surface-2);stroke:var(--line)}
+.tl-lane .overdue{fill:var(--red-soft);stroke:var(--red)}
+.tl-lane .paid{fill:var(--accent-soft);stroke:var(--accent)}
+.tl-lane text{font:600 11.5px var(--font-body);fill:var(--ink-2)}
+.rem-grid{display:grid;gap:18px}
+.sched{width:100%;border-collapse:collapse;font-size:13.5px;min-width:520px}
+.sched th{font:600 11px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;color:var(--muted);padding:0 12px 8px 0;border-bottom:1px solid var(--line-strong)}
+.sched td{padding:7px 12px 7px 0;border-bottom:1px solid var(--line);color:var(--ink-2)}
+.sched td:first-child{font-family:var(--font-mono);font-weight:600;color:var(--ink)}
+.legend-inline{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted);align-items:center}
+.legend-inline svg{width:16px;height:16px;vertical-align:-3px;margin-right:4px}
+.rem-notes{display:flex;flex-direction:column;gap:10px;font-size:13.5px;color:var(--ink-2)}
+.rem-notes li{padding-left:14px;position:relative}
+.rem-notes li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+/* ---------- Slide 9: kode unik ---------- */
+.ku{display:grid;gap:22px}
+.ku-left{display:flex;flex-direction:column;gap:14px;min-width:0}
+.calc{font-family:var(--font-mono);font-variant-numeric:tabular-nums;display:grid;gap:8px;padding:20px 22px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line)}
+.calc .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.calc .lbl{font-family:var(--font-body);font-size:13.5px;color:var(--muted)}
+.calc .val{font-size:22px;color:var(--ink);white-space:nowrap}
+.calc .code .val{color:var(--amber);font-weight:600}
+.calc .sum{height:2px;background:var(--ink);transform-origin:right center}
+.calc .total .lbl{color:var(--ink);font-weight:700}
+.calc .total .val{font-size:28px;font-weight:600}
+.calc .hl{color:var(--amber)}
+.ku-notes{display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--ink-2)}
+.ku-notes li{padding-left:14px;position:relative}
+.ku-notes li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--amber)}
+.mut{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface);min-width:0}
+.mut-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.mut-head h3{font:700 14.5px/1.3 var(--font-body)}
+.file{display:inline-flex;gap:8px;align-items:center;font:500 12px/1 var(--font-mono);padding:7px 10px;border:1px dashed var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink-2)}
+.file svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2}
+.mut-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:600px}
+.mut-table th{font:600 10.5px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;color:var(--muted);padding:9px 12px;border-bottom:1px solid var(--line)}
+.mut-table td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;transition:background .25s ease}
+.mut-table tr.is-scan td{background:var(--accent-soft)}
+.mut-table td.dt{font-family:var(--font-mono);color:var(--muted);white-space:nowrap}
+.mut-table td.desc{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-2);word-break:break-word}
+.mut-table td.amt{font-family:var(--font-mono);text-align:right;white-space:nowrap;color:var(--ink)}
+.res{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.res small{font:500 10.5px/1.3 var(--font-mono);color:var(--muted)}
+.mut-foot{padding:9px 14px;font-size:12.5px;color:var(--muted)}
+
+/* ---------- Slide 10: pencocokan ---------- */
+.match{display:grid;gap:22px}
+.mrules{display:flex;flex-direction:column;gap:10px}
+.mrule{display:grid;grid-template-columns:30px 1fr;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.mrule .n{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font:600 13px/1 var(--font-mono);color:var(--surface)}
+.mrule h3{font:700 15px/1.3 var(--font-body)}
+.mrule p{font-size:13.5px;color:var(--ink-2);margin-top:2px}
+.mrule .chip{margin-top:6px}
+.chart.sankey{height:340px}
+
+/* ---------- Slide 11: limit kredit ---------- */
+.credit{display:grid;gap:22px}
+.crules{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.crule{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);min-width:0}
+.crule code{font-size:12px;color:var(--ink-2);word-break:break-all}
+.crule h3{font:700 15.5px/1.3 var(--font-body)}
+.crule .row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:4px}
+.crule .val{font:600 14px/1.2 var(--font-mono);color:var(--ink)}
+.credit-right{display:flex;flex-direction:column;gap:10px;align-items:stretch;min-width:0;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
+.credit-right .chart{height:250px}
+.status{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--ink-2);min-height:62px}
+.status .chip{flex:none}
+
+/* ---------- Slide 12: ERD ---------- */
+.erd-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.erd-phase{font:600 13px/1.3 var(--font-mono);color:var(--ink-2)}
+.chart.erd{height:460px;min-width:900px}
+
+/* ---------- Slide 13: tabel ---------- */
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tabs button{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font:600 13px/1 var(--font-body);color:var(--ink-2);cursor:pointer}
+.tabs button i{width:10px;height:10px;border-radius:3px;flex:none}
+.tabs button span{font:500 11.5px/1 var(--font-mono);color:var(--muted)}
+.tabs button[aria-selected="true"]{border-color:var(--ink);color:var(--ink);background:var(--surface-2)}
+.tpanel{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.tcard{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);min-width:0}
+.tcard header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tcard code{font-size:13.5px;font-weight:600;color:var(--ink);display:inline-flex;align-items:center;gap:8px;word-break:break-all}
+.tcard code::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--mc);flex:none}
+.tcard p{font-size:13.5px;color:var(--ink-2)}
+.cols{display:flex;flex-wrap:wrap;gap:5px}
+.cols li{font:500 11.5px/1.3 var(--font-mono);padding:3px 7px;border-radius:5px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+.cols li i{font-style:normal;color:var(--amber);font-weight:600}
+
+/* ---------- Slide 14: otomatis ---------- */
+.auto{display:grid;gap:22px}
+.crons{display:flex;flex-direction:column;gap:10px}
+.cron{display:grid;grid-template-columns:96px 1fr;gap:16px;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.cron time{font:600 26px/1 var(--font-mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.cron time small{display:block;font:500 11px/1.4 var(--font-mono);color:var(--muted);margin-top:4px}
+.cron code{font-size:13px;color:var(--accent);font-weight:600}
+.cron p{font-size:13.5px;color:var(--ink-2);margin-top:3px}
+.tree{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface-2)}
+.tree h3{font:700 15px/1.3 var(--font-body);margin-bottom:8px}
+.tree ul{border-left:2px solid var(--line-strong);margin-left:6px;padding-left:16px;display:flex;flex-direction:column;gap:7px}
+.tree li{display:flex;justify-content:space-between;gap:12px;font-size:14px;position:relative;flex-wrap:wrap}
+.tree li::before{content:"";position:absolute;left:-16px;top:.75em;width:12px;height:2px;background:var(--line-strong)}
+.tree li code{font-size:12px;color:var(--muted)}
+.tree .special{margin-top:10px;font-size:13px;color:var(--ink-2)}
+
+/* ---------- Slide 15: tahapan ---------- */
+.phases{position:relative}
+.rail{position:absolute;left:8px;right:8px;top:9px;height:2px;background:var(--line);display:none}
+.rail i{display:block;height:100%;background:var(--accent);transform-origin:left center}
+.phase-list{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));position:relative}
+.phase{display:flex;flex-direction:column;gap:8px;min-width:0}
+.phase .dot{width:20px;height:20px;border-radius:50%;background:var(--surface);border:3px solid var(--accent)}
+.phase.later .dot{border-color:var(--line-strong);border-style:dashed}
+.ph-n{font:600 12px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.phase.later .ph-n{color:var(--muted)}
+.phase h3{font:700 16.5px/1.25 var(--font-body)}
+.phase ul{display:flex;flex-direction:column;gap:5px;font-size:13.5px;color:var(--ink-2)}
+.phase ul li{padding-left:12px;position:relative}
+.phase ul li::before{content:"";position:absolute;left:0;top:.6em;width:5px;height:5px;border-radius:50%;background:var(--line-strong)}
+.ph-t{font:500 12px/1.3 var(--font-mono);color:var(--muted);margin-top:auto;padding-top:8px;border-top:1px solid var(--line)}
+
+/* ---------- Slide 16: berikutnya ---------- */
+.next{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.ncol{display:flex;flex-direction:column;gap:10px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--surface);min-width:0}
+.ncol h3{font:700 16px/1.3 var(--font-body)}
+.ncol ul,.ncol ol{display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--ink-2)}
+.ncol ul li{padding-left:14px;position:relative}
+.ncol ul li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--line-strong)}
+.ncol ol{counter-reset:step}
+.ncol ol li{counter-increment:step;display:grid;grid-template-columns:26px 1fr;gap:8px}
+.ncol ol li::before{content:counter(step);width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font:600 12px/1 var(--font-mono)}
+.ncol.confirm{background:var(--amber-soft);border-color:transparent}
+.ncol.confirm h3{color:var(--amber)}
+.closing{font:800 34px/1.05 var(--font-display);letter-spacing:-.02em;color:var(--ink)}
+.closing span{color:var(--accent)}
+
+/* ---------- Mode presentasi (layar lebar): panggung 1280×720 ---------- */
+@media (min-width:900px) and (min-height:520px){
+  body{overflow:hidden}
+  .deck{position:fixed;inset:0;padding:0;display:block}
+  .slide{position:absolute;left:50%;top:calc((100% - var(--bar-h)) / 2);width:1280px;height:720px;padding:50px 72px 54px;border-radius:6px;border:none;box-shadow:var(--shadow);transform:translate(-50%,-50%) scale(var(--scale,1));transform-origin:50% 50%;visibility:hidden;opacity:0;transition:opacity .35s ease,visibility 0s linear .35s;gap:22px}
+  .slide.is-active{visibility:visible;opacity:1;transition:opacity .35s ease}
+  .is-booting .slide,.is-booting .slide.is-active{transition:none}
+  .title{font-size:40px}
+  .lede{font-size:17px}
+  .hint{display:inline}
+
+  .title-grid{grid-template-columns:1.12fr .88fr;align-items:center;gap:40px}
+  .display{font-size:150px}
+  .meta-list li{font-size:16px}
+
+  .needs{grid-template-columns:repeat(3,1fr);gap:16px}
+  .need{padding:22px}
+
+  .split{grid-template-columns:1.25fr 1fr;gap:40px;align-items:start}
+  .compare{min-width:0}
+
+  .decisions{grid-template-columns:repeat(4,1fr);gap:14px}
+
+  .flow-scroll{overflow:visible}
+  .flow-stage{min-width:0}
+  .flow-caption{position:absolute;left:53.2%;top:75.5%;width:46.8%;height:24.5%;padding:12px 16px}
+
+  .kasir{grid-template-columns:740px 1fr;gap:34px;align-items:start}
+  .tablet{min-width:0}
+
+  .disc{grid-template-columns:560px 1fr;gap:38px;align-items:start}
+  .chart.bar{height:290px}
+
+  .rem-grid{grid-template-columns:1fr 330px;gap:30px;align-items:start}
+  .sched{min-width:0}
+
+  .ku{grid-template-columns:420px 1fr;gap:34px;align-items:start}
+  .mut-table{min-width:0}
+
+  .match{grid-template-columns:460px 1fr;gap:34px;align-items:start}
+  .chart.sankey{height:400px}
+
+  .credit{grid-template-columns:1fr 430px;gap:30px;align-items:start}
+  .crules{grid-template-columns:repeat(2,1fr)}
+
+  .chart.erd{min-width:0;height:436px}
+  .table-scroll{overflow:visible}
+
+  .tpanel{grid-template-columns:repeat(3,1fr)}
+  .tpanel[data-count="2"]{grid-template-columns:repeat(2,1fr)}
+
+  .auto{grid-template-columns:1fr 1fr;gap:30px;align-items:start}
+
+  .rail{display:block}
+  .phase-list{grid-template-columns:repeat(6,1fr);gap:16px}
+
+  .next{grid-template-columns:repeat(3,1fr);gap:16px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .token .ring{animation:none}
+  .slide,.slide.is-active{transition:none}
+}
+</style>
+
+<main class="deck" id="deck">
+
+  <!-- 1 -->
+  <section class="slide is-active" id="judul" data-title="Judul" aria-label="Slide 1: Kasir B2B">
+    <div class="title-grid">
+      <div class="title-copy">
+        <p class="eyebrow">Rencana fitur · 14 November 2026</p>
+        <h1 class="display">Kasir <span>B2B</span></h1>
+        <p class="lede">Penjualan ke pelanggan bisnis dengan harga kontrak, pembayaran jatuh tempo, pengingat otomatis, dan pencocokan transfer dari mutasi rekening BCA.</p>
+        <ul class="meta-list">
+          <li><span>Platform</span>Web backoffice, dibuka dari tablet</li>
+          <li><span>Data</span>21 tabel baru berawalan <code>b2b_</code></li>
+          <li><span>Tahapan</span>5 fase, dimulai dari data customer dan kontrak</li>
+        </ul>
+      </div>
+      <div class="invoice-wrap">
+        <article class="invoice" aria-label="Contoh invoice B2B yang sudah lunas">
+          <header>
+            <span class="inv-label">INVOICE</span>
+            <span class="inv-no">INV/B2B/2026/11/0001</span>
+            <span class="tag">Contoh</span>
+          </header>
+          <div class="inv-meta">
+            <div><span>Kepada</span><strong>PT Contoh Sejahtera</strong></div>
+            <div><span>Terbit</span>14 Nov 2026</div>
+            <div><span>Jatuh tempo</span>14 Des 2026</div>
+          </div>
+          <table class="inv-lines">
+            <tbody>
+              <tr><td>Kopi Susu Literan 1L<small>40 × 78.200</small></td><td>3.128.000</td></tr>
+              <tr><td>Biji Kopi House Blend 1kg<small>12 × 189.000</small></td><td>2.268.000</td></tr>
+              <tr><td>Cold Brew 250ml<small>60 × 24.000</small></td><td>1.440.000</td></tr>
+            </tbody>
+          </table>
+          <dl class="inv-total">
+            <div><dt>Total</dt><dd>Rp 6.836.000</dd></div>
+            <div class="code"><dt>Kode unik</dt><dd>137</dd></div>
+            <div class="pay"><dt>Transfer tepat</dt><dd>Rp 6.836.137</dd></div>
+          </dl>
+          <footer>Transfer ke rekening BCA perusahaan, tepat sampai 3 digit terakhir.</footer>
+          <div class="stamp" aria-hidden="true">LUNAS</div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide" id="kebutuhan" data-title="Kebutuhan" aria-label="Slide 2: Kebutuhan">
+    <header class="head">
+      <p class="eyebrow">Kebutuhan</p>
+      <h2 class="title">Yang harus bisa dilakukan kasir B2B</h2>
+      <p class="lede">Dirangkum dari kebutuhan awal: pembeli bisnis, harga kontrak, bayar belakangan, dan pembayaran yang mudah dicek finance.</p>
+    </header>
+    <div class="body">
+      <div class="needs">
+        <article class="need">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16M15 9h4a1 1 0 0 1 1 1v11M3 21h18M8 8h3M8 12h3M8 16h3"/></svg>
+          <h3>Data pembeli bisnis</h3>
+          <p>Nama, telepon, alamat, dan email. Setiap pembelian wajib memilih pembelinya.</p>
+        </article>
+        <article class="need">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 12.6 12 21.2l-9.2-9.2V3.4h8.6z"/><circle cx="7.6" cy="7.6" r="1.6"/></svg>
+          <h3>Harga dari kontrak</h3>
+          <p>Diskon berbeda untuk setiap customer, sesuai kontrak yang dibuat di sistem.</p>
+        </article>
+        <article class="need">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 15h4"/></svg>
+          <h3>Bayar belakangan</h3>
+          <p>Tidak harus langsung jadi transaksi lunas. Ada tanggal jatuh tempo per tagihan.</p>
+        </article>
+        <article class="need">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+          <h3>Pengingat otomatis</h3>
+          <p>Reminder jatuh tempo terkirim setiap hari sesuai jadwal, lewat email atau WhatsApp.</p>
+        </article>
+        <article class="need">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20.5h18"/></svg>
+          <h3>Pembayaran mudah dicek</h3>
+          <p>Finance mencocokkan mutasi rekening dengan tagihan tanpa mengecek satu per satu.</p>
+        </article>
+        <article class="need">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+          <h3>Pengiriman</h3>
+          <p>Sekarang dicatat sebagai ambil sendiri atau kurir internal. Integrasi ekspedisi menyusul.</p>
+          <span class="chip mute">Ditunda</span>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide" id="alasan" data-title="Kenapa tabel terpisah" aria-label="Slide 3: Kenapa tabel terpisah">
+    <header class="head">
+      <p class="eyebrow">Keputusan data</p>
+      <h2 class="title">Tabel sendiri, tidak menumpang di tabel POS</h2>
+      <p class="lede">Customer dan transaksi B2B berbeda sifatnya dari member kasir Android. Menggabungkannya membawa risiko nyata ke kode yang sudah berjalan.</p>
+    </header>
+    <div class="body">
+      <div class="split">
+        <div class="table-scroll">
+          <table class="compare">
+            <thead><tr><th>Aspek</th><th>Kasir Android (POS)</th><th class="b2b">Kasir B2B</th></tr></thead>
+            <tbody>
+              <tr><td>Pembeli</td><td>Member perorangan: poin, level, ulang tahun</td><td class="b2b">Perusahaan: kontak, alamat, termin</td></tr>
+              <tr><td>Bayar</td><td>Lunas di tempat</td><td class="b2b">Jatuh tempo, bisa terlambat</td></tr>
+              <tr><td>Kas</td><td>Petty cash dan shift</td><td class="b2b">Tanpa petty cash</td></tr>
+              <tr><td>Harga</td><td>Promo dan diskon POS</td><td class="b2b">Diskon dari kontrak</td></tr>
+              <tr><td>Tabel</td><td><code>customers</code>, <code>transactions</code></td><td class="b2b"><code>b2b_customers</code>, <code>b2b_orders</code>, …</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="risks">
+          <h3>Risiko kalau digabung</h3>
+          <div class="risk"><span class="ic">1</span><p>Sync kasir Android menarik semua baris <code>customers</code>, jadi customer B2B ikut muncul di tablet kasir.<code>Api/CustomerController.php:123</code></p></div>
+          <div class="risk"><span class="ic">2</span><p>Cron email ulang tahun membaca <code>customers</code>, jadi customer B2B ikut dikirimi.<code>Commands/SendBirthdayEmail.php:34</code></p></div>
+          <div class="risk"><span class="ic">3</span><p>Kolom <code>gender</code> wajib diisi, dan kolom membership tidak berlaku untuk perusahaan.</p></div>
+          <div class="risk"><span class="ic">4</span><p>Kalau dibedakan dengan kolom <code>type</code>, satu query yang lupa difilter membuat data bocor.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide" id="keputusan" data-title="Keputusan" aria-label="Slide 4: Keputusan yang dikunci">
+    <header class="head">
+      <p class="eyebrow">Sudah disepakati</p>
+      <h2 class="title">Keputusan yang dikunci</h2>
+      <p class="lede">Hasil diskusi 14 November 2026. Desain teknis di slide berikutnya mengikuti poin-poin ini.</p>
+    </header>
+    <div class="body">
+      <dl class="decisions">
+        <div class="decision"><dt>Customer</dt><dd>Global<small>Tidak terikat outlet. Kontak dan alamat bisa lebih dari satu.</small></dd></div>
+        <div class="decision"><dt>Barang</dt><dd>Produk yang sudah ada<small>Setiap pesanan memilih outlet.</small></dd></div>
+        <div class="decision"><dt>Stok</dt><dd>Berkurang, boleh minus<small>Berkurang saat konfirmasi. Kembali kalau pesanan batal.</small></dd></div>
+        <div class="decision"><dt>Kontrak</dt><dd>1 aktif per customer<small>Pembuatnya bisa langsung mengaktifkan.</small></dd></div>
+        <div class="decision"><dt>Tanpa kontrak</dt><dd>Harga normal<small>Customer tetap boleh belanja.</small></dd></div>
+        <div class="decision"><dt>Pajak</dt><dd>Tanpa PPN<small>NPWP opsional.</small></dd></div>
+        <div class="decision"><dt>Pembayaran</dt><dd>Jatuh tempo<small>Belum ada cicilan, tapi strukturnya sudah siap.</small></dd></div>
+        <div class="decision"><dt>Rekening</dt><dd>1 rekening BCA statis<small>Tidak pakai VA atau payment gateway.</small></dd></div>
+        <div class="decision"><dt>Kode unik</dt><dd>Ditambahkan, Rp 1–999<small>Dicatat sebagai pendapatan lain-lain.</small></dd></div>
+        <div class="decision"><dt>Reminder</dt><dd>Email dan/atau WA<small>Channel dan jadwal bisa diatur.</small></dd></div>
+        <div class="decision"><dt>Limit kredit</dt><dd>Aturan bisa diatur<small>Ada pengecualian per customer.</small></dd></div>
+        <div class="decision"><dt>Platform &amp; laporan</dt><dd>Web backoffice<small>Dibuka dari tablet. Laporan terpisah dari POS.</small></dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide" id="alur" data-title="Alur bisnis" aria-label="Slide 5: Alur bisnis">
+    <header class="head">
+      <p class="eyebrow">Alur bisnis</p>
+      <h2 class="title">Dari pesanan sampai lunas</h2>
+    </header>
+    <div class="body">
+      <div class="flow-wrap">
+        <div class="flow-scroll">
+          <div class="flow-stage">
+            <svg class="flow-svg" viewBox="-4 -4 1144 440" role="group" aria-label="Diagram alur Kasir B2B dari customer sampai lunas">
+              <defs>
+                <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="arrow-head" d="M0 1 L9 5 L0 9 z"/></marker>
+                <marker id="arrAlt" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="arrow-head alt" d="M0 1 L9 5 L0 9 z"/></marker>
+              </defs>
+              <g class="edges">
+                <path id="e1" class="fedge" d="M232 43 L297 43" marker-end="url(#arr)"/>
+                <path id="e2" class="fedge" d="M533.33 43 L598.67 43" marker-end="url(#arr)"/>
+                <path id="e3" class="fedge" d="M834.67 43 L900 43" marker-end="url(#arr)"/>
+                <path id="e4" class="fedge" d="M1020 86 L1020 168" marker-end="url(#arr)"/>
+                <path id="e5" class="fedge" d="M904 215 L838.67 215" marker-end="url(#arr)"/>
+                <path id="e6" class="fedge" d="M602.67 215 L537.33 215" marker-end="url(#arr)"/>
+                <path id="e7" class="fedge" d="M301.33 215 L236 215" marker-end="url(#arr)"/>
+                <path id="e8" class="fedge" d="M116 258 L116 340" marker-end="url(#arr)"/>
+                <path id="e9" class="fedge alt" d="M196 258 C196 300 417.33 298 417.33 340" marker-end="url(#arrAlt)"/>
+                <path id="e10" class="fedge alt" d="M301.33 387 L236 387" marker-end="url(#arrAlt)"/>
+                <text class="edge-label" x="128" y="306">cocok</text>
+                <text class="edge-label alt" x="330" y="300">tidak cocok</text>
+              </g>
+              <g class="fnode" data-step="1" tabindex="0" role="button" aria-label="Langkah 1: Customer dan kontrak">
+                <rect x="0" y="0" width="232" height="86" rx="12"/>
+                <text class="num" x="16" y="25">01</text><text class="lbl" x="16" y="51">Customer &amp; kontrak</text><text class="sub" x="16" y="71">Kontrak aktif ikut terbaca</text>
+              </g>
+              <g class="fnode" data-step="2" tabindex="0" role="button" aria-label="Langkah 2: Kasir B2B">
+                <rect x="301.33" y="0" width="232" height="86" rx="12"/>
+                <text class="num" x="317.33" y="25">02</text><text class="lbl" x="317.33" y="51">Kasir B2B</text><text class="sub" x="317.33" y="71">Outlet, produk, harga</text>
+              </g>
+              <g class="fnode" data-step="3" tabindex="0" role="button" aria-label="Langkah 3: Konfirmasi">
+                <rect x="602.67" y="0" width="232" height="86" rx="12"/>
+                <text class="num" x="618.67" y="25">03</text><text class="lbl" x="618.67" y="51">Konfirmasi</text><text class="sub" x="618.67" y="71">Cek limit, stok berkurang</text>
+              </g>
+              <g class="fnode" data-step="4" tabindex="0" role="button" aria-label="Langkah 4: Invoice dan kode unik">
+                <rect x="904" y="0" width="232" height="86" rx="12"/>
+                <text class="num" x="920" y="25">04</text><text class="lbl" x="920" y="51">Invoice + kode unik</text><text class="sub" x="920" y="71">Tempo: tanggal + termin</text>
+              </g>
+              <g class="fnode" data-step="5" tabindex="0" role="button" aria-label="Langkah 5: Reminder">
+                <rect x="904" y="172" width="232" height="86" rx="12"/>
+                <text class="num" x="920" y="197">05</text><text class="lbl" x="920" y="223">Reminder</text><text class="sub" x="920" y="243">H-7 sampai lunas</text>
+              </g>
+              <g class="fnode" data-step="6" tabindex="0" role="button" aria-label="Langkah 6: Transfer ke BCA">
+                <rect x="602.67" y="172" width="232" height="86" rx="12"/>
+                <text class="num" x="618.67" y="197">06</text><text class="lbl" x="618.67" y="223">Transfer ke BCA</text><text class="sub" x="618.67" y="243">Dari bank mana saja</text>
+              </g>
+              <g class="fnode" data-step="7" tabindex="0" role="button" aria-label="Langkah 7: Upload mutasi">
+                <rect x="301.33" y="172" width="232" height="86" rx="12"/>
+                <text class="num" x="317.33" y="197">07</text><text class="lbl" x="317.33" y="223">Upload mutasi</text><text class="sub" x="317.33" y="243">Oleh finance, 1–2× sehari</text>
+              </g>
+              <g class="fnode" data-step="8" tabindex="0" role="button" aria-label="Langkah 8: Pencocokan">
+                <rect x="0" y="172" width="232" height="86" rx="12"/>
+                <text class="num" x="16" y="197">08</text><text class="lbl" x="16" y="223">Pencocokan</text><text class="sub" x="16" y="243">Otomatis oleh sistem</text>
+              </g>
+              <g class="fnode final" data-step="9" tabindex="0" role="button" aria-label="Langkah 9: Lunas">
+                <rect x="0" y="344" width="232" height="86" rx="12"/>
+                <text class="num" x="16" y="369">09</text><text class="lbl" x="16" y="395">Lunas</text><text class="sub" x="16" y="415">Reminder berhenti</text>
+              </g>
+              <g class="fnode alt" data-step="alt" tabindex="0" role="button" aria-label="Jalur lain: cek manual oleh finance">
+                <rect x="301.33" y="344" width="232" height="86" rx="12"/>
+                <text class="num" x="317.33" y="369">JIKA TIDAK COCOK</text><text class="lbl" x="317.33" y="395">Cek manual</text><text class="sub" x="317.33" y="415">Finance memilih tagihan</text>
+              </g>
+              <g class="token" opacity="0"><circle class="ring" r="13" cx="0" cy="0"/><circle class="core" r="7" cx="0" cy="0"/></g>
+            </svg>
+          </div>
+        </div>
+        <div class="flow-caption" aria-live="polite">
+          <div class="cap-body">
+            <p class="cap-n">Langkah 1 dari 9</p>
+            <h3 class="cap-t">Customer &amp; kontrak</h3>
+            <p class="cap-d">Kasir memilih customer B2B. Kalau customer punya kontrak aktif, aturan diskonnya langsung terbaca. Tanpa kontrak tetap bisa, harga normal.</p>
+          </div>
+          <button type="button" class="btn flow-replay"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Putar ulang</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="slide" id="kasir" data-title="Layar kasir" aria-label="Slide 6: Kasir B2B di tablet">
+    <header class="head">
+      <p class="eyebrow">Layar kasir</p>
+      <h2 class="title">Kasir B2B di tablet</h2>
+      <p class="lede">Dibuka dari browser tablet Android, tanpa petty cash dan tanpa shift. Data di layar ini contoh.</p>
+    </header>
+    <div class="body">
+      <div class="kasir">
+        <div class="tablet-scroll">
+          <div class="tablet" role="img" aria-label="Contoh tampilan kasir B2B: tiga produk dengan harga kontrak, total Rp 6.836.000">
+            <div class="screen">
+              <div class="pos-top">
+                <div class="pos-field"><span>Outlet</span><strong>Outlet Pusat</strong></div>
+                <div class="pos-field cust"><span>Customer</span><strong>PT Contoh Sejahtera</strong><em class="chip ok">Kontrak aktif s/d 31 Des 2026</em></div>
+                <div class="pos-field"><span>Termin</span><strong>30 hari</strong></div>
+              </div>
+              <div class="pos-table">
+                <div class="pos-row head"><span>Produk</span><span>Qty</span><span>Harga / unit</span><span>Subtotal</span></div>
+                <div class="pos-row item">
+                  <span class="pname">Kopi Susu Literan 1L<small>Produk −8%</small></span>
+                  <span>40</span>
+                  <span class="price"><span class="old">Rp 85.000<i class="strike"></i></span><b class="new">Rp 78.200</b></span>
+                  <span>Rp 3.128.000</span>
+                </div>
+                <div class="pos-row item">
+                  <span class="pname">Biji Kopi House Blend 1kg<small>Kategori Biji Kopi −10%</small></span>
+                  <span>12</span>
+                  <span class="price"><span class="old">Rp 210.000<i class="strike"></i></span><b class="new">Rp 189.000</b></span>
+                  <span>Rp 2.268.000</span>
+                </div>
+                <div class="pos-row item">
+                  <span class="pname">Cold Brew 250ml<small>Varian: harga khusus</small><em class="chip warn stock-warn">Stok 45, jadi −15</em></span>
+                  <span>60</span>
+                  <span class="price"><span class="old">Rp 28.000<i class="strike"></i></span><b class="new">Rp 24.000</b></span>
+                  <span>Rp 1.440.000</span>
+                </div>
+              </div>
+              <div class="pos-foot">
+                <dl>
+                  <div><dt>Harga normal</dt><dd data-k="normal">Rp 7.600.000</dd></div>
+                  <div><dt>Diskon kontrak</dt><dd data-k="disc">−Rp 764.000</dd></div>
+                  <div class="grand"><dt>Total</dt><dd data-k="grand">Rp 6.836.000</dd></div>
+                </dl>
+                <span class="pos-btn" aria-hidden="true">Konfirmasi pesanan</span>
+              </div>
+              <p class="pos-toast"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17 19 7"/></svg><span>Invoice <code>INV/B2B/2026/11/0001</code> terbit. Transfer Rp 6.836.137 sebelum 14 Des 2026.</span></p>
+            </div>
+          </div>
+        </div>
+        <ol class="ksteps">
+          <li class="kstep"><span class="n">1</span><div><h3>Pilih outlet dan customer</h3><p>Katalog mengikuti outlet. Kontrak aktif customer terbaca otomatis.</p></div></li>
+          <li class="kstep"><span class="n">2</span><div><h3>Tambah produk</h3><p>Harga kontrak langsung tampil. Server menghitung ulang saat pesanan disimpan.</p></div></li>
+          <li class="kstep"><span class="n">3</span><div><h3>Peringatan, bukan blokir</h3><p>Stok kurang tetap bisa diproses (boleh minus). Limit kredit mengikuti aturan.</p></div></li>
+          <li class="kstep"><span class="n">4</span><div><h3>Konfirmasi</h3><p>Stok berkurang, lalu invoice dan jadwal tagihan terbit dengan kode unik.</p></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section class="slide" id="diskon" data-title="Harga kontrak" aria-label="Slide 7: Harga kontrak">
+    <header class="head">
+      <p class="eyebrow">Harga kontrak</p>
+      <h2 class="title">Aturan yang paling spesifik menang</h2>
+      <p class="lede">Contoh kontrak PT Contoh Sejahtera untuk Kopi Susu Literan 1L (kategori Minuman), harga normal Rp 85.000.</p>
+    </header>
+    <div class="body">
+      <div class="disc">
+        <div class="disc-left">
+          <div class="probe">
+            <span>Kasir memasukkan <strong>Kopi Susu Literan 1L</strong> sebanyak</span>
+            <div class="seg" role="group" aria-label="Jumlah beli">
+              <button type="button" data-qty="40" aria-pressed="true">40</button>
+              <button type="button" data-qty="60" aria-pressed="false">60</button>
+            </div>
+          </div>
+          <ol class="ladder">
+            <li class="rung" data-level="variant"><span class="rank">1</span><span class="lvl">Varian</span><span class="rules"><span class="rule">Cold Brew 250ml · harga khusus 24.000</span></span><span class="verdict">Tidak ada aturan untuk item ini</span></li>
+            <li class="rung is-win" data-level="product"><span class="rank">2</span><span class="lvl">Produk</span><span class="rules"><span class="rule is-hit" data-min="1">Kopi Susu Literan · −8%</span><span class="rule" data-min="50">−12% (qty ≥ 50)</span></span><span class="verdict">Dipakai: −8%. Syarat −12% butuh qty ≥ 50</span></li>
+            <li class="rung" data-level="category"><span class="rank">3</span><span class="lvl">Kategori</span><span class="rules"><span class="rule is-match" data-hit="1">Minuman · −5%</span><span class="rule">Biji Kopi · −10%</span></span><span class="verdict">Cocok, tapi kalah prioritas</span></li>
+            <li class="rung" data-level="all"><span class="rank">4</span><span class="lvl">Semua</span><span class="rules"><span class="rule is-match" data-hit="1">Semua produk · −3%</span></span><span class="verdict">Cocok, tapi kalah prioritas</span></li>
+          </ol>
+          <p class="result" aria-live="polite">Harga dipakai <strong>Rp 78.200</strong> / unit · 40 × Rp 78.200 = <strong>Rp 3.128.000</strong></p>
+        </div>
+        <div class="disc-right">
+          <div>
+            <p class="chart-title">Harga per unit Kopi Susu Literan 1L</p>
+            <p class="chart-sub">Semua aturan yang cocok. Batang berwarna adalah harga yang dipakai.</p>
+          </div>
+          <div class="chart bar" id="chartDisc" role="img" aria-label="Grafik harga per unit: normal 85.000, semua produk 82.450, kategori 80.750, produk 78.200, produk qty 50 ke atas 74.800"></div>
+          <div class="types">
+            <span class="chip mute">Persen</span>
+            <span class="chip mute">Potongan per unit</span>
+            <span class="chip mute">Harga khusus</span>
+            <span class="chip mute">Harga akhir tidak di bawah 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section class="slide" id="reminder" data-title="Jatuh tempo &amp; reminder" aria-label="Slide 8: Jatuh tempo dan reminder">
+    <header class="head">
+      <p class="eyebrow">Jatuh tempo</p>
+      <h2 class="title">Reminder berjalan sendiri sampai lunas</h2>
+      <p class="lede">Contoh invoice 14 Nov dengan termin 30 hari, lunas 17 Des. Reminder dikirim pukul 08:00 WIB.</p>
+    </header>
+    <div class="body">
+      <div class="tl-scroll">
+        <div class="tl-stage">
+          <svg class="tl-svg" id="tlSvg" viewBox="0 0 1136 196" role="img" aria-label="Linimasa reminder: H-7, H-3, H-1, H-0, lalu setiap hari setelah jatuh tempo sampai lunas"></svg>
+        </div>
+      </div>
+      <div class="legend-inline">
+        <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect class="ch" x="1.5" y="3.5" width="13" height="9" rx="1.5"/><path class="ch-line" d="M1.5 4.5 8 9l6.5-4.5"/></svg>Email</span>
+        <span><svg viewBox="0 0 16 16" aria-hidden="true"><circle class="ch" cx="8" cy="7.5" r="5.5"/><path class="ch-line" d="M4.6 11.6 3 14.5l3.4-1.6"/></svg>WhatsApp (aktif setelah provider dipilih)</span>
+        <span>Penanda putus-putus = tidak dikirim karena sudah lunas</span>
+      </div>
+      <div class="rem-grid">
+        <div class="table-scroll">
+          <table class="sched">
+            <thead><tr><th>Jadwal</th><th>Kapan</th><th>Ulang</th><th>Channel</th></tr></thead>
+            <tbody>
+              <tr><td>H-7</td><td>7 hari sebelum jatuh tempo</td><td>—</td><td>Email</td></tr>
+              <tr><td>H-3</td><td>3 hari sebelum</td><td>—</td><td>Email, WA</td></tr>
+              <tr><td>H-1</td><td>1 hari sebelum</td><td>—</td><td>Email, WA</td></tr>
+              <tr><td>H-0</td><td>Hari jatuh tempo</td><td>—</td><td>Email, WA</td></tr>
+              <tr><td>Overdue</td><td>Mulai H+1</td><td>Setiap hari sampai lunas</td><td>Email, WA</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="rem-notes">
+          <li>Baris jadwal bisa ditambah, diubah, atau dimatikan dari Pengaturan.</li>
+          <li>Per customer: reminder bisa dimatikan atau dipilih channel-nya.</li>
+          <li>Per kontak: pilih terima email, WA, atau keduanya.</li>
+          <li>Status overdue diperbarui setiap hari pukul 00:05 WIB.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section class="slide" id="kode-unik" data-title="Kode unik" aria-label="Slide 9: Kode unik dan mutasi">
+    <header class="head">
+      <p class="eyebrow">Pembayaran</p>
+      <h2 class="title">Kode unik membuat transfer bisa dikenali</h2>
+      <p class="lede">Satu rekening BCA menerima semua transfer. Tiga digit terakhir menunjukkan tagihan mana yang dibayar.</p>
+    </header>
+    <div class="body">
+      <div class="ku">
+        <div class="ku-left">
+          <div class="calc" role="group" aria-label="Perhitungan kode unik">
+            <div class="row"><span class="lbl">Total invoice</span><span class="val">Rp 6.836.000</span></div>
+            <div class="row code"><span class="lbl">Kode unik (acak 1–999)</span><span class="val">+ <span data-k="code">137</span></span></div>
+            <div class="sum"></div>
+            <div class="row total"><span class="lbl">Transfer tepat</span><span class="val" data-k="total">Rp 6.836.<span class="hl">137</span></span></div>
+          </div>
+          <ul class="ku-notes">
+            <li>Dibuat per jadwal tagihan, jadi cicilan nanti otomatis punya kode sendiri.</li>
+            <li>Nominal akhirnya tidak boleh sama dengan tagihan lain yang belum lunas.</li>
+            <li>Tampil di invoice, PDF, dan setiap reminder.</li>
+            <li>Kode unik dicatat sebagai pendapatan lain-lain.</li>
+          </ul>
+        </div>
+        <div class="mut">
+          <div class="mut-head">
+            <h3>Mutasi rekening BCA · 15 Des 2026</h3>
+            <span class="file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/></svg>mutasi-bca-15122026.csv</span>
+          </div>
+          <div class="table-scroll">
+            <table class="mut-table">
+              <thead><tr><th>Tgl</th><th>Keterangan</th><th>Nominal</th><th>Hasil</th></tr></thead>
+              <tbody>
+                <tr><td class="dt">15/12</td><td class="desc">TRSF E-BANKING CR PT CONTOH SEJAHTERA</td><td class="amt">6.836.137,00 CR</td><td><div class="res"><span class="chip ok">✓ Lunas</span><small>INV/B2B/2026/11/0001 · nominal persis</small></div></td></tr>
+                <tr><td class="dt">15/12</td><td class="desc">SWITCHING CR TRF INV/B2B/2026/11/0004 CV KOPI NUSA</td><td class="amt">1.250.000,00 CR</td><td><div class="res"><span class="chip ok">✓ Lunas</span><small>INV/B2B/2026/11/0004 · nomor invoice</small></div></td></tr>
+                <tr><td class="dt">15/12</td><td class="desc">TRSF E-BANKING CR CV MAJU BERSAMA</td><td class="amt">2.500.000,00 CR</td><td><div class="res"><span class="chip warn">? Cek manual</span><small>tanpa kode unik, tanpa nomor invoice</small></div></td></tr>
+                <tr><td class="dt">15/12</td><td class="desc">BIAYA ADM</td><td class="amt">15.000,00 DB</td><td><div class="res"><span class="chip mute">Diabaikan</span><small>dana keluar</small></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="mut-foot">Contoh format, format asli BCA dibahas nanti. Upload ulang file yang sama menghasilkan 0 baris baru.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide" id="pencocokan" data-title="Urutan pencocokan" aria-label="Slide 10: Urutan pencocokan">
+    <header class="head">
+      <p class="eyebrow">Rekonsiliasi</p>
+      <h2 class="title">Urutan pencocokan mutasi</h2>
+      <p class="lede">Setiap baris dana masuk dicek berurutan. Baris yang tidak lolos aturan otomatis masuk ke daftar cek manual finance.</p>
+    </header>
+    <div class="body">
+      <div class="match">
+        <ol class="mrules">
+          <li class="mrule"><span class="n" style="background:var(--m1)">1</span><div><h3>Nominal persis + kode unik</h3><p>Sama dengan tagihan yang belum lunas, dan kandidatnya hanya satu.</p><span class="chip ok">Lunas otomatis</span></div></li>
+          <li class="mrule"><span class="n" style="background:var(--m2)">2</span><div><h3>Nomor invoice di berita transfer</h3><p>Nomor invoice tertulis dan nominalnya cocok.</p><span class="chip ok">Lunas otomatis</span></div></li>
+          <li class="mrule"><span class="n" style="background:var(--m3)">3</span><div><h3>Nama pengirim sudah dikenal</h3><p>Pernah dicocokkan ke customer yang sama sebelumnya.</p><span class="chip warn">Saran untuk finance</span></div></li>
+          <li class="mrule"><span class="n" style="background:var(--m4)">4</span><div><h3>Tidak cocok</h3><p>Finance memilih customer, lalu dana dibagi ke tagihan terlama. Lebih bayar jadi saldo.</p><span class="chip warn">Cek manual</span></div></li>
+        </ol>
+        <div class="disc-right">
+          <div>
+            <p class="chart-title">Ke mana dana masuk berakhir</p>
+            <p class="chart-sub">Proporsi ilustrasi dari 100 transfer, bukan data nyata.</p>
+          </div>
+          <div class="chart sankey" id="chartSankey" role="img" aria-label="Diagram aliran ilustrasi: dana masuk dibagi ke empat aturan, lalu berakhir lunas otomatis atau dicek finance"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide" id="limit-kredit" data-title="Limit kredit" aria-label="Slide 11: Limit kredit">
+    <header class="head">
+      <p class="eyebrow">Limit kredit</p>
+      <h2 class="title">Aturan kredit yang bisa diatur</h2>
+      <p class="lede">Dicek saat pesanan dikonfirmasi. Nilai dan aksinya diatur dari backoffice, dan bisa dikecualikan per customer. Nilai di bawah ini contoh.</p>
+    </header>
+    <div class="body">
+      <div class="credit">
+        <div class="crules">
+          <article class="crule"><code>max_outstanding_amount</code><h3>Total piutang belum lunas</h3><div class="row"><span class="val">Rp 50 jt</span><span class="chip bad">✕ Blokir</span></div></article>
+          <article class="crule"><code>max_overdue_invoices</code><h3>Tagihan lewat jatuh tempo</h3><div class="row"><span class="val">2 tagihan</span><span class="chip warn">! Peringatan</span></div></article>
+          <article class="crule"><code>max_overdue_days</code><h3>Keterlambatan tagihan tertua</h3><div class="row"><span class="val">14 hari</span><span class="chip bad">✕ Blokir</span></div></article>
+          <article class="crule"><code>max_open_invoices</code><h3>Tagihan belum lunas</h3><div class="row"><span class="val">10 tagihan</span><span class="chip warn">! Peringatan</span></div></article>
+        </div>
+        <div class="credit-right">
+          <div class="probe">
+            <span>Piutang <strong>Rp 42 jt</strong>, pesanan baru:</span>
+            <div class="seg" role="group" aria-label="Contoh pesanan baru">
+              <button type="button" data-sc="a" aria-pressed="true">Rp 6,8 jt</button>
+              <button type="button" data-sc="b" aria-pressed="false">Rp 12 jt</button>
+            </div>
+          </div>
+          <div class="chart gauge" id="chartGauge" role="img" aria-label="Pengukur piutang terhadap batas Rp 50 juta"></div>
+          <div class="status" aria-live="polite"><span class="chip ok">✓ Lolos</span><span>Rp 48,8 jt masih di bawah batas Rp 50 jt.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide" id="erd" data-title="Relasi tabel" aria-label="Slide 12: Relasi tabel">
+    <header class="head">
+      <p class="eyebrow">Struktur data</p>
+      <h2 class="title">21 tabel baru dan relasinya</h2>
+      <p class="lede">Nama ditulis tanpa awalan <code>b2b_</code>. Garis = relasi foreign key. Arahkan kursor ke tabel untuk melihat kolom dan relasinya.</p>
+    </header>
+    <div class="body">
+      <div class="erd-top">
+        <p class="erd-phase" aria-live="polite">Semua fase · 21 tabel baru + 4 tabel yang sudah ada</p>
+        <button type="button" class="btn erd-replay"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Susun per fase</button>
+      </div>
+      <div class="table-scroll">
+        <div class="chart erd" id="chartErd" role="img" aria-label="Diagram relasi 21 tabel B2B dan 4 tabel yang sudah ada"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide" id="tabel" data-title="Isi tabel" aria-label="Slide 13: Isi tabel per modul">
+    <header class="head">
+      <p class="eyebrow">Struktur data</p>
+      <h2 class="title">Isi tabel per modul</h2>
+      <p class="lede">Kolom utama setiap tabel. Tanda <code>?</code> = boleh kosong. Nominal rupiah disimpan sebagai <code>bigint</code>, sama seperti tabel yang sudah ada.</p>
+    </header>
+    <div class="body">
+      <div class="tabs" role="tablist" aria-label="Modul"></div>
+      <div class="tpanel" id="tpanel" role="tabpanel"></div>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide" id="otomatis" data-title="Proses harian &amp; akses" aria-label="Slide 14: Proses harian dan hak akses">
+    <header class="head">
+      <p class="eyebrow">Di belakang layar</p>
+      <h2 class="title">Proses harian dan hak akses</h2>
+      <p class="lede">Jadwal mengikuti pola email ulang tahun yang sudah berjalan di <code>app/Console/Kernel.php</code>: zona waktu Jakarta, pengiriman lewat antrean.</p>
+    </header>
+    <div class="body">
+      <div class="auto">
+        <div class="crons">
+          <div class="cron"><time>00:01<small>WIB</small></time><div><code>b2b:sync-contract-status</code><p>Kontrak yang melewati tanggal berakhir diubah menjadi expired.</p></div></div>
+          <div class="cron"><time>00:05<small>WIB</small></time><div><code>b2b:mark-overdue</code><p>Jadwal tagihan yang melewati jatuh tempo diubah menjadi overdue.</p></div></div>
+          <div class="cron"><time>08:00<small>bisa diatur</small></time><div><code>b2b:send-due-reminders</code><p>Mengirim reminder sesuai jadwal. Tidak terkirim dobel berkat log harian.</p></div></div>
+        </div>
+        <div class="tree">
+          <h3>Menu B2B</h3>
+          <ul>
+            <li>Customer <code>b2b/customers</code></li>
+            <li>Kontrak <code>b2b/contracts</code></li>
+            <li>Kasir B2B <code>b2b/cashier</code></li>
+            <li>Pesanan <code>b2b/orders</code></li>
+            <li>Invoice <code>b2b/invoices</code></li>
+            <li>Pembayaran: upload mutasi, rekonsiliasi <code>b2b/payments</code></li>
+            <li>Laporan <code>b2b/reports</code></li>
+            <li>Pengaturan: rekening, reminder, limit kredit <code>b2b/settings</code></li>
+          </ul>
+          <p class="special">Setiap menu memakai pola permission yang sudah ada: <code>read</code>, <code>create</code>, <code>update</code>, <code>delete</code>. Ada satu permission khusus <code>override b2b/credit-limit</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide" id="tahapan" data-title="Tahapan" aria-label="Slide 15: Tahapan pengerjaan">
+    <header class="head">
+      <p class="eyebrow">Tahapan</p>
+      <h2 class="title">Lima fase pengerjaan</h2>
+      <p class="lede">Setiap fase sudah bisa dipakai begitu selesai. Fase 1 tidak menunggu keputusan apa pun.</p>
+    </header>
+    <div class="body">
+      <div class="phases">
+        <div class="rail"><i></i></div>
+        <ol class="phase-list">
+          <li class="phase"><span class="dot"></span><p class="ph-n">Fase 1</p><h3>Customer &amp; kontrak</h3><ul><li>Customer, kontak, alamat</li><li>Kontrak dan aturan diskon</li><li>Perhitungan harga</li><li>Menu dan permission</li></ul><p class="ph-t">5 tabel</p></li>
+          <li class="phase"><span class="dot"></span><p class="ph-n">Fase 2</p><h3>Kasir &amp; invoice</h3><ul><li>Pesanan dan item</li><li>Invoice dan jadwal tagihan</li><li>Kode unik dan PDF</li><li>Pengurangan stok</li></ul><p class="ph-t">6 tabel</p></li>
+          <li class="phase"><span class="dot"></span><p class="ph-n">Fase 3</p><h3>Pembayaran</h3><ul><li>Upload mutasi BCA</li><li>Pencocokan otomatis</li><li>Cek manual dan input tunai</li><li>Saldo customer</li></ul><p class="ph-t">6 tabel · butuh contoh file mutasi</p></li>
+          <li class="phase"><span class="dot"></span><p class="ph-n">Fase 4</p><h3>Reminder &amp; kredit</h3><ul><li>Jadwal reminder dinamis</li><li>Status overdue harian</li><li>Aturan limit kredit</li><li>Override dengan alasan</li></ul><p class="ph-t">4 tabel</p></li>
+          <li class="phase"><span class="dot"></span><p class="ph-n">Fase 5</p><h3>Laporan B2B</h3><ul><li>Penjualan per customer dan outlet</li><li>Umur piutang</li><li>Mutasi pembayaran</li><li>Kontrak hampir berakhir</li></ul><p class="ph-t">membaca tabel di atas</p></li>
+          <li class="phase later"><span class="dot"></span><p class="ph-n">Nanti</p><h3>Menunggu keputusan</h3><ul><li>Mutasi otomatis (API)</li><li>Provider WhatsApp</li><li>Pengiriman dan ekspedisi</li><li>Cicilan</li></ul><p class="ph-t">struktur sudah disiapkan</p></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide" id="berikutnya" data-title="Langkah berikutnya" aria-label="Slide 16: Langkah berikutnya">
+    <header class="head">
+      <p class="eyebrow">Penutup</p>
+      <h2 class="title">Yang ditunda dan langkah berikutnya</h2>
+    </header>
+    <div class="body">
+      <div class="next">
+        <div class="ncol">
+          <h3>Ditunda</h3>
+          <ul>
+            <li>Format file mutasi BCA dan contohnya</li>
+            <li>Mutasi otomatis lewat API BCA atau layanan pihak ketiga</li>
+            <li>Provider WhatsApp untuk reminder</li>
+            <li>Pengiriman dan ekspedisi, termasuk berat produk</li>
+            <li>Cicilan (struktur tabel sudah siap)</li>
+          </ul>
+        </div>
+        <div class="ncol confirm">
+          <h3>Perlu dikonfirmasi</h3>
+          <ul>
+            <li>Apakah NPWP wajib diisi?</li>
+            <li>Usulan: tagihan dianggap lunas kalau dana masuk sudah sebesar pokok. Kode unik hanya penanda, jadi customer yang lupa menambahkannya tetap lunas.</li>
+          </ul>
+        </div>
+        <div class="ncol">
+          <h3>Langkah berikutnya</h3>
+          <ol>
+            <li>Setujui rencana dan struktur tabel</li>
+            <li>Mulai Fase 1: customer dan kontrak</li>
+            <li>Siapkan contoh file mutasi BCA sebelum Fase 3</li>
+            <li>Pilih provider WhatsApp sebelum Fase 4</li>
+          </ol>
+        </div>
+      </div>
+      <p class="closing">Diskusi <span>&amp;</span> tanya jawab</p>
+    </div>
+  </section>
+</main>
+
+<nav class="bar" id="bar" aria-label="Navigasi slide">
+  <button type="button" class="ibtn" id="btnPrev" aria-label="Slide sebelumnya"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <button type="button" class="ibtn" id="btnNext" aria-label="Slide berikutnya"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+  <span class="counter" id="barCounter">01 / 16</span>
+  <span class="bar-title" id="barTitle">Judul</span>
+  <span class="progress" aria-hidden="true"><i id="barProg"></i></span>
+  <span class="hint">← → pindah slide · F layar penuh</span>
+  <button type="button" class="ibtn" id="btnTheme" aria-label="Ganti tema"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg></button>
+  <button type="button" class="ibtn" id="btnFull" aria-label="Layar penuh" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- Utilitas ---------- */
+  var $ = function (sel, root) { return (root || document).querySelector(sel); };
+  var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var hasAnime = typeof window.anime === 'function';
+  var hasEC = typeof window.echarts === 'object' && window.echarts !== null;
+  if (hasAnime && reduce) { window.anime.speed = 1000; }
+  var deckMQ = window.matchMedia('(min-width: 900px) and (min-height: 520px)');
+  var isDeck = function () { return deckMQ.matches; };
+  var root = document.documentElement;
+  var css = function (name) { return getComputedStyle(root).getPropertyValue(name).trim(); };
+  var RP = function (n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); };
+  var JT = function (n) { return n.toLocaleString('id-ID', { maximumFractionDigits: 1 }); };
+  var FONT = "'Plus Jakarta Sans', system-ui, sans-serif";
+  var MONO = "'IBM Plex Mono', ui-monospace, monospace";
+  function hexToRgb(h) {
+    h = h.replace('#', '');
+    if (h.length === 3) { h = h.split('').map(function (c) { return c + c; }).join(''); }
+    var n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function mix(a, b, t) {
+    var x = hexToRgb(a), y = hexToRgb(b);
+    var r = x.map(function (v, i) { return Math.round(v * (1 - t) + y[i] * t); });
+    return '#' + r.map(function (v) { return v.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  /* ---------- Data ---------- */
+  var MODULES = [
+    { id: 'customer', label: 'Customer', color: '--m1', phase: 1 },
+    { id: 'contract', label: 'Kontrak', color: '--m2', phase: 1 },
+    { id: 'order', label: 'Pesanan', color: '--m3', phase: 2 },
+    { id: 'invoice', label: 'Invoice', color: '--m4', phase: 2 },
+    { id: 'support', label: 'Pendukung', color: '--m8', phase: 2 },
+    { id: 'payment', label: 'Pembayaran', color: '--m5', phase: 3 },
+    { id: 'reminder', label: 'Reminder', color: '--m6', phase: 4 },
+    { id: 'credit', label: 'Limit kredit', color: '--m7', phase: 4 }
+  ];
+  var MODULE_BY_ID = {};
+  MODULES.forEach(function (m) { MODULE_BY_ID[m.id] = m; });
+
+  var TABLES = [
+    { n: 'customers', m: 'customer', p: 'Perusahaan pembeli dan termin default', c: ['code', 'name', 'npwp?', 'phone?', 'email?', 'payment_term_days', 'reminder_enabled', 'reminder_channels?', 'is_active', 'created_by'] },
+    { n: 'customer_contacts', m: 'customer', p: 'Kontak (bisa banyak) dan penerima reminder', c: ['b2b_customer_id', 'name', 'phone?', 'email?', 'position?', 'is_primary', 'receive_email_reminder', 'receive_wa_reminder'] },
+    { n: 'customer_addresses', m: 'customer', p: 'Alamat tagih dan alamat kirim', c: ['b2b_customer_id', 'label', 'recipient_name', 'address', 'city', 'province', 'postal_code', 'is_default_billing', 'is_default_shipping'] },
+    { n: 'contracts', m: 'contract', p: 'Kontrak per customer, maksimal 1 aktif', c: ['b2b_customer_id', 'contract_number', 'start_date', 'end_date', 'status', 'payment_term_days?', 'attachment_path?', 'activated_by?', 'activated_at?'] },
+    { n: 'contract_rules', m: 'contract', p: 'Aturan diskon di dalam kontrak', c: ['b2b_contract_id', 'scope', 'outlet_id?', 'category_id?', 'product_id?', 'variant_id?', 'discount_type', 'discount_value', 'min_qty'] },
+    { n: 'orders', m: 'order', p: 'Pesanan dari kasir B2B, per outlet', c: ['order_number', 'b2b_customer_id', 'b2b_contract_id?', 'outlet_id', 'user_id', 'status', 'subtotal', 'discount_total', 'grand_total', 'delivery_method', 'credit_check_result?'] },
+    { n: 'order_items', m: 'order', p: 'Item pesanan dengan salinan harga dan diskon', c: ['b2b_order_id', 'product_id', 'variant_id', 'qty', 'base_price', 'b2b_contract_rule_id?', 'discount_per_unit', 'final_price', 'line_total', 'stock_insufficient'] },
+    { n: 'invoices', m: 'invoice', p: 'Invoice, saat ini 1 per pesanan', c: ['invoice_number', 'b2b_order_id', 'b2b_customer_id', 'issue_date', 'due_date', 'amount', 'unique_code_amount', 'total_to_pay', 'paid_amount', 'status'] },
+    { n: 'invoice_schedules', m: 'invoice', p: 'Jadwal tagihan, sudah siap untuk cicilan', c: ['b2b_invoice_id', 'sequence', 'due_date', 'amount', 'unique_code', 'amount_to_pay', 'paid_amount', 'status', 'paid_at?'] },
+    { n: 'sequences', m: 'support', p: 'Penomoran dokumen tanpa nomor dobel', c: ['type', 'period', 'last_number'] },
+    { n: 'activity_logs', m: 'support', p: 'Jejak perubahan penting', c: ['user_id', 'subject_type', 'subject_id', 'action', 'changes'] },
+    { n: 'bank_accounts', m: 'payment', p: 'Rekening BCA perusahaan', c: ['bank_code', 'account_number', 'account_name', 'statement_parser', 'is_active'] },
+    { n: 'mutation_imports', m: 'payment', p: 'Riwayat upload file mutasi', c: ['b2b_bank_account_id', 'original_filename', 'period_start', 'period_end', 'new_rows', 'duplicate_rows', 'matched_rows', 'uploaded_by'] },
+    { n: 'incoming_funds', m: 'payment', p: 'Satu baris per dana masuk', c: ['b2b_bank_account_id', 'b2b_mutation_import_id?', 'transaction_date', 'amount', 'description', 'sender_name?', 'fingerprint', 'match_status', 'b2b_payment_id?'] },
+    { n: 'payments', m: 'payment', p: 'Pembayaran yang sudah dikenali customer-nya', c: ['payment_number', 'b2b_customer_id', 'b2b_incoming_fund_id?', 'method', 'amount', 'allocated_amount', 'unallocated_amount', 'status'] },
+    { n: 'payment_allocations', m: 'payment', p: 'Pembagian pembayaran ke jadwal tagihan', c: ['b2b_payment_id', 'b2b_invoice_schedule_id', 'amount', 'allocated_by'] },
+    { n: 'customer_sender_aliases', m: 'payment', p: 'Nama pengirim yang dikenal per customer', c: ['b2b_customer_id', 'sender_name', 'times_matched', 'last_matched_at'] },
+    { n: 'reminder_schedules', m: 'reminder', p: 'Jadwal reminder yang bisa diatur', c: ['name', 'offset_days', 'repeat_every_days?', 'max_repeat?', 'channels', 'template_key', 'is_active'] },
+    { n: 'reminder_logs', m: 'reminder', p: 'Catatan reminder terkirim, mencegah kiriman dobel', c: ['b2b_invoice_schedule_id', 'b2b_reminder_schedule_id', 'channel', 'recipient', 'reminder_date', 'status'] },
+    { n: 'credit_rules', m: 'credit', p: 'Aturan limit kredit global', c: ['code', 'value', 'action', 'is_active'] },
+    { n: 'customer_credit_rules', m: 'credit', p: 'Pengecualian aturan per customer', c: ['b2b_customer_id', 'b2b_credit_rule_id', 'value?', 'action?', 'is_active'] }
+  ];
+  var TABLE_BY_NAME = {};
+  TABLES.forEach(function (t) { TABLE_BY_NAME[t.n] = t; });
+
+  var ERD_POS = [
+    ['customer_contacts', 0, 0], ['credit_rules', 0, 100], ['customer_credit_rules', 0, 200], ['customer_addresses', 0, 300], ['sequences', 0, 400], ['activity_logs', 0, 500],
+    ['outlets', 240, 0], ['contracts', 240, 100], ['customers', 240, 200], ['customer_sender_aliases', 240, 300], ['bank_accounts', 240, 500],
+    ['categories', 480, 0], ['contract_rules', 480, 100], ['orders', 480, 200], ['payments', 480, 300], ['incoming_funds', 480, 400],
+    ['products', 720, 0], ['order_items', 720, 100], ['invoices', 720, 200], ['payment_allocations', 720, 300], ['mutation_imports', 720, 500],
+    ['variant_products', 960, 0], ['invoice_schedules', 960, 200], ['reminder_logs', 960, 300], ['reminder_schedules', 960, 400]
+  ];
+  var ERD_EDGES = [
+    ['customer_contacts', 'customers', 'b2b_customer_id'],
+    ['customer_addresses', 'customers', 'b2b_customer_id'],
+    ['customer_sender_aliases', 'customers', 'b2b_customer_id'],
+    ['customer_credit_rules', 'customers', 'b2b_customer_id'],
+    ['customer_credit_rules', 'credit_rules', 'b2b_credit_rule_id'],
+    ['contracts', 'customers', 'b2b_customer_id'],
+    ['contract_rules', 'contracts', 'b2b_contract_id'],
+    ['contract_rules', 'outlets', 'outlet_id'],
+    ['contract_rules', 'categories', 'category_id'],
+    ['contract_rules', 'products', 'product_id'],
+    ['contract_rules', 'variant_products', 'variant_id'],
+    ['orders', 'customers', 'b2b_customer_id'],
+    ['orders', 'contracts', 'b2b_contract_id'],
+    ['orders', 'outlets', 'outlet_id'],
+    ['order_items', 'orders', 'b2b_order_id'],
+    ['order_items', 'products', 'product_id'],
+    ['order_items', 'variant_products', 'variant_id'],
+    ['invoices', 'orders', 'b2b_order_id'],
+    ['invoices', 'customers', 'b2b_customer_id', 0.25],
+    ['invoice_schedules', 'invoices', 'b2b_invoice_id'],
+    ['reminder_logs', 'invoice_schedules', 'b2b_invoice_schedule_id'],
+    ['reminder_logs', 'reminder_schedules', 'b2b_reminder_schedule_id'],
+    ['payment_allocations', 'payments', 'b2b_payment_id'],
+    ['payment_allocations', 'invoice_schedules', 'b2b_invoice_schedule_id'],
+    ['payments', 'customers', 'b2b_customer_id'],
+    ['payments', 'incoming_funds', 'b2b_incoming_fund_id'],
+    ['incoming_funds', 'bank_accounts', 'b2b_bank_account_id'],
+    ['incoming_funds', 'mutation_imports', 'b2b_mutation_import_id'],
+    ['mutation_imports', 'bank_accounts', 'b2b_bank_account_id']
+  ];
+
+  var FLOW_TEXT = {
+    '1': ['Customer & kontrak', 'Kasir memilih customer B2B. Kalau customer punya kontrak aktif, aturan diskonnya langsung terbaca. Tanpa kontrak tetap bisa, harga normal.'],
+    '2': ['Kasir B2B', 'Pilih outlet, lalu produk dari katalog outlet itu. Harga kontrak tampil di layar dan dihitung ulang oleh server saat disimpan.'],
+    '3': ['Konfirmasi', 'Limit kredit dicek: peringatan atau blokir sesuai aturan. Stok varian berkurang, boleh sampai minus.'],
+    '4': ['Invoice + kode unik', 'Invoice terbit dengan jatuh tempo = tanggal invoice + termin. Nominal ditambah kode unik Rp 1–999.'],
+    '5': ['Reminder', 'Email atau WA terkirim otomatis H-7, H-3, H-1, H-0, lalu setiap hari setelah jatuh tempo sampai lunas.'],
+    '6': ['Transfer ke BCA', 'Customer transfer tepat sampai 3 digit terakhir ke rekening BCA perusahaan, dari bank mana saja.'],
+    '7': ['Upload mutasi', 'Finance upload file mutasi BCA 1–2 kali sehari. Baris yang sama tidak akan tercatat dua kali.'],
+    '8': ['Pencocokan', 'Sistem mencocokkan nominal + kode unik, lalu nomor invoice di berita transfer.'],
+    '9': ['Lunas', 'Tagihan lunas dan reminder berhenti. Kelebihan bayar menjadi saldo customer.'],
+    'alt': ['Cek manual', 'Transfer yang tidak cocok masuk daftar cek manual. Finance memilih customer, lalu dana dibagi ke tagihan terlama.']
+  };
+
+  /* ---------- Pengelola animasi per slide ---------- */
+  var running = {};
+  function push(id, a) { (running[id] || (running[id] = [])).push(a); return a; }
+  function stopScene(id) {
+    (running[id] || []).forEach(function (a) {
+      if (typeof a === 'number') { clearTimeout(a); }
+      else if (a && typeof a.pause === 'function') { a.pause(); }
+    });
+    running[id] = [];
+  }
+  function ctxFor(id) {
+    return {
+      A: function (p) { return hasAnime ? push(id, window.anime(p)) : null; },
+      T: function (o) { return hasAnime ? push(id, window.anime.timeline(o)) : null; },
+      wait: function (ms, fn) { return push(id, setTimeout(fn, reduce ? 0 : ms)); },
+      stacked: !isDeck()
+    };
+  }
+
+  /* ---------- Grafik (Apache ECharts) ---------- */
+  var charts = {};
+  function defChart(id, el, build, state) { if (el) { charts[id] = { el: el, build: build, state: state || {}, inst: null }; } }
+  function renderChart(id, replay) {
+    var ch = charts[id];
+    if (!hasEC || !ch) { return null; }
+    if (!ch.inst) { ch.inst = window.echarts.init(ch.el, null, { renderer: 'svg' }); }
+    else if (replay !== false) { ch.inst.clear(); }
+    ch.inst.setOption(ch.build(ch.state), true);
+    return ch.inst;
+  }
+  function refreshCharts() { Object.keys(charts).forEach(function (id) { var ch = charts[id]; if (ch.inst) { ch.inst.setOption(ch.build(ch.state), true); } }); }
+  function resizeCharts() { Object.keys(charts).forEach(function (id) { var ch = charts[id]; if (ch.inst) { ch.inst.resize(); } }); }
+  function tip() {
+    return { backgroundColor: css('--surface'), borderColor: css('--line-strong'), borderWidth: 1, padding: [8, 10], textStyle: { color: css('--ink'), fontFamily: FONT, fontSize: 12.5 }, extraCssText: 'border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.14);' };
+  }
+
+  var DISC_LABELS = ['Harga normal', 'Semua produk −3%', 'Kategori Minuman −5%', 'Produk −8% (qty ≥ 1)', 'Produk −12% (qty ≥ 50)'];
+  var DISC_VALUES = [85000, 82450, 80750, 78200, 74800];
+  function buildDisc(st) {
+    var win = st.qty >= 50 ? 4 : 3;
+    var notes = ['Harga tanpa kontrak', 'Cocok, kalah prioritas', 'Cocok, kalah prioritas', st.qty >= 50 ? 'Kalah dari syarat qty ≥ 50' : 'Dipakai', st.qty >= 50 ? 'Dipakai' : 'Belum berlaku: qty < 50'];
+    return {
+      animation: !reduce, animationDuration: 800, animationDurationUpdate: 450,
+      grid: { left: 6, right: 92, top: 6, bottom: 22, containLabel: true },
+      xAxis: { type: 'value', min: 0, max: 90000, interval: 15000, axisLabel: { color: css('--muted'), fontFamily: MONO, fontSize: 11, formatter: function (v) { return v === 0 ? '0' : (v / 1000) + ' rb'; } }, splitLine: { lineStyle: { color: css('--line') } }, axisLine: { show: false }, axisTick: { show: false } },
+      yAxis: { type: 'category', inverse: true, data: DISC_LABELS, axisLabel: { color: css('--ink-2'), fontFamily: FONT, fontSize: 12.5 }, axisLine: { lineStyle: { color: css('--line-strong') } }, axisTick: { show: false } },
+      tooltip: Object.assign(tip(), { trigger: 'item', formatter: function (p) { return '<b>' + DISC_LABELS[p.dataIndex] + '</b><br>' + RP(p.value) + ' / unit<br><span style="color:' + css('--muted') + '">' + notes[p.dataIndex] + '</span>'; } }),
+      series: [{
+        type: 'bar', barWidth: 20,
+        data: DISC_VALUES.map(function (v, i) { return { value: v, itemStyle: { color: i === win ? css('--accent') : css('--m8'), opacity: i === win ? 1 : 0.45, borderRadius: [0, 4, 4, 0] } }; }),
+        label: { show: true, position: 'right', fontFamily: MONO, fontSize: 12, color: css('--ink'), formatter: function (p) { return RP(p.value); } }
+      }]
+    };
+  }
+
+  function buildSankey() {
+    var nodes = [
+      { name: 'Dana masuk', itemStyle: { color: css('--ink-2') } },
+      { name: '1 · Nominal + kode unik', itemStyle: { color: css('--m1') } },
+      { name: '2 · Nomor invoice', itemStyle: { color: css('--m2') } },
+      { name: '3 · Nama pengirim dikenal', itemStyle: { color: css('--m3') } },
+      { name: '4 · Tidak cocok', itemStyle: { color: css('--m4') } },
+      { name: 'Lunas otomatis', itemStyle: { color: css('--accent') } },
+      { name: 'Dicek finance', itemStyle: { color: css('--amber') } }
+    ];
+    var links = [
+      { source: 'Dana masuk', target: '1 · Nominal + kode unik', value: 72 },
+      { source: 'Dana masuk', target: '2 · Nomor invoice', value: 11 },
+      { source: 'Dana masuk', target: '3 · Nama pengirim dikenal', value: 9 },
+      { source: 'Dana masuk', target: '4 · Tidak cocok', value: 8 },
+      { source: '1 · Nominal + kode unik', target: 'Lunas otomatis', value: 72 },
+      { source: '2 · Nomor invoice', target: 'Lunas otomatis', value: 11 },
+      { source: '3 · Nama pengirim dikenal', target: 'Dicek finance', value: 9 },
+      { source: '4 · Tidak cocok', target: 'Dicek finance', value: 8 }
+    ];
+    return {
+      animation: !reduce, animationDuration: 1200,
+      tooltip: Object.assign(tip(), { trigger: 'item', formatter: function (p) { return p.dataType === 'edge' ? p.data.source + ' → ' + p.data.target + '<br><b>' + p.data.value + '</b> dari 100 transfer (ilustrasi)' : '<b>' + p.name + '</b>'; } }),
+      series: [{
+        type: 'sankey', left: 4, right: 128, top: 10, bottom: 10, nodeWidth: 12, nodeGap: 18, layoutIterations: 0, draggable: false,
+        label: { color: css('--ink'), fontFamily: FONT, fontSize: 12.5 },
+        lineStyle: { color: 'gradient', opacity: 0.3, curveness: 0.5 },
+        emphasis: { focus: 'adjacency', lineStyle: { opacity: 0.6 } },
+        data: nodes, links: links
+      }]
+    };
+  }
+
+  function buildGauge(st) {
+    return {
+      animation: !reduce, animationDuration: 900, animationDurationUpdate: 900, animationEasingUpdate: 'cubicOut',
+      series: [{
+        type: 'gauge', min: 0, max: 60, splitNumber: 6, startAngle: 205, endAngle: -25, radius: '98%', center: ['50%', '60%'],
+        axisLine: { lineStyle: { width: 14, color: [[50 / 60, css('--accent')], [1, css('--red')]] } },
+        pointer: { length: '64%', width: 5, itemStyle: { color: css('--ink') } },
+        anchor: { show: true, size: 12, itemStyle: { color: css('--ink'), borderColor: css('--surface-2'), borderWidth: 2 } },
+        axisTick: { distance: -14, length: 5, splitNumber: 5, lineStyle: { color: css('--surface-2'), width: 1 } },
+        splitLine: { distance: -14, length: 14, lineStyle: { color: css('--surface-2'), width: 2 } },
+        axisLabel: { distance: 20, color: css('--muted'), fontFamily: MONO, fontSize: 11, formatter: function (x) { return x === 50 ? 'batas 50' : String(x); } },
+        title: { show: false },
+        detail: { valueAnimation: true, offsetCenter: [0, '34%'], fontFamily: MONO, fontSize: 22, fontWeight: 600, color: css('--ink'), formatter: function (x) { return 'Rp ' + JT(x) + ' jt'; } },
+        data: [{ value: st.value || 0 }]
+      }]
+    };
+  }
+
+  function prefixed(name) { return TABLE_BY_NAME[name] ? 'b2b_' + name : name; }
+  function nodeTip(name) {
+    var t = TABLE_BY_NAME[name];
+    if (!t) { return '<b style="font-family:' + MONO + '">' + name + '</b><br><span style="color:' + css('--muted') + '">Tabel yang sudah ada</span>'; }
+    var m = MODULE_BY_ID[t.m];
+    return '<div style="max-width:320px;white-space:normal"><b style="font-family:' + MONO + '">b2b_' + t.n + '</b><br><span style="color:' + css('--muted') + '">' + m.label + ' · Fase ' + m.phase + '</span><br>' + t.p + '<br><span style="font-family:' + MONO + ';font-size:11.5px;color:' + css('--ink-2') + '">' + t.c.join(', ') + '</span></div>';
+  }
+  function buildErd() {
+    var surf = css('--surface');
+    var cats = MODULES.map(function (m) { return { name: m.label, itemStyle: { color: css(m.color) } }; });
+    cats.push({ name: 'Tabel yang sudah ada', itemStyle: { color: css('--line-strong') } });
+    var catIndex = {};
+    MODULES.forEach(function (m, i) { catIndex[m.id] = i; });
+    catIndex.existing = MODULES.length;
+    var nodes = ERD_POS.map(function (p) {
+      var name = p[0], t = TABLE_BY_NAME[name];
+      var col = t ? css(MODULE_BY_ID[t.m].color) : css('--line-strong');
+      return {
+        name: name, x: p[1], y: p[2], category: catIndex[t ? t.m : 'existing'],
+        symbol: 'roundRect', symbolSize: [Math.round(name.length * 6.9 + 22), 26],
+        itemStyle: { color: mix(col, surf, t ? 0.8 : 0.88), borderColor: col, borderWidth: 1.5, borderType: t ? 'solid' : 'dashed' },
+        label: { show: true, position: 'inside', color: css('--ink'), fontFamily: MONO, fontSize: 11.5 }
+      };
+    });
+    var links = ERD_EDGES.map(function (e) { return { source: e[0], target: e[1], fk: e[2], lineStyle: { curveness: e[3] || 0 } }; });
+    return {
+      animation: !reduce, animationDuration: 700, animationDurationUpdate: 400,
+      legend: { top: 0, left: 'center', itemWidth: 12, itemHeight: 10, itemGap: 14, icon: 'roundRect', textStyle: { color: css('--ink-2'), fontFamily: FONT, fontSize: 12 }, inactiveColor: css('--line-strong'), data: cats.map(function (c) { return c.name; }) },
+      tooltip: Object.assign(tip(), { trigger: 'item', confine: true, formatter: function (p) { return p.dataType === 'edge' ? '<span style="font-family:' + MONO + '">' + prefixed(p.data.source) + '.' + p.data.fk + '</span><br>→ ' + prefixed(p.data.target) : nodeTip(p.name); } }),
+      series: [{
+        type: 'graph', layout: 'none', top: 46, bottom: 16, left: 96, right: 96, roam: false, categories: cats, data: nodes, links: links,
+        lineStyle: { color: css('--line-strong'), width: 1.3, opacity: 0.9 },
+        emphasis: { focus: 'adjacency', lineStyle: { width: 2.4, color: css('--accent') }, itemStyle: { borderWidth: 2.5 } },
+        blur: { itemStyle: { opacity: 0.25 }, lineStyle: { opacity: 0.1 }, label: { opacity: 0.35 } }
+      }]
+    };
+  }
+
+  /* ---------- Bagian yang dibangun sekali ---------- */
+  function buildTimeline(svg) {
+    if (!svg) { return; }
+    var X = function (d) { return 40 + d * (1056 / 36); };
+    var email = function (cx) { return '<rect class="ch" x="' + (cx - 7) + '" y="58" width="14" height="10" rx="1.5"/><path class="ch-line" d="M' + (cx - 7) + ' 59 L' + cx + ' 64 L' + (cx + 7) + ' 59"/>'; };
+    var wa = function (cx) { return '<circle class="ch" cx="' + cx + '" cy="42" r="6.5"/><path class="ch-line" d="M' + (cx - 4) + ' 47 L' + (cx - 6) + ' 51 L' + (cx - 1.5) + ' 49"/>'; };
+    var h = '';
+    for (var d = 0; d <= 36; d++) {
+      var big = d % 7 === 0;
+      h += '<line class="tl-tick" x1="' + X(d) + '" y1="' + (big ? 111 : 114) + '" x2="' + X(d) + '" y2="' + (big ? 125 : 122) + '"/>';
+    }
+    h += '<line class="tl-axis" x1="40" y1="118" x2="1096" y2="118"/>';
+    h += '<g class="tl-due"><line x1="' + X(30) + '" y1="24" x2="' + X(30) + '" y2="152"/><text x="' + X(30) + '" y="15" text-anchor="middle">Jatuh tempo · 14 Des</text></g>';
+    h += '<g class="tl-start"><circle cx="40" cy="118" r="6"/><text class="k" x="34" y="97">Invoice terbit</text><text class="d" x="34" y="144">14 Nov</text></g>';
+    var marks = [
+      [23, 'H-7', '7 Des', '', ['email']],
+      [27, 'H-3', '11 Des', '', ['email', 'wa']],
+      [29, 'H-1', '', '', ['email', 'wa']],
+      [30, 'H-0', '14 Des', '', ['email', 'wa']],
+      [31, 'H+1', '', 'over', ['email', 'wa']],
+      [32, 'H+2', '', 'over', ['email', 'wa']],
+      [34, 'H+4', '', 'skip', []],
+      [35, 'H+5', '', 'skip', []]
+    ];
+    marks.forEach(function (m) {
+      var x = X(m[0]);
+      h += '<g class="tl-marker ' + m[3] + '">';
+      if (m[4].indexOf('wa') > -1) { h += wa(x); }
+      if (m[4].indexOf('email') > -1) { h += email(x); }
+      h += '<text class="k" x="' + x + '" y="97" text-anchor="middle">' + m[1] + '</text>';
+      h += '<circle cx="' + x + '" cy="118" r="6.5"/>';
+      if (m[2]) { h += '<text class="d" x="' + x + '" y="144" text-anchor="middle">' + m[2] + '</text>'; }
+      h += '</g>';
+    });
+    var px = X(33);
+    h += '<g class="tl-paid"><text class="k" x="' + px + '" y="97" text-anchor="middle">Lunas</text><circle cx="' + px + '" cy="118" r="9"/><path d="M' + (px - 4) + ' 118 L' + (px - 1) + ' 121 L' + (px + 4.5) + ' 114.5"/><text class="d" x="' + px + '" y="144" text-anchor="middle">17 Des</text></g>';
+    h += '<g class="tl-lane">';
+    h += '<rect class="unpaid" x="40" y="162" width="' + (X(31) - 41) + '" height="22" rx="5"/><text x="' + ((40 + X(31)) / 2) + '" y="177" text-anchor="middle">Belum lunas · termin 30 hari</text>';
+    h += '<rect class="overdue" x="' + (X(31) + 1) + '" y="162" width="' + (X(33) - X(31) - 2) + '" height="22" rx="5"/><text x="' + ((X(31) + X(33)) / 2) + '" y="177" text-anchor="middle">Overdue</text>';
+    h += '<rect class="paid" x="' + (X(33) + 1) + '" y="162" width="' + (1096 - X(33) - 1) + '" height="22" rx="5"/><text x="' + ((X(33) + 1096) / 2) + '" y="177" text-anchor="middle">Lunas</text>';
+    h += '</g>';
+    svg.innerHTML = h;
+  }
+
+  function renderTab(s, id, animate) {
+    var m = MODULE_BY_ID[id];
+    var list = TABLES.filter(function (t) { return t.m === id; });
+    $$('.tabs button', s).forEach(function (b) { b.setAttribute('aria-selected', b.dataset.m === id ? 'true' : 'false'); b.tabIndex = b.dataset.m === id ? 0 : -1; });
+    var panel = $('.tpanel', s);
+    panel.dataset.count = String(list.length);
+    panel.setAttribute('aria-labelledby', 'tab-' + id);
+    panel.innerHTML = list.map(function (t) {
+      return '<article class="tcard" style="--mc:var(' + m.color + ')"><header><code>b2b_' + t.n + '</code><span class="chip mute">Fase ' + m.phase + '</span></header><p>' + t.p + '</p><ul class="cols">' +
+        t.c.map(function (c) { return '<li>' + (c.slice(-1) === '?' ? c.slice(0, -1) + '<i>?</i>' : c) + '</li>'; }).join('') + '</ul></article>';
+    }).join('');
+    if (animate && hasAnime) {
+      push('tabel', window.anime({ targets: $$('.tcard', panel), opacity: [0, 1], translateY: [12, 0], delay: window.anime.stagger(60), duration: 380, easing: 'easeOutCubic' }));
+    }
+  }
+
+  /* ---------- Alur: helper ---------- */
+  function flowParts(s) {
+    var svg = $('.flow-svg', s);
+    return { svg: svg, nodes: $$('.fnode', svg), edges: $$('.fedge', svg), token: $('.token', svg) };
+  }
+  function flowCaption(s, key) {
+    var f = FLOW_TEXT[key];
+    if (!f) { return; }
+    $('.cap-n', s).textContent = key === 'alt' ? 'Jalur kalau tidak cocok' : 'Langkah ' + key + ' dari 9';
+    $('.cap-t', s).textContent = f[0];
+    $('.cap-d', s).textContent = f[1];
+    if (hasAnime) { push('alur', window.anime({ targets: $('.cap-body', s), opacity: [0, 1], translateY: [6, 0], duration: 320, easing: 'easeOutQuad' })); }
+  }
+  function flowSettle(s) {
+    var f = flowParts(s);
+    f.edges.forEach(function (e) { e.style.strokeDashoffset = '0'; e.style.opacity = ''; });
+    f.nodes.forEach(function (n) { n.style.opacity = ''; n.style.transform = ''; });
+    f.token.setAttribute('opacity', '0');
+  }
+  function flowLight(s, key, markDoneBefore) {
+    var f = flowParts(s);
+    f.nodes.forEach(function (n) {
+      var k = n.dataset.step;
+      n.classList.toggle('is-on', k === String(key));
+      if (markDoneBefore) { n.classList.toggle('is-done', k !== 'alt' && Number(k) < Number(key)); }
+    });
+  }
+
+  /* ---------- Adegan per slide ---------- */
+  var scenes = {};
+
+  scenes.judul = function (c, s) {
+    if (c.stacked || !hasAnime) { return; }
+    var tl = c.T({ easing: 'easeOutCubic' });
+    tl.add({ targets: $$('.title-copy > *', s), translateY: [22, 0], opacity: [0, 1], duration: 650, delay: window.anime.stagger(90) })
+      .add({ targets: $('.invoice', s), translateY: [36, 0], rotate: [7, 2], opacity: [0, 1], duration: 850 }, '-=450')
+      .add({ targets: $$('.inv-lines tr, .inv-total > div', s), opacity: [0, 1], translateX: [-8, 0], duration: 360, delay: window.anime.stagger(70) }, '-=350')
+      .add({ targets: $('.stamp', s), scale: [2.4, 1], rotate: [-30, -14], opacity: [0, 0.92], duration: 420, easing: 'easeInQuad' }, '+=200')
+      .add({ targets: $('.invoice-wrap', s), translateX: [0, -5, 4, -2, 0], duration: 360, easing: 'linear' }, '-=40');
+  };
+
+  scenes.kebutuhan = function (c, s) {
+    if (c.stacked || !hasAnime) { return; }
+    c.A({ targets: $$('.need', s), translateY: [26, 0], opacity: [0, 1], delay: window.anime.stagger(80, { start: 120 }), duration: 600, easing: 'easeOutCubic' });
+    c.A({ targets: $$('.need svg', s), scale: [0.6, 1], delay: window.anime.stagger(80, { start: 260 }), duration: 700, easing: 'easeOutBack' });
+  };
+
+  scenes.alasan = function (c, s) {
+    if (c.stacked || !hasAnime) { return; }
+    c.A({ targets: $$('.compare tbody tr', s), opacity: [0, 1], translateX: [-16, 0], delay: window.anime.stagger(90, { start: 150 }), duration: 520, easing: 'easeOutCubic' });
+    c.A({ targets: $$('.risk', s), opacity: [0, 1], translateX: [18, 0], delay: window.anime.stagger(110, { start: 520 }), duration: 560, easing: 'easeOutCubic' });
+  };
+
+  scenes.keputusan = function (c, s) {
+    if (c.stacked || !hasAnime) { return; }
+    c.A({ targets: $$('.decision', s), opacity: [0, 1], scale: [0.94, 1], translateY: [10, 0], delay: window.anime.stagger(55, { grid: [4, 3], from: 'first', start: 100 }), duration: 520, easing: 'easeOutCubic' });
+  };
+
+  scenes.alur = function (c, s) {
+    var f = flowParts(s);
+    f.nodes.forEach(function (n) { n.classList.remove('is-on', 'is-done'); });
+    f.token.setAttribute('opacity', '0');
+    f.token.classList.remove('alt');
+    flowCaption(s, '1');
+    flowLight(s, '1', true);
+    if (!hasAnime) { return; }
+    var tl = c.T({ easing: 'easeOutCubic' });
+    tl.add({ targets: f.nodes, opacity: [0, 1], scale: [0.92, 1], delay: window.anime.stagger(70), duration: 420 })
+      .add({ targets: f.edges.filter(function (e) { return !e.classList.contains('alt'); }), strokeDashoffset: [window.anime.setDashoffset, 0], delay: window.anime.stagger(80), duration: 420, easing: 'easeInOutSine' }, '-=500')
+      .add({ targets: f.edges.filter(function (e) { return e.classList.contains('alt'); }), opacity: [0, 1], duration: 400 }, '-=200');
+
+    function travel(eid, toKey, alt, dwell) {
+      var path = $('#' + eid, f.svg);
+      var len = path.getTotalLength();
+      var o = { l: 0 };
+      tl.add({
+        targets: o, l: [0, len], duration: Math.max(520, len * 2.6), easing: 'easeInOutSine', delay: dwell,
+        changeBegin: function () { f.token.classList.toggle('alt', !!alt); f.token.setAttribute('opacity', '1'); },
+        update: function () { var p = path.getPointAtLength(o.l); f.token.setAttribute('transform', 'translate(' + p.x + ' ' + p.y + ')'); },
+        complete: function () { f.token.setAttribute('opacity', '0'); flowLight(s, toKey, toKey !== 'alt'); flowCaption(s, toKey); }
+      });
+    }
+    var dwell = 1700;
+    travel('e1', '2', false, 1200);
+    travel('e2', '3', false, dwell);
+    travel('e3', '4', false, dwell);
+    travel('e4', '5', false, dwell);
+    travel('e5', '6', false, dwell);
+    travel('e6', '7', false, dwell);
+    travel('e7', '8', false, dwell);
+    travel('e8', '9', false, dwell);
+    tl.add({ duration: 1, delay: 2600, complete: function () { flowLight(s, '8', false); } });
+    travel('e9', 'alt', true, 500);
+    travel('e10', '9', true, 2600);
+  };
+
+  scenes.kasir = function (c, s) {
+    var steps = $$('.kstep', s);
+    var stepOn = function (i) { steps.forEach(function (st, k) { st.classList.toggle('is-on', k === i); }); };
+    if (!hasAnime) { stepOn(3); return; }
+    var rows = $$('.pos-row.item', s);
+    var out = { n: $('[data-k="normal"]', s), d: $('[data-k="disc"]', s), g: $('[data-k="grand"]', s) };
+    var setTot = function (o) { out.n.textContent = RP(o.n); out.d.textContent = '−' + RP(o.d); out.g.textContent = RP(o.g); };
+    var cum = [{ n: 3400000, d: 272000, g: 3128000 }, { n: 5920000, d: 524000, g: 5396000 }, { n: 7600000, d: 764000, g: 6836000 }];
+    var o = { n: 0, d: 0, g: 0 };
+    stepOn(0);
+    setTot(o);
+    var tl = c.T({ easing: 'easeOutCubic' });
+    tl.add({ targets: $$('.pos-top > *', s), opacity: [0, 1], translateY: [-8, 0], delay: window.anime.stagger(120), duration: 450 })
+      .add({ targets: $('.cust .chip', s), scale: [0.6, 1], opacity: [0, 1], duration: 450, easing: 'easeOutBack' })
+      .add({ targets: rows, opacity: [0, 0], duration: 1 }, 0)
+      .add({ targets: [$('.pos-toast', s), $('.stock-warn', s)], opacity: [0, 0], duration: 1 }, 0);
+    rows.forEach(function (r, i) {
+      tl.add({ targets: r, opacity: [0, 1], translateY: [10, 0], duration: 380, changeBegin: i === 0 ? function () { stepOn(1); } : undefined }, i === 0 ? '+=500' : '+=250')
+        .add({ targets: $('.strike', r), scaleX: [0, 1], duration: 320, easing: 'easeInOutQuad' })
+        .add({ targets: $$('.new, .pname small', r), opacity: [0, 1], translateY: [4, 0], duration: 300 }, '-=120')
+        .add({ targets: o, n: cum[i].n, d: cum[i].d, g: cum[i].g, round: 1, duration: 520, easing: 'easeOutQuad', update: function () { setTot(o); } }, '-=280');
+    });
+    tl.add({ targets: $('.stock-warn', s), opacity: [0, 1], scale: [0.6, 1], duration: 700, easing: 'easeOutElastic(1, .55)', changeBegin: function () { stepOn(2); } }, '+=500')
+      .add({ targets: $('.pos-btn', s), scale: [1, 0.94, 1], duration: 380, easing: 'easeInOutQuad', changeBegin: function () { stepOn(3); } }, '+=1100')
+      .add({ targets: $('.pos-toast', s), opacity: [0, 1], translateY: [14, 0], duration: 450 }, '-=120');
+  };
+
+  function runLadder(c, s, qty) {
+    var win = qty >= 50 ? 50 : 1;
+    var unit = qty >= 50 ? 74800 : 78200;
+    var verdicts = {
+      variant: 'Tidak ada aturan untuk item ini',
+      product: qty >= 50 ? 'Dipakai: −12% karena qty ' + qty + ' ≥ 50' : 'Dipakai: −8%. Syarat −12% butuh qty ≥ 50',
+      category: 'Cocok, tapi kalah prioritas',
+      all: 'Cocok, tapi kalah prioritas'
+    };
+    var rungs = $$('.rung', s);
+    var result = $('.result', s);
+    $$('.seg button', s).forEach(function (b) { b.setAttribute('aria-pressed', Number(b.dataset.qty) === qty ? 'true' : 'false'); });
+    var finish = function () {
+      rungs.forEach(function (r) { r.classList.remove('is-check'); r.classList.toggle('is-win', r.dataset.level === 'product'); });
+      result.innerHTML = 'Harga dipakai <strong>' + RP(unit) + '</strong> / unit · ' + qty + ' × ' + RP(unit) + ' = <strong>' + RP(unit * qty) + '</strong>';
+      if (charts.diskon) { charts.diskon.state.qty = qty; renderChart('diskon', false); }
+    };
+    rungs.forEach(function (r) {
+      r.classList.remove('is-check', 'is-win');
+      $('.verdict', r).textContent = '';
+      $$('.rule', r).forEach(function (rule) {
+        rule.classList.remove('is-hit', 'is-match');
+        if (r.dataset.level === 'product') { rule.classList.toggle('is-hit', Number(rule.dataset.min) === win); }
+        else if (rule.dataset.hit) { rule.classList.add('is-match'); }
+      });
+    });
+    result.textContent = 'Mencari aturan yang berlaku…';
+    if (reduce) { rungs.forEach(function (r) { $('.verdict', r).textContent = verdicts[r.dataset.level]; }); finish(); return; }
+    rungs.forEach(function (r, i) {
+      c.wait(150 + i * 480, function () {
+        rungs.forEach(function (x) { x.classList.remove('is-check'); });
+        r.classList.add('is-check');
+        $('.verdict', r).textContent = verdicts[r.dataset.level];
+      });
+    });
+    c.wait(150 + rungs.length * 480 + 150, finish);
+  }
+
+  scenes.diskon = function (c, s) {
+    var pressed = $('.seg button[aria-pressed="true"]', s);
+    var qty = pressed ? Number(pressed.dataset.qty) : 40;
+    if (charts.diskon) { charts.diskon.state.qty = qty; }
+    renderChart('diskon', true);
+    runLadder(c, s, qty);
+  };
+
+  scenes.reminder = function (c, s) {
+    if (!hasAnime) { return; }
+    var tl = c.T({ easing: 'easeOutCubic' });
+    tl.add({ targets: $('.tl-axis', s), strokeDashoffset: [window.anime.setDashoffset, 0], duration: 700, easing: 'easeInOutSine' })
+      .add({ targets: $$('.tl-start, .tl-due', s), opacity: [0, 1], duration: 400 }, '-=200')
+      .add({ targets: $$('.tl-marker, .tl-paid, .tl-lane rect, .tl-lane text', s), opacity: [0, 0], duration: 1 }, 0)
+      .add({ targets: $$('.tl-marker', s).slice(0, 6), opacity: [0, 1], translateY: [-14, 0], delay: window.anime.stagger(300), duration: 420, easing: 'easeOutBack' })
+      .add({ targets: $('.tl-paid', s), scale: [1.8, 1], opacity: [0, 1], duration: 420, easing: 'easeInQuad' }, '+=150')
+      .add({ targets: $$('.tl-marker.skip', s), opacity: [0, 1], duration: 400 })
+      .add({ targets: $$('.tl-lane rect, .tl-lane text', s), opacity: [0, 1], delay: window.anime.stagger(110), duration: 380 }, '-=600');
+    if (!c.stacked) {
+      tl.add({ targets: $$('.sched tbody tr, .rem-notes li', s), opacity: [0, 1], translateY: [6, 0], delay: window.anime.stagger(60), duration: 340 }, '-=500');
+    }
+  };
+
+  scenes['kode-unik'] = function (c, s) {
+    if (!hasAnime) { return; }
+    var codeEl = $('[data-k="code"]', s);
+    var totalEl = $('[data-k="total"]', s);
+    var rows = $$('.mut-table tbody tr', s);
+    var fmtHL = function (v) { var t = RP(v); return t.slice(0, -3) + '<span class="hl">' + t.slice(-3) + '</span>'; };
+    var o = { code: 0, total: 6836000 };
+    rows.forEach(function (r) { r.classList.remove('is-scan'); });
+    var tl = c.T({ easing: 'easeOutCubic' });
+    tl.add({ targets: $$('.calc .row', s), opacity: [0, 1], translateY: [8, 0], delay: window.anime.stagger(140), duration: 420 })
+      .add({ targets: o, code: [0, 137], round: 1, duration: 1000, easing: 'easeOutExpo', update: function () { codeEl.textContent = String(o.code).padStart(3, '0'); } }, '-=300')
+      .add({ targets: $('.calc .sum', s), scaleX: [0, 1], duration: 380 }, '-=250')
+      .add({ targets: o, total: [6836000, 6836137], round: 1, duration: 700, update: function () { totalEl.innerHTML = fmtHL(o.total); } }, '-=100')
+      .add({ targets: $$('.ku-notes li', s), opacity: [0, 1], translateX: [-8, 0], delay: window.anime.stagger(90), duration: 340 }, '-=200')
+      .add({ targets: $('.file', s), translateY: [-28, 0], opacity: [0, 1], duration: 700, easing: 'easeOutBounce' })
+      .add({ targets: $$('.res', s), opacity: [0, 0], duration: 1 }, '-=700')
+      .add({ targets: rows, opacity: [0, 1], duration: 300, delay: window.anime.stagger(90) });
+    rows.forEach(function (r) {
+      tl.add({
+        targets: $('.res', r), opacity: [0, 1], scale: [0.8, 1], duration: 340, easing: 'easeOutBack',
+        changeBegin: function () { rows.forEach(function (x) { x.classList.remove('is-scan'); }); r.classList.add('is-scan'); }
+      }, '+=420');
+    });
+    tl.add({ duration: 1, complete: function () { rows.forEach(function (x) { x.classList.remove('is-scan'); }); } }, '+=700')
+      .add({ targets: $('.mut-foot', s), opacity: [0, 1], duration: 400 });
+  };
+
+  scenes.pencocokan = function (c, s) {
+    renderChart('sankey', true);
+    if (c.stacked || !hasAnime) { return; }
+    c.A({ targets: $$('.mrule', s), opacity: [0, 1], translateX: [-14, 0], delay: window.anime.stagger(120, { start: 100 }), duration: 480, easing: 'easeOutCubic' });
+  };
+
+  function runCredit(c, s, key) {
+    var outst = 42;
+    var order = key === 'b' ? 12 : 6.836;
+    var proj = outst + order;
+    var status = $('.status', s);
+    $$('.seg button', s).forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.sc === key ? 'true' : 'false'); });
+    var setVal = function (v) {
+      if (!charts.gauge) { return; }
+      charts.gauge.state.value = v;
+      if (charts.gauge.inst) { charts.gauge.inst.setOption({ series: [{ data: [{ value: v }] }] }); }
+    };
+    var verdict = function () {
+      if (proj > 50) {
+        status.innerHTML = '<span class="chip bad">✕ Diblokir</span><span>Rp ' + JT(proj) + ' jt melewati batas Rp 50 jt. User dengan izin <code>override b2b/credit-limit</code> bisa meloloskan dengan alasan.</span>';
+      } else {
+        status.innerHTML = '<span class="chip ok">✓ Lolos</span><span>Rp ' + JT(proj) + ' jt masih di bawah batas Rp 50 jt.</span>';
+      }
+      if (hasAnime) { push('limit-kredit', window.anime({ targets: $('.status .chip', s), scale: [0.7, 1], duration: 380, easing: 'easeOutBack' })); }
+    };
+    status.innerHTML = '<span class="chip mute">Menghitung</span><span>Piutang Rp 42 jt + pesanan Rp ' + JT(order) + ' jt</span>';
+    setVal(outst);
+    c.wait(1100, function () { setVal(proj); c.wait(950, verdict); });
+  }
+
+  scenes['limit-kredit'] = function (c, s) {
+    if (charts.gauge) { charts.gauge.state.value = 0; }
+    renderChart('gauge', true);
+    var pressed = $('.seg button[aria-pressed="true"]', s);
+    c.wait(250, function () { runCredit(c, s, pressed ? pressed.dataset.sc : 'a'); });
+    if (c.stacked || !hasAnime) { return; }
+    c.A({ targets: $$('.crule', s), opacity: [0, 1], translateY: [12, 0], delay: window.anime.stagger(90, { start: 100 }), duration: 460, easing: 'easeOutCubic' });
+  };
+
+  function erdBuild(c, s, inst) {
+    var label = $('.erd-phase', s);
+    var steps = [
+      ['Fase 1', ['Customer', 'Kontrak']],
+      ['Fase 2', ['Pesanan', 'Invoice', 'Pendukung']],
+      ['Fase 3', ['Pembayaran']],
+      ['Fase 4', ['Reminder', 'Limit kredit']]
+    ];
+    var counts = [5, 11, 17, 21];
+    MODULES.forEach(function (m) { inst.dispatchAction({ type: 'legendUnSelect', name: m.label }); });
+    label.textContent = 'Tabel yang sudah ada di POS';
+    steps.forEach(function (st, i) {
+      c.wait(700 + i * 1300, function () {
+        st[1].forEach(function (n) { inst.dispatchAction({ type: 'legendSelect', name: n }); });
+        label.textContent = st[0] + ' · ' + st[1].join(', ') + ' · ' + counts[i] + ' dari 21 tabel';
+      });
+    });
+    c.wait(700 + steps.length * 1300 + 400, function () { label.textContent = 'Semua fase · 21 tabel baru + 4 tabel yang sudah ada'; });
+  }
+
+  scenes.erd = function (c, s) {
+    var inst = renderChart('erd', true);
+    if (!inst || c.stacked || reduce) { return; }
+    erdBuild(c, s, inst);
+  };
+
+  scenes.tabel = function (c, s) {
+    var sel = $('.tabs button[aria-selected="true"]', s);
+    renderTab(s, sel ? sel.dataset.m : 'customer', !c.stacked);
+  };
+
+  scenes.otomatis = function (c, s) {
+    if (c.stacked || !hasAnime) { return; }
+    c.A({ targets: $$('.cron', s), opacity: [0, 1], translateX: [-16, 0], delay: window.anime.stagger(140, { start: 100 }), duration: 500, easing: 'easeOutCubic' });
+    c.A({ targets: $$('.tree li', s), opacity: [0, 1], translateX: [10, 0], delay: window.anime.stagger(70, { start: 400 }), duration: 380, easing: 'easeOutCubic' });
+  };
+
+  scenes.tahapan = function (c, s) {
+    if (c.stacked || !hasAnime) { return; }
+    c.A({ targets: $('.rail i', s), scaleX: [0, 1], duration: 1600, easing: 'easeInOutSine' });
+    c.A({ targets: $$('.phase', s), opacity: [0, 1], translateY: [16, 0], delay: window.anime.stagger(240, { start: 100 }), duration: 520, easing: 'easeOutCubic' });
+    c.A({ targets: $$('.phase .dot', s), scale: [0, 1], delay: window.anime.stagger(240, { start: 100 }), duration: 520, easing: 'easeOutBack' });
+  };
+
+  scenes.berikutnya = function (c, s) {
+    if (c.stacked || !hasAnime) { return; }
+    c.A({ targets: $$('.ncol', s), opacity: [0, 1], translateY: [16, 0], delay: window.anime.stagger(140, { start: 100 }), duration: 520, easing: 'easeOutCubic' });
+    c.A({ targets: $('.closing', s), opacity: [0, 1], translateY: [10, 0], delay: 650, duration: 600, easing: 'easeOutCubic' });
+  };
+
+  /* ---------- Navigasi ---------- */
+  var slides = $$('.slide');
+  var N = slides.length;
+  var current = Math.max(0, slides.findIndex(function (s) { return s.classList.contains('is-active'); }));
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+
+  function updateBar() {
+    $('#barCounter').textContent = pad(current + 1) + ' / ' + pad(N);
+    $('#barTitle').textContent = slides[current].dataset.title || '';
+    $('#barProg').style.width = ((current + 1) / N * 100) + '%';
+    $('#btnPrev').disabled = current === 0;
+    $('#btnNext').disabled = current === N - 1;
+  }
+  function enter(i) {
+    var s = slides[i];
+    stopScene(s.id);
+    var fn = scenes[s.id];
+    if (fn) { try { fn(ctxFor(s.id), s); } catch (err) { if (window.console) { console.error(err); } } }
+  }
+  function show(i, opts) {
+    opts = opts || {};
+    i = Math.max(0, Math.min(N - 1, i));
+    if (isDeck()) {
+      var changed = i !== current || opts.force;
+      if (changed) { stopScene(slides[current].id); }
+      slides.forEach(function (s, k) { var on = k === i; s.classList.toggle('is-active', on); s.setAttribute('aria-hidden', on ? 'false' : 'true'); });
+      current = i;
+      if (changed) { enter(i); }
+    } else {
+      current = i;
+      slides[i].scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    }
+    updateBar();
+    try { history.replaceState(null, '', '#' + slides[i].id); } catch (err) { /* abaikan */ }
+  }
+  var next = function () { show(current + 1); };
+  var prev = function () { show(current - 1); };
+
+  function fit() {
+    var sc = Math.min(window.innerWidth / 1280, (window.innerHeight - 56) / 720);
+    root.style.setProperty('--scale', String(Math.max(0.3, sc)));
+  }
+
+  var seen = {};
+  var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function (entries) {
+    if (isDeck()) { return; }
+    entries.forEach(function (en) {
+      if (!en.isIntersecting) { return; }
+      var i = slides.indexOf(en.target);
+      if (!seen[i]) { seen[i] = true; enter(i); }
+    });
+  }, { threshold: 0.2 }) : null;
+  if (io) { slides.forEach(function (s) { io.observe(s); }); }
+
+  var raf = 0;
+  window.addEventListener('scroll', function () {
+    if (isDeck() || raf) { return; }
+    raf = requestAnimationFrame(function () {
+      raf = 0;
+      var mid = window.innerHeight * 0.35, best = 0;
+      slides.forEach(function (s, k) { if (s.getBoundingClientRect().top <= mid) { best = k; } });
+      if (best !== current) { current = best; updateBar(); }
+    });
+  }, { passive: true });
+
+  function applyMode() {
+    var deck = isDeck();
+    $('#btnFull').hidden = !deck || !document.fullscreenEnabled;
+    if (deck) {
+      fit();
+      slides.forEach(function (s, k) { s.classList.toggle('is-active', k === current); s.setAttribute('aria-hidden', k === current ? 'false' : 'true'); });
+      enter(current);
+    } else {
+      slides.forEach(function (s) { s.removeAttribute('aria-hidden'); });
+      seen = {};
+    }
+    resizeCharts();
+    updateBar();
+  }
+  if (deckMQ.addEventListener) { deckMQ.addEventListener('change', applyMode); } else if (deckMQ.addListener) { deckMQ.addListener(applyMode); }
+  window.addEventListener('resize', function () { if (isDeck()) { fit(); } resizeCharts(); });
+
+  $('#btnNext').addEventListener('click', next);
+  $('#btnPrev').addEventListener('click', prev);
+
+  document.addEventListener('keydown', function (e) {
+    if (!isDeck() || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var tag = (e.target && e.target.tagName ? e.target.tagName : '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') { return; }
+    var onButton = tag === 'button' || (e.target.getAttribute && e.target.getAttribute('role') === 'button');
+    switch (e.key) {
+      case 'ArrowRight': case 'PageDown': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp': prev(); e.preventDefault(); break;
+      case ' ': if (onButton) { return; } if (e.shiftKey) { prev(); } else { next(); } e.preventDefault(); break;
+      case 'Home': show(0); e.preventDefault(); break;
+      case 'End': show(N - 1); e.preventDefault(); break;
+      case 'f': case 'F': toggleFull(); break;
+      default: break;
+    }
+  });
+
+  var tx = null, ty = 0;
+  $('#deck').addEventListener('touchstart', function (e) { if (!isDeck()) { return; } tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+  $('#deck').addEventListener('touchend', function (e) {
+    if (!isDeck() || tx === null) { return; }
+    var t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
+    tx = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { if (dx < 0) { next(); } else { prev(); } }
+  }, { passive: true });
+
+  window.addEventListener('hashchange', function () {
+    var i = slides.findIndex(function (s) { return '#' + s.id === location.hash; });
+    if (i > -1 && i !== current) { show(i); }
+  });
+
+  /* ---------- Layar penuh dan bar yang menghilang ---------- */
+  var barEl = $('#bar'), idleT = 0;
+  function toggleFull() {
+    try {
+      if (document.fullscreenElement) { document.exitFullscreen().catch(function () {}); }
+      else if (root.requestFullscreen) { root.requestFullscreen().catch(function () {}); }
+    } catch (err) { /* abaikan */ }
+  }
+  function wake() {
+    barEl.classList.remove('is-idle');
+    clearTimeout(idleT);
+    if (document.fullscreenElement && isDeck()) {
+      idleT = setTimeout(function () { if (!barEl.matches(':hover') && !barEl.contains(document.activeElement)) { barEl.classList.add('is-idle'); } }, 2500);
+    }
+  }
+  $('#btnFull').addEventListener('click', toggleFull);
+  document.addEventListener('fullscreenchange', function () { $('#btnFull').setAttribute('aria-pressed', document.fullscreenElement ? 'true' : 'false'); wake(); });
+  document.addEventListener('mousemove', wake, { passive: true });
+  document.addEventListener('keydown', wake);
+
+  /* ---------- Tema ---------- */
+  var darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+  try { var saved = localStorage.getItem('kasir-b2b-theme'); if (saved === 'light' || saved === 'dark') { root.dataset.theme = saved; } } catch (err) { /* abaikan */ }
+  var isDark = function () { return root.dataset.theme ? root.dataset.theme === 'dark' : darkMQ.matches; };
+  function syncThemeBtn() { var b = $('#btnTheme'); var label = isDark() ? 'Ganti ke tema terang' : 'Ganti ke tema gelap'; b.setAttribute('aria-label', label); b.title = label; }
+  $('#btnTheme').addEventListener('click', function () {
+    root.dataset.theme = isDark() ? 'light' : 'dark';
+    try { localStorage.setItem('kasir-b2b-theme', root.dataset.theme); } catch (err) { /* abaikan */ }
+    syncThemeBtn();
+    refreshCharts();
+  });
+  var onScheme = function () { if (!root.dataset.theme) { refreshCharts(); } syncThemeBtn(); };
+  if (darkMQ.addEventListener) { darkMQ.addEventListener('change', onScheme); } else if (darkMQ.addListener) { darkMQ.addListener(onScheme); }
+  syncThemeBtn();
+
+  /* ---------- Persiapan sekali jalan ---------- */
+  buildTimeline($('#tlSvg'));
+
+  var sTabel = $('#tabel');
+  $('.tabs', sTabel).innerHTML = MODULES.map(function (m, i) {
+    var n = TABLES.filter(function (t) { return t.m === m.id; }).length;
+    return '<button type="button" role="tab" id="tab-' + m.id + '" aria-controls="tpanel" aria-selected="' + (i === 0) + '" data-m="' + m.id + '"><i style="background:var(' + m.color + ')"></i>' + m.label + '<span>' + n + '</span></button>';
+  }).join('');
+  $('.tabs', sTabel).addEventListener('click', function (e) { var b = e.target.closest('button[data-m]'); if (b) { stopScene('tabel'); renderTab(sTabel, b.dataset.m, true); } });
+  renderTab(sTabel, 'customer', false);
+
+  var sAlur = $('#alur');
+  $('.flow-replay', sAlur).addEventListener('click', function () { stopScene('alur'); flowSettle(sAlur); enter(slides.indexOf(sAlur)); });
+  flowParts(sAlur).nodes.forEach(function (n) {
+    var pick = function () { stopScene('alur'); flowSettle(sAlur); flowLight(sAlur, n.dataset.step, false); flowCaption(sAlur, n.dataset.step); };
+    n.addEventListener('click', pick);
+    n.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); pick(); } });
+  });
+
+  var sDisc = $('#diskon');
+  $$('.seg button', sDisc).forEach(function (b) {
+    b.addEventListener('click', function () { stopScene('diskon'); runLadder(ctxFor('diskon'), sDisc, Number(b.dataset.qty)); });
+  });
+
+  var sCredit = $('#limit-kredit');
+  $$('.seg button', sCredit).forEach(function (b) {
+    b.addEventListener('click', function () { stopScene('limit-kredit'); if (!charts.gauge || !charts.gauge.inst) { renderChart('gauge', true); } runCredit(ctxFor('limit-kredit'), sCredit, b.dataset.sc); });
+  });
+
+  var sErd = $('#erd');
+  $('.erd-replay', sErd).addEventListener('click', function () {
+    stopScene('erd');
+    var inst = renderChart('erd', true);
+    if (inst) { erdBuild(ctxFor('erd'), sErd, inst); }
+  });
+
+  defChart('diskon', $('#chartDisc'), buildDisc, { qty: 40 });
+  defChart('sankey', $('#chartSankey'), buildSankey, {});
+  defChart('gauge', $('#chartGauge'), buildGauge, { value: 48.836 });
+  defChart('erd', $('#chartErd'), buildErd, {});
+  if (!hasEC) {
+    $$('.chart').forEach(function (el) { el.style.height = 'auto'; el.innerHTML = '<p class="note">Grafik membutuhkan koneksi internet untuk memuat Apache ECharts.</p>'; });
+  }
+
+  /* ---------- Mulai ---------- */
+  var startIdx = slides.findIndex(function (s) { return '#' + s.id === location.hash; });
+  if (startIdx > -1) { current = startIdx; }
+  root.classList.add('is-booting');
+  applyMode();
+  requestAnimationFrame(function () { requestAnimationFrame(function () { root.classList.remove('is-booting'); }); });
+  if (!isDeck() && startIdx > 0) { slides[startIdx].scrollIntoView({ block: 'start' }); }
+})();
+</script>
+
+</html>
