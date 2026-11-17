@@ -1,8 +1,8 @@
 # Rencana Fitur Kasir B2B
 
-- **Status:** Fase 1 (customer, kontrak, harga) dan Fase 2 (kasir, pesanan, invoice) sudah dibangun 14 Nov 2026. Pembayaran ditunda sampai metodenya diputuskan (kode unik vs VA BCA).
-- **Tanggal rekap:** 14 November 2026
-- **Presentasi:** `b2b-kasir-presentasi.html` (buka langsung di browser)
+- **Status:** Fase 1 (customer, kontrak, harga) dan Fase 2 (kasir, pesanan, invoice) sudah dibangun. Customer disederhanakan 17 Nov 2026, kontrak diganti jadi harga per varian 18 Nov 2026. Pembayaran ditunda sampai metodenya diputuskan (kode unik vs VA BCA).
+- **Tanggal rekap:** 18 November 2026
+- **Presentasi:** `b2b-kasir-presentasi.html` (buka langsung di browser). Isinya masih versi 14 Nov (aturan diskon, banyak kontak/alamat).
 
 Kasir B2B adalah fitur penjualan ke pelanggan bisnis (perusahaan) di web backoffice. Bedanya dengan kasir Android (POS):
 
@@ -18,18 +18,18 @@ Kasir B2B adalah fitur penjualan ke pelanggan bisnis (perusahaan) di web backoff
 | Topik | Keputusan |
 |---|---|
 | Data | Tabel baru berawalan `b2b_`. Tidak digabung dengan `customers` atau `transactions` |
-| Customer | Global, tidak terikat outlet. Data: nama, telepon, alamat, email. Kontak dan alamat bisa lebih dari satu |
+| Customer | Global, tidak terikat outlet. Satu customer punya satu kontak (PIC) dan satu alamat (untuk penagihan sekaligus pengiriman) |
 | Barang | Produk yang sudah ada. Setiap pesanan wajib memilih outlet (produk terikat `outlet_id`) |
 | Stok | Stok varian berkurang saat pesanan dikonfirmasi. **Boleh minus**, cukup peringatan. Dikembalikan kalau pesanan batal |
 | Platform | Web backoffice yang dibuka dari tablet Android lewat browser. Tanpa petty cash |
-| Kontrak | Maksimal 1 kontrak aktif per customer. Pembuatnya bisa langsung mengaktifkan, tanpa approval |
+| Kontrak | Harga tetap per varian, bertingkat menurut qty. Maksimal 1 kontrak berlaku per customer di satu tanggal. Langsung aktif saat dibuat (tanpa draft dan approval), tetap bisa diedit saat berjalan |
 | Tanpa kontrak | Customer tetap boleh belanja dengan harga normal |
 | Pajak | Tanpa PPN. NPWP opsional |
 | Pembayaran | Jatuh tempo, belum ada cicilan. Struktur tabel sudah siap untuk cicilan |
 | Rekening | **Ditunda.** Opsi: rekening statis BCA + kode unik, atau VA BCA langsung 1 nomor per customer (± Rp 2.271/transaksi). Menunggu jawaban BCA |
 | Kode unik | **Ditunda.** Kolom sudah disiapkan (`unique_code`, `unique_code_amount`), sekarang selalu 0 |
 | Cek pembayaran | Finance upload file mutasi BCA, sistem mencocokkan otomatis, sisanya dicek manual |
-| Reminder | **Diatur per customer, tanpa pengaturan global.** Default mati; kalau tidak diatur, tidak ada yang dikirim. Channel + jadwal di customer, penerima = kontak yang dicentang "Terima reminder" |
+| Reminder | **Diatur per customer, tanpa pengaturan global.** Default mati; kalau tidak diatur, tidak ada yang dikirim. Channel + jadwal di customer, penerima = telepon/email customer |
 | Limit kredit | Aturan bisa diatur dari UI, dengan pengecualian per customer |
 | Laporan | Laporan B2B terpisah dari laporan dan dashboard POS |
 
@@ -62,9 +62,9 @@ Kasir B2B adalah fitur penjualan ke pelanggan bisnis (perusahaan) di web backoff
 ```
 Customer B2B + Kontrak (opsional)
         ▼
-Kasir B2B: pilih outlet → pilih customer → pilih produk → harga otomatis kena diskon kontrak
+Kasir B2B: pilih outlet → pilih customer → pilih produk → harga otomatis mengikuti kontrak
         ▼  konfirmasi (cek limit kredit → stok dikurangi, boleh minus)
-Invoice + jadwal tagihan (jatuh tempo = tanggal invoice + termin; nominal + kode unik)
+Invoice + jadwal tagihan (jatuh tempo dipilih kasir; kode unik menunggu metode pembayaran)
         ▼
 Reminder otomatis (H-7, H-3, H-1, H-0, lalu setiap hari setelah jatuh tempo)
         ▼
@@ -76,20 +76,23 @@ Finance upload file mutasi BCA → pencocokan otomatis → tagihan lunas
 
 ### Perhitungan harga kontrak
 
-- Dihitung di backend (`B2bPricingService`). Layar kasir hanya menampilkan preview, lalu server menghitung ulang saat pesanan disimpan.
-- Aturan yang paling spesifik menang: **varian → produk → kategori → semua produk**.
-- Di level yang sama, dipilih `min_qty` terbesar yang masih ≤ qty (harga bertingkat).
-- Tipe diskon: persen (dibulatkan ke rupiah), potongan nominal per unit, atau harga khusus. Harga akhir tidak boleh di bawah 0.
-- Customer tanpa kontrak aktif mendapat harga normal.
-- Diskon kontrak tidak digabung dengan promo atau diskon POS.
-- Harga dan diskon **disalin** ke item pesanan saat transaksi, jadi perubahan kontrak tidak mengubah pesanan lama.
+- Dihitung di backend (`PricingService`). Layar kasir hanya menampilkan preview, lalu server menghitung ulang saat pesanan disimpan.
+- Kontrak berisi **harga tetap per varian**. Varian sudah menentukan outlet, jadi satu kontrak bisa berisi produk dari beberapa outlet.
+- Satu varian boleh punya beberapa harga dengan `min_qty` berbeda (harga bertingkat). Dipakai `min_qty` terbesar yang masih ≤ qty. Kalau qty di bawah semua tingkat, dipakai harga normal.
+- Harga kontrak boleh lebih tinggi dari harga normal.
+- Produk yang tidak ada di kontrak memakai harga normal, begitu juga customer tanpa kontrak yang sedang berjalan.
+- Harga kontrak tidak digabung dengan promo atau diskon POS.
+- Harga **disalin** ke item pesanan (`final_price` dan `b2b_contract_item_id`), jadi perubahan kontrak tidak mengubah pesanan lama.
 
 ### Aturan kontrak
 
-- Status: `draft` → `active` → `expired` (otomatis tiap hari) atau `terminated` (manual).
-- Periode kontrak milik customer yang sama tidak boleh tumpang tindih, jadi selalu maksimal 1 yang aktif.
-- Perpanjangan dibuat sebagai kontrak baru, dengan tombol untuk menyalin aturan dari kontrak lama.
-- Diskon kontrak yang sedang aktif tidak bisa diedit. Kalau diskon berubah, kontrak lama dihentikan lalu dibuat kontrak baru.
+- Tanpa draft: kontrak langsung aktif saat dibuat. Kolom `status` hanya `active` atau `terminated`. Label yang tampil dihitung dari tanggal: **Terjadwal** (belum mulai), **Berjalan**, **Berakhir** (lewat `end_date`), dan **Dihentikan**. Jadi tidak perlu command harian.
+- Periode kontrak yang belum dihentikan milik customer yang sama tidak boleh tumpang tindih. Ini dicek saat membuat dan mengedit, jadi pada satu tanggal paling banyak satu kontrak berlaku.
+- Kontrak tetap bisa diedit (tanggal, catatan, harga, file) selama belum dihentikan, termasuk saat sedang berjalan. Customer tidak bisa diganti. Item yang dibuang di-soft-delete supaya pesanan lama tetap bisa merujuknya.
+- Menghentikan kontrak wajib disertai alasan. Kontrak yang sudah berakhir tidak perlu dihentikan.
+- Hapus = soft delete. Kontrak yang sedang berjalan harus dihentikan dulu.
+- File kontrak (PDF, JPG, PNG, DOC, DOCX, maks 5 MB) bisa diganti atau dilepas saat edit.
+- Perpanjangan dibuat sebagai kontrak baru. Ide yang belum dibangun: tombol untuk menyalin harga dari kontrak lama.
 
 ### Kode unik dan pencocokan pembayaran
 
@@ -114,9 +117,8 @@ Aturan tambahan:
 
 ### Reminder
 
-- Jadwal global ada di tabel `b2b_reminder_schedules`. Default: H-7, H-3, H-1, H-0, lalu Overdue mulai H+1 setiap hari sampai lunas.
-- Per customer: `reminder_enabled` dan `reminder_channels` (kosong = ikut pengaturan global).
-- Per kontak: `receive_email_reminder` dan `receive_wa_reminder`.
+- Diatur **per customer**: `reminder_enabled`, `reminder_channels`, `reminder_days` (hari relatif ke jatuh tempo, misalnya -3, -1, 0), dan `reminder_overdue_daily`. Tidak ada pengaturan global. Default mati, jadi customer yang belum diatur tidak dikirimi apa pun.
+- Penerima: email dan telepon customer, karena satu customer hanya punya satu kontak.
 - Channel dibuat sebagai driver. Email langsung jalan. WhatsApp aktif setelah provider dipilih (template pesan WhatsApp resmi perlu disetujui Meta).
 - Isi reminder: rincian tagihan, nominal + kode unik, rekening BCA tujuan, dan PDF invoice.
 
@@ -138,10 +140,10 @@ Aturan tambahan:
 
 | Fase | Isi | Tabel |
 |---|---|---|
-| **1** | Data customer (kontak, alamat), kontrak dan aturan diskon, perhitungan harga, menu dan permission | customers, customer_contacts, customer_addresses, contracts, contract_rules |
-| **2** | Kasir B2B: pesanan → invoice + jadwal tagihan (dengan kode unik), PDF invoice, pengurangan stok | orders, order_items, invoices, invoice_schedules, sequences, activity_logs |
+| **1** ✅ | Data customer (satu kontak dan alamat), kontrak dengan harga per varian, perhitungan harga, menu dan permission | customers, contracts, contract_items |
+| **2** ✅ | Kasir B2B: pesanan → invoice + jadwal tagihan (kode unik belum aktif), cetak invoice, pengurangan stok | orders, order_items, invoices, invoice_schedules, sequences, activity_logs |
 | **3** | Pembayaran: rekening, upload mutasi BCA, pencocokan otomatis, daftar cek manual, input tunai, saldo customer | bank_accounts, mutation_imports, incoming_funds, payments, payment_allocations, customer_sender_aliases |
-| **4** | Reminder, status overdue, aturan limit kredit | reminder_schedules, reminder_logs, credit_rules, customer_credit_rules |
+| **4** | Reminder, status overdue, aturan limit kredit | reminder_logs, credit_rules, customer_credit_rules |
 | **5** | Laporan B2B: penjualan per customer/outlet/produk, umur piutang, mutasi pembayaran, kontrak yang hampir berakhir | (membaca tabel di atas) |
 | Nanti | Mutasi otomatis, WhatsApp, pengiriman dan ekspedisi, cicilan | — |
 
@@ -151,11 +153,11 @@ Fase 3 membutuhkan contoh file mutasi BCA untuk membuat parser.
 
 ## 4. Struktur tabel
 
-Keterangan: `?` = boleh kosong, FK = relasi. Nominal rupiah disimpan sebagai `bigint`, sama seperti tabel yang sudah ada. Total: **21 tabel baru**.
+Keterangan: `?` = boleh kosong, FK = relasi. Nominal rupiah disimpan sebagai `bigint`, sama seperti tabel yang sudah ada. Total: **18 tabel baru**, 9 di antaranya sudah dibangun (fase 1–2).
 
 ### A. Customer (fase 1)
 
-**`b2b_customers`**
+**`b2b_customers`**: satu kontak (PIC) dan satu alamat per customer, langsung di tabel ini.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
@@ -164,7 +166,11 @@ Keterangan: `?` = boleh kosong, FK = relasi. Nominal rupiah disimpan sebagai `bi
 | type | enum: individual, pt, cv | Perorangan/PT/CV. Hanya klasifikasi, tidak ditempel ke nama |
 | name | varchar | nama perusahaan/usaha |
 | npwp | varchar(30)? | |
-| phone, email | varchar? | kontak umum |
+| phone, email | varchar? | juga tujuan reminder |
+| contact_name | varchar? | nama PIC |
+| address | text? | alamat penagihan sekaligus pengiriman |
+| city, province | varchar(100)? | |
+| postal_code | varchar(10)? | |
 | reminder_enabled | bool, default false | tidak diatur = tidak dikirim |
 | reminder_channels | json? | `["email"]`, `["whatsapp"]`, atau keduanya |
 | reminder_days | json? | hari relatif ke jatuh tempo: -7, -3, -1, 0 |
@@ -174,32 +180,6 @@ Keterangan: `?` = boleh kosong, FK = relasi. Nominal rupiah disimpan sebagai `bi
 | created_by, modified_by | bigint? | audit trail, tanpa foreign key/index |
 | timestamps, deleted_at | | soft delete |
 
-**`b2b_customer_contacts`**
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| id | bigint PK | |
-| b2b_customer_id | FK | |
-| name | varchar | |
-| phone, email, position | varchar? | |
-| is_primary | bool | |
-| receive_reminder | bool, default false | lewat channel yang dipilih di customer |
-| timestamps, deleted_at | | |
-
-**`b2b_customer_addresses`**
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| id | bigint PK | |
-| b2b_customer_id | FK | |
-| label | varchar | Kantor, Gudang, … |
-| recipient_name, phone | varchar | |
-| address | text | |
-| city, province, postal_code | varchar | |
-| latitude, longitude | decimal? | |
-| is_default_billing, is_default_shipping | bool | |
-| timestamps, deleted_at | | |
-
 ### B. Kontrak (fase 1)
 
 **`b2b_contracts`**
@@ -207,32 +187,30 @@ Keterangan: `?` = boleh kosong, FK = relasi. Nominal rupiah disimpan sebagai `bi
 | Kolom | Tipe | Keterangan |
 |---|---|---|
 | id | bigint PK | |
-| b2b_customer_id | FK | |
-| contract_number | varchar unik | contoh: `KTR/B2B/2026/0001` |
+| b2b_customer_id | FK | tidak bisa diganti setelah dibuat |
+| contract_number | varchar(40) unik | contoh: `KTR/B2B/2026/0001` |
 | start_date, end_date | date | periode tidak boleh tumpang tindih |
-| status | enum: draft, active, expired, terminated | |
-| attachment_path | varchar? | file kontrak |
+| status | enum: active, terminated | label Terjadwal/Berjalan/Berakhir dihitung dari tanggal |
+| attachment_path, attachment_name | varchar? | file kontrak dan nama aslinya |
 | notes | text? | |
-| activated_by, activated_at | FK users?, datetime? | siapa yang mengaktifkan |
 | terminated_by, terminated_at, termination_reason | ? | |
-| created_by | FK users | |
-| timestamps, deleted_at | | |
+| created_by, modified_by | bigint? | audit trail, tanpa foreign key/index |
+| timestamps, deleted_at | | soft delete |
 
-**`b2b_contract_rules`**
+Index `(b2b_customer_id, status, start_date, end_date)` untuk cek overlap dan mencari kontrak yang berlaku.
+
+**`b2b_contract_items`**: harga kontrak per varian. Beberapa baris untuk varian yang sama = harga bertingkat.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
 | id | bigint PK | |
 | b2b_contract_id | FK | |
-| scope | enum: all, category, product, variant | |
-| outlet_id | FK? | kosong = semua outlet |
-| category_id, product_id, variant_id | FK? | diisi sesuai `scope` (kolom FK terpisah, bukan polymorphic) |
-| discount_type | enum: percent, nominal, fixed_price | |
-| discount_value | decimal(15,2) | persen, rupiah per unit, atau harga khusus |
-| min_qty | int, default 1 | harga bertingkat |
-| timestamps | | |
+| variant_id | FK variant_products | varian sudah menentukan outlet |
+| min_qty | int unsigned, default 1 | harga berlaku mulai qty ini |
+| price | bigint | harga per unit, boleh di atas harga normal |
+| timestamps, deleted_at | | soft delete supaya pesanan lama tetap bisa merujuk |
 
-Validasi di aplikasi: kombinasi `(contract, scope, outlet, target, min_qty)` tidak boleh dobel.
+Kombinasi `(kontrak, varian, min_qty)` divalidasi unik di aplikasi, bukan unique index, karena akan bentrok dengan baris yang sudah di-soft-delete.
 
 ### C. Pesanan (fase 2)
 
@@ -247,8 +225,9 @@ Validasi di aplikasi: kombinasi `(contract, scope, outlet, target, min_qty)` tid
 | outlet_id | FK | |
 | user_id | FK users | kasir |
 | order_date | datetime | |
-| status | enum: draft, confirmed, completed, cancelled | |
-| subtotal, discount_total | bigint | |
+| due_date | date | jatuh tempo pilihan kasir, disalin ke invoice |
+| status | enum: draft, confirmed, completed, cancelled | `draft` disiapkan, belum dipakai |
+| subtotal | bigint | jumlah `line_total` item |
 | tax_total | bigint, default 0 | disiapkan |
 | shipping_cost | bigint, default 0 | disiapkan untuk pengiriman |
 | grand_total | bigint | |
@@ -256,7 +235,7 @@ Validasi di aplikasi: kombinasi `(contract, scope, outlet, target, min_qty)` tid
 | shipping_address_snapshot | json? | |
 | credit_check_result | json? | hasil cek limit kredit |
 | credit_override_by, credit_override_reason | ? | |
-| confirmed_by/at, cancelled_by/at, cancel_reason | ? | |
+| confirmed_by/at, completed_by/at, cancelled_by/at, cancel_reason | ? | |
 | notes | text? | |
 | timestamps, deleted_at | | |
 
@@ -266,13 +245,13 @@ Validasi di aplikasi: kombinasi `(contract, scope, outlet, target, min_qty)` tid
 |---|---|---|
 | id | bigint PK | |
 | b2b_order_id | FK | |
-| product_id, variant_id | FK | |
+| product_id, variant_id | FK? | jadi kosong kalau produk dihapus permanen |
 | product_name, variant_name | varchar | salinan saat transaksi |
 | qty | int | satu baris per item, bukan per unit |
-| base_price | bigint | harga varian saat transaksi |
-| b2b_contract_rule_id | FK? | aturan yang dipakai |
-| discount_type, discount_value | ? | salinan aturan |
-| discount_per_unit, final_price, line_total | bigint | |
+| base_price | bigint | harga normal varian saat transaksi |
+| b2b_contract_item_id | FK? | harga kontrak yang dipakai; kosong = harga normal |
+| final_price | bigint | harga yang dipakai: harga kontrak atau harga normal |
+| line_total | bigint | |
 | stock_insufficient | bool | penanda stok kurang saat transaksi |
 | notes | text? | |
 | timestamps | | |
@@ -289,7 +268,7 @@ Validasi di aplikasi: kombinasi `(contract, scope, outlet, target, min_qty)` tid
 | b2b_customer_id | FK | |
 | issue_date, due_date | date | `due_date` = jatuh tempo jadwal terakhir |
 | amount | bigint | pokok |
-| unique_code_amount | bigint | total kode unik |
+| unique_code_amount | bigint, default 0 | total kode unik; sekarang selalu 0 |
 | total_to_pay | bigint | `amount + unique_code_amount` |
 | paid_amount | bigint, default 0 | |
 | status | enum: unpaid, partial, paid, overdue, void | |
@@ -307,7 +286,7 @@ Validasi di aplikasi: kombinasi `(contract, scope, outlet, target, min_qty)` tid
 | sequence | tinyint, default 1 | |
 | due_date | date | |
 | amount | bigint | pokok |
-| unique_code | smallint | 1–999 |
+| unique_code | smallint, default 0 | 1–999 setelah kode unik aktif; sekarang 0 |
 | amount_to_pay | bigint | `amount + unique_code` |
 | paid_amount | bigint, default 0 | |
 | status | enum: unpaid, partial, paid, overdue, void | |
@@ -403,20 +382,7 @@ Validasi di aplikasi: kombinasi `(contract, scope, outlet, target, min_qty)` tid
 
 ### F. Reminder (fase 4)
 
-**`b2b_reminder_schedules`**
-
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| id | bigint PK | |
-| name | varchar | contoh: "H-3" |
-| offset_days | smallint | negatif = sebelum jatuh tempo, 0 = hari H, positif = sesudahnya |
-| repeat_every_days | smallint? | 1 = setiap hari |
-| max_repeat | smallint? | kosong = diulang sampai lunas |
-| channels | json | `["email"]`, `["whatsapp"]`, atau keduanya |
-| template_key | varchar | |
-| is_active | bool | |
-| sort_order | smallint | |
-| timestamps | | |
+Jadwal reminder disimpan di customer (lihat `b2b_customers`), jadi tabel `b2b_reminder_schedules` dibatalkan. Yang perlu dibuat hanya log pengiriman.
 
 **`b2b_reminder_logs`**
 
@@ -424,14 +390,14 @@ Validasi di aplikasi: kombinasi `(contract, scope, outlet, target, min_qty)` tid
 |---|---|---|
 | id | bigint PK | |
 | b2b_invoice_schedule_id | FK | |
-| b2b_reminder_schedule_id | FK | |
+| offset_days | smallint | hari relatif ke jatuh tempo yang memicu reminder (positif = overdue) |
 | channel | enum: email, whatsapp | |
 | recipient | varchar | |
 | reminder_date | date | |
 | status | enum: queued, sent, failed, skipped | |
 | error | text? | |
 | sent_at | datetime? | |
-| timestamps | | unik `(schedule, channel, recipient, reminder_date)` supaya tidak terkirim dobel |
+| timestamps | | unik `(b2b_invoice_schedule_id, channel, recipient, reminder_date)` supaya tidak terkirim dobel |
 
 ### G. Limit kredit (fase 4)
 
@@ -443,32 +409,30 @@ Validasi di aplikasi: kombinasi `(contract, scope, outlet, target, min_qty)` tid
 
 **`b2b_sequences`**: id, type (customer/contract/order/invoice/payment), period (`2026` atau `202611`), last_number, timestamps. Kombinasi type dan period unik, dan nomor diambil dengan lock supaya nomor dokumen tidak dobel.
 
-**`b2b_activity_logs`**: id, user_id, subject_type, subject_id, action, changes (json), created_at. Dipakai untuk aktivasi/penghentian kontrak, void invoice, pencocokan manual, pembatalan pembayaran, dan limit kredit yang diloloskan.
+**`b2b_activity_logs`**: id, user_id, subject_type, subject_id, action, changes (json), created_at. Sekarang mencatat customer (dibuat, diubah, diaktifkan/dinonaktifkan, dihapus), kontrak (dibuat, diubah beserta jumlah item dan perubahan file, dihentikan, dihapus), dan pesanan (dibuat, selesai, dibatalkan). Nanti juga pencocokan manual, pembatalan pembayaran, dan limit kredit yang diloloskan.
 
 ### Tabel `configs` yang sudah ada
 
-| Kunci | Nilai awal |
-|---|---|
-| `b2b.default_payment_term_days` | 30 |
-| `b2b.unique_code.min` / `max` | 1 / 999 |
-| `b2b.unique_code.mode` | `add` |
-| `b2b.allow_installment` | false |
-| `b2b.reminder.send_time` | `08:00` |
-| `b2b.reminder.whatsapp_enabled` | false |
+| Kunci | Nilai awal | Status |
+|---|---|---|
+| `b2b.default_payment_term_days` | 7 (cadangan di kode juga 7, maks 180) | sudah dipakai: saran jatuh tempo di kasir |
+| `b2b.unique_code.min` / `max` | 1 / 999 | rencana fase 3 |
+| `b2b.unique_code.mode` | `add` | rencana fase 3 |
+| `b2b.allow_installment` | false | rencana |
+| `b2b.reminder.send_time` | `08:00` | rencana fase 4 (jam kirim saja, jadwal tetap per customer) |
+| `b2b.reminder.whatsapp_enabled` | false | rencana fase 4 |
 
 ---
 
 ## 5. Relasi antartabel
 
 ```
-b2b_customers ─┬─< b2b_customer_contacts
-               ├─< b2b_customer_addresses
-               ├─< b2b_customer_sender_aliases
+b2b_customers ─┬─< b2b_customer_sender_aliases
                ├─< b2b_customer_credit_rules >── b2b_credit_rules
-               ├─< b2b_contracts ─< b2b_contract_rules ──> outlets / categories / products / variant_products
-               └─< b2b_orders ─< b2b_order_items ──> products / variant_products
+               ├─< b2b_contracts ─< b2b_contract_items ──> variant_products (→ outlet)
+               └─< b2b_orders ─< b2b_order_items ──> products / variant_products / b2b_contract_items
                        │
-                       └── b2b_invoices ─< b2b_invoice_schedules ─< b2b_reminder_logs >── b2b_reminder_schedules
+                       └── b2b_invoices ─< b2b_invoice_schedules ─< b2b_reminder_logs
                                                     ▲
                                     b2b_payment_allocations
                                                     │
@@ -483,9 +447,10 @@ Polanya sama dengan `email:birthday` di `app/Console/Kernel.php` (zona waktu Asi
 
 | Command | Jadwal (WIB) | Fungsi |
 |---|---|---|
-| `b2b:sync-contract-status` | 00:01 | kontrak yang lewat `end_date` → `expired` |
 | `b2b:mark-overdue` | 00:05 | jadwal tagihan yang lewat jatuh tempo → `overdue` |
 | `b2b:send-due-reminders` | sesuai config (default 08:00) | kirim reminder sesuai jadwal lewat queue |
+
+Belum ada yang dibangun. Status kontrak tidak butuh command harian karena dihitung dari tanggal, jadi `b2b:sync-contract-status` dihapus 18 Nov 2026. Status overdue invoice juga sudah dihitung dari tanggal saat ditampilkan (`Invoice::displayStatus()`), jadi `b2b:mark-overdue` hanya perlu untuk laporan dan reminder.
 
 ---
 
@@ -523,23 +488,40 @@ Setiap URL mendapat permission `read|create|update|delete <url>`. Ada satu permi
 
 ---
 
-## 10. Yang sudah dibangun (14 Nov 2026)
+## 10. Yang sudah dibangun (per 18 Nov 2026)
 
-- Migration 11 tabel: `b2b_sequences`, `b2b_activity_logs`, `b2b_customers`, `b2b_customer_contacts`, `b2b_customer_addresses`, `b2b_contracts`, `b2b_contract_rules`, `b2b_orders`, `b2b_order_items`, `b2b_invoices`, `b2b_invoice_schedules`.
-- Service: `PricingService`, `ContractService`, `CustomerService`, `OrderService`, `SequenceService`, `ActivityLogger` (`app/Services/B2b`).
+- Commit: `2906e8a` (fase 1–2), `470fe1b` (satu kontak dan satu alamat), `865727f` (kontrak harga per varian).
+- Migration 9 tabel: `b2b_sequences`, `b2b_activity_logs`, `b2b_customers`, `b2b_contracts`, `b2b_contract_items`, `b2b_orders`, `b2b_order_items`, `b2b_invoices`, `b2b_invoice_schedules`.
+- Service: `PricingService`, `ContractService`, `CustomerService`, `OrderService`, `SequenceService`, `ActivityLogger`, `B2bSettings` (`app/Services/B2b`).
 - Menu `B2bMenuSeeder`: Kasir B2B, Pesanan, Invoice, Customer, Kontrak.
-- Command `b2b:sync-contract-status` dijadwalkan 00:01 WIB.
+- Tidak ada command terjadwal B2B.
 - Invoice dicetak dari browser (Cetak / Simpan PDF). Library PDF ditambahkan saat reminder email butuh lampiran.
+- Menu Invoice sekarang hanya daftar dan cetak, karena pencatatan pembayaran (fase 3) belum ada.
 - Belum ada: draft pesanan, cek limit kredit, pembayaran, reminder, laporan.
-- Test: `tests/Feature/B2b` (44 test).
+- Test: `tests/Feature/B2b` (50 test, semua lolos 18 Nov 2026).
 
 ### Perubahan 14 Nov 2026 (bedah kolom)
 
 - `payment_term_days` dihapus dari customer dan kontrak. Jatuh tempo dipilih manual di kasir (`b2b_orders.due_date`, disalin ke invoice). Saran dari config `b2b.default_payment_term_days` (seeder: 7), cadangan di kode 7 hari. Maksimal 180 hari.
-- Kontrak wajib minimal satu aturan diskon.
+- Kontrak wajib minimal satu aturan diskon (sejak 18 Nov: minimal satu harga produk).
 - Kolom `type` customer: enum Perorangan, PT, CV (wajib).
 - Customer: `created_by` + `modified_by` sebagai audit trail tanpa foreign key/index.
 - Reminder per customer (lihat tabel customer). Rencana `b2b_reminder_schedules` dan config reminder global dibatalkan.
+
+### Perubahan 17 Nov 2026 (satu kontak dan satu alamat)
+
+- Tabel `b2b_customer_contacts` dan `b2b_customer_addresses` dihapus.
+- Kolom `contact_name`, `address`, `city`, `province`, `postal_code` pindah ke `b2b_customers`. `phone` dan `email` customer jadi tujuan reminder.
+- Alamat customer disalin ke pesanan (`shipping_address_snapshot`) dan invoice (`billing_address_snapshot`).
+
+### Perubahan 18 Nov 2026 (kontrak harga per varian)
+
+- `b2b_contract_rules` (diskon persen/nominal/harga khusus per scope) diganti `b2b_contract_items` (harga tetap per varian + `min_qty`).
+- Item pesanan menyimpan `b2b_contract_item_id` dan `final_price`. Kolom diskon (`discount_total`, `discount_type`, `discount_value`, `discount_per_unit`) dihapus.
+- Status `draft` dan `expired` dihapus dari kontrak, begitu juga `activated_by/at` dan command `b2b:sync-contract-status`.
+- Kontrak bisa diedit saat berjalan, overlap dicek saat buat dan edit, soft delete (kontrak berjalan tidak bisa dihapus).
+- File kontrak menyimpan nama asli (`attachment_name`) dan bisa dilepas saat edit.
+- Tampilan baru daftar, detail, dan form kontrak: tabel pilih produk per outlet, date range picker, format ribuan harga.
 
 ## 11. Riwayat keputusan
 
@@ -550,3 +532,5 @@ Setiap URL mendapat permission `read|create|update|delete <url>`. Ada satu permi
 | 14 Nov 2026 | Tidak pakai VA/payment gateway. Pakai rekening statis + kode unik + cek mutasi |
 | 14 Nov 2026 | 1 rekening BCA. Kode unik ditambahkan. Format mutasi dibahas nanti |
 | 14 Nov 2026 | Metode pembayaran dibuka lagi (VA BCA langsung jadi kandidat). Pembayaran ditunda; bangun customer + kasir dulu |
+| 17 Nov 2026 | Satu kontak dan satu alamat per customer |
+| 18 Nov 2026 | Kontrak = harga tetap per varian dengan tingkat qty, bisa lintas outlet. Produk di luar kontrak harga normal. Pesanan lama tetap memakai harga snapshot. Tanpa draft. Bisa diedit saat berjalan. Overlap dicek saat buat dan edit. Harga boleh di atas harga normal. Soft delete, kontrak berjalan tidak bisa dihapus |
