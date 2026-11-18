@@ -485,20 +485,28 @@ Setiap URL mendapat permission `read|create|update|delete <url>`. Ada satu permi
 
 - Apakah NPWP wajib diisi?
 - **Usulan:** tagihan dianggap lunas kalau dana masuk sudah ≥ pokok. Kode unik hanya penanda, jadi customer yang lupa menambahkan kode unik tetap dianggap lunas.
+- **Bayar langsung (diputuskan 18 Nov 2026):** tidak semua pesanan tempo; ada customer yang langsung membayar saat pesan.
+  - Metode: Tunai, Transfer BCA, EDC/kartu, QRIS. Memakai master pembayaran POS yang sudah ada (`category_payments` → `payments`, seperti `transactions.category_payment_id` + `tipe_pembayaran` + nama snapshot).
+  - Transfer di depan kasir langsung dianggap Lunas tanpa verifikasi mutasi (aturan "hanya lewat mutasi" berlaku untuk pelunasan tempo).
+  - Tanpa DP: bayar penuh sekarang atau tempo penuh. Skema alokasi tetap memungkinkan DP ditambah nanti.
+  - Kasir B2B tidak bergantung pada shift POS: tunai B2B tidak ikut setoran shift, direkap di laporan B2B per outlet/kasir (`b2b_payments.outlet_id`, `received_by`; refund lewat `b2b_refunds.outlet_id`).
+  - Batal pesanan yang sudah dibayar: pembayaran di-reverse dengan alasan, refund dicatat (metode, nominal, petugas, waktu).
+  - Skema (disetujui 19 Nov 2026; `payment_type` di migration order, tabel pembayaran di migration invoice `2026_11_14_100005`): `b2b_orders.payment_type` (`credit`/`immediate`), `b2b_payments` (+ `outlet_id`, `category_payment_id`, `payment_id`, nama metode snapshot, referensi), `b2b_payment_allocations`, `b2b_refunds`.
 
 ---
 
 ## 10. Yang sudah dibangun (per 18 Nov 2026)
 
 - Commit: `2906e8a` (fase 1–2), `470fe1b` (satu kontak dan satu alamat), `865727f` (kontrak harga per varian).
-- Migration 9 tabel: `b2b_sequences`, `b2b_activity_logs`, `b2b_customers`, `b2b_contracts`, `b2b_contract_items`, `b2b_orders`, `b2b_order_items`, `b2b_invoices`, `b2b_invoice_schedules`.
-- Service: `PricingService`, `ContractService`, `CustomerService`, `OrderService`, `SequenceService`, `ActivityLogger`, `B2bSettings` (`app/Services/B2b`).
+- Migration 12 tabel: `b2b_sequences`, `b2b_activity_logs`, `b2b_customers`, `b2b_contracts`, `b2b_contract_items`, `b2b_orders`, `b2b_order_items`, `b2b_invoices`, `b2b_invoice_schedules`, `b2b_payments`, `b2b_payment_allocations`, `b2b_refunds` (3 terakhir sejak 19 Nov, belum di-commit).
+- Service: `PricingService`, `ContractService`, `CustomerService`, `OrderService`, `PaymentService`, `SequenceService`, `ActivityLogger`, `B2bSettings` (`app/Services/B2b`).
 - Menu `B2bMenuSeeder`: Kasir B2B, Pesanan, Invoice, Customer, Kontrak.
 - Tidak ada command terjadwal B2B.
 - Invoice dicetak dari browser (Cetak / Simpan PDF). Library PDF ditambahkan saat reminder email butuh lampiran.
 - Menu Invoice sekarang hanya daftar dan cetak, karena pencatatan pembayaran (fase 3) belum ada.
-- Belum ada: draft pesanan, cek limit kredit, pembayaran, reminder, laporan.
-- Test: `tests/Feature/B2b` (50 test, semua lolos 18 Nov 2026).
+- Bayar langsung (19 Nov): `OrderService::place()` menerima `payment_type` + `payment`, `cancel()` menerima data refund. Dialog kasir punya pilihan Tempo / Bayar langsung (metode dari master POS, sub metode, no. referensi, uang diterima + kembalian untuk tunai). Belum ada: form batal + refund di halaman pesanan, riwayat pembayaran di detail pesanan/invoice.
+- Belum ada: draft pesanan, cek limit kredit, pelunasan tempo (kode unik/VA), reminder, laporan.
+- Test: `tests/Feature/B2b` (62 test, semua lolos 19 Nov 2026).
 
 ### Perubahan 14 Nov 2026 (bedah kolom)
 

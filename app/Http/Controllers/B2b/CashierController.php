@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\B2b\CashierOrderRequest;
 use App\Models\B2b\Customer;
 use App\Models\B2b\Invoice;
+use App\Models\B2b\Order;
+use App\Models\CategoryPayment;
 use App\Models\Outlets;
 use App\Models\VariantProduct;
 use App\Services\B2b\B2bSettings;
@@ -31,7 +33,28 @@ class CashierController extends Controller
             'outlets' => Outlets::query()->whereIn('id', $request->user()->outletIds())->orderBy('name')->get(['id', 'name']),
             'defaultTermDays' => $this->settings->defaultPaymentTermDays(),
             'maxDueDays' => B2bSettings::MAX_DUE_DAYS,
+            'paymentMethods' => $this->paymentMethods(),
         ]);
+    }
+
+    /**
+     * Metode bayar langsung dari master pembayaran POS: kategori aktif + sub metode aktifnya.
+     * `is_cash` hanya untuk tampilan (kolom uang diterima & kembalian), tidak disimpan.
+     */
+    private function paymentMethods(): array
+    {
+        return CategoryPayment::query()
+            ->where('status', true)
+            ->with(['payment' => fn ($query) => $query->where('status', true)->orderBy('name')])
+            ->orderBy('id')
+            ->get()
+            ->map(fn (CategoryPayment $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'is_cash' => (bool) preg_match('/cash|tunai/i', $category->name),
+                'methods' => $category->payment->map(fn ($method) => ['id' => $method->id, 'name' => $method->name])->values()->all(),
+            ])
+            ->all();
     }
 
     /** Pencarian customer aktif untuk select2. */
@@ -141,10 +164,16 @@ class CashierController extends Controller
     public function store(CashierOrderRequest $request)
     {
         $order = $this->orders->place($request->user(), $request->validated());
+        $payment = $order->invoice->allocations->first()?->payment;
+        $message = $payment
+            ? 'Pesanan '.$order->order_number.' tersimpan dan lunas ('.$payment->method_name.'). Invoice '.$order->invoice->invoice_number.'.'
+            : 'Pesanan '.$order->order_number.' tersimpan. Invoice '.$order->invoice->invoice_number.' dibuat.';
 
-        return responseSuccess(false, 'Pesanan '.$order->order_number.' tersimpan. Invoice '.$order->invoice->invoice_number.' dibuat.', [
+        return responseSuccess(false, $message, [
             'id' => $order->id,
             'order_number' => $order->order_number,
+            'payment_type' => $order->payment_type,
+            'payment_number' => $payment?->payment_number,
             'redirect' => route('b2b/orders/show', $order->id),
             'invoice_url' => route('b2b/invoices/print', $order->invoice->id),
         ]);

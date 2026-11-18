@@ -5,7 +5,9 @@ namespace Tests\Feature\B2b;
 use App\Models\B2b\Contract;
 use App\Models\B2b\Customer;
 use App\Models\Category;
+use App\Models\CategoryPayment;
 use App\Models\Outlets;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\VariantProduct;
@@ -92,5 +94,21 @@ abstract class B2bTestCase extends TestCase
         $contract->items()->createMany(array_map(fn (array $item) => array_merge(['min_qty' => 1], $item), $items));
 
         return $contract->load('items');
+    }
+
+    /**
+     * Metode bayar di master POS: kategori + sub metode (kosongkan $methods untuk kategori seperti Cash).
+     *
+     * @return array{0: CategoryPayment, 1: array<string, Payment>}
+     */
+    protected function paymentCategory(string $name, array $methods = []): array
+    {
+        $category = CategoryPayment::create(['name' => $name.' '.uniqid(), 'status' => true]);
+        $created = [];
+        foreach ($methods as $method) {
+            $created[$method] = Payment::create(['name' => $method, 'status' => true, 'category_payment_id' => $category->id]);
+        }
+
+        return [$category, $created];
     }
 }

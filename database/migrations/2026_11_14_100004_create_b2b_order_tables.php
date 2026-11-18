@@ -16,7 +16,8 @@ return new class extends Migration
             $table->foreignId('outlet_id')->constrained('outlets');
             $table->foreignId('user_id')->nullable()->comment('kasir')->constrained('users')->nullOnDelete();
             $table->dateTime('order_date');
-            $table->date('due_date')->comment('jatuh tempo pilihan kasir; disalin ke invoice');
+            $table->date('due_date')->comment('jatuh tempo pilihan kasir; bayar langsung = tanggal pesanan; disalin ke invoice');
+            $table->enum('payment_type', ['credit', 'immediate'])->default('credit')->comment('credit = tempo, immediate = bayar langsung di kasir');
             $table->enum('status', ['draft', 'confirmed', 'completed', 'cancelled'])->default('confirmed');
             $table->bigInteger('subtotal')->default(0)->comment('jumlah line_total item');
             $table->bigInteger('tax_total')->default(0);

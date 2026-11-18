@@ -371,6 +371,39 @@ class B2bHttpTest extends B2bTestCase
         $this->assertSame(46, (int) $variant->fresh()->stok);
     }
 
+    public function test_cashier_immediate_payment_flow(): void
+    {
+        $outlet = $this->outlet();
+        $user = $this->userFor($outlet, ['read b2b/cashier', 'create b2b/cashier']);
+        $variant = $this->variant($outlet, 20000, 50);
+        [$edc, $methods] = $this->paymentCategory('EDC', ['QRIS']);
+        $payload = ['outlet_id' => $outlet->id, 'b2b_customer_id' => $this->customer()->id, 'delivery_method' => 'pickup',
+            'items' => [['variant_id' => $variant->id, 'qty' => 2]], 'payment_type' => Order::PAYMENT_IMMEDIATE];
+
+        $this->actingAs($user)->get(route('b2b/cashier'))->assertOk()->assertSee($edc->name)->assertSee('Bayar langsung');
+
+        // Bayar langsung wajib memilih metode, tapi tidak butuh jatuh tempo.
+        $this->actingAs($user)->postJson(route('b2b/cashier/store'), $payload)
+            ->assertUnprocessable()->assertJsonValidationErrors('payment')->assertJsonMissingValidationErrors('due_date');
+        $this->actingAs($user)->postJson(route('b2b/cashier/store'), $payload + ['payment' => ['category_payment_id' => $edc->id]])
+            ->assertUnprocessable()->assertJsonValidationErrors('payment.payment_id');
+        $this->actingAs($user)->postJson(route('b2b/cashier/store'), array_merge($payload, ['payment_type' => 'barter', 'due_date' => today()->addDays(7)->toDateString()]))
+            ->assertUnprocessable()->assertJsonValidationErrors('payment_type');
+
+        $response = $this->actingAs($user)->postJson(route('b2b/cashier/store'), $payload + [
+            'due_date' => today()->addDays(30)->toDateString(), // diabaikan
+            'payment' => ['category_payment_id' => $edc->id, 'payment_id' => $methods['QRIS']->id, 'reference' => 'APR-1'],
+        ])->assertOk()->assertJsonPath('data.payment_type', Order::PAYMENT_IMMEDIATE);
+
+        $this->assertStringContainsString('lunas', $response->json('message'));
+        $this->assertMatchesRegularExpression('#^PAY/B2B/#', $response->json('data.payment_number'));
+        $order = Order::findOrFail($response->json('data.id'));
+        $this->assertSame(today()->toDateString(), $order->due_date->toDateString());
+        $this->assertSame('paid', $order->invoice->status);
+        $this->assertSame(40000, $order->invoice->paid_amount);
+        $this->assertSame('APR-1', $order->invoice->allocations->first()->payment->reference);
+    }
+
     public function test_cashier_rejects_outlet_the_user_cannot_access_and_duplicate_lines(): void
     {
         $outlet = $this->outlet('mine');

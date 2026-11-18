@@ -61,6 +61,16 @@ class Invoice extends Model
         return $this->hasMany(InvoiceSchedule::class, 'b2b_invoice_id')->orderBy('sequence');
     }
 
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(PaymentAllocation::class, 'b2b_invoice_id')->orderBy('id');
+    }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class, 'b2b_invoice_id')->orderBy('id');
+    }
+
     public function voider(): BelongsTo
     {
         return $this->belongsTo(User::class, 'voided_by');

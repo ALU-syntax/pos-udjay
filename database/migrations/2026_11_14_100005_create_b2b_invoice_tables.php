@@ -51,10 +51,68 @@ return new class extends Migration
             $table->index(['status', 'due_date']);
             $table->index(['amount_to_pay', 'status']);
         });
+
+        // Pencatatan pembayaran. Metode memakai master pembayaran POS (`category_payments` → `payments`);
+        // tabel di sini hanya menyimpan transaksinya. Ringkasan lunas tetap di `b2b_invoices.paid_amount/status/paid_at`.
+        Schema::create('b2b_payments', function (Blueprint $table) {
+            $table->id();
+            $table->string('payment_number', 40)->unique();
+            $table->foreignId('b2b_customer_id')->constrained('b2b_customers');
+            $table->foreignId('outlet_id')->nullable()->comment('outlet tempat bayar; kosong untuk pelunasan di luar kasir')->constrained('outlets');
+            $table->foreignId('category_payment_id')->constrained('category_payments');
+            $table->foreignId('payment_id')->nullable()->comment('kosong bila kategori tanpa sub metode, mis. Cash')->constrained('payments');
+            $table->string('method_name', 100)->comment('snapshot nama metode, mis. "EDC · QRIS"');
+            $table->bigInteger('amount');
+            $table->dateTime('paid_at');
+            $table->string('reference', 100)->nullable()->comment('kode approval EDC / no. referensi transfer');
+            $table->foreignId('received_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->text('notes')->nullable();
+            $table->enum('status', ['posted', 'reversed'])->default('posted');
+            $table->foreignId('reversed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('reversed_at')->nullable();
+            $table->string('reverse_reason')->nullable();
+            $table->timestamps();
+
+            $table->index(['b2b_customer_id', 'paid_at']);
+            $table->index(['outlet_id', 'paid_at']);
+        });
+
+        Schema::create('b2b_payment_allocations', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('b2b_payment_id')->constrained('b2b_payments');
+            $table->foreignId('b2b_invoice_id')->constrained('b2b_invoices');
+            $table->foreignId('b2b_invoice_schedule_id')->nullable()->constrained('b2b_invoice_schedules');
+            $table->bigInteger('amount');
+            $table->timestamps();
+
+            $table->index('b2b_invoice_id');
+        });
+
+        // Pengembalian uang saat pesanan yang sudah dibayar dibatalkan. Metode refund boleh beda dari metode bayar.
+        Schema::create('b2b_refunds', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('b2b_payment_id')->constrained('b2b_payments');
+            $table->foreignId('b2b_invoice_id')->constrained('b2b_invoices');
+            $table->foreignId('outlet_id')->nullable()->constrained('outlets');
+            $table->foreignId('category_payment_id')->constrained('category_payments');
+            $table->foreignId('payment_id')->nullable()->constrained('payments');
+            $table->string('method_name', 100);
+            $table->bigInteger('amount');
+            $table->string('reference', 100)->nullable();
+            $table->string('reason');
+            $table->foreignId('refunded_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->dateTime('refunded_at');
+            $table->timestamps();
+
+            $table->index(['outlet_id', 'refunded_at']);
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('b2b_refunds');
+        Schema::dropIfExists('b2b_payment_allocations');
+        Schema::dropIfExists('b2b_payments');
         Schema::dropIfExists('b2b_invoice_schedules');
         Schema::dropIfExists('b2b_invoices');
     }

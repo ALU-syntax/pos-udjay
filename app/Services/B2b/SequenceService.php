@@ -37,6 +37,13 @@ class SequenceService
         return 'INV/B2B/'.$date->format('Y/m').'/'.str_pad((string) $this->next('invoice', $date->format('Ym')), 4, '0', STR_PAD_LEFT);
     }
 
+    public function paymentNumber(?Carbon $date = null): string
+    {
+        $date ??= now();
+
+        return 'PAY/B2B/'.$date->format('Y/m').'/'.str_pad((string) $this->next('payment', $date->format('Ym')), 4, '0', STR_PAD_LEFT);
+    }
+
     public function next(string $type, string $period): int
     {
         return DB::transaction(function () use ($type, $period) {

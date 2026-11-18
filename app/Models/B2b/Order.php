@@ -29,6 +29,15 @@ class Order extends Model
         self::STATUS_CANCELLED => 'Dibatalkan',
     ];
 
+    public const PAYMENT_CREDIT = 'credit';
+
+    public const PAYMENT_IMMEDIATE = 'immediate';
+
+    public const PAYMENT_TYPE_LABELS = [
+        self::PAYMENT_CREDIT => 'Tempo',
+        self::PAYMENT_IMMEDIATE => 'Bayar langsung',
+    ];
+
     public const DELIVERY_LABELS = [
         'pickup' => 'Diambil sendiri',
         'internal' => 'Diantar kurir internal',
@@ -101,6 +110,11 @@ class Order extends Model
             self::STATUS_CANCELLED => 'danger',
             default => 'muted',
         };
+    }
+
+    public function paymentTypeLabel(): string
+    {
+        return self::PAYMENT_TYPE_LABELS[$this->payment_type] ?? (string) $this->payment_type;
     }
 
     public function deliveryLabel(): string

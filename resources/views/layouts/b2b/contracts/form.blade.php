@@ -10,6 +10,7 @@
     @include('layouts.b2b.partials.assets')
     @include('layouts.b2b.partials.page-styles')
     @include('layouts.b2b.contracts.partials.styles')
+    @include('layouts.b2b.partials.datepicker')
 
     <div class="main-content ob-page">
         <div class="ob-header">
