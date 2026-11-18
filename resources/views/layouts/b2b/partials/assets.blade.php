@@ -30,6 +30,20 @@
         .b2b-list { list-style: none; padding: 0; margin: 0; }
         .b2b-list li { padding: .7rem 0; border-top: 1px dashed var(--ob-border); }
         .b2b-list li:first-child { border-top: 0; padding-top: 0; }
+        /* Riwayat pembayaran / pengembalian dana di detail pesanan */
+        .b2b-subtitle { margin: 0 0 .5rem; font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ob-muted); }
+        /* Kotak per pembayaran, seragam dengan .ob-meta__item */
+        .b2b-payments { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1.25rem; }
+        .b2b-payments:last-child { margin-bottom: 0; }
+        .b2b-payments li, .b2b-payments li:first-child {
+            padding: .65rem .8rem; border: 1px solid var(--ob-border); border-radius: var(--ob-radius-sm); background: var(--ob-surface-2); font-size: .875rem;
+        }
+        .b2b-payments .b2b-muted { font-size: .78rem; }
+        .b2b-payments li.is-reversed { background: var(--ob-surface); }
+        .b2b-payments__row { display: flex; justify-content: space-between; gap: .75rem; }
+        .b2b-payments li.is-reversed .b2b-payments__row { color: var(--ob-muted); text-decoration: line-through; }
+        .b2b-refund-total { margin-top: .5rem; padding-top: .5rem; border-top: 1px dashed var(--ob-border-strong); font-weight: 600; color: var(--ob-text); }
+        .b2b-refund-total strong { font-size: 1.1rem; color: var(--ob-danger); }
         .b2b-muted { color: var(--ob-muted); font-size: .82rem; }
         .b2b-money { font-variant-numeric: tabular-nums; white-space: nowrap; }
         .b2b-table { width: 100%; font-size: .875rem; }
@@ -55,6 +69,29 @@
             background: var(--ob-surface); box-shadow: 0 -4px 16px rgba(15, 23, 42, .06);
         }
         .b2b-form-footer .btn { min-height: 44px; }
+
+        /* Dialog B2B (kasir, batal + refund). Kaiadmin memaksa .modal-title putih, jadi judul memakai class sendiri. */
+        .b2b-modal .modal-content { overflow: hidden; border-radius: 16px; box-shadow: 0 24px 60px rgba(15, 23, 42, .25); }
+        .b2b-modal .modal-header { align-items: flex-start; padding: 1rem 1.25rem; border-bottom: 1px solid var(--ob-border); }
+        .b2b-modal__title { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--ob-text); }
+        .b2b-modal__sub { margin: .15rem 0 0; font-size: .8rem; color: var(--ob-muted); }
+        .b2b-modal .modal-body { display: flex; flex-direction: column; gap: 1.1rem; padding: 1.1rem 1.25rem; }
+        .b2b-modal .modal-footer { gap: .5rem; padding: .85rem 1.25rem; border-top: 1px solid var(--ob-border); background: var(--ob-surface-2); }
+        .b2b-modal .modal-footer > * { margin: 0; }
+        .b2b-modal .modal-footer .ob-btn { min-height: 50px; }
+        .b2b-modal__total { padding: .8rem .95rem; border: 1px solid var(--ob-border); border-radius: 12px; background: var(--ob-surface-2); }
+        .b2b-modal .form-label { margin-bottom: .4rem; }
+        .b2b-modal .b2b-segment span { min-height: 44px; background: var(--ob-surface); font-size: .86rem; }
+        /* Chip pilihan (tombol cepat jatuh tempo, sub metode bayar, uang cepat) */
+        .b2b-quick-days { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .5rem; }
+        .b2b-quick-days button {
+            min-height: 34px; padding: .2rem .75rem; border: 1px solid var(--ob-border-strong); border-radius: 999px;
+            background: var(--ob-surface); color: var(--ob-text-2); font-size: .76rem; font-weight: 600;
+        }
+        .b2b-quick-days button:hover { border-color: var(--ob-primary); color: var(--ob-primary); }
+        .b2b-quick-days button[aria-pressed="true"] { border-color: var(--ob-primary); background: var(--ob-primary); color: #fff; }
+        .b2b-pay__sub { margin-top: 0; }
+        .b2b-pay__sub button { min-height: 40px; padding: .3rem 1rem; font-size: .82rem; }
     </style>
 @endpush
 

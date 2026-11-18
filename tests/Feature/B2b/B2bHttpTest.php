@@ -404,6 +404,43 @@ class B2bHttpTest extends B2bTestCase
         $this->assertSame('APR-1', $order->invoice->allocations->first()->payment->reference);
     }
 
+    public function test_paid_order_shows_payment_and_cancels_with_refund(): void
+    {
+        $outlet = $this->outlet();
+        $user = $this->userFor($outlet, ['read b2b/orders', 'cancel b2b/orders', 'read b2b/invoices']);
+        $variant = $this->variant($outlet, 15000, 20);
+        [$edc, $edcMethods] = $this->paymentCategory('EDC', ['QRIS']);
+        [$cash] = $this->paymentCategory('Cash');
+        $order = app(\App\Services\B2b\OrderService::class)->place($user, [
+            'outlet_id' => $outlet->id, 'b2b_customer_id' => $this->customer()->id, 'delivery_method' => 'pickup',
+            'items' => [['variant_id' => $variant->id, 'qty' => 2]], 'payment_type' => Order::PAYMENT_IMMEDIATE,
+            'payment' => ['category_payment_id' => $edc->id, 'payment_id' => $edcMethods['QRIS']->id, 'reference' => 'APR-77'],
+        ]);
+        $payment = $order->invoice->allocations->first()->payment;
+
+        $this->actingAs($user)->get(route('b2b/orders/show', $order->id))->assertOk()
+            ->assertSee('Bayar langsung')->assertSee($payment->payment_number)->assertSee($payment->method_name)
+            ->assertSee('Ref. APR-77')->assertSee('Batalkan Pesanan Lunas')->assertSee('Pembayaran diterima');
+        $this->actingAs($user)->get(route('b2b/invoices/print', $order->invoice->id))->assertOk()
+            ->assertSee('LUNAS')->assertSee($payment->payment_number)->assertDontSee('Mohon lakukan pembayaran');
+
+        // Tanpa data refund ditolak; metode refund wajib.
+        $this->actingAs($user)->postJson(route('b2b/orders/cancel', $order->id), ['reason' => 'Acara batal'])
+            ->assertUnprocessable()->assertJsonValidationErrors('status');
+        $this->actingAs($user)->postJson(route('b2b/orders/cancel', $order->id), ['reason' => 'Acara batal', 'refund' => ['reference' => 'x']])
+            ->assertUnprocessable()->assertJsonValidationErrors('refund.category_payment_id');
+
+        $this->actingAs($user)->postJson(route('b2b/orders/cancel', $order->id), [
+            'reason' => 'Acara batal', 'refund' => ['category_payment_id' => $cash->id, 'payment_id' => null, 'reference' => null],
+        ])->assertOk()->assertJsonFragment(['message' => 'Pesanan dibatalkan. Pengembalian dana Rp 30.000 tercatat, stok dikembalikan.']);
+
+        $this->assertSame(Order::STATUS_CANCELLED, $order->fresh()->status);
+        $this->assertSame(20, (int) $variant->fresh()->stok);
+        $this->actingAs($user)->get(route('b2b/orders/show', $order->id))->assertOk()
+            ->assertSee('Pengembalian dana')->assertSee('Alasan: Acara batal')->assertSee('Pembayaran dibatalkan, dana dikembalikan')
+            ->assertDontSee('Batalkan Pesanan Lunas');
+    }
+
     public function test_cashier_rejects_outlet_the_user_cannot_access_and_duplicate_lines(): void
     {
         $outlet = $this->outlet('mine');

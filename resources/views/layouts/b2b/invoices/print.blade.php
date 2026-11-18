@@ -10,6 +10,8 @@
         $billing = $invoice->billing_address_snapshot;
         $shipping = $order->shipping_address_snapshot;
         $rupiah = fn ($value) => 'Rp '.number_format((int) $value, 0, ',', '.');
+        $immediate = $order->payment_type === \App\Models\B2b\Order::PAYMENT_IMMEDIATE;
+        $payments = $invoice->allocations->pluck('payment')->filter()->where('status', 'posted')->unique('id')->values();
     @endphp
     <style>
         :root { --text: #0f172a; --muted: #64748b; --border: #e2e8f0; --accent: #b91c1c; }
@@ -42,6 +44,10 @@
         .foot { margin-top: 36px; display: flex; justify-content: space-between; gap: 24px; }
         .sign { width: 200px; text-align: center; }
         .sign .line { margin-top: 64px; border-top: 1px solid var(--text); padding-top: 4px; }
+        .paid-box { margin-top: 20px; padding: 12px 14px; border: 1px solid #bbf7d0; border-left: 4px solid #15803d; border-radius: 6px; background: #f0fdf4; }
+        .paid-box table { margin-top: 6px; }
+        .paid-box td { padding: 4px 0; border: 0; }
+        .paid-mark { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-24deg); font-size: 96px; font-weight: 800; color: rgba(21, 128, 61, .1); letter-spacing: .1em; pointer-events: none; }
         .void-mark { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-24deg); font-size: 96px; font-weight: 800; color: rgba(185, 28, 28, .12); letter-spacing: .1em; pointer-events: none; }
         @media (max-width: 720px) {
             .sheet { padding: 16px; min-height: 0; }
@@ -66,6 +72,8 @@
 
     @if ($invoice->status === 'void')
         <div class="void-mark" aria-hidden="true">BATAL</div>
+    @elseif ($invoice->status === 'paid')
+        <div class="paid-mark" aria-hidden="true">LUNAS</div>
     @endif
 
     <main class="sheet">
@@ -110,8 +118,13 @@
             <div>
                 <div class="label">Tanggal invoice</div>
                 <div>{{ $invoice->issue_date->translatedFormat('d F Y') }}</div>
-                <div class="label" style="margin-top:8px">Jatuh tempo</div>
-                <div><strong>{{ $invoice->due_date->translatedFormat('d F Y') }}</strong></div>
+                @if ($immediate)
+                    <div class="label" style="margin-top:8px">Pembayaran</div>
+                    <div><strong>{{ $order->paymentTypeLabel() }}</strong></div>
+                @else
+                    <div class="label" style="margin-top:8px">Jatuh tempo</div>
+                    <div><strong>{{ $invoice->due_date->translatedFormat('d F Y') }}</strong></div>
+                @endif
                 @if ($order->contract)
                     <div class="label" style="margin-top:8px">Kontrak</div>
                     <div>{{ $order->contract->contract_number }}</div>
@@ -160,7 +173,21 @@
             @endif
         </div>
 
-        @if ($invoice->status !== 'void')
+        @if ($invoice->status === 'paid')
+            <div class="paid-box">
+                <strong>Lunas</strong>{{ $invoice->paid_at ? ' pada '.$invoice->paid_at->translatedFormat('d F Y H:i') : '' }}. Terima kasih.
+                @if ($payments->isNotEmpty())
+                    <table>
+                        @foreach ($payments as $payment)
+                            <tr>
+                                <td>{{ $payment->payment_number }} · {{ $payment->method_name }}{{ $payment->reference ? ' · Ref. '.$payment->reference : '' }}</td>
+                                <td class="num">{{ $rupiah($payment->amount) }}</td>
+                            </tr>
+                        @endforeach
+                    </table>
+                @endif
+            </div>
+        @elseif ($invoice->status !== 'void')
             <div class="due">
                 Mohon lakukan pembayaran sebesar <strong>{{ $rupiah($invoice->outstandingAmount()) }}</strong>
                 paling lambat <strong>{{ $invoice->due_date->translatedFormat('d F Y') }}</strong>

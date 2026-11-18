@@ -6,12 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\B2b\CashierOrderRequest;
 use App\Models\B2b\Customer;
 use App\Models\B2b\Invoice;
-use App\Models\B2b\Order;
-use App\Models\CategoryPayment;
 use App\Models\Outlets;
 use App\Models\VariantProduct;
 use App\Services\B2b\B2bSettings;
 use App\Services\B2b\OrderService;
+use App\Services\B2b\PaymentService;
 use App\Services\B2b\PricingService;
 use Illuminate\Http\Request;
 
@@ -21,6 +20,7 @@ class CashierController extends Controller
         private readonly PricingService $pricing,
         private readonly OrderService $orders,
         private readonly B2bSettings $settings,
+        private readonly PaymentService $payments,
     ) {
         $this->abilities = [];
     }
@@ -33,28 +33,8 @@ class CashierController extends Controller
             'outlets' => Outlets::query()->whereIn('id', $request->user()->outletIds())->orderBy('name')->get(['id', 'name']),
             'defaultTermDays' => $this->settings->defaultPaymentTermDays(),
             'maxDueDays' => B2bSettings::MAX_DUE_DAYS,
-            'paymentMethods' => $this->paymentMethods(),
+            'paymentMethods' => $this->payments->methodOptions(),
         ]);
-    }
-
-    /**
-     * Metode bayar langsung dari master pembayaran POS: kategori aktif + sub metode aktifnya.
-     * `is_cash` hanya untuk tampilan (kolom uang diterima & kembalian), tidak disimpan.
-     */
-    private function paymentMethods(): array
-    {
-        return CategoryPayment::query()
-            ->where('status', true)
-            ->with(['payment' => fn ($query) => $query->where('status', true)->orderBy('name')])
-            ->orderBy('id')
-            ->get()
-            ->map(fn (CategoryPayment $category) => [
-                'id' => $category->id,
-                'name' => $category->name,
-                'is_cash' => (bool) preg_match('/cash|tunai/i', $category->name),
-                'methods' => $category->payment->map(fn ($method) => ['id' => $method->id, 'name' => $method->name])->values()->all(),
-            ])
-            ->all();
     }
 
     /** Pencarian customer aktif untuk select2. */

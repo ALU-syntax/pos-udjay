@@ -89,18 +89,18 @@
 
             @can('create b2b/cashier')
                 {{-- Dialog selesaikan pesanan: jatuh tempo, pengiriman, catatan. Dipindah ke <body> saat halaman dimuat. --}}
-                <div class="modal fade b2b-checkout" id="checkout-modal" tabindex="-1" aria-labelledby="checkout-title" aria-hidden="true">
+                <div class="modal fade b2b-modal b2b-checkout" id="checkout-modal" tabindex="-1" aria-labelledby="checkout-title" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                         <div class="modal-content ob-page b2b-form">
                             <div class="modal-header">
                                 <div>
-                                    <h2 class="b2b-checkout__title" id="checkout-title">Selesaikan Pesanan</h2>
-                                    <p class="b2b-checkout__sub" id="checkout-sub"></p>
+                                    <h2 class="b2b-modal__title" id="checkout-title">Selesaikan Pesanan</h2>
+                                    <p class="b2b-modal__sub" id="checkout-sub"></p>
                                 </div>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                             </div>
                             <div class="modal-body">
-                                <div class="b2b-checkout__total">
+                                <div class="b2b-modal__total">
                                     <div class="b2b-sum-row"><span class="js-sum-subtotal-label">Subtotal</span><span class="js-sum-subtotal">Rp 0</span></div>
                                     <div class="b2b-sum-row js-sum-delta-row" hidden><span class="js-sum-delta-label"></span><span class="js-sum-delta"></span></div>
                                     <div class="b2b-sum-total"><span>Total</span><strong class="js-sum-total">Rp 0</strong></div>

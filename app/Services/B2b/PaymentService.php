@@ -26,6 +26,28 @@ class PaymentService
     ) {}
 
     /**
+     * Pilihan metode untuk layar kasir dan form refund: kategori aktif + sub metode aktifnya.
+     * `is_cash` hanya untuk tampilan (kolom uang diterima & kembalian), tidak disimpan.
+     *
+     * @return array<int, array{id:int, name:string, is_cash:bool, methods:array<int, array{id:int, name:string}>}>
+     */
+    public function methodOptions(): array
+    {
+        return CategoryPayment::query()
+            ->where('status', true)
+            ->with(['payment' => fn ($query) => $query->where('status', true)->orderBy('name')])
+            ->orderBy('id')
+            ->get()
+            ->map(fn (CategoryPayment $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'is_cash' => (bool) preg_match('/cash|tunai/i', $category->name),
+                'methods' => $category->payment->map(fn ($method) => ['id' => $method->id, 'name' => $method->name])->values()->all(),
+            ])
+            ->all();
+    }
+
+    /**
      * Validasi metode dari master POS. Sub metode wajib dipilih bila kategorinya punya sub metode aktif (mis. EDC → QRIS).
      *
      * @return array{category: CategoryPayment, method: PaymentMethod|null, name: string}

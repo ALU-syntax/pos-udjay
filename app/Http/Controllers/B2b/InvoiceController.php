@@ -28,7 +28,7 @@ class InvoiceController extends Controller
         $invoice = Invoice::query()
             ->whereKey($invoice)
             ->whereHas('order', fn ($order) => $order->withTrashed()->whereIn('outlet_id', request()->user()->outletIds()))
-            ->with(['order.items', 'order.outlet', 'order.contract', 'customer', 'schedules'])
+            ->with(['order.items', 'order.outlet', 'order.contract', 'customer', 'schedules', 'allocations.payment'])
             ->firstOrFail();
 
         return view('layouts.b2b.invoices.print', ['invoice' => $invoice]);

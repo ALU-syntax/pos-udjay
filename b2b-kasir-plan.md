@@ -504,9 +504,9 @@ Setiap URL mendapat permission `read|create|update|delete <url>`. Ada satu permi
 - Tidak ada command terjadwal B2B.
 - Invoice dicetak dari browser (Cetak / Simpan PDF). Library PDF ditambahkan saat reminder email butuh lampiran.
 - Menu Invoice sekarang hanya daftar dan cetak, karena pencatatan pembayaran (fase 3) belum ada.
-- Bayar langsung (19 Nov): `OrderService::place()` menerima `payment_type` + `payment`, `cancel()` menerima data refund. Dialog kasir punya pilihan Tempo / Bayar langsung (metode dari master POS, sub metode, no. referensi, uang diterima + kembalian untuk tunai). Belum ada: form batal + refund di halaman pesanan, riwayat pembayaran di detail pesanan/invoice.
+- Bayar langsung (19 Nov): `OrderService::place()` menerima `payment_type` + `payment`, `cancel()` menerima data refund. Dialog kasir punya pilihan Tempo / Bayar langsung (metode dari master POS, sub metode, no. referensi, uang diterima + kembalian untuk tunai). Detail pesanan menampilkan jenis pembayaran, riwayat pembayaran dan pengembalian dana; pesanan lunas dibatalkan lewat dialog refund (metode default = metode bayar semula). Cetak invoice menampilkan LUNAS + nomor bukti bayar.
 - Belum ada: draft pesanan, cek limit kredit, pelunasan tempo (kode unik/VA), reminder, laporan.
-- Test: `tests/Feature/B2b` (62 test, semua lolos 19 Nov 2026).
+- Test: `tests/Feature/B2b` (63 test, semua lolos 19 Nov 2026).
 
 ### Perubahan 14 Nov 2026 (bedah kolom)
 
