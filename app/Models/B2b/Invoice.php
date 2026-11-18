@@ -76,6 +76,15 @@ class Invoice extends Model
         return $this->belongsTo(User::class, 'voided_by');
     }
 
+    /** Pelunasan manual hanya untuk invoice tempo yang masih punya sisa; pesanan bayar langsung sudah lunas sejak dibuat. */
+    public function canRecordPayment(): bool
+    {
+        return in_array($this->status, [self::STATUS_UNPAID, self::STATUS_PARTIAL, self::STATUS_OVERDUE], true)
+            && $this->outstandingAmount() > 0
+            && $this->order?->payment_type !== Order::PAYMENT_IMMEDIATE
+            && $this->order?->status !== Order::STATUS_CANCELLED;
+    }
+
     public function outstandingAmount(): int
     {
         return $this->status === self::STATUS_VOID ? 0 : max(0, $this->total_to_pay - $this->paid_amount);

@@ -483,6 +483,7 @@ Setiap URL mendapat permission `read|create|update|delete <url>`. Ada satu permi
 
 ## 9. Perlu dikonfirmasi
 
+- **Invoice selalu satu per pesanan (diputuskan 19 Nov 2026):** belum ada penagihan gabungan per periode, jadi `b2b_invoices.b2b_order_id` tetap unik. Menu Pesanan untuk operasional barang, menu Invoice dijadikan ruang kerja penagihan (pelunasan tempo, filter belum lunas/lewat jatuh tempo).
 - Apakah NPWP wajib diisi?
 - **Usulan:** tagihan dianggap lunas kalau dana masuk sudah ≥ pokok. Kode unik hanya penanda, jadi customer yang lupa menambahkan kode unik tetap dianggap lunas.
 - **Bayar langsung (diputuskan 18 Nov 2026):** tidak semua pesanan tempo; ada customer yang langsung membayar saat pesan.
@@ -505,8 +506,9 @@ Setiap URL mendapat permission `read|create|update|delete <url>`. Ada satu permi
 - Invoice dicetak dari browser (Cetak / Simpan PDF). Library PDF ditambahkan saat reminder email butuh lampiran.
 - Menu Invoice sekarang hanya daftar dan cetak, karena pencatatan pembayaran (fase 3) belum ada.
 - Bayar langsung (19 Nov): `OrderService::place()` menerima `payment_type` + `payment`, `cancel()` menerima data refund. Dialog kasir punya pilihan Tempo / Bayar langsung (metode dari master POS, sub metode, no. referensi, uang diterima + kembalian untuk tunai). Detail pesanan menampilkan jenis pembayaran, riwayat pembayaran dan pengembalian dana; pesanan lunas dibatalkan lewat dialog refund (metode default = metode bayar semula). Cetak invoice menampilkan LUNAS + nomor bukti bayar.
+- Pelunasan tempo manual (19 Nov, B5): menu Invoice dan detail pesanan punya dialog "Catat Pelunasan" (nominal boleh sebagian, tanggal bayar mundur s.d. tanggal invoice, metode dari master POS, outlet penerima atau rekening pusat, no. referensi, bukti opsional `b2b_payments.attachment_path`, catatan). Semua metode termasuk transfer boleh dicatat manual sampai fitur mutasi ada. Pelunasan salah catat bisa dibatalkan tanpa refund (`PaymentService::reverse`); pembayaran pesanan bayar langsung tetap lewat batal pesanan + refund. Permission `pay b2b/invoices`.
 - Belum ada: draft pesanan, cek limit kredit, pelunasan tempo (kode unik/VA), reminder, laporan.
-- Test: `tests/Feature/B2b` (63 test, semua lolos 19 Nov 2026).
+- Test: `tests/Feature/B2b` (70 test, semua lolos 19 Nov 2026).
 
 ### Perubahan 14 Nov 2026 (bedah kolom)
 

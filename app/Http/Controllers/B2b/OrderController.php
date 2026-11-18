@@ -43,6 +43,7 @@ class OrderController extends Controller
             'order' => $order,
             'payments' => $payments,
             'paymentMethods' => $this->payments->methodOptions(),
+            'outlets' => Outlets::query()->whereIn('id', request()->user()->outletIds())->orderBy('name')->get(['id', 'name']),
             // Riwayat pesanan + riwayat pembayarannya (log pembayaran disimpan dengan subject Payment).
             'activities' => ActivityLog::query()
                 ->with('user:id,name')

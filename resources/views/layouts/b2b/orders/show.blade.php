@@ -16,6 +16,7 @@
 
 @section('content')
     @include('layouts.b2b.partials.assets')
+    @include('layouts.b2b.partials.page-styles')
 
     <div class="main-content ob-page">
         <div class="ob-header">
@@ -156,6 +157,16 @@
                             <div class="ob-meta__item"><dt>Sisa tagihan</dt><dd>{{ $rupiah($invoice->outstandingAmount()) }}</dd></div>
                         </dl>
 
+                        @if ($invoice->canRecordPayment())
+                            @can('pay b2b/invoices')
+                                <button type="button" class="btn ob-btn ob-btn-primary w-100 mb-3"
+                                    data-pay-invoice data-url="{{ route('b2b/invoices/pay', $invoice->id) }}" data-number="{{ $invoice->invoice_number }}"
+                                    data-customer="{{ $order->customer?->name }}" data-total="{{ $invoice->total_to_pay }}" data-paid="{{ $invoice->paid_amount }}"
+                                    data-outstanding="{{ $invoice->outstandingAmount() }}" data-issue="{{ $invoice->issue_date->toDateString() }}" data-outlet="{{ $order->outlet_id }}">
+                                    <i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Catat pelunasan</button>
+                            @endcan
+                        @endif
+
                         <h3 class="b2b-subtitle">Pembayaran</h3>
                         @if ($payments->isEmpty())
                             <p class="b2b-muted mb-0">{{ $invoice->status === 'void' ? 'Tidak ada pembayaran.' : 'Belum ada pembayaran.' }}</p>
@@ -170,12 +181,33 @@
                                         <div class="b2b-muted">
                                             {{ $payment->payment_number }} · {{ $payment->paid_at->translatedFormat('d M Y H:i') }} · {{ $payment->receiver?->name ?? '-' }}
                                         </div>
+                                        @if ($payment->outlet_id === null)
+                                            <div class="b2b-muted">Diterima di rekening pusat</div>
+                                        @endif
                                         @if ($payment->reference)
                                             <div class="b2b-muted">Ref. {{ $payment->reference }}</div>
                                         @endif
+                                        @if ($payment->notes)
+                                            <div class="b2b-muted"><i class="far fa-sticky-note" aria-hidden="true"></i> {{ $payment->notes }}</div>
+                                        @endif
                                         @if ($payment->status === 'reversed')
                                             <span class="badge badge-danger mt-1">Dibatalkan {{ $payment->reversed_at?->translatedFormat('d M Y H:i') }}</span>
+                                            @if ($payment->reverse_reason && $invoice->refunds->where('b2b_payment_id', $payment->id)->isEmpty())
+                                                <div class="b2b-muted">Alasan: {{ $payment->reverse_reason }}</div>
+                                            @endif
                                         @endif
+                                        <div class="b2b-payments__actions">
+                                            @if ($payment->attachment_path)
+                                                <a href="{{ route('b2b/invoices/payments/attachment', $payment->id) }}" target="_blank"><i class="fas fa-paperclip" aria-hidden="true"></i> Bukti</a>
+                                            @endif
+                                            @if ($payment->status === 'posted' && ! $immediate && $order->status !== 'cancelled')
+                                                @can('pay b2b/invoices')
+                                                    <a href="{{ route('b2b/invoices/payments/reverse', $payment->id) }}" class="text-danger" data-b2b-confirm data-reason="Alasan pembatalan"
+                                                        data-title="Batalkan pembayaran {{ $payment->payment_number }}?" data-text="Untuk pembayaran yang salah catat. Sisa tagihan invoice akan bertambah lagi; tidak ada pengembalian dana yang dicatat."
+                                                        data-confirm-text="Ya, batalkan"><i class="fas fa-undo" aria-hidden="true"></i> Batalkan</a>
+                                                @endcan
+                                            @endif
+                                        </div>
                                     </li>
                                 @endforeach
                             </ul>
@@ -207,7 +239,13 @@
                     <ul class="b2b-list">
                         @forelse ($activities as $activity)
                             <li>
-                                <div class="fw-bold">{{ $activityLabels[$activity->action] ?? $activity->action }}</div>
+                                <div class="fw-bold">
+                                    @if ($activity->action === 'payment.reversed' && empty($activity->changes['refund_method']))
+                                        Pembayaran dibatalkan (salah catat)
+                                    @else
+                                        {{ $activityLabels[$activity->action] ?? $activity->action }}
+                                    @endif
+                                </div>
                                 <div class="b2b-muted">{{ $activity->created_at?->translatedFormat('d M Y H:i') }} · {{ $activity->user?->name ?? 'Sistem' }}</div>
                                 @if (str_starts_with($activity->action, 'payment.') && !empty($activity->changes['amount']))
                                     <div class="b2b-muted">
@@ -226,6 +264,8 @@
             </div>
         </div>
 
+        @include('layouts.b2b.invoices.partials.payment-modal')
+
         @if ($order->status === 'confirmed' && $paid)
             @can('cancel b2b/orders')
                 @php $firstPayment = $payments->firstWhere('status', 'posted'); @endphp
@@ -236,7 +276,7 @@
                             @csrf
                             <div class="modal-header">
                                 <div>
-                                    <h2 class="b2b-modal__title" id="cancel-title">Batalkan Pesanan Lunas</h2>
+                                    <h2 class="b2b-modal__title" id="cancel-title">Batalkan Pesanan yang Sudah Dibayar</h2>
                                     <p class="b2b-modal__sub">{{ $order->order_number }} · {{ $order->customer?->name }}</p>
                                 </div>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>

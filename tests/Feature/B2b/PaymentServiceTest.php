@@ -10,6 +10,7 @@ use App\Models\Outlets;
 use App\Models\User;
 use App\Models\VariantProduct;
 use App\Services\B2b\OrderService;
+use App\Services\B2b\PaymentService;
 use Illuminate\Validation\ValidationException;
 
 class PaymentServiceTest extends B2bTestCase
@@ -211,5 +212,125 @@ class PaymentServiceTest extends B2bTestCase
             $this->assertSame(Order::STATUS_CONFIRMED, $order->fresh()->status);
             $this->assertSame(7, (int) $this->variant->fresh()->stok);
         }
+    }
+
+    private function creditInvoice(): Invoice
+    {
+        return $this->place(['due_date' => today()->addDays(30)->toDateString()])->invoice; // total 30.000
+    }
+
+    public function test_credit_invoice_can_be_paid_in_parts_until_paid(): void
+    {
+        [$transfer, $methods] = $this->paymentCategory('Transfer', ['BCA']);
+        $invoice = $this->creditInvoice();
+        $service = app(PaymentService::class);
+        $data = ['category_payment_id' => $transfer->id, 'payment_id' => $methods['BCA']->id, 'paid_date' => today()->toDateString()];
+
+        $first = $service->record($this->user, $invoice, $data + ['amount' => 10000, 'outlet_id' => $this->outlet->id, 'reference' => 'T-1', 'notes' => ' Termin 1 ']);
+        $invoice->refresh();
+        $this->assertSame(Invoice::STATUS_PARTIAL, $invoice->status);
+        $this->assertSame(20000, $invoice->outstandingAmount());
+        $this->assertNull($invoice->paid_at);
+        $this->assertSame($this->outlet->id, $first->outlet_id);
+        $this->assertSame('Termin 1', $first->notes);
+        $this->assertSame(Invoice::STATUS_PARTIAL, $invoice->schedules()->first()->status);
+
+        $second = $service->record($this->user, $invoice, $data + ['amount' => 20000]);
+        $invoice->refresh();
+        $this->assertNull($second->outlet_id);
+        $this->assertSame(Invoice::STATUS_PAID, $invoice->status);
+        $this->assertSame(30000, $invoice->paid_amount);
+        $this->assertNotNull($invoice->paid_at);
+        $this->assertSame(Invoice::STATUS_PAID, $invoice->schedules()->first()->status);
+    }
+
+    public function test_recording_rejects_invalid_amount_date_outlet_and_settled_invoices(): void
+    {
+        [$cash] = $this->paymentCategory('Cash');
+        $service = app(PaymentService::class);
+        $invoice = $this->creditInvoice();
+        $data = ['category_payment_id' => $cash->id, 'paid_date' => today()->toDateString(), 'amount' => 5000];
+        $otherOutlet = $this->outlet('lain');
+
+        $cases = [
+            'amount' => array_merge($data, ['amount' => 30001]),
+            'amount ' => array_merge($data, ['amount' => 0]),
+            'paid_date' => array_merge($data, ['paid_date' => today()->addDay()->toDateString()]),
+            'paid_date ' => array_merge($data, ['paid_date' => today()->subDay()->toDateString()]), // sebelum tanggal invoice
+            'outlet_id' => $data + ['outlet_id' => $otherOutlet->id],
+            'category_payment_id' => array_merge($data, ['category_payment_id' => null]),
+        ];
+        foreach ($cases as $field => $payload) {
+            try {
+                $service->record($this->user, $invoice, $payload);
+                $this->fail("Seharusnya ditolak: {$field}");
+            } catch (ValidationException $e) {
+                $this->assertArrayHasKey(trim($field), $e->errors());
+            }
+        }
+        $this->assertSame(0, $invoice->fresh()->paid_amount);
+
+        // Invoice bayar langsung sudah lunas; invoice pesanan batal tidak bisa dibayar.
+        $paidOrder = $this->place(['payment_type' => Order::PAYMENT_IMMEDIATE, 'payment' => ['category_payment_id' => $cash->id]]);
+        $this->expectException(ValidationException::class);
+        $service->record($this->user, $paidOrder->invoice, $data);
+    }
+
+    public function test_cancelled_order_invoice_cannot_be_paid(): void
+    {
+        [$cash] = $this->paymentCategory('Cash');
+        $order = $this->place();
+        app(OrderService::class)->cancel($this->user, $order, 'Batal');
+
+        $this->expectException(ValidationException::class);
+        app(PaymentService::class)->record($this->user, $order->invoice()->first(), ['category_payment_id' => $cash->id, 'amount' => 1000]);
+    }
+
+    public function test_wrongly_recorded_payment_can_be_reversed_without_refund(): void
+    {
+        [$cash] = $this->paymentCategory('Cash');
+        $service = app(PaymentService::class);
+        $invoice = $this->creditInvoice();
+        $payment = $service->record($this->user, $invoice, ['category_payment_id' => $cash->id, 'amount' => 30000]);
+        $this->assertSame(Invoice::STATUS_PAID, $invoice->fresh()->status);
+
+        $service->reverse($this->user, $payment, 'Salah invoice');
+
+        $invoice->refresh();
+        $this->assertSame(Invoice::STATUS_UNPAID, $invoice->status);
+        $this->assertSame(0, $invoice->paid_amount);
+        $this->assertNull($invoice->paid_at);
+        $this->assertSame(0, $invoice->schedules()->first()->paid_amount);
+        $this->assertSame(Payment::STATUS_REVERSED, $payment->fresh()->status);
+        $this->assertSame(0, Refund::query()->where('b2b_payment_id', $payment->id)->count());
+        $this->assertDatabaseHas('b2b_activity_logs', ['action' => 'payment.reversed', 'subject_id' => $payment->id]);
+
+        $this->expectException(ValidationException::class);
+        $service->reverse($this->user, $payment->fresh(), 'Lagi');
+    }
+
+    public function test_immediate_payment_cannot_be_reversed_without_cancelling_order(): void
+    {
+        [$cash] = $this->paymentCategory('Cash');
+        $order = $this->place(['payment_type' => Order::PAYMENT_IMMEDIATE, 'payment' => ['category_payment_id' => $cash->id]]);
+
+        $this->expectException(ValidationException::class);
+        app(PaymentService::class)->reverse($this->user, $order->invoice->allocations->first()->payment, 'Salah');
+    }
+
+    public function test_cancelling_credit_order_with_partial_payments_refunds_each_payment(): void
+    {
+        [$cash] = $this->paymentCategory('Cash');
+        $service = app(PaymentService::class);
+        $order = $this->place();
+        $service->record($this->user, $order->invoice, ['category_payment_id' => $cash->id, 'amount' => 10000]);
+        $service->record($this->user, $order->invoice, ['category_payment_id' => $cash->id, 'amount' => 5000]);
+
+        app(OrderService::class)->cancel($this->user, $order, 'Batal acara', ['category_payment_id' => $cash->id]);
+
+        $invoice = $order->invoice()->first();
+        $this->assertSame(Invoice::STATUS_VOID, $invoice->status);
+        $this->assertSame(0, $invoice->paid_amount);
+        $this->assertSame([10000, 5000], Refund::query()->where('b2b_invoice_id', $invoice->id)->orderBy('id')->pluck('amount')->all());
     }
 }

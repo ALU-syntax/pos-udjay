@@ -40,7 +40,8 @@ class B2bMenuSeeder extends Seeder
             ],
             'b2b/invoices' => [
                 'name' => 'Invoice',
-                'permissions' => ['read '],
+                // pay = catat dan batalkan pelunasan invoice tempo
+                'permissions' => ['read ', 'pay '],
             ],
             'b2b/customers' => [
                 'name' => 'Customer',

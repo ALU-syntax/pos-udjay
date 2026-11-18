@@ -67,6 +67,8 @@ return new class extends Migration
             $table->string('reference', 100)->nullable()->comment('kode approval EDC / no. referensi transfer');
             $table->foreignId('received_by')->nullable()->constrained('users')->nullOnDelete();
             $table->text('notes')->nullable();
+            $table->string('attachment_path')->nullable()->comment('bukti bayar (opsional), disk local');
+            $table->string('attachment_name')->nullable();
             $table->enum('status', ['posted', 'reversed'])->default('posted');
             $table->foreignId('reversed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('reversed_at')->nullable();

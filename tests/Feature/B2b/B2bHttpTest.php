@@ -14,7 +14,7 @@ class B2bHttpTest extends B2bTestCase
     private const ALL = [
         'read b2b', 'read b2b/customers', 'create b2b/customers', 'update b2b/customers', 'delete b2b/customers',
         'read b2b/contracts', 'create b2b/contracts', 'update b2b/contracts', 'delete b2b/contracts', 'terminate b2b/contracts',
-        'read b2b/cashier', 'create b2b/cashier', 'read b2b/orders', 'complete b2b/orders', 'cancel b2b/orders', 'read b2b/invoices',
+        'read b2b/cashier', 'create b2b/cashier', 'read b2b/orders', 'complete b2b/orders', 'cancel b2b/orders', 'read b2b/invoices', 'pay b2b/invoices',
     ];
 
     public function test_menu_seeder_registers_menus_and_permissions_idempotently(): void
@@ -28,6 +28,7 @@ class B2bHttpTest extends B2bTestCase
         }
         $this->assertDatabaseHas('permissions', ['name' => 'terminate b2b/contracts']);
         $this->assertDatabaseHas('permissions', ['name' => 'cancel b2b/orders']);
+        $this->assertDatabaseHas('permissions', ['name' => 'pay b2b/invoices']);
     }
 
     public function test_pages_require_permission(): void
@@ -420,7 +421,7 @@ class B2bHttpTest extends B2bTestCase
 
         $this->actingAs($user)->get(route('b2b/orders/show', $order->id))->assertOk()
             ->assertSee('Bayar langsung')->assertSee($payment->payment_number)->assertSee($payment->method_name)
-            ->assertSee('Ref. APR-77')->assertSee('Batalkan Pesanan Lunas')->assertSee('Pembayaran diterima');
+            ->assertSee('Ref. APR-77')->assertSee('Batalkan Pesanan yang Sudah Dibayar')->assertSee('Pembayaran diterima');
         $this->actingAs($user)->get(route('b2b/invoices/print', $order->invoice->id))->assertOk()
             ->assertSee('LUNAS')->assertSee($payment->payment_number)->assertDontSee('Mohon lakukan pembayaran');
 
@@ -438,7 +439,65 @@ class B2bHttpTest extends B2bTestCase
         $this->assertSame(20, (int) $variant->fresh()->stok);
         $this->actingAs($user)->get(route('b2b/orders/show', $order->id))->assertOk()
             ->assertSee('Pengembalian dana')->assertSee('Alasan: Acara batal')->assertSee('Pembayaran dibatalkan, dana dikembalikan')
-            ->assertDontSee('Batalkan Pesanan Lunas');
+            ->assertDontSee('Batalkan Pesanan yang Sudah Dibayar');
+    }
+
+    public function test_credit_invoice_payment_can_be_recorded_with_proof_and_reversed(): void
+    {
+        Storage::fake('local');
+        $outlet = $this->outlet();
+        $reader = $this->userFor($outlet, ['read b2b/invoices', 'read b2b/orders']);
+        $user = $this->userFor($outlet, ['read b2b/invoices', 'read b2b/orders', 'pay b2b/invoices']);
+        $variant = $this->variant($outlet, 25000, 20);
+        [$transfer, $transferMethods] = $this->paymentCategory('Transfer', ['BCA']);
+        $order = app(\App\Services\B2b\OrderService::class)->place($user, [
+            'outlet_id' => $outlet->id, 'b2b_customer_id' => $this->customer()->id, 'delivery_method' => 'pickup',
+            'due_date' => today()->addDays(14)->toDateString(), 'items' => [['variant_id' => $variant->id, 'qty' => 4]],
+        ]);
+        $invoice = $order->invoice;
+        $payload = ['amount' => 40000, 'paid_date' => today()->toDateString(), 'category_payment_id' => $transfer->id,
+            'payment_id' => $transferMethods['BCA']->id, 'reference' => 'TRF-1', 'notes' => 'Termin 1'];
+
+        // Daftar invoice menampilkan tombol pelunasan hanya untuk yang berhak.
+        $this->actingAs($user)->getJson(route('b2b/invoices', ['draw' => 1, 'start' => 0, 'length' => 10, 'status' => 'open']), ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()->assertSee('data-pay-invoice', false);
+        $this->app->forgetInstance('datatables.request');
+        $this->actingAs($reader)->getJson(route('b2b/invoices', ['draw' => 1, 'start' => 0, 'length' => 10, 'status' => 'open']), ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()->assertDontSee('data-pay-invoice', false);
+        $this->actingAs($user)->get(route('b2b/orders/show', $order->id))->assertOk()->assertSee('Catat pelunasan');
+
+        $this->actingAs($reader)->postJson(route('b2b/invoices/pay', $invoice->id), $payload)->assertForbidden();
+        $this->actingAs($user)->postJson(route('b2b/invoices/pay', $invoice->id), array_merge($payload, ['amount' => 100001]))
+            ->assertUnprocessable()->assertJsonValidationErrors('amount');
+        $this->actingAs($user)->postJson(route('b2b/invoices/pay', $invoice->id), array_merge($payload, ['payment_id' => null]))
+            ->assertUnprocessable()->assertJsonValidationErrors('payment_id');
+
+        $this->actingAs($user)->post(route('b2b/invoices/pay', $invoice->id), $payload + [
+            'attachment' => UploadedFile::fake()->create('bukti.pdf', 50, 'application/pdf'),
+        ], ['Accept' => 'application/json'])->assertOk()->assertJsonPath('data.status', 'partial')->assertJsonPath('data.outstanding', 60000);
+
+        $payment = \App\Models\B2b\Payment::query()->where('b2b_customer_id', $order->b2b_customer_id)->sole();
+        $this->assertNull($payment->outlet_id);
+        $this->assertSame('bukti.pdf', $payment->attachment_name);
+        Storage::disk('local')->assertExists($payment->attachment_path);
+        $this->actingAs($reader)->get(route('b2b/invoices/payments/attachment', $payment->id))->assertOk()->assertDownload('bukti.pdf');
+        $this->actingAs($user)->get(route('b2b/orders/show', $order->id))->assertOk()
+            ->assertSee($payment->payment_number)->assertSee('Diterima di rekening pusat')->assertSee('Termin 1')->assertSee('Bukti');
+
+        // Batalkan pembayaran salah catat: wajib alasan, sisa tagihan kembali penuh.
+        $this->actingAs($user)->postJson(route('b2b/invoices/payments/reverse', $payment->id), [])
+            ->assertUnprocessable()->assertJsonValidationErrors('reason');
+        $this->actingAs($user)->postJson(route('b2b/invoices/payments/reverse', $payment->id), ['reason' => 'Salah nominal'])->assertOk();
+        $this->assertSame('unpaid', $invoice->fresh()->status);
+        $this->assertSame(0, $invoice->fresh()->paid_amount);
+        $this->actingAs($user)->get(route('b2b/orders/show', $order->id))->assertOk()
+            ->assertSee('Pembayaran dibatalkan (salah catat)')->assertSee('Alasan: Salah nominal');
+
+        // Lunasi penuh.
+        $this->actingAs($user)->postJson(route('b2b/invoices/pay', $invoice->id), array_merge($payload, ['amount' => 100000]))
+            ->assertOk()->assertJsonPath('data.status', 'paid');
+        $this->actingAs($user)->postJson(route('b2b/invoices/pay', $invoice->id), array_merge($payload, ['amount' => 1]))
+            ->assertUnprocessable()->assertJsonValidationErrors('amount');
     }
 
     public function test_cashier_rejects_outlet_the_user_cannot_access_and_duplicate_lines(): void

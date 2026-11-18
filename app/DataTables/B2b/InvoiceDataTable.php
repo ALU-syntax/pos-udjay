@@ -29,10 +29,31 @@ class InvoiceDataTable extends DataTable
             ->addColumn('outstanding', fn (Invoice $invoice) => '<span class="text-nowrap">Rp '.number_format($invoice->outstandingAmount(), 0, ',', '.').'</span>')
             ->editColumn('status', fn (Invoice $invoice) => '<span class="badge badge-'.$invoice->statusVariant().'">'.$invoice->statusLabel().'</span>')
             ->addColumn('action', fn (Invoice $invoice) => '<div class="ob-row-actions">'
+                .($invoice->canRecordPayment() && auth()->user()->can('pay b2b/invoices') ? $this->payButton($invoice) : '')
                 .'<a href="'.route('b2b/invoices/print', $invoice->id).'" target="_blank" class="ob-icon-btn ob-icon-btn--sm" title="Cetak invoice" aria-label="Cetak invoice"><i class="fas fa-print" aria-hidden="true"></i></a>'
                 .'</div>')
             ->rawColumns(['invoice_number', 'due_date', 'total_to_pay', 'outstanding', 'status', 'action'])
             ->setRowId('id');
+    }
+
+    /** Tombol pembuka dialog "Catat Pelunasan" (layouts.b2b.invoices.partials.payment-modal). */
+    private function payButton(Invoice $invoice): string
+    {
+        $data = [
+            'pay-invoice' => '',
+            'url' => route('b2b/invoices/pay', $invoice->id),
+            'number' => $invoice->invoice_number,
+            'customer' => $invoice->customer?->name,
+            'total' => $invoice->total_to_pay,
+            'paid' => $invoice->paid_amount,
+            'outstanding' => $invoice->outstandingAmount(),
+            'issue' => $invoice->issue_date->toDateString(),
+            'outlet' => $invoice->order?->outlet_id,
+        ];
+        $attributes = collect($data)->map(fn ($value, $key) => 'data-'.$key.'="'.e((string) $value).'"')->implode(' ');
+
+        return '<button type="button" class="ob-icon-btn ob-icon-btn--sm ob-icon-btn--primary" title="Catat pelunasan" aria-label="Catat pelunasan" '.$attributes.'>'
+            .'<i class="fas fa-hand-holding-usd" aria-hidden="true"></i></button>';
     }
 
     public function query(Invoice $model): QueryBuilder
@@ -73,7 +94,7 @@ class InvoiceDataTable extends DataTable
             Column::make('total_to_pay')->title('Total')->searchable(false),
             Column::computed('outstanding')->title('Sisa Tagihan'),
             Column::make('status')->title('Status')->searchable(false),
-            Column::computed('action')->title('')->exportable(false)->printable(false)->width(60)->addClass('text-center'),
+            Column::computed('action')->title('')->exportable(false)->printable(false)->width(90)->addClass('text-center'),
         ];
     }
 

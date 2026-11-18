@@ -2,6 +2,7 @@
 
 @section('content')
     @include('layouts.b2b.partials.assets')
+    @include('layouts.b2b.partials.page-styles')
 
     <div class="main-content ob-page">
         <div class="ob-header">
@@ -11,7 +12,7 @@
                     <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-file-invoice"></i></span>
                     Invoice B2B
                 </h1>
-                <p class="ob-header__desc">Invoice dibuat otomatis saat pesanan dikonfirmasi. Pencatatan pembayaran menyusul.</p>
+                <p class="ob-header__desc">Invoice dibuat otomatis saat pesanan dikonfirmasi. Catat pelunasan invoice tempo dari tombol <i class="fas fa-hand-holding-usd" aria-hidden="true"></i> di setiap baris.</p>
             </div>
         </div>
 
@@ -34,6 +35,8 @@
             </div>
         </div>
     </div>
+
+    @include('layouts.b2b.invoices.partials.payment-modal')
 
     @push('js')
         {!! $dataTable->scripts() !!}

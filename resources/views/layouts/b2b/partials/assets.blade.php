@@ -30,6 +30,9 @@
         .b2b-list { list-style: none; padding: 0; margin: 0; }
         .b2b-list li { padding: .7rem 0; border-top: 1px dashed var(--ob-border); }
         .b2b-list li:first-child { border-top: 0; padding-top: 0; }
+        /* Tombol ikon aksi utama di tabel (mis. catat pelunasan) */
+        .ob-page .ob-icon-btn--primary { border-color: transparent; background: var(--ob-primary-soft); color: var(--ob-primary); }
+        .ob-page .ob-icon-btn--primary:hover { background: var(--ob-primary); color: #fff; }
         /* Riwayat pembayaran / pengembalian dana di detail pesanan */
         .b2b-subtitle { margin: 0 0 .5rem; font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ob-muted); }
         /* Kotak per pembayaran, seragam dengan .ob-meta__item */
@@ -42,6 +45,8 @@
         .b2b-payments li.is-reversed { background: var(--ob-surface); }
         .b2b-payments__row { display: flex; justify-content: space-between; gap: .75rem; }
         .b2b-payments li.is-reversed .b2b-payments__row { color: var(--ob-muted); text-decoration: line-through; }
+        .b2b-payments__actions { display: flex; gap: 1rem; margin-top: .25rem; font-size: .78rem; font-weight: 600; }
+        .b2b-payments__actions:not(:has(a)) { display: none; }
         .b2b-refund-total { margin-top: .5rem; padding-top: .5rem; border-top: 1px dashed var(--ob-border-strong); font-weight: 600; color: var(--ob-text); }
         .b2b-refund-total strong { font-size: 1.1rem; color: var(--ob-danger); }
         .b2b-muted { color: var(--ob-muted); font-size: .82rem; }
