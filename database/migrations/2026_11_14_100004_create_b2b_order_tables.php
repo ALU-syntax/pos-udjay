@@ -25,9 +25,6 @@ return new class extends Migration
             $table->bigInteger('grand_total')->default(0);
             $table->enum('delivery_method', ['pickup', 'internal'])->default('pickup');
             $table->json('shipping_address_snapshot')->nullable();
-            $table->json('credit_check_result')->nullable();
-            $table->foreignId('credit_override_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->string('credit_override_reason')->nullable();
             $table->foreignId('confirmed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('confirmed_at')->nullable();
             $table->foreignId('completed_by')->nullable()->constrained('users')->nullOnDelete();

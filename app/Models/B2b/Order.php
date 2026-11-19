@@ -56,7 +56,6 @@ class Order extends Model
         'shipping_cost' => 'integer',
         'grand_total' => 'integer',
         'shipping_address_snapshot' => 'array',
-        'credit_check_result' => 'array',
         'confirmed_at' => 'datetime',
         'completed_at' => 'datetime',
         'cancelled_at' => 'datetime',

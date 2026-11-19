@@ -30,7 +30,7 @@ Kasir B2B adalah fitur penjualan ke pelanggan bisnis (perusahaan) di web backoff
 | Kode unik | **Ditunda.** Kolom sudah disiapkan (`unique_code`, `unique_code_amount`), sekarang selalu 0 |
 | Cek pembayaran | Finance upload file mutasi BCA, sistem mencocokkan otomatis, sisanya dicek manual |
 | Reminder | **Diatur per customer, tanpa pengaturan global.** Default mati; kalau tidak diatur, tidak ada yang dikirim. Channel + jadwal di customer, penerima = telepon/email customer |
-| Limit kredit | Aturan bisa diatur dari UI, dengan pengecualian per customer |
+| Limit kredit | **Dihapus (19 Nov 2026).** Tidak ada aturan limit kredit; pesanan tempo tidak dicek piutangnya |
 | Laporan | Laporan B2B terpisah dari laporan dan dashboard POS |
 
 ### Kenapa tidak digabung dengan tabel `customers`
@@ -63,7 +63,7 @@ Kasir B2B adalah fitur penjualan ke pelanggan bisnis (perusahaan) di web backoff
 Customer B2B + Kontrak (opsional)
         ▼
 Kasir B2B: pilih outlet → pilih customer → pilih produk → harga otomatis mengikuti kontrak
-        ▼  konfirmasi (cek limit kredit → stok dikurangi, boleh minus)
+        ▼  konfirmasi (stok dikurangi, boleh minus)
 Invoice + jadwal tagihan (jatuh tempo dipilih kasir; kode unik menunggu metode pembayaran)
         ▼
 Reminder otomatis (H-7, H-3, H-1, H-0, lalu setiap hari setelah jatuh tempo)
@@ -122,18 +122,6 @@ Aturan tambahan:
 - Channel dibuat sebagai driver. Email langsung jalan. WhatsApp aktif setelah provider dipilih (template pesan WhatsApp resmi perlu disetujui Meta).
 - Isi reminder: rincian tagihan, nominal + kode unik, rekening BCA tujuan, dan PDF invoice.
 
-### Limit kredit
-
-- Jenis aturan ditentukan di kode, nilai dan aksinya (`warn` / `block`) diatur dari UI.
-- Dicek saat pesanan dikonfirmasi. Kalau aksinya `block`, user dengan permission `override b2b/credit-limit` bisa tetap meloloskan pesanan dengan alasan, dan itu tercatat di pesanan dan activity log.
-
-| code | Arti |
-|---|---|
-| `max_outstanding_amount` | batas total piutang yang belum lunas (limit kredit) |
-| `max_overdue_invoices` | batas jumlah tagihan yang lewat jatuh tempo |
-| `max_overdue_days` | batas hari keterlambatan tagihan tertua |
-| `max_open_invoices` | batas jumlah tagihan yang belum lunas |
-
 ---
 
 ## 3. Tahapan pengerjaan
@@ -143,7 +131,7 @@ Aturan tambahan:
 | **1** ✅ | Data customer (satu kontak dan alamat), kontrak dengan harga per varian, perhitungan harga, menu dan permission | customers, contracts, contract_items |
 | **2** ✅ | Kasir B2B: pesanan → invoice + jadwal tagihan (kode unik belum aktif), cetak invoice, pengurangan stok | orders, order_items, invoices, invoice_schedules, sequences, activity_logs |
 | **3** | Pembayaran: rekening, upload mutasi BCA, pencocokan otomatis, daftar cek manual, input tunai, saldo customer | bank_accounts, mutation_imports, incoming_funds, payments, payment_allocations, customer_sender_aliases |
-| **4** | Reminder, status overdue, aturan limit kredit | reminder_logs, credit_rules, customer_credit_rules |
+| **4** | Reminder dan status overdue | reminder_logs |
 | **5** | Laporan B2B: penjualan per customer/outlet/produk, umur piutang, mutasi pembayaran, kontrak yang hampir berakhir | (membaca tabel di atas) |
 | Nanti | Mutasi otomatis, WhatsApp, pengiriman dan ekspedisi, cicilan | — |
 
@@ -233,8 +221,6 @@ Kombinasi `(kontrak, varian, min_qty)` divalidasi unik di aplikasi, bukan unique
 | grand_total | bigint | |
 | delivery_method | enum: pickup, internal | ekspedisi ditambahkan nanti |
 | shipping_address_snapshot | json? | |
-| credit_check_result | json? | hasil cek limit kredit |
-| credit_override_by, credit_override_reason | ? | |
 | confirmed_by/at, completed_by/at, cancelled_by/at, cancel_reason | ? | |
 | notes | text? | |
 | timestamps, deleted_at | | |
@@ -399,17 +385,11 @@ Jadwal reminder disimpan di customer (lihat `b2b_customers`), jadi tabel `b2b_re
 | sent_at | datetime? | |
 | timestamps | | unik `(b2b_invoice_schedule_id, channel, recipient, reminder_date)` supaya tidak terkirim dobel |
 
-### G. Limit kredit (fase 4)
-
-**`b2b_credit_rules`**: id, code (unik), value (bigint), action (`warn`/`block`), is_active, description, timestamps.
-
-**`b2b_customer_credit_rules`**: id, b2b_customer_id (FK), b2b_credit_rule_id (FK), value?, action?, is_active, timestamps. Kombinasi customer dan rule unik.
-
-### H. Pendukung (fase 2)
+### G. Pendukung (fase 2)
 
 **`b2b_sequences`**: id, type (customer/contract/order/invoice/payment), period (`2026` atau `202611`), last_number, timestamps. Kombinasi type dan period unik, dan nomor diambil dengan lock supaya nomor dokumen tidak dobel.
 
-**`b2b_activity_logs`**: id, user_id, subject_type, subject_id, action, changes (json), created_at. Sekarang mencatat customer (dibuat, diubah, diaktifkan/dinonaktifkan, dihapus), kontrak (dibuat, diubah beserta jumlah item dan perubahan file, dihentikan, dihapus), dan pesanan (dibuat, selesai, dibatalkan). Nanti juga pencocokan manual, pembatalan pembayaran, dan limit kredit yang diloloskan.
+**`b2b_activity_logs`**: id, user_id, subject_type, subject_id, action, changes (json), created_at. Sekarang mencatat customer (dibuat, diubah, diaktifkan/dinonaktifkan, dihapus), kontrak (dibuat, diubah beserta jumlah item dan perubahan file, dihentikan, dihapus), dan pesanan (dibuat, selesai, dibatalkan). Nanti juga pencocokan manual dan pembatalan pembayaran.
 
 ### Tabel `configs` yang sudah ada
 
@@ -428,7 +408,6 @@ Jadwal reminder disimpan di customer (lihat `b2b_customers`), jadi tabel `b2b_re
 
 ```
 b2b_customers ─┬─< b2b_customer_sender_aliases
-               ├─< b2b_customer_credit_rules >── b2b_credit_rules
                ├─< b2b_contracts ─< b2b_contract_items ──> variant_products (→ outlet)
                └─< b2b_orders ─< b2b_order_items ──> products / variant_products / b2b_contract_items
                        │
@@ -467,9 +446,9 @@ Menu **B2B** didaftarkan lewat `B2bMenuSeeder`:
 | Invoice | `b2b/invoices` |
 | Pembayaran (Upload Mutasi, Rekonsiliasi) | `b2b/payments` |
 | Laporan | `b2b/reports` |
-| Pengaturan (Rekening, Reminder, Limit Kredit) | `b2b/settings` |
+| Pengaturan (Rekening, Reminder) | `b2b/settings` |
 
-Setiap URL mendapat permission `read|create|update|delete <url>`. Ada satu permission khusus: `override b2b/credit-limit`.
+Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay b2b/invoices` untuk mencatat pelunasan.
 
 ---
 
@@ -507,7 +486,7 @@ Setiap URL mendapat permission `read|create|update|delete <url>`. Ada satu permi
 - Menu Invoice sekarang hanya daftar dan cetak, karena pencatatan pembayaran (fase 3) belum ada.
 - Bayar langsung (19 Nov): `OrderService::place()` menerima `payment_type` + `payment`, `cancel()` menerima data refund. Dialog kasir punya pilihan Tempo / Bayar langsung (metode dari master POS, sub metode, no. referensi, uang diterima + kembalian untuk tunai). Detail pesanan menampilkan jenis pembayaran, riwayat pembayaran dan pengembalian dana; pesanan lunas dibatalkan lewat dialog refund (metode default = metode bayar semula). Cetak invoice menampilkan LUNAS + nomor bukti bayar.
 - Pelunasan tempo manual (19 Nov, B5): menu Invoice dan detail pesanan punya dialog "Catat Pelunasan" (nominal boleh sebagian, tanggal bayar mundur s.d. tanggal invoice, metode dari master POS, outlet penerima atau rekening pusat, no. referensi, bukti opsional `b2b_payments.attachment_path`, catatan). Semua metode termasuk transfer boleh dicatat manual sampai fitur mutasi ada. Pelunasan salah catat bisa dibatalkan tanpa refund (`PaymentService::reverse`); pembayaran pesanan bayar langsung tetap lewat batal pesanan + refund. Permission `pay b2b/invoices`.
-- Belum ada: draft pesanan, cek limit kredit, pelunasan tempo (kode unik/VA), reminder, laporan.
+- Belum ada: draft pesanan, pelunasan tempo otomatis (kode unik/VA), reminder, laporan.
 - Test: `tests/Feature/B2b` (70 test, semua lolos 19 Nov 2026).
 
 ### Perubahan 14 Nov 2026 (bedah kolom)
@@ -537,10 +516,11 @@ Setiap URL mendapat permission `read|create|update|delete <url>`. Ada satu permi
 
 | Tanggal | Keputusan |
 |---|---|
-| 14 Nov 2026 | Tabel `b2b_` terpisah. Produk yang sudah ada, per outlet. Stok berkurang. Hanya web backoffice. Belum ada cicilan tapi siap. Tanpa PPN. Reminder dan limit kredit dinamis. 1 kontrak aktif per customer |
+| 14 Nov 2026 | Tabel `b2b_` terpisah. Produk yang sudah ada, per outlet. Stok berkurang. Hanya web backoffice. Belum ada cicilan tapi siap. Tanpa PPN. Reminder dan limit kredit dinamis (limit kredit dihapus 19 Nov). 1 kontrak aktif per customer |
 | 14 Nov 2026 | Customer global. Stok boleh minus. Tanpa kontrak = harga normal. Kontrak tanpa approval. Laporan B2B terpisah |
 | 14 Nov 2026 | Tidak pakai VA/payment gateway. Pakai rekening statis + kode unik + cek mutasi |
 | 14 Nov 2026 | 1 rekening BCA. Kode unik ditambahkan. Format mutasi dibahas nanti |
 | 14 Nov 2026 | Metode pembayaran dibuka lagi (VA BCA langsung jadi kandidat). Pembayaran ditunda; bangun customer + kasir dulu |
 | 17 Nov 2026 | Satu kontak dan satu alamat per customer |
 | 18 Nov 2026 | Kontrak = harga tetap per varian dengan tingkat qty, bisa lintas outlet. Produk di luar kontrak harga normal. Pesanan lama tetap memakai harga snapshot. Tanpa draft. Bisa diedit saat berjalan. Overlap dicek saat buat dan edit. Harga boleh di atas harga normal. Soft delete, kontrak berjalan tidak bisa dihapus |
+| 19 Nov 2026 | Limit kredit dihapus dari rencana: tidak ada aturan limit kredit maupun override. Kolom `credit_check_result`, `credit_override_by`, `credit_override_reason` dibuang dari `b2b_orders` |
