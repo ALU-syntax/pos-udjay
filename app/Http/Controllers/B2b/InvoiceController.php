@@ -6,6 +6,7 @@ use App\DataTables\B2b\InvoiceDataTable;
 use App\Http\Controllers\Controller;
 use App\Models\B2b\Invoice;
 use App\Models\B2b\Payment;
+use App\Models\B2b\PaymentAllocation;
 use App\Models\Outlets;
 use App\Services\B2b\PaymentService;
 use Illuminate\Http\Request;
@@ -22,9 +23,37 @@ class InvoiceController extends Controller
     {
         $this->authorize('read b2b/invoices');
 
+        $outletIds = $request->user()->outletIds();
+        $today = today()->toDateString();
+        // Invoice belum lunas; status overdue dihitung dari tanggal (lihat Invoice::displayStatus()).
+        $open = fn () => Invoice::query()
+            ->whereIn('status', [Invoice::STATUS_UNPAID, Invoice::STATUS_PARTIAL, Invoice::STATUS_OVERDUE])
+            ->whereHas('order', fn ($order) => $order->whereIn('outlet_id', $outletIds));
+        $summary = fn ($query) => $query->selectRaw('count(*) as total, coalesce(sum(total_to_pay - paid_amount), 0) as amount')->first();
+        $unpaid = $summary($open());
+        $overdue = $summary($open()->whereDate('due_date', '<', $today));
+        $dueSoon = $summary($open()->whereDate('due_date', '>=', $today)->whereDate('due_date', '<=', today()->addDays(7)->toDateString()));
+        // Dana masuk bulan ini (bayar langsung + pelunasan tempo), dari alokasi ke invoice di outlet user.
+        $received = PaymentAllocation::query()
+            ->whereHas('payment', fn ($payment) => $payment->where('status', Payment::STATUS_POSTED)
+                ->whereBetween('paid_at', [now()->startOfMonth(), now()->endOfMonth()]))
+            ->whereHas('invoice.order', fn ($order) => $order->withTrashed()->whereIn('outlet_id', $outletIds))
+            ->selectRaw('count(distinct b2b_payment_id) as total, coalesce(sum(amount), 0) as amount')
+            ->first();
+
         return $dataTable->render('layouts.b2b.invoices.index', [
             'paymentMethods' => $this->payments->methodOptions(),
-            'outlets' => Outlets::query()->whereIn('id', $request->user()->outletIds())->orderBy('name')->get(['id', 'name']),
+            'outlets' => Outlets::query()->whereIn('id', $outletIds)->orderBy('name')->get(['id', 'name']),
+            'stats' => [
+                'unpaid_count' => (int) $unpaid->total,
+                'unpaid_amount' => (int) $unpaid->amount,
+                'overdue_count' => (int) $overdue->total,
+                'overdue_amount' => (int) $overdue->amount,
+                'due_soon_count' => (int) $dueSoon->total,
+                'due_soon_amount' => (int) $dueSoon->amount,
+                'received_count' => (int) $received->total,
+                'received_amount' => (int) $received->amount,
+            ],
         ]);
     }
 

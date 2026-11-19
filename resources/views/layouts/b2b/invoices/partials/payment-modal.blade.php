@@ -2,7 +2,7 @@
     Dialog "Catat Pelunasan" invoice tempo. Dipakai di menu Invoice dan detail pesanan.
     Butuh: $paymentMethods (PaymentService::methodOptions), $outlets (outlet milik user).
     Pemicu: elemen dengan [data-pay-invoice] + data-url, data-number, data-customer, data-total, data-paid,
-    data-outstanding, data-issue (Y-m-d), data-outlet. Setelah tersimpan: muat ulang DataTable invoice kalau ada, kalau tidak reload halaman.
+    data-outstanding, data-issue (Y-m-d), data-outlet. Setelah tersimpan: muat ulang DataTable invoice + kartu ringkasan kalau ada, kalau tidak reload halaman.
 --}}
 @can('pay b2b/invoices')
     @include('layouts.b2b.partials.datepicker')
@@ -219,7 +219,10 @@
                         onSuccess: () => {
                             modal.hide();
                             const table = window.LaravelDataTables?.['b2b-invoice-table'];
-                            table ? table.ajax.reload(null, false) : window.location.reload();
+                            if (!table) return window.location.reload();
+                            table.ajax.reload(null, false);
+                            // Angka kartu ringkasan ikut diperbarui tanpa reload (filter tetap).
+                            $('.ob-stats').load(`${window.location.pathname} .ob-stats > *`, () => $(document).trigger('b2b:stats-refreshed'));
                         },
                     });
                 });

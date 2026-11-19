@@ -69,9 +69,10 @@
 
     @push('css')
         <style>
-            .b2b-stat-filter { width: 100%; border: 1px solid var(--ob-border); text-align: left; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
-            .b2b-stat-filter:hover { border-color: var(--ob-border-strong); }
-            .b2b-stat-filter.is-active { border-color: var(--ob-primary); box-shadow: 0 0 0 1px var(--ob-primary); }
+            /* ui-styles dicetak inline di body, jadi selektor diberi .ob-page supaya menang */
+            .ob-page .b2b-stat-filter { width: 100%; border: 1px solid var(--ob-border); text-align: left; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
+            .ob-page .b2b-stat-filter:hover { border-color: var(--ob-border-strong); }
+            .ob-page .b2b-stat-filter.is-active { border-color: var(--ob-primary); box-shadow: 0 0 0 1px var(--ob-primary), var(--ob-shadow); }
         </style>
     @endpush
 

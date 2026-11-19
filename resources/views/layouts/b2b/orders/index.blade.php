@@ -7,7 +7,7 @@
 @section('content')
     @include('layouts.b2b.partials.assets')
     @include('layouts.b2b.partials.page-styles')
-    @include('layouts.b2b.partials.datepicker')
+    @include('layouts.b2b.partials.list-filters')
 
     <div class="main-content ob-page">
         <div class="ob-header">
@@ -114,158 +114,20 @@
             </div>
 
             <div class="ob-table-wrap">
-                {!! $dataTable->table(['class' => 'table w-100']) !!}
+                {!! $dataTable->table(['class' => 'table w-100 b2b-list-table']) !!}
             </div>
         </div>
     </div>
-
-    @push('css')
-        <style>
-            .b2b-stat-filter { width: 100%; border: 1px solid var(--ob-border); text-align: left; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
-            .b2b-stat-filter:hover { border-color: var(--ob-border-strong); }
-            .b2b-stat-filter:focus-visible { outline: 2px solid var(--ob-primary); outline-offset: 2px; }
-            .b2b-stat-filter[aria-pressed="true"] { border-color: var(--ob-primary); box-shadow: 0 0 0 1px var(--ob-primary); }
-
-            .b2b-filter-row {
-                display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem;
-                padding: 1rem 1.25rem; border-bottom: 1px solid var(--ob-border); background: var(--ob-surface-2);
-            }
-            @media (max-width: 1199.98px) { .b2b-filter-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-            @media (max-width: 575.98px) { .b2b-filter-row { grid-template-columns: minmax(0, 1fr); } }
-            .b2b-filter-row .ob-field label { display: block; margin-bottom: .3rem; font-size: .72rem !important; font-weight: 600; color: var(--ob-muted) !important; }
-            .b2b-filter-row .form-select {
-                min-height: 42px; padding: 0 2.25rem 0 .85rem; border: 1px solid var(--ob-border-strong); border-radius: var(--ob-radius-sm);
-                background-color: var(--ob-surface); font-size: .875rem; color: var(--ob-text);
-            }
-            .b2b-filter-row .form-select.is-set,
-            .b2b-form .b2b-range .form-control[readonly].is-set { border-color: var(--ob-primary) !important; background-color: var(--ob-primary-soft) !important; }
-            .b2b-filter-row .b2b-range .form-control[readonly] { padding-right: 2.5rem; border-color: var(--ob-border-strong) !important; font-weight: 500; }
-            .b2b-filter-row .b2b-range .form-control[readonly]::placeholder { color: var(--ob-muted); font-weight: 500; }
-            .b2b-range__clear {
-                position: absolute; top: 50%; right: .45rem; transform: translateY(-50%); display: inline-grid; place-items: center;
-                width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--ob-muted); font-size: .75rem;
-            }
-            .b2b-range__clear:hover { background: var(--ob-surface); color: var(--ob-danger); }
-
-            /* Sel tabel */
-            #b2b-order-table .ob-cell-meta .fa-store { font-size: .68rem; }
-            #b2b-order-table td { vertical-align: middle; }
-            #b2b-order-table .ob-cell-meta .fa-file-signature { font-size: .68rem; }
-            #b2b-order-table tbody tr { transition: background-color .12s ease; }
-            #b2b-order-table tbody tr:hover { background: var(--ob-surface-2); }
-        </style>
-    @endpush
 
     @push('js')
         {!! $dataTable->scripts() !!}
         <script>
             $(function () {
-                const table = () => window.LaravelDataTables['b2b-order-table'];
-                const selects = $('#outlet-filter, #status-filter, #payment-filter');
-                const period = $('#period-filter');
-                const from = $('#date-from');
-                const to = $('#date-to');
-
-                function syncState() {
-                    selects.each(function () { $(this).toggleClass('is-set', this.value !== ''); });
-                    period.toggleClass('is-set', from.val() !== '');
-                    $('#period-clear').prop('hidden', from.val() === '');
-                    $('.b2b-stat-filter').each(function () {
-                        $(this).attr('aria-pressed', $(`#${this.dataset.filter}-filter`).val() === this.dataset.value);
-                    });
-                    $('#filter-reset').prop('hidden', !selects.toArray().some(el => el.value !== '') && from.val() === '');
-                }
-                const reload = () => { syncState(); table().ajax.reload(); };
-
-                selects.on('change', reload);
-
-                // Kartu ringkasan = filter cepat; klik lagi untuk melepas.
-                $('.b2b-stat-filter').on('click', function () {
-                    const select = $(`#${this.dataset.filter}-filter`);
-                    select.val(select.val() === this.dataset.value ? '' : this.dataset.value);
-                    reload();
+                B2b.listFilters({
+                    table: 'b2b-order-table',
+                    selects: '#outlet-filter, #status-filter, #payment-filter',
+                    range: { input: '#period-filter', from: '#date-from', to: '#date-to', clear: '#period-clear', ranges: 'past' },
                 });
-
-                // Rentang tanggal dengan tema yang sama seperti form kontrak.
-                const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-                const label = date => `${date.format('DD')} ${shortMonths[date.month()]} ${date.year()}`;
-                function setPeriod(start, end) {
-                    if (!start) {
-                        period.val('');
-                        from.val('');
-                        to.val('');
-                    } else {
-                        period.val(start.isSame(end, 'day') ? label(start) : `${label(start)}  –  ${label(end)}`);
-                        from.val(start.format('YYYY-MM-DD'));
-                        to.val(end.format('YYYY-MM-DD'));
-                    }
-                    reload();
-                }
-
-                if ($.fn.daterangepicker) {
-                    const today = moment().startOf('day');
-                    period.daterangepicker({
-                        autoUpdateInput: false,
-                        drops: 'auto',
-                        opens: 'left',
-                        showDropdowns: true,
-                        linkedCalendars: false,
-                        alwaysShowCalendars: true,
-                        maxDate: today.clone().endOf('day'),
-                        ranges: {
-                            'Hari ini': [today.clone(), today.clone()],
-                            '7 hari terakhir': [today.clone().subtract(6, 'days'), today.clone()],
-                            'Bulan ini': [today.clone().startOf('month'), today.clone()],
-                            'Bulan lalu': [today.clone().subtract(1, 'month').startOf('month'), today.clone().subtract(1, 'month').endOf('month')],
-                        },
-                        buttonClasses: 'btn btn-sm',
-                        applyButtonClasses: 'btn-primary',
-                        cancelButtonClasses: 'btn-light',
-                        locale: {
-                            format: 'DD/MM/YYYY',
-                            separator: ' – ',
-                            applyLabel: 'Terapkan',
-                            cancelLabel: 'Batal',
-                            customRangeLabel: 'Pilih sendiri',
-                            daysOfWeek: ['Mg', 'Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb'],
-                            monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
-                            firstDay: 1,
-                        },
-                    });
-                    const picker = period.data('daterangepicker');
-                    picker.container.addClass('b2b-drp');
-
-                    // Ringkasan di footer popup dalam bahasa Indonesia, bukan format bawaan DD/MM/YYYY.
-                    function renderSelected() {
-                        const box = picker.container.find('.drp-selected');
-                        if (!picker.endDate) {
-                            box.html(`<strong>${label(picker.startDate)}  –  …</strong><small>Pilih tanggal akhir</small>`);
-                            return;
-                        }
-                        const days = picker.endDate.clone().startOf('day').diff(picker.startDate.clone().startOf('day'), 'days') + 1;
-                        box.html(`<strong>${label(picker.startDate)}  –  ${label(picker.endDate)}</strong><small class="is-days">${days.toLocaleString('id-ID')} hari</small>`);
-                    }
-                    ['updateView', 'setEndDate'].forEach(name => {
-                        const original = picker[name];
-                        picker[name] = function () {
-                            const result = original.apply(this, arguments);
-                            renderSelected();
-                            return result;
-                        };
-                    });
-
-                    period.on('show.daterangepicker', () => { period.addClass('is-open'); renderSelected(); })
-                        .on('hide.daterangepicker', () => period.removeClass('is-open'))
-                        .on('apply.daterangepicker', (event, picker) => setPeriod(picker.startDate, picker.endDate));
-                }
-
-                $('#period-clear').on('click', () => setPeriod(null));
-                $('#filter-reset').on('click', function () {
-                    selects.val('');
-                    setPeriod(null);
-                });
-
-                syncState();
             });
         </script>
     @endpush
