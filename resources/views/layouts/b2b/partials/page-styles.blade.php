@@ -1,4 +1,4 @@
-{{-- Gaya halaman B2B (kartu, daftar, detail, form) dipakai menu Customer & Kontrak. Include setelah layouts.b2b.partials.assets. --}}
+{{-- Gaya halaman B2B (kartu, daftar, detail, form) dipakai menu Customer, Kontrak & Pesanan. Include setelah layouts.b2b.partials.assets. --}}
 @push('css')
     <style>
         /* ----- Kartu: ob-card tidak punya padding sendiri, jadi isinya dibagi kepala / badan / kaki ----- */
@@ -33,6 +33,20 @@
         .b2b-avatar--lg { width: 56px; height: 56px; border-radius: 16px; font-size: 1.1rem; }
         .b2b-avatar.is-inactive { background: var(--ob-border); color: var(--ob-muted); }
 
+        .b2b-mono { font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+        .b2b-avatar--sm { width: 32px; height: 32px; border-radius: 10px; font-size: .7rem; }
+
+        /* ----- Ikon dokumen (kontrak, pesanan); warna mengikuti status ----- */
+        .b2b-doc-icon {
+            display: inline-grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px;
+            background: var(--ob-surface-2); color: var(--ob-muted); font-size: .9rem;
+        }
+        .b2b-doc-icon--success { background: var(--ob-success-soft); color: var(--ob-success); }
+        .b2b-doc-icon--primary { background: var(--ob-primary-soft); color: var(--ob-primary); }
+        .b2b-doc-icon--warning { background: #fef3c7; color: #b45309; }
+        .b2b-doc-icon--danger { background: var(--ob-danger-soft); color: var(--ob-danger); }
+        .b2b-doc-icon--lg { width: 56px; height: 56px; border-radius: 16px; font-size: 1.25rem; }
+
         /* ----- Daftar customer ----- */
         .ob-cell-stack { display: flex; flex-direction: column; align-items: flex-start; gap: .2rem; min-width: 0; }
         .b2b-cust-cell { display: flex; align-items: center; gap: .75rem; min-width: 240px; }
@@ -51,6 +65,7 @@
 
         /* Kartu statistik: buang margin bawah bawaan ob-card (jarak sudah dari grid); di HP jadi 2 kolom */
         .ob-page .ob-stats .ob-stat { margin-bottom: 0; }
+        .b2b-stat__sub { margin: .1rem 0 0; font-size: .76rem; color: var(--ob-muted); font-variant-numeric: tabular-nums; }
         @media (max-width: 575.98px) {
             .ob-page .ob-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
             .ob-page .ob-stats .ob-stat { flex-direction: column; align-items: flex-start; gap: .6rem; padding: .9rem; }

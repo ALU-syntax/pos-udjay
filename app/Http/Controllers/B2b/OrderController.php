@@ -5,6 +5,7 @@ namespace App\Http\Controllers\B2b;
 use App\DataTables\B2b\OrderDataTable;
 use App\Http\Controllers\Controller;
 use App\Models\B2b\ActivityLog;
+use App\Models\B2b\Invoice;
 use App\Models\B2b\Order;
 use App\Models\B2b\Payment;
 use App\Models\Outlets;
@@ -25,8 +26,30 @@ class OrderController extends Controller
     {
         $this->authorize('read b2b/orders');
 
+        $outletIds = $request->user()->outletIds();
+        $orders = fn () => Order::query()->whereIn('outlet_id', $outletIds);
+        $month = $orders()->where('status', '!=', Order::STATUS_CANCELLED)
+            ->whereBetween('order_date', [now()->startOfMonth(), now()->endOfMonth()])
+            ->selectRaw('count(*) as total, coalesce(sum(grand_total), 0) as amount')->first();
+        // Tagihan tempo yang belum lunas; status overdue dihitung dari tanggal (lihat Invoice::displayStatus()).
+        $open = fn () => Invoice::query()
+            ->whereIn('status', [Invoice::STATUS_UNPAID, Invoice::STATUS_PARTIAL, Invoice::STATUS_OVERDUE])
+            ->whereHas('order', fn ($order) => $order->whereIn('outlet_id', $outletIds));
+        $outstanding = 'coalesce(sum(total_to_pay - paid_amount), 0) as amount';
+        $unpaid = $open()->selectRaw('count(*) as total, '.$outstanding)->first();
+        $overdue = $open()->whereDate('due_date', '<', today()->toDateString())->selectRaw('count(*) as total, '.$outstanding)->first();
+
         return $dataTable->render('layouts.b2b.orders.index', [
-            'outlets' => Outlets::query()->whereIn('id', $request->user()->outletIds())->orderBy('name')->get(['id', 'name']),
+            'outlets' => Outlets::query()->whereIn('id', $outletIds)->orderBy('name')->get(['id', 'name']),
+            'stats' => [
+                'month_count' => (int) $month->total,
+                'month_amount' => (int) $month->amount,
+                'confirmed' => $orders()->where('status', Order::STATUS_CONFIRMED)->count(),
+                'unpaid_count' => (int) $unpaid->total,
+                'unpaid_amount' => (int) $unpaid->amount,
+                'overdue_count' => (int) $overdue->total,
+                'overdue_amount' => (int) $overdue->amount,
+            ],
         ]);
     }
 

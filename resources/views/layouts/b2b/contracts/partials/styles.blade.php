@@ -1,19 +1,6 @@
 {{-- Gaya khusus menu Kontrak B2B. Include setelah layouts.b2b.partials.page-styles. --}}
 @push('css')
     <style>
-        .b2b-mono { font-variant-numeric: tabular-nums; letter-spacing: .01em; }
-        .b2b-avatar--sm { width: 32px; height: 32px; border-radius: 10px; font-size: .7rem; }
-
-        /* ----- Ikon dokumen, warna mengikuti status kontrak ----- */
-        .b2b-doc-icon {
-            display: inline-grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px;
-            background: var(--ob-surface-2); color: var(--ob-muted); font-size: .9rem;
-        }
-        .b2b-doc-icon--success { background: var(--ob-success-soft); color: var(--ob-success); }
-        .b2b-doc-icon--primary { background: var(--ob-primary-soft); color: var(--ob-primary); }
-        .b2b-doc-icon--danger { background: var(--ob-danger-soft); color: var(--ob-danger); }
-        .b2b-doc-icon--lg { width: 56px; height: 56px; border-radius: 16px; font-size: 1.25rem; }
-
         /* ----- Periode + bilah progres ----- */
         .b2b-period { display: flex; flex-direction: column; gap: .35rem; min-width: 190px; }
         .b2b-period__dates { display: flex; align-items: center; gap: .45rem; font-size: .84rem; font-weight: 600; color: var(--ob-text); white-space: nowrap; }
