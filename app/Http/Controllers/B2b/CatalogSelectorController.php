@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\B2b;
 
 use App\Http\Controllers\Controller;
+use App\Models\B2b\Customer;
 use App\Models\VariantProduct;
 use Illuminate\Http\Request;
 
-/** Sumber data tabel pilih produk di form kontrak. */
+/** Sumber data pemilih: tabel pilih produk di form kontrak, filter customer di daftar Pesanan/Invoice. */
 class CatalogSelectorController extends Controller
 {
     public function __construct()
@@ -43,6 +44,33 @@ class CatalogSelectorController extends Controller
             ]);
 
         return responseSuccess(false, false, $data->values()->all());
+    }
+
+    /** Pencarian customer untuk filter daftar (select2). Termasuk customer nonaktif karena pesanan lamanya tetap perlu dicari. */
+    public function customers(Request $request)
+    {
+        abort_unless(
+            $request->user()->can('read b2b/orders') || $request->user()->can('read b2b/invoices'),
+            403
+        );
+        $q = addcslashes(trim((string) $request->query('q')), '%_\\');
+
+        $data = Customer::query()
+            ->when($q !== '', fn ($query) => $query->where(fn ($inner) => $inner
+                ->where('name', 'like', "%{$q}%")
+                ->orWhere('code', 'like', "%{$q}%")
+                ->orWhere('phone', 'like', "%{$q}%")))
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->limit(30)
+            ->get(['id', 'code', 'name', 'is_active'])
+            ->map(fn (Customer $customer) => [
+                'id' => $customer->id,
+                'text' => $customer->name.' · '.$customer->code.($customer->is_active ? '' : ' (nonaktif)'),
+                'name' => $customer->name,
+            ]);
+
+        return responseSuccess(false, false, $data->all());
     }
 
     public static function variantLabel(VariantProduct $variant): string

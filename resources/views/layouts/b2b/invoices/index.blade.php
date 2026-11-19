@@ -67,7 +67,7 @@
                 </button>
             </div>
 
-            <div class="b2b-filter-row b2b-filter-row--3">
+            <div class="b2b-filter-row">
                 <div class="ob-field">
                     <label for="status-filter"><i class="fas fa-filter" aria-hidden="true"></i> Status</label>
                     <select id="status-filter" class="form-select" data-default="open">
@@ -77,6 +77,12 @@
                         <option value="due_soon">Jatuh tempo ≤ 7 hari</option>
                         <option value="paid">Lunas</option>
                         <option value="void">Dibatalkan</option>
+                    </select>
+                </div>
+                <div class="ob-field">
+                    <label for="customer-filter"><i class="fas fa-building" aria-hidden="true"></i> Customer</label>
+                    <select id="customer-filter" class="form-select" data-select2-url="{{ route('b2b/selectors/customers') }}" data-placeholder="Semua customer">
+                        <option value=""></option>
                     </select>
                 </div>
                 <div class="ob-field">
@@ -130,7 +136,7 @@
             $(function () {
                 B2b.listFilters({
                     table: 'b2b-invoice-table',
-                    selects: '#status-filter, #outlet-filter',
+                    selects: '#status-filter, #customer-filter, #outlet-filter',
                     range: { input: '#due-filter', from: '#due-from', to: '#due-to', clear: '#due-clear', ranges: 'due' },
                 });
             });

@@ -72,7 +72,13 @@
                 </button>
             </div>
 
-            <div class="b2b-filter-row">
+            <div class="b2b-filter-row b2b-filter-row--5">
+                <div class="ob-field">
+                    <label for="customer-filter"><i class="fas fa-building" aria-hidden="true"></i> Customer</label>
+                    <select id="customer-filter" class="form-select" data-select2-url="{{ route('b2b/selectors/customers') }}" data-placeholder="Semua customer">
+                        <option value=""></option>
+                    </select>
+                </div>
                 <div class="ob-field">
                     <label for="outlet-filter"><i class="fas fa-store" aria-hidden="true"></i> Outlet</label>
                     <select id="outlet-filter" class="form-select">
@@ -125,7 +131,7 @@
             $(function () {
                 B2b.listFilters({
                     table: 'b2b-order-table',
-                    selects: '#outlet-filter, #status-filter, #payment-filter',
+                    selects: '#customer-filter, #outlet-filter, #status-filter, #payment-filter',
                     range: { input: '#period-filter', from: '#date-from', to: '#date-to', clear: '#period-clear', ranges: 'past' },
                 });
             });

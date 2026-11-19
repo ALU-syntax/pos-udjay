@@ -3,6 +3,7 @@
     Markup:
       - Kartu: <button class="ob-card ob-stat b2b-stat-filter" data-filter="status" data-value="overdue" aria-pressed="false"> → mengubah #status-filter.
       - Baris: <div class="b2b-filter-row"> berisi .ob-field dengan <select id="...-filter" class="form-select" data-default="...">.
+        Select dengan data-select2-url jadi select2 ber-ajax (mis. customer); beri <option value=""></option> kosong.
       - Rentang: <div class="ob-field b2b-form"><div class="b2b-range"><i></i><input readonly><button class="b2b-range__clear"></button></div>
         + dua <input type="hidden"> untuk tanggal awal/akhir (Y-m-d).
       - Tombol hapus filter: <button id="filter-reset" hidden>.
@@ -23,8 +24,9 @@
                 display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem;
                 padding: 1rem 1.25rem; border-bottom: 1px solid var(--ob-border); background: var(--ob-surface-2);
             }
-            .b2b-filter-row--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-            @media (max-width: 1199.98px) { .b2b-filter-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+            .b2b-filter-row--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+            @media (max-width: 1399.98px) { .b2b-filter-row--5 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+            @media (max-width: 1199.98px) { .b2b-filter-row, .b2b-filter-row--5 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
             @media (max-width: 575.98px) { .b2b-filter-row { grid-template-columns: minmax(0, 1fr); } }
             .b2b-filter-row .ob-field label { display: block; margin-bottom: .3rem; font-size: .72rem !important; font-weight: 600; color: var(--ob-muted) !important; }
             .b2b-filter-row .form-select {
@@ -35,6 +37,26 @@
             .b2b-form .b2b-range .form-control[readonly].is-set { border-color: var(--ob-primary) !important; background-color: var(--ob-primary-soft) !important; }
             .b2b-filter-row .b2b-range .form-control[readonly] { padding-right: 2.5rem; border-color: var(--ob-border-strong) !important; font-weight: 500; }
             .b2b-filter-row .b2b-range .form-control[readonly]::placeholder { color: var(--ob-muted); font-weight: 500; }
+            /* select2 di baris filter (customer), disamakan dengan .form-select */
+            .b2b-filter-row .select2-container { width: 100% !important; }
+            .b2b-filter-row .select2-container--default .select2-selection--single {
+                height: 42px; border: 1px solid var(--ob-border-strong); border-radius: var(--ob-radius-sm); background: var(--ob-surface);
+            }
+            .b2b-filter-row .select2-container--default .select2-selection--single .select2-selection__rendered { padding-left: .85rem; padding-right: 3.6rem; line-height: 40px; font-size: .875rem; color: var(--ob-text); }
+            .b2b-filter-row .select2-container--default .select2-selection--single .select2-selection__placeholder { color: var(--ob-text); }
+            .b2b-filter-row .select2-container--default .select2-selection--single .select2-selection__arrow { height: 40px; right: .5rem; }
+            .b2b-filter-row .select2-container--default .select2-selection--single .select2-selection__clear {
+                position: absolute; top: 50%; right: 2rem; transform: translateY(-50%); display: inline-grid; place-items: center;
+                width: 24px; height: 24px; margin: 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--ob-muted); font-size: 1.05rem; line-height: 1;
+            }
+            .b2b-filter-row .select2-container--default .select2-selection--single .select2-selection__clear:hover { background: var(--ob-surface); color: var(--ob-danger); }
+            .b2b-filter-row .select2-container--default.select2-container--focus .select2-selection--single,
+            .b2b-filter-row .select2-container--open .select2-selection--single { border-color: var(--ob-primary); }
+            .b2b-filter-row .select2-container.is-set .select2-selection--single { border-color: var(--ob-primary); background: var(--ob-primary-soft); }
+            .select2-dropdown.b2b-filter-dropdown { border-color: var(--ob-border-strong); border-radius: var(--ob-radius-sm); overflow: hidden; box-shadow: 0 12px 32px rgba(15, 23, 42, .12); font-size: .85rem; }
+            .select2-dropdown.b2b-filter-dropdown .select2-search__field { height: 36px; border-radius: 8px; border-color: var(--ob-border-strong); }
+            .select2-dropdown.b2b-filter-dropdown .select2-results__option--highlighted { background: #1572e8; }
+
             .b2b-range__clear {
                 position: absolute; top: 50%; right: .45rem; transform: translateY(-50%); display: inline-grid; place-items: center;
                 width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--ob-muted); font-size: .75rem;
@@ -60,14 +82,35 @@
                 const $from = range ? $(range.from) : $();
                 const $to = range ? $(range.to) : $();
 
+                // Select pencarian (mis. customer) memakai select2 ber-ajax.
+                $selects.filter('[data-select2-url]').each(function () {
+                    $(this).select2({
+                        width: '100%',
+                        placeholder: this.dataset.placeholder || 'Semua',
+                        allowClear: true,
+                        dropdownCssClass: 'b2b-filter-dropdown',
+                        // Kotak terpilih cukup nama; daftar pencarian tetap menampilkan kode.
+                        templateSelection: item => item.name || item.text,
+                        language: { searching: () => 'Mencari…', noResults: () => 'Tidak ditemukan', inputTooShort: () => 'Ketik untuk mencari' },
+                        ajax: {
+                            url: this.dataset.select2Url, dataType: 'json', delay: 250,
+                            data: params => ({ q: params.term }),
+                            processResults: response => ({ results: response.data || [] }),
+                        },
+                    });
+                });
+
                 function syncState() {
-                    $selects.each(function () { $(this).toggleClass('is-set', this.value !== initial(this)); });
+                    $selects.each(function () {
+                        const set = (this.value || '') !== initial(this);
+                        $(this).toggleClass('is-set', set).next('.select2-container').toggleClass('is-set', set);
+                    });
                     $input.toggleClass('is-set', $from.val() !== '');
                     if (range) $(range.clear).prop('hidden', !$from.val());
                     $('.b2b-stat-filter').each(function () {
                         $(this).attr('aria-pressed', $(`#${this.dataset.filter}-filter`).val() === this.dataset.value);
                     });
-                    const dirty = $selects.toArray().some(el => el.value !== initial(el)) || !!$from.val();
+                    const dirty = $selects.toArray().some(el => (el.value || '') !== initial(el)) || !!$from.val();
                     $('#filter-reset').prop('hidden', !dirty);
                 }
                 const reload = () => { syncState(); datatable().ajax.reload(); };
@@ -158,7 +201,7 @@
 
                 if (range) $(range.clear).on('click', () => setRange(null));
                 $('#filter-reset').on('click', function () {
-                    $selects.each(function () { this.value = initial(this); });
+                    $selects.each(function () { $(this).val(initial(this)).trigger('change.select2'); });
                     if (range) setRange(null); else reload();
                 });
 

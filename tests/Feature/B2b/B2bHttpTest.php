@@ -599,4 +599,34 @@ class B2bHttpTest extends B2bTestCase
         $this->actingAs($user)->get(route('b2b/contracts/create', ['copy_from' => $contract->id]))->assertOk()
             ->assertSee('Disalin dari')->assertSee('Kopi Kontrak');
     }
+
+    public function test_customer_selector_and_customer_filter_on_orders_and_invoices(): void
+    {
+        $outlet = $this->outlet();
+        $user = $this->userFor($outlet, ['read b2b/orders', 'read b2b/invoices']);
+        $variant = $this->variant($outlet);
+        $buyer = $this->customer(['name' => 'PT Filter Satu']);
+        $other = $this->customer(['name' => 'PT Filter Dua']);
+        $inactive = $this->customer(['name' => 'PT Filter Nonaktif', 'is_active' => false]);
+        $place = fn (Customer $customer) => app(\App\Services\B2b\OrderService::class)->place($user, [
+            'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id, 'delivery_method' => 'pickup', 'due_date' => today()->addDays(7)->toDateString(),
+            'items' => [['variant_id' => $variant->id, 'qty' => 1]],
+        ]);
+        $mine = $place($buyer);
+        $theirs = $place($other);
+
+        // Pencarian customer untuk filter: termasuk customer nonaktif, butuh akses Pesanan atau Invoice.
+        $this->actingAs($user)->getJson(route('b2b/selectors/customers', ['q' => 'PT Filter']))->assertOk()
+            ->assertJsonFragment(['id' => $inactive->id])->assertJsonFragment(['id' => $buyer->id]);
+        $this->actingAs($this->userFor($outlet, ['read b2b/customers']))->getJson(route('b2b/selectors/customers'))->assertForbidden();
+
+        $ajax = ['X-Requested-With' => 'XMLHttpRequest'];
+        $rows = $this->actingAs($user)->getJson(route('b2b/orders', ['draw' => 1, 'start' => 0, 'length' => 10, 'customer_id' => $buyer->id]), $ajax)
+            ->assertOk()->json('data.*.DT_RowId');
+        $this->assertEquals([$mine->id], $rows);
+        $this->app->forgetInstance('datatables.request');
+        $rows = $this->actingAs($user)->getJson(route('b2b/invoices', ['draw' => 1, 'start' => 0, 'length' => 10, 'status' => '', 'customer_id' => $other->id]), $ajax)
+            ->assertOk()->json('data.*.DT_RowId');
+        $this->assertEquals([$theirs->invoice->id], $rows);
+    }
 }

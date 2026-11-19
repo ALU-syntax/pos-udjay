@@ -94,6 +94,9 @@ class OrderDataTable extends DataTable
         if (request()->filled('status')) {
             $query->where('b2b_orders.status', request('status'));
         }
+        if (request()->filled('customer_id')) {
+            $query->where('b2b_orders.b2b_customer_id', request()->integer('customer_id'));
+        }
         if (request()->filled('date_from') && request()->filled('date_to')) {
             $query->whereBetween('b2b_orders.order_date', [
                 Carbon::parse(request('date_from'))->startOfDay(),
@@ -121,6 +124,7 @@ class OrderDataTable extends DataTable
             ->columns($this->getColumns())
             ->minifiedAjax('', null, [
                 'outlet_id' => "$('#outlet-filter').val()",
+                'customer_id' => "$('#customer-filter').val()",
                 'status' => "$('#status-filter').val()",
                 'date_from' => "$('#date-from').val()",
                 'date_to' => "$('#date-to').val()",
