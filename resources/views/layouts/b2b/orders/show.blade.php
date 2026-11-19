@@ -55,6 +55,7 @@
             <div class="b2b-actions">
                 @if ($invoice)
                     <a href="{{ route('b2b/invoices/print', $invoice->id) }}" target="_blank" class="btn ob-btn ob-btn-outline"><i class="fas fa-print" aria-hidden="true"></i> Cetak Invoice</a>
+                    <a href="{{ route('b2b/invoices/excel', $invoice->id) }}" class="btn ob-btn ob-btn-outline" title="Unduh invoice sebagai Excel"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</a>
                 @endif
                 @if ($order->status === 'confirmed')
                     @can('cancel b2b/orders')

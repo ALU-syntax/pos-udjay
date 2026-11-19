@@ -60,11 +60,17 @@
             <div class="b2b-card__head">
                 <div>
                     <h2 class="b2b-card__title"><i class="fas fa-list" aria-hidden="true"></i> Daftar Invoice</h2>
-                    <p class="b2b-card__desc">Urut jatuh tempo terlama dulu. Klik kartu di atas untuk menyaring cepat.</p>
+                    <p class="b2b-card__desc">Urut jatuh tempo terlama dulu. Klik kartu di atas untuk menyaring cepat; Export Excel mengikuti filter.</p>
                 </div>
-                <button type="button" class="btn ob-btn ob-btn-outline ob-btn-sm" id="filter-reset" hidden>
-                    <i class="fas fa-undo" aria-hidden="true"></i> Reset filter
-                </button>
+                <div class="b2b-actions">
+                    <button type="button" class="btn ob-btn ob-btn-outline ob-btn-sm" id="filter-reset" hidden>
+                        <i class="fas fa-undo" aria-hidden="true"></i> Reset filter
+                    </button>
+                    <button type="button" class="btn ob-btn ob-btn-outline ob-btn-sm" id="export-excel" data-url="{{ route('b2b/invoices/export') }}"
+                        title="Unduh daftar sesuai filter: sheet Rekap + satu sheet per invoice">
+                        <i class="fas fa-file-excel" aria-hidden="true"></i> Export Excel
+                    </button>
+                </div>
             </div>
 
             <div class="b2b-filter-row">
@@ -138,6 +144,23 @@
                     table: 'b2b-invoice-table',
                     selects: '#status-filter, #customer-filter, #outlet-filter',
                     range: { input: '#due-filter', from: '#due-from', to: '#due-to', clear: '#due-clear', ranges: 'due' },
+                });
+
+                // Export mengikuti filter yang sedang dipakai (sama dengan isi tabel).
+                $('#export-excel').on('click', function () {
+                    const total = window.LaravelDataTables['b2b-invoice-table'].page.info().recordsDisplay;
+                    if (!total) return showToast('error', 'Tidak ada invoice untuk diekspor.');
+                    if (total > {{ \App\Exports\B2b\InvoiceRecapExport::MAX_INVOICES }}) {
+                        return showToast('error', `Ada ${total} invoice. Maksimal {{ \App\Exports\B2b\InvoiceRecapExport::MAX_INVOICES }} per export, persempit filter dulu.`);
+                    }
+                    const params = new URLSearchParams({
+                        status: $('#status-filter').val() || '',
+                        customer_id: $('#customer-filter').val() || '',
+                        outlet_id: $('#outlet-filter').val() || '',
+                        due_from: $('#due-from').val() || '',
+                        due_to: $('#due-to').val() || '',
+                    });
+                    window.location.href = `${this.dataset.url}?${params}`;
                 });
             });
         </script>

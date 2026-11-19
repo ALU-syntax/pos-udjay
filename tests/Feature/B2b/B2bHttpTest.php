@@ -649,4 +649,68 @@ class B2bHttpTest extends B2bTestCase
             ->assertSee('in the transfer description', false)
             ->assertSee('Rp. 1.350.000')->assertSee('@budiman.roastery')->assertDontSee('PAID');
     }
+
+    public function test_invoice_excel_export_uses_template_and_real_numbers(): void
+    {
+        $outlet = $this->outlet();
+        $user = $this->userFor($outlet, ['read b2b/orders']);
+        $variant = $this->variant($outlet, 270000, 100, null, 'Modern Blend');
+        $variant->forceFill(['name' => '1 kg'])->save();
+        $order = app(\App\Services\B2b\OrderService::class)->place($user, [
+            'outlet_id' => $outlet->id, 'b2b_customer_id' => $this->customer(['name' => 'Calle'])->id, 'delivery_method' => 'pickup',
+            'due_date' => today()->addDays(7)->toDateString(), 'items' => [['variant_id' => $variant->id, 'qty' => 2]],
+        ]);
+        $invoice = $order->invoice;
+
+        $response = $this->actingAs($user)->get(route('b2b/invoices/excel', $invoice->id))->assertOk()
+            ->assertDownload(\App\Exports\B2b\InvoiceSheet::filename($invoice));
+        $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($response->getFile()->getPathname())->getActiveSheet();
+
+        $this->assertSame('Invoice', $sheet->getCell('E1')->getValue());
+        $this->assertSame($invoice->invoice_number, $sheet->getCell('F2')->getValue());
+        $this->assertSame('Calle', $sheet->getCell('E9')->getValue());
+        $this->assertSame(['Modern Blend', 2, '1 kg', 270000], [
+            $sheet->getCell('B11')->getValue(), $sheet->getCell('C11')->getValue(), $sheet->getCell('D11')->getValue(), $sheet->getCell('E11')->getValue(),
+        ]);
+        // Total dan sisa tagihan berupa angka (rumus), bukan teks.
+        $this->assertEquals(540000, $sheet->getCell('F11')->getCalculatedValue());
+        $this->assertEquals(540000, $sheet->getCell('F15')->getCalculatedValue());
+        $this->assertEquals(540000, $sheet->getCell('F17')->getCalculatedValue());
+
+        $this->actingAs($this->userFor($outlet))->get(route('b2b/invoices/excel', $invoice->id))->assertForbidden();
+    }
+
+    public function test_invoice_recap_export_follows_filters_and_links_invoice_sheets(): void
+    {
+        $outlet = $this->outlet();
+        $user = $this->userFor($outlet, ['read b2b/invoices']);
+        $variant = $this->variant($outlet, 100000);
+        $buyer = $this->customer(['name' => 'PT Rekap Satu']);
+        $other = $this->customer(['name' => 'PT Rekap Dua']);
+        $place = fn ($customer, int $qty) => app(\App\Services\B2b\OrderService::class)->place($user, [
+            'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id, 'delivery_method' => 'pickup',
+            'due_date' => today()->addDays(7)->toDateString(), 'items' => [['variant_id' => $variant->id, 'qty' => $qty]],
+        ]);
+        $first = $place($buyer, 1)->invoice;
+        $second = $place($buyer, 3)->invoice;
+        $place($other, 2);
+
+        $response = $this->actingAs($user)->get(route('b2b/invoices/export', ['status' => 'open', 'customer_id' => $buyer->id]))->assertOk();
+        $book = \PhpOffice\PhpSpreadsheet\IOFactory::load($response->getFile()->getPathname());
+
+        $titles = array_map(fn ($sheet) => $sheet->getTitle(), $book->getAllSheets());
+        $this->assertSame(['Rekap', \App\Exports\B2b\InvoiceSheetWriter::sheetTitle($first), \App\Exports\B2b\InvoiceSheetWriter::sheetTitle($second)], $titles);
+
+        $recap = $book->getSheetByName('Rekap');
+        $this->assertStringContainsString('Customer: PT Rekap Satu', $recap->getCell('A2')->getValue());
+        $this->assertSame($first->invoice_number, $recap->getCell('B6')->getValue());
+        $this->assertSame("sheet://'".\App\Exports\B2b\InvoiceSheetWriter::sheetTitle($first)."'!A1", $recap->getCell('B6')->getHyperlink()->getUrl());
+        $this->assertSame($second->invoice_number, $recap->getCell('B7')->getValue());
+        $this->assertSame('Total', $recap->getCell('A8')->getValue());
+        $this->assertEquals(400000, $recap->getCell('K8')->getCalculatedValue());
+        $this->assertEquals(400000, $recap->getCell('M8')->getCalculatedValue());
+
+        // Tidak ada hasil: ditolak dengan pesan, bukan file kosong.
+        $this->actingAs($user)->get(route('b2b/invoices/export', ['status' => 'paid', 'customer_id' => $buyer->id]))->assertStatus(422);
+    }
 }

@@ -40,7 +40,7 @@
         * { box-sizing: border-box; }
         body { margin: 0; background: #e5e7eb; color: var(--ink); font: 15px/1.45 "Inter", -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
         .toolbar { display: flex; justify-content: center; gap: .5rem; padding: 12px 16px; }
-        .toolbar button { padding: 10px 18px; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .toolbar button, .toolbar a { padding: 10px 18px; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; }
         .toolbar button.primary { background: #1572e8; border-color: #1572e8; color: #fff; }
 
         .sheet { position: relative; width: 210mm; max-width: 100%; min-height: 297mm; margin: 0 auto 24px; padding: 20mm 21mm 14mm; overflow: hidden; background: #fff; box-shadow: 0 4px 24px rgba(15, 23, 42, .1); display: flex; flex-direction: column; }
@@ -113,6 +113,7 @@
 <body>
     <div class="toolbar">
         <button type="button" class="primary" onclick="window.print()">Cetak / Simpan PDF</button>
+        <a href="{{ route('b2b/invoices/excel', $invoice->id) }}">Unduh Excel</a>
         <button type="button" onclick="window.close()">Tutup</button>
     </div>
 

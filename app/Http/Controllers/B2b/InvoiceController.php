@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\B2b;
 
 use App\DataTables\B2b\InvoiceDataTable;
+use App\Exports\B2b\InvoiceRecapExport;
+use App\Exports\B2b\InvoiceSheet;
 use App\Http\Controllers\Controller;
+use App\Models\B2b\Customer;
 use App\Models\B2b\Invoice;
 use App\Models\B2b\Payment;
 use App\Models\B2b\PaymentAllocation;
@@ -11,7 +14,9 @@ use App\Models\Outlets;
 use App\Services\B2b\B2bSettings;
 use App\Services\B2b\PaymentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 
 class InvoiceController extends Controller
 {
@@ -58,20 +63,82 @@ class InvoiceController extends Controller
         ]);
     }
 
+    /**
+     * Export daftar invoice sesuai filter di layar (status, customer, outlet, jatuh tempo) ke satu workbook:
+     * sheet Rekap + satu sheet bertemplate "Invoice External" per invoice.
+     */
+    public function export(InvoiceDataTable $dataTable, Request $request)
+    {
+        $this->authorize('read b2b/invoices');
+
+        // Query yang sama dengan DataTable supaya isi file = daftar yang terlihat.
+        $invoices = $dataTable->query(new Invoice)
+            ->with(['order.items', 'order.outlet', 'customer', 'allocations.payment'])
+            ->reorder()
+            ->orderBy('b2b_invoices.issue_date')
+            ->orderBy('b2b_invoices.id')
+            ->limit(InvoiceRecapExport::MAX_INVOICES + 1)
+            ->get();
+        if ($invoices->isEmpty()) {
+            abort(422, 'Tidak ada invoice yang cocok dengan filter.');
+        }
+        if ($invoices->count() > InvoiceRecapExport::MAX_INVOICES) {
+            abort(422, 'Maksimal '.InvoiceRecapExport::MAX_INVOICES.' invoice per export. Persempit filter dulu.');
+        }
+
+        return Excel::download(
+            new InvoiceRecapExport($invoices, app(B2bSettings::class)->invoiceProfile(), $this->exportFilters($request)),
+            'Rekap Invoice B2B '.now()->format('Y-m-d His').'.xlsx'
+        );
+    }
+
+    /** Keterangan filter untuk baris judul sheet Rekap. */
+    private function exportFilters(Request $request): array
+    {
+        $statuses = ['open' => 'Belum lunas', 'overdue' => 'Lewat jatuh tempo', 'due_soon' => 'Jatuh tempo ≤ 7 hari', 'paid' => 'Lunas', 'void' => 'Dibatalkan'];
+        $filters = [];
+        if (isset($statuses[$request->query('status')])) {
+            $filters[] = 'Status: '.$statuses[$request->query('status')];
+        }
+        if ($request->filled('customer_id')) {
+            $filters[] = 'Customer: '.(Customer::query()->whereKey($request->integer('customer_id'))->value('name') ?? '-');
+        }
+        if ($request->filled('outlet_id')) {
+            $filters[] = 'Outlet: '.(Outlets::query()->whereKey($request->integer('outlet_id'))->value('name') ?? '-');
+        }
+        if ($request->filled('due_from') && $request->filled('due_to')) {
+            $filters[] = 'Jatuh tempo: '.Carbon::parse($request->query('due_from'))->format('d/m/Y').' – '.Carbon::parse($request->query('due_to'))->format('d/m/Y');
+        }
+
+        return $filters;
+    }
+
     /** Halaman cetak invoice. "Simpan sebagai PDF" lewat dialog cetak browser. */
     public function print(int $invoice)
     {
-        abort_unless(request()->user()->can('read b2b/invoices') || request()->user()->can('read b2b/orders'), 403);
-
-        $invoice = $this->invoiceQuery()
-            ->whereKey($invoice)
-            ->with(['order.items', 'order.outlet', 'order.contract', 'customer', 'schedules', 'allocations.payment'])
-            ->firstOrFail();
-
         return view('layouts.b2b.invoices.print', [
-            'invoice' => $invoice,
+            'invoice' => $this->documentInvoice($invoice),
             'profile' => app(B2bSettings::class)->invoiceProfile(),
         ]);
+    }
+
+    /** Unduh invoice sebagai Excel bertemplate "Invoice External", untuk rekap/rekonsiliasi finance. */
+    public function excel(int $invoice)
+    {
+        $invoice = $this->documentInvoice($invoice);
+
+        return Excel::download(new InvoiceSheet($invoice, app(B2bSettings::class)->invoiceProfile()), InvoiceSheet::filename($invoice));
+    }
+
+    /** Invoice lengkap untuk dokumen (cetak/Excel); boleh dibuka dari menu Invoice maupun Pesanan. */
+    private function documentInvoice(int $id): Invoice
+    {
+        abort_unless(request()->user()->can('read b2b/invoices') || request()->user()->can('read b2b/orders'), 403);
+
+        return $this->invoiceQuery()
+            ->whereKey($id)
+            ->with(['order.items', 'order.outlet', 'order.contract', 'customer', 'schedules', 'allocations.payment'])
+            ->firstOrFail();
     }
 
     /** Catat pelunasan invoice tempo (boleh sebagian). */
