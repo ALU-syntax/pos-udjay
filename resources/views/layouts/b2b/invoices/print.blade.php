@@ -1,66 +1,112 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Invoice {{ $invoice->invoice_number }}</title>
     @php
+        // Template invoice Budiman Roastery (bahasa Inggris). Identitas penjual dari B2bSettings::invoiceProfile().
         $order = $invoice->order;
-        $outlet = $order->outlet;
-        $billing = $invoice->billing_address_snapshot;
-        $shipping = $order->shipping_address_snapshot;
-        $rupiah = fn ($value) => 'Rp '.number_format((int) $value, 0, ',', '.');
+        $rupiah = fn ($value) => 'Rp. '.number_format((int) $value, 0, ',', '.');
+        $date = fn ($value) => $value?->format('d M Y');
         $immediate = $order->payment_type === \App\Models\B2b\Order::PAYMENT_IMMEDIATE;
+        $void = $invoice->status === \App\Models\B2b\Invoice::STATUS_VOID;
+        $paid = $invoice->status === \App\Models\B2b\Invoice::STATUS_PAID;
         $payments = $invoice->allocations->pluck('payment')->filter()->where('status', 'posted')->unique('id')->values();
+        $termDays = $invoice->issue_date->diffInDays($invoice->due_date);
+        // Baris tagihan: item pesanan, lalu ongkir dan kode unik kalau ada.
+        $lines = $order->items->map(fn ($item) => [
+            'description' => $item->displayName(),
+            'note' => $item->notes,
+            'price' => $item->final_price,
+            'qty' => $item->qty,
+            'total' => $item->line_total,
+        ]);
+        if ($order->shipping_cost) {
+            $lines->push(['description' => 'Ongkir', 'note' => null, 'price' => $order->shipping_cost, 'qty' => 1, 'total' => $order->shipping_cost]);
+        }
+        if ($invoice->unique_code_amount) {
+            $lines->push(['description' => 'Unique code', 'note' => null, 'price' => $invoice->unique_code_amount, 'qty' => 1, 'total' => $invoice->unique_code_amount]);
+        }
+        $showBalance = $invoice->paid_amount && ! $paid && ! $void;
+        // Baris kosong pengisi seperti template; dikurangi kalau ada baris Paid/Balance supaya tetap satu halaman.
+        $emptyLines = max(0, ($showBalance ? 2 : 3) - $lines->count());
     @endphp
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --text: #0f172a; --muted: #64748b; --border: #e2e8f0; --accent: #b91c1c; }
+        :root { --ink: #111; --muted: #555; --line: #d4d4d4; }
         * { box-sizing: border-box; }
-        body { margin: 0; background: #f1f5f9; color: var(--text); font: 13px/1.5 "Public Sans", -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+        body { margin: 0; background: #e5e7eb; color: var(--ink); font: 15px/1.45 "Inter", -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
         .toolbar { display: flex; justify-content: center; gap: .5rem; padding: 12px 16px; }
-        .toolbar button, .toolbar a { padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--text); font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }
+        .toolbar button { padding: 10px 18px; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
         .toolbar button.primary { background: #1572e8; border-color: #1572e8; color: #fff; }
-        .sheet { width: 210mm; max-width: 100%; min-height: 297mm; margin: 0 auto 24px; padding: 18mm 16mm; background: #fff; box-shadow: 0 4px 24px rgba(15, 23, 42, .08); }
-        .head { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 16px; border-bottom: 2px solid var(--text); }
-        .brand img { height: 42px; margin-bottom: 8px; }
-        .brand strong { display: block; font-size: 15px; }
-        .brand div, .muted { color: var(--muted); }
-        .title { text-align: right; }
-        .title h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: .08em; }
-        .status { display: inline-block; margin-top: 6px; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 1px solid currentColor; }
-        .status--void { color: var(--accent); }
-        .status--paid { color: #15803d; }
-        .status--open { color: #b45309; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 18px 0; }
-        .label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th { padding: 8px 6px; border-bottom: 1px solid var(--text); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; text-align: left; }
-        td { padding: 8px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
-        .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-        .totals { width: 300px; margin-left: auto; margin-top: 12px; }
-        .totals div { display: flex; justify-content: space-between; padding: 5px 0; }
-        .totals .grand { margin-top: 4px; padding-top: 8px; border-top: 2px solid var(--text); font-size: 16px; font-weight: 700; }
-        .due { margin-top: 20px; padding: 12px 14px; border: 1px solid var(--border); border-left: 4px solid var(--text); border-radius: 6px; }
-        .foot { margin-top: 36px; display: flex; justify-content: space-between; gap: 24px; }
-        .sign { width: 200px; text-align: center; }
-        .sign .line { margin-top: 64px; border-top: 1px solid var(--text); padding-top: 4px; }
-        .paid-box { margin-top: 20px; padding: 12px 14px; border: 1px solid #bbf7d0; border-left: 4px solid #15803d; border-radius: 6px; background: #f0fdf4; }
-        .paid-box table { margin-top: 6px; }
-        .paid-box td { padding: 4px 0; border: 0; }
-        .paid-mark { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-24deg); font-size: 96px; font-weight: 800; color: rgba(21, 128, 61, .1); letter-spacing: .1em; pointer-events: none; }
-        .void-mark { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-24deg); font-size: 96px; font-weight: 800; color: rgba(185, 28, 28, .12); letter-spacing: .1em; pointer-events: none; }
-        @media (max-width: 720px) {
-            .sheet { padding: 16px; min-height: 0; }
-            .head, .foot { flex-direction: column; }
-            .title { text-align: left; }
-            .grid { grid-template-columns: 1fr; }
-            .totals { width: 100%; }
+
+        .sheet { position: relative; width: 210mm; max-width: 100%; min-height: 297mm; margin: 0 auto 24px; padding: 20mm 21mm 14mm; overflow: hidden; background: #fff; box-shadow: 0 4px 24px rgba(15, 23, 42, .1); display: flex; flex-direction: column; }
+        .sheet > * { position: relative; z-index: 1; }
+        .watermark { position: absolute; z-index: 0; top: 50%; left: 50%; width: 112mm; transform: translate(-50%, -42%); opacity: .55; pointer-events: none; }
+
+        .head { display: flex; align-items: center; gap: 18px; }
+        .head__logo { width: 33mm; flex-shrink: 0; }
+        .head__brand { margin: 0 0 4px; font-family: "Alegreya", Georgia, "Times New Roman", serif; font-size: 40px; font-weight: 800; line-height: 1.05; letter-spacing: .005em; }
+        .head__address { margin: 0; max-width: 125mm; font-size: 12.5px; line-height: 1.45; color: #333; }
+
+        .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; margin: 9mm 0 6mm; font-size: 14px; }
+        .meta strong { font-weight: 700; }
+        .meta .is-right { text-align: right; }
+
+        .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 8mm 11mm; border: 1.5px solid var(--ink); }
+        .parties h2 { margin: 0 0 10px; font-size: 16px; font-weight: 700; }
+        .parties p { margin: 0 0 4px; font-size: 16px; line-height: 1.5; }
+        .parties .small { font-size: 13px; color: var(--muted); }
+        .parties .transfer-note { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 12.5px; line-height: 1.45; color: #333; }
+        .parties .transfer-note strong { white-space: nowrap; }
+
+        table { width: 100%; margin-top: 10mm; border-collapse: collapse; font-size: 16px; }
+        th { padding: 0 0 12px; font-weight: 700; text-align: left; border-bottom: 1px solid var(--line); }
+        td { height: 46px; padding: 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+        th:first-child, td:first-child { padding-left: 0; }
+        th.desc { padding-left: 14px; }
+        .c-price { width: 26%; text-align: center; }
+        .c-qty { width: 14%; text-align: center; }
+        .c-total { width: 22%; text-align: right; padding-right: 0; }
+        td .note { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+
+        .totals { display: grid; grid-template-columns: 1fr 39%; margin-top: 0; }
+        .totals__row { display: flex; justify-content: space-between; align-items: center; height: 46px; border-bottom: 1px solid var(--line); font-size: 16px; }
+        .totals__row.is-sub { font-size: 14px; color: var(--muted); height: 34px; }
+
+        .closing { display: grid; grid-template-columns: 1fr minmax(39%, auto); gap: 24px; margin-top: 7mm; align-items: start; }
+        .terms h3 { margin: 0 0 6px; font-size: 16px; font-weight: 700; }
+        .terms p { margin: 0; max-width: 72mm; font-size: 16px; line-height: 1.5; }
+        .terms .thanks { margin-top: 6mm; font-weight: 700; }
+        .terms .notes { margin-top: 5mm; font-size: 13px; color: var(--muted); }
+        .grand { display: flex; justify-content: space-between; gap: 12px; margin-top: 22px; font-size: 18px; font-weight: 800; white-space: nowrap; }
+
+        .stamp { display: inline-block; margin-top: 18px; padding: 6px 16px; border: 3px solid currentColor; border-radius: 8px; font-size: 22px; font-weight: 800; letter-spacing: .14em; transform: rotate(-8deg); }
+        .stamp--paid { color: #15803d; }
+        .stamp--void { color: #b91c1c; }
+        .stamp-note { margin-top: 10px; font-size: 12px; color: var(--muted); white-space: normal; }
+
+        .foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; margin-top: auto; padding-top: 6mm; border-top: 1px solid var(--line); font-size: 14px; }
+        .spacer { flex: 1 0 8mm; }
+
+        @media screen and (max-width: 760px) {
+            .sheet { min-height: 0; padding: 20px; }
+            .head { flex-direction: column; align-items: flex-start; }
+            .head__brand { font-size: 30px; }
+            .parties, .closing, .totals { grid-template-columns: 1fr; }
+            .totals > :first-child { display: none; }
+            table { font-size: 14px; }
         }
         @media print {
             @page { size: A4; margin: 0; }
             body { background: #fff; }
             .toolbar { display: none; }
-            .sheet { box-shadow: none; margin: 0; width: auto; min-height: 0; }
+            /* Minimal satu halaman A4; pesanan dengan banyak item lanjut ke halaman berikutnya, tidak terpotong. */
+            .sheet { width: 210mm; min-height: 297mm; margin: 0; box-shadow: none; }
+            .watermark { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
 </head>
@@ -70,64 +116,50 @@
         <button type="button" onclick="window.close()">Tutup</button>
     </div>
 
-    @if ($invoice->status === 'void')
-        <div class="void-mark" aria-hidden="true">BATAL</div>
-    @elseif ($invoice->status === 'paid')
-        <div class="paid-mark" aria-hidden="true">LUNAS</div>
-    @endif
-
     <main class="sheet">
+        <img class="watermark" src="{{ asset('img/b2b/budiman-logogram-peach.png') }}" alt="">
+
         <header class="head">
-            <div class="brand">
-                <img src="{{ asset('img/Logo Red.png') }}" alt="">
-                <strong>{{ $outlet?->name ?? config('app.name') }}</strong>
-                <div>{{ $outlet?->address }}</div>
-                @if ($outlet?->phone)<div>Telp. {{ $outlet->phone }}</div>@endif
-            </div>
-            <div class="title">
-                <h1>INVOICE</h1>
-                <div><strong>{{ $invoice->invoice_number }}</strong></div>
-                <div class="muted">Pesanan {{ $order->order_number }}</div>
-                @php
-                    $statusClass = match ($invoice->status) { 'void' => 'void', 'paid' => 'paid', default => 'open' };
-                @endphp
-                <span class="status status--{{ $statusClass }}">{{ $invoice->statusLabel() }}</span>
+            <img class="head__logo" src="{{ asset('img/b2b/budiman-logo-pt.png') }}" alt="Logo {{ $profile['brand_name'] }}">
+            <div>
+                <h1 class="head__brand">{{ $profile['brand_name'] }}</h1>
+                <p class="head__address">{{ $profile['address'] }}</p>
             </div>
         </header>
 
-        <section class="grid">
+        <section class="meta">
+            <div><strong>Invoice #{{ $invoice->invoice_number }}</strong></div>
+            @if ($immediate)
+                <div class="is-right"><strong>Order No:</strong> {{ $order->order_number }}</div>
+                <div><strong>Invoice Date:</strong> {{ $date($invoice->issue_date) }}</div>
+            @else
+                <div class="is-right"><strong>Due Date:</strong> {{ $date($invoice->due_date) }}</div>
+                <div><strong>Invoice Date:</strong> {{ $date($invoice->issue_date) }}</div>
+                <div class="is-right"><strong>Order No:</strong> {{ $order->order_number }}</div>
+            @endif
+        </section>
+
+        <section class="parties">
             <div>
-                <div class="label">Ditagihkan kepada</div>
-                <strong>{{ $invoice->customer?->name }}</strong>
-                @if ($invoice->customer?->npwp)<div class="muted">NPWP {{ $invoice->customer->npwp }}</div>@endif
-                @if ($billing)
-                    <div>{{ $billing['full_address'] ?? '' }}</div>
-                    @if (!empty($billing['recipient_name']))<div class="muted">u.p. {{ $billing['recipient_name'] }}</div>@endif
+                <h2>Invoice to:</h2>
+                <p>{{ $invoice->customer?->name }}</p>
+                @if (!empty($invoice->billing_address_snapshot['full_address']))
+                    <p class="small">{{ $invoice->billing_address_snapshot['full_address'] }}</p>
                 @endif
-                @if ($invoice->customer?->phone)<div class="muted">{{ $invoice->customer->phone }}</div>@endif
             </div>
             <div>
-                <div class="label">Dikirim ke</div>
-                @if ($shipping)
-                    <div>{{ $shipping['full_address'] ?? '' }}</div>
-                    @if (!empty($shipping['recipient_name']))<div class="muted">{{ $shipping['recipient_name'] }} {{ $shipping['phone'] ?? '' }}</div>@endif
+                <h2>Payment Method:</h2>
+                @if ($immediate && $payments->isNotEmpty())
+                    @foreach ($payments as $payment)
+                        <p>{{ $payment->method_name }}</p>
+                        <p class="small">{{ $payment->payment_number }} · {{ $date($payment->paid_at) }}{{ $payment->reference ? ' · Ref. '.$payment->reference : '' }}</p>
+                    @endforeach
                 @else
-                    <div>{{ $order->deliveryLabel() }}</div>
-                @endif
-            </div>
-            <div>
-                <div class="label">Tanggal invoice</div>
-                <div>{{ $invoice->issue_date->translatedFormat('d F Y') }}</div>
-                @if ($immediate)
-                    <div class="label" style="margin-top:8px">Pembayaran</div>
-                    <div><strong>{{ $order->paymentTypeLabel() }}</strong></div>
-                @else
-                    <div class="label" style="margin-top:8px">Jatuh tempo</div>
-                    <div><strong>{{ $invoice->due_date->translatedFormat('d F Y') }}</strong></div>
-                @endif
-                @if ($order->contract)
-                    <div class="label" style="margin-top:8px">Kontrak</div>
-                    <div>{{ $order->contract->contract_number }}</div>
+                    <p>Bank Name: {{ $profile['bank_name'] }}</p>
+                    <p>Account No: {{ $profile['bank_account_number'] }} ({{ $profile['bank_account_name'] }})</p>
+                    @unless ($void || $paid)
+                        <p class="transfer-note">Please write <strong>{{ $invoice->invoice_number }}</strong> in the transfer description so we can match your payment.</p>
+                    @endunless
                 @endif
             </div>
         </section>
@@ -135,78 +167,74 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width:36px">No</th>
-                    <th>Produk</th>
-                    <th class="num">Qty</th>
-                    <th class="num">Harga</th>
-                    <th class="num">Jumlah</th>
+                    <th class="desc">Description</th>
+                    <th class="c-price">Price</th>
+                    <th class="c-qty">QTY</th>
+                    <th class="c-total">Total</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach ($order->items as $item)
+                @foreach ($lines as $line)
                     <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>
-                            {{ $item->displayName() }}
-                            @if ($item->notes)<div class="muted">{{ $item->notes }}</div>@endif
-                        </td>
-                        <td class="num">{{ number_format($item->qty, 0, ',', '.') }}</td>
-                        <td class="num">{{ $rupiah($item->final_price) }}</td>
-                        <td class="num">{{ $rupiah($item->line_total) }}</td>
+                        <td>{{ $line['description'] }}@if ($line['note'])<span class="note">{{ $line['note'] }}</span>@endif</td>
+                        <td class="c-price">{{ $rupiah($line['price']) }}</td>
+                        <td class="c-qty">{{ number_format($line['qty'], 0, ',', '.') }}</td>
+                        <td class="c-total">{{ $rupiah($line['total']) }}</td>
                     </tr>
                 @endforeach
+                @for ($i = 0; $i < $emptyLines; $i++)
+                    <tr aria-hidden="true"><td></td><td></td><td></td><td></td></tr>
+                @endfor
             </tbody>
         </table>
 
         <div class="totals">
-            <div><span>Subtotal</span><span class="num">{{ $rupiah($order->subtotal) }}</span></div>
-            @if ($order->shipping_cost)
-                <div><span>Ongkos kirim</span><span class="num">{{ $rupiah($order->shipping_cost) }}</span></div>
-            @endif
-            @if ($invoice->unique_code_amount)
-                <div><span>Kode unik</span><span class="num">{{ $rupiah($invoice->unique_code_amount) }}</span></div>
-            @endif
-            <div class="grand"><span>Total tagihan</span><span class="num">{{ $rupiah($invoice->total_to_pay) }}</span></div>
-            @if ($invoice->paid_amount)
-                <div><span>Sudah dibayar</span><span class="num">{{ $rupiah($invoice->paid_amount) }}</span></div>
-                <div><strong>Sisa tagihan</strong><strong class="num">{{ $rupiah($invoice->outstandingAmount()) }}</strong></div>
-            @endif
-        </div>
-
-        @if ($invoice->status === 'paid')
-            <div class="paid-box">
-                <strong>Lunas</strong>{{ $invoice->paid_at ? ' pada '.$invoice->paid_at->translatedFormat('d F Y H:i') : '' }}. Terima kasih.
-                @if ($payments->isNotEmpty())
-                    <table>
-                        @foreach ($payments as $payment)
-                            <tr>
-                                <td>{{ $payment->payment_number }} · {{ $payment->method_name }}{{ $payment->reference ? ' · Ref. '.$payment->reference : '' }}</td>
-                                <td class="num">{{ $rupiah($payment->amount) }}</td>
-                            </tr>
-                        @endforeach
-                    </table>
+            <div></div>
+            <div>
+                <div class="totals__row"><span>Total</span><span>{{ $rupiah($invoice->total_to_pay) }}</span></div>
+                @if ($showBalance)
+                    <div class="totals__row is-sub"><span>Paid</span><span>{{ $rupiah($invoice->paid_amount) }}</span></div>
+                    <div class="totals__row is-sub"><span>Balance due</span><span>{{ $rupiah($invoice->outstandingAmount()) }}</span></div>
                 @endif
             </div>
-        @elseif ($invoice->status !== 'void')
-            <div class="due">
-                Mohon lakukan pembayaran sebesar <strong>{{ $rupiah($invoice->outstandingAmount()) }}</strong>
-                paling lambat <strong>{{ $invoice->due_date->translatedFormat('d F Y') }}</strong>
-                dan cantumkan nomor invoice <strong>{{ $invoice->invoice_number }}</strong> pada keterangan pembayaran.
-            </div>
-        @else
-            <div class="due">Invoice ini dibatalkan{{ $invoice->void_reason ? ': '.$invoice->void_reason : '' }}.</div>
-        @endif
+        </div>
 
-        @if ($order->notes)
-            <p class="muted" style="margin-top:16px"><strong>Catatan:</strong> {{ $order->notes }}</p>
-        @endif
+        <section class="closing">
+            <div class="terms">
+                <h3>Payment Terms :</h3>
+                @if ($void)
+                    <p>This invoice has been voided{{ $order->cancel_reason ? ' (order cancelled: '.$order->cancel_reason.')' : '' }}.</p>
+                @elseif ($immediate || $paid)
+                    <p>Paid in full{{ $invoice->paid_at ? ' on '.$date($invoice->paid_at) : '' }}.</p>
+                @else
+                    <p>Payment must be made within {{ $termDays }} calendar {{ $termDays === 1 ? 'day' : 'days' }} from the date of invoice issuance.</p>
+                @endif
+                @if ($order->notes)
+                    <p class="notes">Notes: {{ $order->notes }}</p>
+                @endif
+                <p class="thanks">Thank you for your business</p>
+            </div>
+            <div>
+                <div class="grand"><span>GRAND TOTAL</span><span>{{ $rupiah($invoice->total_to_pay) }}</span></div>
+                @if ($paid)
+                    <span class="stamp stamp--paid">PAID</span>
+                    @if (! $immediate && $payments->isNotEmpty())
+                        <div class="stamp-note">{{ $payments->map(fn ($payment) => $payment->payment_number.' · '.$payment->method_name)->implode(', ') }}</div>
+                    @endif
+                @elseif ($void)
+                    <span class="stamp stamp--void">VOID</span>
+                @endif
+            </div>
+        </section>
+
+        <div class="spacer"></div>
 
         <footer class="foot">
-            <div class="muted">Dicetak {{ now()->translatedFormat('d F Y H:i') }}</div>
-            <div class="sign">
-                <div>Hormat kami,</div>
-                <div class="line">{{ $outlet?->name ?? config('app.name') }}</div>
-            </div>
+            <span>{{ $profile['instagram'] }}</span>
+            @if ($profile['phone'])
+                <span>{{ $profile['phone'] }}</span>
+            @endif
+            <span>{{ $profile['email'] }}</span>
         </footer>
     </main>
 </body>

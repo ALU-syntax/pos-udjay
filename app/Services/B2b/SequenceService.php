@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
  */
 class SequenceService
 {
+    public function __construct(private readonly B2bSettings $settings) {}
+
     public function customerCode(): string
     {
         return 'CUS-B2B-'.str_pad((string) $this->next('customer', 'all'), 4, '0', STR_PAD_LEFT);
@@ -30,11 +32,13 @@ class SequenceService
         return 'SO/B2B/'.$date->format('Y/m').'/'.str_pad((string) $this->next('order', $date->format('Ym')), 4, '0', STR_PAD_LEFT);
     }
 
+    /** Format 07/INV/BGR/11/2026: nomor urut minimal dua digit, reset tiap bulan (lebih dari 99 jadi 100, 101, ...). */
     public function invoiceNumber(?Carbon $date = null): string
     {
         $date ??= now();
+        $number = str_pad((string) $this->next('invoice', $date->format('Ym')), 2, '0', STR_PAD_LEFT);
 
-        return 'INV/B2B/'.$date->format('Y/m').'/'.str_pad((string) $this->next('invoice', $date->format('Ym')), 4, '0', STR_PAD_LEFT);
+        return $number.'/INV/'.$this->settings->invoiceNumberCode().'/'.$date->format('m/Y');
     }
 
     public function paymentNumber(?Carbon $date = null): string

@@ -423,7 +423,7 @@ class B2bHttpTest extends B2bTestCase
             ->assertSee('Bayar langsung')->assertSee($payment->payment_number)->assertSee($payment->method_name)
             ->assertSee('Ref. APR-77')->assertSee('Batalkan Pesanan yang Sudah Dibayar')->assertSee('Pembayaran diterima');
         $this->actingAs($user)->get(route('b2b/invoices/print', $order->invoice->id))->assertOk()
-            ->assertSee('LUNAS')->assertSee($payment->payment_number)->assertDontSee('Mohon lakukan pembayaran');
+            ->assertSee('PAID')->assertSee($payment->payment_number)->assertDontSee('Payment must be made within');
 
         // Tanpa data refund ditolak; metode refund wajib.
         $this->actingAs($user)->postJson(route('b2b/orders/cancel', $order->id), ['reason' => 'Acara batal'])
@@ -628,5 +628,25 @@ class B2bHttpTest extends B2bTestCase
         $rows = $this->actingAs($user)->getJson(route('b2b/invoices', ['draw' => 1, 'start' => 0, 'length' => 10, 'status' => '', 'customer_id' => $other->id]), $ajax)
             ->assertOk()->json('data.*.DT_RowId');
         $this->assertEquals([$theirs->invoice->id], $rows);
+    }
+
+    public function test_credit_invoice_print_follows_template_and_profile_config(): void
+    {
+        $outlet = $this->outlet();
+        $user = $this->userFor($outlet, ['read b2b/invoices']);
+        $variant = $this->variant($outlet, 270000);
+        $order = app(\App\Services\B2b\OrderService::class)->place($user, [
+            'outlet_id' => $outlet->id, 'b2b_customer_id' => $this->customer(['name' => 'Raksa Koffie'])->id, 'delivery_method' => 'pickup',
+            'due_date' => today()->addDays(7)->toDateString(), 'items' => [['variant_id' => $variant->id, 'qty' => 5]],
+        ]);
+        \App\Models\Config::setValue('b2b.invoice.brand_name', 'Brand Uji', null, 'string');
+
+        $this->actingAs($user)->get(route('b2b/invoices/print', $order->invoice->id))->assertOk()
+            ->assertSee('Brand Uji')->assertSee('Invoice #'.$order->invoice->invoice_number)->assertSee('Raksa Koffie')
+            ->assertSee('Account No: 5735570401 (PT Budhidharma Adil Manfaat)')
+            ->assertSee('Payment must be made within 7 calendar days')
+            ->assertSee('Order No:')->assertSee($order->order_number)
+            ->assertSee('in the transfer description', false)
+            ->assertSee('Rp. 1.350.000')->assertSee('@budiman.roastery')->assertDontSee('PAID');
     }
 }

@@ -8,6 +8,7 @@ use App\Models\B2b\Invoice;
 use App\Models\B2b\Payment;
 use App\Models\B2b\PaymentAllocation;
 use App\Models\Outlets;
+use App\Services\B2b\B2bSettings;
 use App\Services\B2b\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -67,7 +68,10 @@ class InvoiceController extends Controller
             ->with(['order.items', 'order.outlet', 'order.contract', 'customer', 'schedules', 'allocations.payment'])
             ->firstOrFail();
 
-        return view('layouts.b2b.invoices.print', ['invoice' => $invoice]);
+        return view('layouts.b2b.invoices.print', [
+            'invoice' => $invoice,
+            'profile' => app(B2bSettings::class)->invoiceProfile(),
+        ]);
     }
 
     /** Catat pelunasan invoice tempo (boleh sebagian). */

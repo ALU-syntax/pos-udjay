@@ -50,7 +50,7 @@ class OrderServiceTest extends B2bTestCase
         $this->assertSame(-2, (int) $variant->fresh()->stok);
 
         $invoice = $order->invoice;
-        $this->assertMatchesRegularExpression('#^INV/B2B/\d{4}/\d{2}/\d{4}$#', $invoice->invoice_number);
+        $this->assertMatchesRegularExpression('#^\d{2,}/INV/BGR/'.now()->format('m/Y').'$#', $invoice->invoice_number);
         $this->assertSame(45000, $invoice->total_to_pay);
         $this->assertSame(0, $invoice->unique_code_amount);
         $this->assertSame(today()->addDays(45)->toDateString(), $order->due_date->toDateString());

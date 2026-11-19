@@ -6,6 +6,7 @@ use App\Models\Config;
 use App\Models\Menu;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Services\B2b\B2bSettings;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
@@ -70,6 +71,15 @@ class B2bMenuSeeder extends Seeder
         Config::firstOrCreate(
             ['name' => 'b2b.default_payment_term_days'],
             ['type' => 'integer', 'value' => '7', 'description' => 'Saran jatuh tempo (hari) di Kasir B2B; kasir tetap bisa mengganti tanggalnya'],
+        );
+
+        // Identitas cetak invoice + kode di nomor invoice; firstOrCreate supaya isi yang sudah diubah tidak tertimpa.
+        foreach (B2bSettings::INVOICE_PROFILE_DEFAULTS as $name => [$value, $description]) {
+            Config::firstOrCreate(['name' => $name], ['type' => 'string', 'value' => $value, 'description' => $description]);
+        }
+        Config::firstOrCreate(
+            ['name' => B2bSettings::INVOICE_NUMBER_CODE_KEY],
+            ['type' => 'string', 'value' => B2bSettings::FALLBACK_INVOICE_NUMBER_CODE, 'description' => 'Kode di nomor invoice, mis. 07/INV/BGR/11/2026'],
         );
 
         Cache::forget('menus');
