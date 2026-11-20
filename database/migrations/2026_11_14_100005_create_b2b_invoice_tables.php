@@ -22,6 +22,8 @@ return new class extends Migration
             $table->bigInteger('paid_amount')->default(0);
             $table->enum('status', ['unpaid', 'partial', 'paid', 'overdue', 'void'])->default('unpaid');
             $table->timestamp('paid_at')->nullable();
+            // Diisi b2b:mark-overdue / PaymentService saat pertama kali lewat jatuh tempo; tidak dikosongkan saat lunas.
+            $table->timestamp('overdue_at')->nullable();
             $table->foreignId('voided_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('voided_at')->nullable();
             $table->string('void_reason')->nullable();
@@ -45,6 +47,7 @@ return new class extends Migration
             $table->bigInteger('paid_amount')->default(0);
             $table->enum('status', ['unpaid', 'partial', 'paid', 'overdue', 'void'])->default('unpaid');
             $table->timestamp('paid_at')->nullable();
+            $table->timestamp('overdue_at')->nullable();
             $table->timestamps();
 
             $table->unique(['b2b_invoice_id', 'sequence']);

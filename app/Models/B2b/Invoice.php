@@ -42,6 +42,7 @@ class Invoice extends Model
         'total_to_pay' => 'integer',
         'paid_amount' => 'integer',
         'paid_at' => 'datetime',
+        'overdue_at' => 'datetime',
         'voided_at' => 'datetime',
         'billing_address_snapshot' => 'array',
     ];

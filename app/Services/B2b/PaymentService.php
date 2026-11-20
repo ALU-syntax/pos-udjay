@@ -19,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Pencatatan pembayaran B2B. Metode diambil dari master pembayaran POS (`category_payments` → `payments`).
- * Setiap pembayaran/reverse ikut memperbarui ringkasan di invoice dan jadwal tagihan (`paid_amount`, `status`, `paid_at`).
+ * Setiap pembayaran/reverse ikut memperbarui ringkasan di invoice dan jadwal tagihan (`paid_amount`, `status`, `paid_at`, `overdue_at`).
  */
 class PaymentService
 {
@@ -358,28 +358,37 @@ class PaymentService
     private function applyToInvoice(Invoice $invoice, int $delta, $at): void
     {
         $paid = max(0, $invoice->paid_amount + $delta);
+        $status = $this->statusFor($paid, $invoice->total_to_pay, $invoice->due_date);
         $invoice->forceFill([
             'paid_amount' => $paid,
-            'status' => $this->statusFor($paid, $invoice->total_to_pay),
+            'status' => $status,
             'paid_at' => $paid >= $invoice->total_to_pay && $paid > 0 ? $at : null,
+            'overdue_at' => $invoice->overdue_at ?? ($status === Invoice::STATUS_OVERDUE ? now() : null),
         ])->save();
     }
 
     private function applyToSchedule(InvoiceSchedule $schedule, int $delta, $at): void
     {
         $paid = max(0, $schedule->paid_amount + $delta);
+        $status = $this->statusFor($paid, $schedule->amount_to_pay, $schedule->due_date);
         $schedule->forceFill([
             'paid_amount' => $paid,
-            'status' => $this->statusFor($paid, $schedule->amount_to_pay),
+            'status' => $status,
             'paid_at' => $paid >= $schedule->amount_to_pay && $paid > 0 ? $at : null,
+            'overdue_at' => $schedule->overdue_at ?? ($status === Invoice::STATUS_OVERDUE ? now() : null),
         ])->save();
     }
 
-    private function statusFor(int $paid, int $total): string
+    /**
+     * Status dihitung ulang tiap bayar / batal bayar: lunas menang, lalu lewat jatuh tempo, baru sebagian/belum dibayar.
+     * Sama dengan aturan b2b:mark-overdue, jadi status tidak bergantung pada urutan kejadian.
+     */
+    private function statusFor(int $paid, int $total, Carbon $dueDate): string
     {
         return match (true) {
+            $paid >= $total && $paid > 0 => Invoice::STATUS_PAID,
+            $dueDate->lt(today()) => Invoice::STATUS_OVERDUE,
             $paid <= 0 => Invoice::STATUS_UNPAID,
-            $paid >= $total => Invoice::STATUS_PAID,
             default => Invoice::STATUS_PARTIAL,
         };
     }

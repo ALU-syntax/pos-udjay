@@ -19,6 +19,7 @@ class InvoiceSchedule extends Model
         'amount_to_pay' => 'integer',
         'paid_amount' => 'integer',
         'paid_at' => 'datetime',
+        'overdue_at' => 'datetime',
     ];
 
     public function invoice(): BelongsTo

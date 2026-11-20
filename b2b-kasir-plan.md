@@ -115,12 +115,17 @@ Aturan tambahan:
 - Transfer bank hanya diakui lewat mutasi. Input manual hanya untuk pembayaran tunai atau metode lain, supaya tidak tercatat ganda.
 - Parser file mutasi dibuat per bank (`statement_parser`). Nanti mutasi otomatis (API BCA atau layanan pihak ketiga) cukup ditambahkan sebagai sumber data baru.
 
-### Reminder
+### Reminder (fase 4, disepakati 20 Nov 2026)
 
-- Diatur **per customer**: `reminder_enabled`, `reminder_channels`, `reminder_days` (hari relatif ke jatuh tempo, misalnya -3, -1, 0), dan `reminder_overdue_daily`. Tidak ada pengaturan global. Default mati, jadi customer yang belum diatur tidak dikirimi apa pun.
-- Penerima: email dan telepon customer, karena satu customer hanya punya satu kontak.
-- Channel dibuat sebagai driver. Email langsung jalan. WhatsApp aktif setelah provider dipilih (template pesan WhatsApp resmi perlu disetujui Meta).
-- Isi reminder: rincian tagihan, nominal + kode unik, rekening BCA tujuan, dan PDF invoice.
+- Jadwal diatur **per customer**: `reminder_enabled`, `reminder_channels`, `reminder_days` (H-7, H-3, H-1, Hari H), `reminder_overdue_daily`. Tidak ada pengaturan jadwal global. Default mati.
+- Setelah jatuh tempo (kalau `reminder_overdue_daily` aktif): harian sampai H+7, lalu seminggu sekali (H+14, H+21, …) sampai lunas.
+- Kiriman otomatis mulai **09:00 WIB**; percobaan ulang kiriman gagal paling lambat **17:00 WIB**. Kirim manual dari detail invoice bebas jam.
+- **Satu email gabungan per customer per hari** berisi semua invoice yang kena jadwal hari itu, lampiran PDF per invoice (dompdf). From sama dengan email ulang tahun, reply-to ke `b2b.invoice.email`.
+- Isi: nomor invoice, tanggal pesanan, jatuh tempo, total, sudah dibayar, sisa tagihan, rekening tujuan (config invoice), kontak penagihan. Kode unik belum disertakan.
+- Sebelum dikirim, sisa tagihan dicek ulang; yang sudah lunas ditandai `skipped`.
+- WhatsApp lewat **Baileys** (Node.js) di VPS terpisah dengan nomor khusus penagihan. Kode layanan di folder baru satu tingkat di atas repo ini. Laravel ↔ layanan lewat HTTPS + API key, firewall hanya menerima IP server Laravel, file session hanya di VPS. Channel dibuat sebagai driver.
+- **Saklar darurat**: tombol on/off untuk menghentikan sementara semua kiriman Email atau WhatsApp.
+- Ditunda: status baca WhatsApp (webhook), notifikasi email ke admin saat nomor WhatsApp terputus.
 
 ---
 
@@ -131,7 +136,7 @@ Aturan tambahan:
 | **1** ✅ | Data customer (satu kontak dan alamat), kontrak dengan harga per varian, perhitungan harga, menu dan permission | customers, contracts, contract_items |
 | **2** ✅ | Kasir B2B: pesanan → invoice + jadwal tagihan (kode unik belum aktif), cetak invoice, pengurangan stok | orders, order_items, invoices, invoice_schedules, sequences, activity_logs |
 | **3** | Pembayaran: rekening, upload mutasi BCA, pencocokan otomatis, daftar cek manual, input tunai, saldo customer | bank_accounts, mutation_imports, incoming_funds, payments, payment_allocations, customer_sender_aliases |
-| **4** | Reminder dan status overdue | reminder_logs |
+| **4** | Status overdue (`mark-overdue`), reminder email + WhatsApp (Baileys), menu Reminder | reminder_logs, reminder_log_invoices |
 | **5** | Laporan B2B: penjualan per customer/outlet/produk, umur piutang, mutasi pembayaran, kontrak yang hampir berakhir | (membaca tabel di atas) |
 | Nanti | Mutasi otomatis, WhatsApp, pengiriman dan ekspedisi, cicilan | — |
 
@@ -368,22 +373,30 @@ Kombinasi `(kontrak, varian, min_qty)` divalidasi unik di aplikasi, bukan unique
 
 ### F. Reminder (fase 4)
 
-Jadwal reminder disimpan di customer (lihat `b2b_customers`), jadi tabel `b2b_reminder_schedules` dibatalkan. Yang perlu dibuat hanya log pengiriman.
+Jadwal reminder disimpan di customer (lihat `b2b_customers`), jadi tabel `b2b_reminder_schedules` dibatalkan.
 
-**`b2b_reminder_logs`**
+**Kolom tambahan:** `b2b_invoices.overdue_at` dan `b2b_invoice_schedules.overdue_at` (timestamp?, kapan pertama kali ditandai lewat jatuh tempo; tidak dikosongkan lagi saat lunas supaya riwayat telat tetap terlihat).
+
+**`b2b_reminder_logs`** (satu baris per kiriman, karena email digabung per customer)
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
 | id | bigint PK | |
-| b2b_invoice_schedule_id | FK | |
-| offset_days | smallint | hari relatif ke jatuh tempo yang memicu reminder (positif = overdue) |
+| b2b_customer_id | FK | |
 | channel | enum: email, whatsapp | |
-| recipient | varchar | |
+| recipient | varchar | email / nomor tujuan |
 | reminder_date | date | |
+| trigger | enum: auto, manual | |
 | status | enum: queued, sent, failed, skipped | |
+| subject, body | varchar?, longtext? | isi email/pesan untuk log email |
+| attachments | json? | nama file PDF yang dilampirkan |
+| provider_message_id | varchar? | id pesan WhatsApp |
 | error | text? | |
+| sent_by | FK users? | diisi untuk kiriman manual |
 | sent_at | datetime? | |
-| timestamps | | unik `(b2b_invoice_schedule_id, channel, recipient, reminder_date)` supaya tidak terkirim dobel |
+| timestamps | | kiriman otomatis unik per customer + channel + tanggal; manual boleh berulang |
+
+**`b2b_reminder_log_invoices`**: b2b_reminder_log_id, b2b_invoice_id, b2b_invoice_schedule_id?, offset_days (hari relatif ke jatuh tempo; positif = lewat).
 
 ### G. Pendukung (fase 2)
 
@@ -426,6 +439,12 @@ Polanya sama dengan `email:birthday` di `app/Console/Kernel.php` (zona waktu Asi
 
 | Command | Jadwal (WIB) | Fungsi |
 |---|---|---|
+| `b2b:mark-overdue` | 00:05 | invoice dan jadwal tagihan tempo yang lewat jatuh tempo dan belum lunas → `overdue` + `overdue_at`, dicatat `invoice.overdue` di log aktivitas |
+| `b2b:send-due-reminders` | 09:00 | kirim reminder sesuai jadwal customer lewat queue (retry maks 17:00) |
+
+Status invoice dihitung ulang setiap ada pembayaran atau pembatalan pembayaran (`PaymentService`): sisa 0 → `paid`; masih sisa dan sudah lewat jatuh tempo → `overdue`; selain itu `partial`/`unpaid`. `Invoice::displayStatus()` tetap menghitung dari tanggal sebagai cadangan sebelum `mark-overdue` jalan.
+
+---|---|---|
 | `b2b:mark-overdue` | 00:05 | jadwal tagihan yang lewat jatuh tempo → `overdue` |
 | `b2b:send-due-reminders` | sesuai config (default 08:00) | kirim reminder sesuai jadwal lewat queue |
 
@@ -444,11 +463,12 @@ Menu **B2B** didaftarkan lewat `B2bMenuSeeder`:
 | Kasir B2B | `b2b/cashier` |
 | Pesanan | `b2b/orders` |
 | Invoice | `b2b/invoices` |
+| Reminder (Aktivitas + log email, WhatsApp, Customer) | `b2b/reminders` |
 | Pembayaran (Upload Mutasi, Rekonsiliasi) | `b2b/payments` |
 | Laporan | `b2b/reports` |
-| Pengaturan (Rekening, Reminder) | `b2b/settings` |
+| Pengaturan (Rekening) | `b2b/settings` |
 
-Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay b2b/invoices` untuk mencatat pelunasan, `cancel b2b/orders` (batal pesanan dikonfirmasi), dan `cancel-completed b2b/orders` (batal pesanan selesai).
+Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay b2b/invoices` untuk mencatat pelunasan, `cancel b2b/orders` (batal pesanan dikonfirmasi), dan `cancel-completed b2b/orders` (batal pesanan selesai). Menu Reminder: `read b2b/reminders`, `send b2b/reminders` (kirim ulang/manual), `manage-whatsapp b2b/reminders` (hubungkan/putuskan nomor).
 
 ---
 
@@ -456,7 +476,7 @@ Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay 
 
 - Format file mutasi BCA dan contoh filenya (dibutuhkan sebelum fase 3)
 - Mutasi otomatis lewat API BCA atau layanan pihak ketiga
-- Provider WhatsApp untuk reminder
+- Status baca WhatsApp dan notifikasi admin saat nomor WhatsApp terputus
 - Pengiriman dan ekspedisi, termasuk kolom berat produk untuk cek ongkir
 - Cicilan (struktur tabel sudah siap)
 
@@ -525,3 +545,4 @@ Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay 
 | 18 Nov 2026 | Kontrak = harga tetap per varian dengan tingkat qty, bisa lintas outlet. Produk di luar kontrak harga normal. Pesanan lama tetap memakai harga snapshot. Tanpa draft. Bisa diedit saat berjalan. Overlap dicek saat buat dan edit. Harga boleh di atas harga normal. Soft delete, kontrak berjalan tidak bisa dihapus |
 | 19 Nov 2026 | Limit kredit dihapus dari rencana: tidak ada aturan limit kredit maupun override. Kolom `credit_check_result`, `credit_override_by`, `credit_override_reason` dibuang dari `b2b_orders` |
 | 20 Nov 2026 | Pesanan "Diambil sendiri" langsung berstatus Selesai saat dibuat (`completed_by/at` = kasir). Pesanan kurir internal tetap Dikonfirmasi sampai ditandai selesai. Pesanan Selesai tetap bisa dibatalkan (stok kembali, invoice void, refund bila sudah dibayar) untuk koreksi salah input, dengan permission terpisah `cancel-completed b2b/orders` |
+| 20 Nov 2026 | Fase 4: `mark-overdue` menulis status + `overdue_at`, status dihitung ulang tiap bayar/batal bayar. Reminder harian s.d. H+7 lalu mingguan, mulai 09:00 (retry s.d. 17:00), email gabungan per customer + PDF. WhatsApp via Baileys di VPS terpisah. Menu Reminder + saklar darurat |

@@ -24,6 +24,11 @@ class Kernel extends ConsoleKernel
         $schedule->command('email:birthday-log-prune')
             ->timezone('Asia/Jakarta')
             ->dailyAt('00:30');
+        // Tiap 00:05 WIB: invoice B2B tempo yang lewat jatuh tempo → overdue (+ overdue_at, log aktivitas).
+        $schedule->command('b2b:mark-overdue')
+            ->timezone('Asia/Jakarta')
+            ->dailyAt('00:05')
+            ->withoutOverlapping();
     }
 
     /**
