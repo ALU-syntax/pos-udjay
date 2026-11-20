@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\VariantProduct;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
@@ -60,6 +61,30 @@ abstract class B2bTestCase extends TestCase
             'harga' => $price,
             'stok' => $stock,
         ])->load('product');
+    }
+
+    /**
+     * Potongan data wilayah asli (Kepmendagri) untuk test alamat. insertOrIgnore karena DB testing
+     * bisa saja sudah berisi WilayahSeeder lengkap.
+     */
+    protected function seedWilayah(): void
+    {
+        DB::table('provinces')->insertOrIgnore([
+            ['code' => '31', 'name' => 'Daerah Khusus Ibukota Jakarta'],
+            ['code' => '32', 'name' => 'Jawa Barat'],
+        ]);
+        DB::table('regencies')->insertOrIgnore([
+            ['code' => '31.71', 'province_code' => '31', 'name' => 'Kota Administrasi Jakarta Pusat'],
+            ['code' => '32.01', 'province_code' => '32', 'name' => 'Kabupaten Bogor'],
+        ]);
+        DB::table('districts')->insertOrIgnore([
+            ['code' => '31.71.01', 'regency_code' => '31.71', 'name' => 'Gambir'],
+            ['code' => '32.01.01', 'regency_code' => '32.01', 'name' => 'Cibinong'],
+            ['code' => '32.01.02', 'regency_code' => '32.01', 'name' => 'Gunungputri'],
+        ]);
+        DB::table('villages')->insertOrIgnore([
+            ['code' => '32.01.01.1001', 'district_code' => '32.01.01', 'name' => 'Pondok Rajeg', 'postal_code' => '16914'],
+        ]);
     }
 
     protected function customer(array $attributes = []): Customer

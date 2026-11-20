@@ -12,7 +12,7 @@ class CustomerService
 {
     private const CUSTOMER_FIELDS = [
         'type', 'name', 'npwp', 'phone', 'email', 'contact_name',
-        'address', 'city', 'province', 'postal_code', 'is_active', 'notes',
+        'address', 'province_code', 'regency_code', 'district_code', 'village_code', 'postal_code', 'is_active', 'notes',
         'reminder_enabled', 'reminder_channels', 'reminder_days', 'reminder_overdue_daily',
     ];
 

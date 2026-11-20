@@ -117,6 +117,7 @@ Route::middleware('auth')->group(function () {
         Route::prefix('selectors')->group(function () {
             Route::get('/variants', [B2bCatalogSelectorController::class, 'variants'])->name('selectors/variants');
             Route::get('/customers', [B2bCatalogSelectorController::class, 'customers'])->name('selectors/customers');
+            Route::get('/regions', [B2bCatalogSelectorController::class, 'regions'])->name('selectors/regions');
         });
 
         Route::prefix('cashier')->group(function () {

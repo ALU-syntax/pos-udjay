@@ -78,6 +78,7 @@ class CashierController extends Controller
                 'url' => route('b2b/contracts/show', $contract->id),
             ] : null,
             'address' => $customer->hasAddress() ? $customer->fullAddress() : null,
+            'can_deliver' => $customer->hasDeliveryAddress(),
             'receivables' => [
                 'open_invoices' => (clone $openInvoices)->count(),
                 'outstanding' => (int) (clone $openInvoices)->selectRaw('COALESCE(SUM(total_to_pay - paid_amount), 0) as total')->value('total'),

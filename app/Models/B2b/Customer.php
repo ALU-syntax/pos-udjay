@@ -3,6 +3,10 @@
 namespace App\Models\B2b;
 
 use App\Models\User;
+use App\Models\Wilayah\District;
+use App\Models\Wilayah\Province;
+use App\Models\Wilayah\Regency;
+use App\Models\Wilayah\Village;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -62,6 +66,29 @@ class Customer extends Model
         return $this->hasMany(Invoice::class, 'b2b_customer_id');
     }
 
+    public function province(): BelongsTo
+    {
+        return $this->belongsTo(Province::class, 'province_code');
+    }
+
+    /** Kota/Kabupaten. */
+    public function regency(): BelongsTo
+    {
+        return $this->belongsTo(Regency::class, 'regency_code');
+    }
+
+    /** Kecamatan. */
+    public function district(): BelongsTo
+    {
+        return $this->belongsTo(District::class, 'district_code');
+    }
+
+    /** Kelurahan/Desa. */
+    public function village(): BelongsTo
+    {
+        return $this->belongsTo(Village::class, 'village_code');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -119,10 +146,22 @@ class Customer extends Model
         return filled($this->address);
     }
 
-    /** Alamat lengkap satu baris, dipakai di invoice dan pesanan. */
+    /** Bisa dipakai untuk pengiriman internal: alamat jalan terisi dan wilayah dipilih minimal sampai kota/kabupaten. */
+    public function hasDeliveryAddress(): bool
+    {
+        return $this->hasAddress() && filled($this->regency_code);
+    }
+
+    /**
+     * Alamat lengkap satu baris, dipakai di invoice dan pesanan,
+     * mis. "Jl. Raya 1, Pondok Rajeg, Kec. Cibinong, Kabupaten Bogor, Jawa Barat 16914".
+     */
     public function fullAddress(): string
     {
-        return collect([$this->address, $this->city, $this->province, $this->postal_code])
+        $district = $this->district?->name;
+        $province = trim(collect([$this->province?->name, $this->postal_code])->filter(fn ($part) => filled($part))->implode(' '));
+
+        return collect([$this->address, $this->village?->name, $district ? 'Kec. '.$district : null, $this->regency?->name, $province])
             ->filter(fn ($part) => filled($part))
             ->implode(', ');
     }
@@ -138,8 +177,10 @@ class Customer extends Model
             'recipient_name' => $this->contact_name,
             'phone' => $this->phone,
             'address' => $this->address,
-            'city' => $this->city,
-            'province' => $this->province,
+            'village' => $this->village?->name,
+            'district' => $this->district?->name,
+            'regency' => $this->regency?->name,
+            'province' => $this->province?->name,
             'postal_code' => $this->postal_code,
             'full_address' => $this->fullAddress(),
         ];

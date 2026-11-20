@@ -38,8 +38,14 @@ class CustomerRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:255'],
             'contact_name' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:1000'],
-            'city' => ['nullable', 'string', 'max:100'],
-            'province' => ['nullable', 'string', 'max:100'],
+            // Berjenjang: tiap tingkat wajib bila tingkat di bawahnya diisi, dan harus berada di bawah tingkat di atasnya.
+            'province_code' => ['nullable', 'required_with:regency_code', 'string', Rule::exists('provinces', 'code')],
+            'regency_code' => ['nullable', 'required_with:district_code', 'string',
+                Rule::exists('regencies', 'code')->where('province_code', (string) $this->input('province_code'))],
+            'district_code' => ['nullable', 'required_with:village_code', 'string',
+                Rule::exists('districts', 'code')->where('regency_code', (string) $this->input('regency_code'))],
+            'village_code' => ['nullable', 'string',
+                Rule::exists('villages', 'code')->where('district_code', (string) $this->input('district_code'))],
             'postal_code' => ['nullable', 'string', 'max:10'],
             'is_active' => ['boolean'],
             'reminder_enabled' => ['boolean'],
@@ -85,6 +91,10 @@ class CustomerRequest extends FormRequest
             'name' => 'nama customer',
             'contact_name' => 'nama PIC',
             'address' => 'alamat',
+            'province_code' => 'provinsi',
+            'regency_code' => 'kota/kabupaten',
+            'district_code' => 'kecamatan',
+            'village_code' => 'kelurahan/desa',
             'postal_code' => 'kode pos',
         ];
     }

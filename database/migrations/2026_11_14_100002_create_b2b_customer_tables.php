@@ -20,8 +20,12 @@ return new class extends Migration
             // Satu kontak (PIC) dan satu alamat per customer; telepon & email di atas juga jadi tujuan reminder.
             $table->string('contact_name')->nullable()->comment('nama PIC');
             $table->text('address')->nullable()->comment('alamat penagihan sekaligus pengiriman');
-            $table->string('city', 100)->nullable();
-            $table->string('province', 100)->nullable();
+            // Wilayah memakai kode Kemendagri (tabel provinces/regencies/districts/villages), dipilih lewat dropdown berjenjang.
+            // Tanpa foreign key karena tabel wilayah dibuat oleh migration yang lebih baru; konsistensi dijaga CustomerRequest.
+            $table->string('province_code', 2)->nullable();
+            $table->string('regency_code', 5)->nullable()->comment('kota/kabupaten');
+            $table->string('district_code', 8)->nullable()->comment('kecamatan');
+            $table->string('village_code', 13)->nullable()->comment('kelurahan/desa');
             $table->string('postal_code', 10)->nullable();
             // Reminder diatur per customer. Tidak diatur = tidak ada yang dikirim (tidak ada pengaturan global).
             $table->boolean('reminder_enabled')->default(false);

@@ -53,9 +53,9 @@ class OrderService
             $quote = $this->pricing->quote($customer, $outletId, $data['items'], $orderDate, $variants);
 
             // Satu alamat customer dipakai untuk penagihan dan pengiriman.
-            if ($data['delivery_method'] === 'internal' && ! $customer->hasAddress()) {
+            if ($data['delivery_method'] === 'internal' && ! $customer->hasDeliveryAddress()) {
                 throw ValidationException::withMessages([
-                    'delivery_method' => 'Customer belum punya alamat. Lengkapi alamat customer dulu untuk pengiriman internal.',
+                    'delivery_method' => 'Alamat customer belum lengkap. Isi alamat dan wilayah (minimal kota/kabupaten) di data customer dulu untuk pengiriman internal.',
                 ]);
             }
 

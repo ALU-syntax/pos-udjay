@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\B2b;
 
+use App\Models\B2b\Customer;
 use App\Models\B2b\Invoice;
 use App\Models\B2b\Order;
 use App\Models\Config;
@@ -110,12 +111,37 @@ class OrderServiceTest extends B2bTestCase
             'delivery_method' => 'internal', 'items' => [['variant_id' => $variant->id, 'qty' => 1]]]);
     }
 
+    public function test_internal_delivery_requires_region_up_to_regency(): void
+    {
+        $outlet = $this->outlet();
+        $user = $this->userFor($outlet);
+        $variant = $this->variant($outlet);
+        $this->seedWilayah();
+        $order = fn (Customer $customer) => $this->place(['user' => $user, 'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id,
+            'delivery_method' => 'internal', 'items' => [['variant_id' => $variant->id, 'qty' => 1]]]);
+
+        // Alamat jalan + provinsi saja belum cukup.
+        $withoutRegency = $this->customer(['address' => 'Jl. Kantor', 'province_code' => '32']);
+        $this->assertFalse($withoutRegency->hasDeliveryAddress());
+        try {
+            $order($withoutRegency);
+            $this->fail('Pengiriman internal tanpa kota/kabupaten seharusnya ditolak.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('delivery_method', $e->errors());
+        }
+
+        $complete = $this->customer(['address' => 'Jl. Kantor', 'province_code' => '32', 'regency_code' => '32.01']);
+        $this->assertTrue($complete->hasDeliveryAddress());
+        $this->assertNotNull($order($complete)->shipping_address_snapshot);
+    }
+
     public function test_customer_address_is_snapshotted_to_order_and_invoice(): void
     {
         $outlet = $this->outlet();
         $user = $this->userFor($outlet);
         $variant = $this->variant($outlet);
-        $customer = $this->customer(['contact_name' => 'Budi', 'address' => 'Jl. Kantor', 'city' => 'Bogor']);
+        $this->seedWilayah();
+        $customer = $this->customer(['contact_name' => 'Budi', 'address' => 'Jl. Kantor', 'province_code' => '32', 'regency_code' => '32.01']);
         $items = [['variant_id' => $variant->id, 'qty' => 1]];
 
         $internal = $this->place(['user' => $user, 'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id,
@@ -123,12 +149,13 @@ class OrderServiceTest extends B2bTestCase
         $pickup = $this->place(['user' => $user, 'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id, 'items' => $items]);
         $customer->update(['address' => 'Jl. Pindah']);
 
-        $this->assertSame('Jl. Kantor, Bogor', $internal->fresh()->shipping_address_snapshot['full_address']);
+        $this->assertSame('Jl. Kantor, Kabupaten Bogor, Jawa Barat', $internal->fresh()->shipping_address_snapshot['full_address']);
         $this->assertSame('Budi', $internal->shipping_address_snapshot['recipient_name']);
-        $this->assertSame('Jl. Kantor, Bogor', $internal->invoice->fresh()->billing_address_snapshot['full_address']);
+        $this->assertSame('Kabupaten Bogor', $internal->shipping_address_snapshot['regency']);
+        $this->assertSame('Jl. Kantor, Kabupaten Bogor, Jawa Barat', $internal->invoice->fresh()->billing_address_snapshot['full_address']);
         // Ambil sendiri: tidak ada alamat kirim, tapi alamat tagihan tetap dicetak di invoice.
         $this->assertNull($pickup->fresh()->shipping_address_snapshot);
-        $this->assertSame('Jl. Kantor, Bogor', $pickup->invoice->fresh()->billing_address_snapshot['full_address']);
+        $this->assertSame('Jl. Kantor, Kabupaten Bogor, Jawa Barat', $pickup->invoice->fresh()->billing_address_snapshot['full_address']);
     }
 
     public function test_inactive_customer_cannot_order(): void

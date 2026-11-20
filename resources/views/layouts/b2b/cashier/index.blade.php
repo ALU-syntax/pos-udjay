@@ -401,11 +401,14 @@
                     updateSubmit();
                 }
 
-                // Satu alamat per customer; kosong berarti pesanan hanya bisa "Diambil".
+                // Satu alamat per customer; tanpa alamat + wilayah (minimal kota/kabupaten) pesanan hanya bisa "Diambil".
                 function renderAddress() {
                     const address = state.customer?.address;
-                    $('#address-field').toggleClass('is-missing', !address);
-                    $('#shipping-address').text(address || 'Customer belum punya alamat. Lengkapi di data customer atau pilih "Diambil".');
+                    const canDeliver = Boolean(state.customer?.can_deliver);
+                    $('#address-field').toggleClass('is-missing', !canDeliver);
+                    $('#shipping-address').text(canDeliver ? address : (address
+                        ? `${address} — wilayah belum lengkap (minimal kota/kabupaten). Lengkapi di data customer atau pilih "Diambil".`
+                        : 'Customer belum punya alamat. Lengkapi di data customer atau pilih "Diambil".'));
                 }
 
                 // ---------- Keranjang ----------
@@ -678,8 +681,8 @@
                     }
 
                     const delivery = $('input[name="delivery_method"]:checked').val();
-                    if (delivery === 'internal' && !state.customer.address) {
-                        showToast('error', 'Customer belum punya alamat. Lengkapi alamat customer atau gunakan "Diambil".');
+                    if (delivery === 'internal' && !state.customer.can_deliver) {
+                        showToast('error', 'Alamat customer belum lengkap (alamat + minimal kota/kabupaten). Lengkapi data customer atau gunakan "Diambil".');
                         return;
                     }
                     payload.delivery_method = delivery;

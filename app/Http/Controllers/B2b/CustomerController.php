@@ -8,11 +8,14 @@ use App\Http\Requests\B2b\CustomerRequest;
 use App\Models\B2b\Customer;
 use App\Models\B2b\Invoice;
 use App\Services\B2b\CustomerService;
+use App\Services\WilayahService;
 
 class CustomerController extends Controller
 {
-    public function __construct(private readonly CustomerService $customers)
-    {
+    public function __construct(
+        private readonly CustomerService $customers,
+        private readonly WilayahService $wilayah,
+    ) {
         // Otorisasi ditulis eksplisit di setiap aksi.
         $this->abilities = [];
     }
@@ -30,6 +33,7 @@ class CustomerController extends Controller
 
         return view('layouts.b2b.customers.form', [
             'customer' => new Customer(['is_active' => true, 'reminder_enabled' => false]),
+            'regions' => $this->wilayah->optionsFor(null, null, null),
         ]);
     }
 
@@ -70,7 +74,10 @@ class CustomerController extends Controller
     {
         $this->authorize('update b2b/customers');
 
-        return view('layouts.b2b.customers.form', ['customer' => $customer]);
+        return view('layouts.b2b.customers.form', [
+            'customer' => $customer,
+            'regions' => $this->wilayah->optionsFor($customer->province_code, $customer->regency_code, $customer->district_code),
+        ]);
     }
 
     public function update(CustomerRequest $request, Customer $customer)

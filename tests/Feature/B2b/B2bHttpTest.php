@@ -68,6 +68,7 @@ class B2bHttpTest extends B2bTestCase
     public function test_customer_store_creates_code_and_saves_contact_and_address(): void
     {
         $user = $this->userFor(null, ['create b2b/customers']);
+        $this->seedWilayah();
 
         $response = $this->actingAs($user)->postJson(route('b2b/customers/store'), [
             'type' => 'pt',
@@ -76,8 +77,11 @@ class B2bHttpTest extends B2bTestCase
             'phone' => '0812345',
             'contact_name' => 'Budi',
             'address' => 'Jl. Sudirman 1',
-            'city' => 'Jakarta',
-            'postal_code' => '10220',
+            'province_code' => '32',
+            'regency_code' => '32.01',
+            'district_code' => '32.01.01',
+            'village_code' => '32.01.01.1001',
+            'postal_code' => '16914',
             'is_active' => 1,
         ])->assertOk();
 
@@ -90,7 +94,61 @@ class B2bHttpTest extends B2bTestCase
         $this->assertSame('finance@maju.co.id', $customer->email);
         $this->assertMatchesRegularExpression('/^CUS-B2B-\d{4,}$/', $customer->code);
         $this->assertSame('Budi', $customer->contact_name);
-        $this->assertSame('Jl. Sudirman 1, Jakarta, 10220', $customer->fullAddress());
+        $this->assertSame('32.01.01.1001', $customer->village_code);
+        $this->assertSame('Jl. Sudirman 1, Pondok Rajeg, Kec. Cibinong, Kabupaten Bogor, Jawa Barat 16914', $customer->fullAddress());
+    }
+
+    public function test_customer_region_must_follow_the_hierarchy(): void
+    {
+        $user = $this->userFor(null, ['create b2b/customers']);
+        $this->seedWilayah();
+        $store = fn (array $region) => $this->actingAs($user)->postJson(route('b2b/customers/store'), ['type' => 'pt', 'name' => 'PT Wilayah'] + $region);
+
+        // Kota/kabupaten dari provinsi lain.
+        $store(['province_code' => '32', 'regency_code' => '31.71'])->assertUnprocessable()->assertJsonValidationErrors('regency_code');
+        // Kelurahan dari kecamatan lain (Pondok Rajeg ada di Cibinong, bukan Gunungputri).
+        $store(['province_code' => '32', 'regency_code' => '32.01', 'district_code' => '32.01.02', 'village_code' => '32.01.01.1001'])
+            ->assertUnprocessable()->assertJsonValidationErrors('village_code');
+        // Tingkat di atasnya wajib diisi.
+        $store(['district_code' => '32.01.01'])->assertUnprocessable()->assertJsonValidationErrors(['province_code', 'regency_code']);
+        // Kode yang tidak ada.
+        $store(['province_code' => '99'])->assertUnprocessable()->assertJsonValidationErrors('province_code');
+        // Boleh berhenti di tingkat mana pun.
+        $store(['province_code' => '32', 'regency_code' => '32.01'])->assertOk();
+    }
+
+    public function test_region_selector_returns_children_of_a_parent(): void
+    {
+        $this->seedWilayah();
+        $url = fn (array $query) => route('b2b/selectors/regions', $query);
+
+        $this->actingAs($this->userFor())->getJson($url(['level' => 'districts', 'parent' => '32.01']))->assertForbidden();
+
+        $user = $this->userFor(null, ['update b2b/customers']);
+        $data = $this->actingAs($user)->getJson($url(['level' => 'districts', 'parent' => '32.01']))->assertOk()->json('data');
+        $this->assertContains(['id' => '32.01.01', 'text' => 'Cibinong'], $data);
+        $this->assertContains(['id' => '32.01.02', 'text' => 'Gunungputri'], $data);
+        $this->assertNotContains('31.71.01', array_column($data, 'id'));
+        $this->assertArrayNotHasKey('postal_code', $data[0]);
+
+        // Kelurahan/desa membawa kode pos untuk mengisi kode pos otomatis.
+        $villages = $this->actingAs($user)->getJson($url(['level' => 'villages', 'parent' => '32.01.01']))->assertOk()->json('data');
+        $this->assertContains(['id' => '32.01.01.1001', 'text' => 'Pondok Rajeg', 'postal_code' => '16914'], $villages);
+
+        $this->actingAs($user)->getJson($url(['level' => 'provinces', 'parent' => '32']))->assertUnprocessable();
+    }
+
+    public function test_customer_edit_form_preselects_saved_region(): void
+    {
+        $this->seedWilayah();
+        $user = $this->userFor(null, ['update b2b/customers']);
+        $customer = $this->customer(['province_code' => '32', 'regency_code' => '32.01', 'district_code' => '32.01.01', 'village_code' => '32.01.01.1001']);
+
+        $html = $this->actingAs($user)->get(route('b2b/customers/edit', $customer->id))
+            ->assertOk()
+            ->assertSee('Gunungputri')
+            ->getContent();
+        $this->assertMatchesRegularExpression('/value="32\.01\.01\.1001"\s+data-postal-code="16914"\s+selected>Pondok Rajeg</', $html);
     }
 
     public function test_audit_columns_are_filled_by_the_system_not_by_the_form(): void
@@ -176,9 +234,10 @@ class B2bHttpTest extends B2bTestCase
     {
         $user = $this->userFor(null, ['update b2b/customers']);
         $customer = $this->customer(['contact_name' => 'Lama', 'address' => 'Jl. Lama']);
+        $this->seedWilayah();
 
         $this->actingAs($user)->putJson(route('b2b/customers/update', $customer->id), [
-            'type' => 'pt', 'name' => 'PT Baru', 'contact_name' => 'Baru', 'address' => 'Jl. Baru 2', 'province' => 'Jawa Barat',
+            'type' => 'pt', 'name' => 'PT Baru', 'contact_name' => 'Baru', 'address' => 'Jl. Baru 2', 'province_code' => '32',
         ])->assertOk();
 
         $customer->refresh();

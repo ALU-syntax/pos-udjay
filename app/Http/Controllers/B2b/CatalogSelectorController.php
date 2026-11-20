@@ -5,9 +5,11 @@ namespace App\Http\Controllers\B2b;
 use App\Http\Controllers\Controller;
 use App\Models\B2b\Customer;
 use App\Models\VariantProduct;
+use App\Services\WilayahService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
-/** Sumber data pemilih: tabel pilih produk di form kontrak, filter customer di daftar Pesanan/Invoice. */
+/** Sumber data pemilih: tabel pilih produk di form kontrak, filter customer di daftar Pesanan/Invoice, dropdown wilayah di form customer. */
 class CatalogSelectorController extends Controller
 {
     public function __construct()
@@ -71,6 +73,28 @@ class CatalogSelectorController extends Controller
             ]);
 
         return responseSuccess(false, false, $data->all());
+    }
+
+    /** Pilihan wilayah satu tingkat di bawah induknya, untuk dropdown alamat di form customer. */
+    public function regions(Request $request, WilayahService $wilayah)
+    {
+        abort_unless(
+            $request->user()->can('create b2b/customers') || $request->user()->can('update b2b/customers'),
+            403
+        );
+        $validated = $request->validate([
+            'level' => ['required', Rule::in(array_keys(WilayahService::CHILD_LEVELS))],
+            'parent' => ['required', 'string', 'max:13'],
+        ]);
+
+        $data = $wilayah->children($validated['level'], $validated['parent'])
+            ->map(fn ($region) => array_filter([
+                'id' => $region->code,
+                'text' => $region->name,
+                'postal_code' => $region->postal_code,
+            ], fn ($value) => $value !== null));
+
+        return responseSuccess(false, false, $data->values()->all());
     }
 
     public static function variantLabel(VariantProduct $variant): string

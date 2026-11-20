@@ -7,6 +7,21 @@
 @section('content')
     @include('layouts.b2b.partials.assets')
     @include('layouts.b2b.partials.page-styles')
+    @push('css')
+        <style>
+            /* Dropdown wilayah (select2) disamakan dengan .form-control di form B2B */
+            .b2b-region + .select2-container .select2-selection--single {
+                height: 42px; border: 1px solid var(--ob-border-strong); border-radius: var(--ob-radius-sm); background: var(--ob-surface);
+            }
+            .b2b-region + .select2-container .select2-selection--single .select2-selection__rendered { padding-left: .85rem; line-height: 40px; font-size: .875rem; color: var(--ob-text); }
+            .b2b-region + .select2-container .select2-selection--single .select2-selection__placeholder { color: #94a3b8; }
+            .b2b-region + .select2-container .select2-selection--single .select2-selection__arrow { height: 40px; right: .5rem; }
+            .b2b-region + .select2-container--focus .select2-selection--single,
+            .b2b-region + .select2-container--open .select2-selection--single { border-color: var(--ob-primary); }
+            .b2b-region + .select2-container--disabled .select2-selection--single { background: var(--ob-surface-2, #f1f5f9); cursor: not-allowed; }
+            .b2b-region.is-invalid + .select2-container .select2-selection--single { border-color: var(--ob-danger); }
+        </style>
+    @endpush
 
     @php
         $typeOptions = [
@@ -127,17 +142,29 @@
                                     <label for="address" class="form-label">Alamat <span class="b2b-optional">(wajib untuk pengiriman internal)</span></label>
                                     <textarea id="address" name="address" rows="2" class="form-control" maxlength="1000" placeholder="Nama jalan, nomor, gedung, lantai">{{ old('address', $customer->address) }}</textarea>
                                 </div>
-                                <div class="b2b-col-5 b2b-field">
-                                    <label for="city" class="form-label">Kota / Kabupaten</label>
-                                    <input id="city" name="city" class="form-control" value="{{ old('city', $customer->city) }}" maxlength="100">
-                                </div>
+                                {{-- Dropdown berjenjang: pilihan tiap tingkat dimuat ulang (selectors/regions) saat tingkat di atasnya berubah. --}}
+                                @foreach ([
+                                    ['province_code', 'Provinsi', 'provinces', 'Pilih provinsi', 'wajib untuk pengiriman internal'],
+                                    ['regency_code', 'Kota / Kabupaten', 'regencies', 'Pilih kota/kabupaten', 'wajib untuk pengiriman internal'],
+                                    ['district_code', 'Kecamatan', 'districts', 'Pilih kecamatan', null],
+                                    ['village_code', 'Kelurahan / Desa', 'villages', 'Pilih kelurahan/desa', null],
+                                ] as [$field, $label, $level, $placeholder, $hint])
+                                    <div class="b2b-col-6 b2b-field">
+                                        <label for="{{ $field }}" class="form-label">{{ $label }} @if ($hint)<span class="b2b-optional">({{ $hint }})</span>@endif</label>
+                                        <select id="{{ $field }}" name="{{ $field }}" class="form-select b2b-region" data-level="{{ $level }}" data-placeholder="{{ $placeholder }}"
+                                            @disabled($level !== 'provinces' && $regions[$level]->isEmpty())>
+                                            <option value=""></option>
+                                            @foreach ($regions[$level] as $region)
+                                                <option value="{{ $region->code }}" @if ($region->postal_code) data-postal-code="{{ $region->postal_code }}" @endif
+                                                    @selected($region->code === (string) $customer->{$field})>{{ $region->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endforeach
                                 <div class="b2b-col-4 b2b-field">
-                                    <label for="province" class="form-label">Provinsi</label>
-                                    <input id="province" name="province" class="form-control" value="{{ old('province', $customer->province) }}" maxlength="100">
-                                </div>
-                                <div class="b2b-col-3 b2b-field">
                                     <label for="postal_code" class="form-label">Kode pos</label>
                                     <input id="postal_code" name="postal_code" class="form-control" value="{{ old('postal_code', $customer->postal_code) }}" maxlength="10" inputmode="numeric">
+                                    <small class="b2b-help">Terisi otomatis saat kelurahan/desa dipilih. Ubah bila berbeda.</small>
                                 </div>
                             </div>
                         </div>
@@ -255,6 +282,37 @@
                 }
                 $('input[name="type"]').on('change', updateTypeHints);
                 updateTypeHints();
+
+                // Wilayah berjenjang: mengganti satu tingkat mengosongkan tingkat di bawahnya lalu memuat pilihan tingkat berikutnya.
+                const regions = $('.b2b-region');
+                const regionUrl = @json(route('b2b/selectors/regions'));
+                regions.each(function () {
+                    $(this).select2({ width: '100%', placeholder: this.dataset.placeholder, allowClear: true });
+                });
+                regions.on('change', function () {
+                    // Kelurahan/desa membawa kode pos, jadi kode pos diisi otomatis (tetap bisa diubah manual).
+                    const postalCode = $(this).find(':selected').data('postal-code');
+                    if (postalCode) $('#postal_code').val(postalCode);
+
+                    const index = regions.index(this);
+                    const below = regions.slice(index + 1);
+                    below.each(function () {
+                        $(this).empty().append('<option value=""></option>').prop('disabled', true).trigger('change.select2');
+                    });
+
+                    const next = below.first();
+                    if (!next.length || !this.value) return;
+                    const parent = this.value;
+                    $.getJSON(regionUrl, { level: next.data('level'), parent }).done(response => {
+                        if (this.value !== parent) return; // pilihan sudah diganti lagi sebelum respons datang
+                        (response.data || []).forEach(item => {
+                            const option = new Option(item.text, item.id);
+                            if (item.postal_code) option.dataset.postalCode = item.postal_code;
+                            next.append(option);
+                        });
+                        next.prop('disabled', false).trigger('change.select2');
+                    }).fail(() => showToast('error', 'Gagal memuat pilihan wilayah'));
+                });
 
                 function toggleReminder() {
                     $('#reminder-settings').toggleClass('d-none', !$('#reminder_enabled').is(':checked'));
