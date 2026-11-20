@@ -83,6 +83,14 @@ class B2bMenuSeeder extends Seeder
             ['type' => 'string', 'value' => B2bSettings::FALLBACK_INVOICE_NUMBER_CODE, 'description' => 'Kode di nomor invoice, mis. 07/INV/BGR/11/2026'],
         );
 
+        // Saklar darurat reminder per channel; firstOrCreate supaya posisi saklar yang sudah diubah tidak ter-reset.
+        foreach (B2bSettings::REMINDER_SWITCH_KEYS as $channel => $key) {
+            Config::firstOrCreate(
+                ['name' => $key],
+                ['type' => 'boolean', 'value' => '1', 'description' => 'Saklar darurat reminder B2B '.ucfirst($channel).' (0 = hentikan semua kiriman)'],
+            );
+        }
+
         Cache::forget('menus');
         Cache::forget('urlMenu');
         app(PermissionRegistrar::class)->forgetCachedPermissions();

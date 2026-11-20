@@ -12,7 +12,9 @@ use App\Models\B2b\Payment;
 use App\Models\B2b\PaymentAllocation;
 use App\Models\Outlets;
 use App\Services\B2b\B2bSettings;
+use App\Services\B2b\InvoicePdfService;
 use App\Services\B2b\PaymentService;
+use App\Support\B2b\InvoiceDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -128,6 +130,17 @@ class InvoiceController extends Controller
         $invoice = $this->documentInvoice($invoice);
 
         return Excel::download(new InvoiceSheet($invoice, app(B2bSettings::class)->invoiceProfile()), InvoiceSheet::filename($invoice));
+    }
+
+    /** Unduh invoice sebagai PDF (sama dengan lampiran email reminder). */
+    public function pdf(int $invoice)
+    {
+        $invoice = $this->documentInvoice($invoice);
+
+        return response(app(InvoicePdfService::class)->output($invoice), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.InvoiceDocument::pdfFilename($invoice).'"',
+        ]);
     }
 
     /** Invoice lengkap untuk dokumen (cetak/Excel); boleh dibuka dari menu Invoice maupun Pesanan. */

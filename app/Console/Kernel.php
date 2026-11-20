@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Services\B2b\B2bSettings;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -28,6 +29,11 @@ class Kernel extends ConsoleKernel
         $schedule->command('b2b:mark-overdue')
             ->timezone('Asia/Jakarta')
             ->dailyAt('00:05')
+            ->withoutOverlapping();
+        // 09:00 WIB: antrekan reminder tagihan B2B (B2bSettings::REMINDER_SEND_AT); percobaan ulang berhenti 17:00.
+        $schedule->command('b2b:send-due-reminders')
+            ->timezone('Asia/Jakarta')
+            ->dailyAt(B2bSettings::REMINDER_SEND_AT)
             ->withoutOverlapping();
     }
 

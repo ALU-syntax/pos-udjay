@@ -111,10 +111,48 @@ return new class extends Migration
 
             $table->index(['outlet_id', 'refunded_at']);
         });
+
+        // Log reminder tagihan: satu baris per kiriman (email digabung per customer per hari).
+        Schema::create('b2b_reminder_logs', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('b2b_customer_id')->constrained('b2b_customers');
+            $table->enum('channel', ['email', 'whatsapp']);
+            $table->string('recipient')->nullable()->comment('email / nomor tujuan; kosong kalau data customer tidak lengkap');
+            $table->date('reminder_date');
+            $table->enum('trigger', ['auto', 'manual']);
+            $table->enum('status', ['queued', 'sent', 'failed', 'skipped'])->default('queued');
+            // Anti dobel kiriman otomatis: auto:{customer}:{channel}:{tanggal}. Manual = null, boleh berulang.
+            $table->string('dedupe_key', 80)->nullable()->unique();
+            $table->string('subject')->nullable();
+            $table->longText('body')->nullable()->comment('isi email/pesan yang dikirim, untuk log');
+            $table->json('attachments')->nullable()->comment('nama file lampiran');
+            $table->string('provider_message_id')->nullable();
+            $table->unsignedTinyInteger('attempts')->default(0);
+            $table->text('error')->nullable();
+            $table->foreignId('sent_by')->nullable()->constrained('users')->nullOnDelete()->comment('diisi untuk kiriman manual');
+            $table->timestamp('sent_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['reminder_date', 'status']);
+            $table->index(['b2b_customer_id', 'reminder_date']);
+        });
+
+        Schema::create('b2b_reminder_log_invoices', function (Blueprint $table) {
+            $table->id();
+            // Nama constraint ditulis manual: nama otomatis melebihi batas 64 karakter MySQL.
+            $table->foreignId('b2b_reminder_log_id')->constrained('b2b_reminder_logs', indexName: 'b2b_rli_log_fk')->cascadeOnDelete();
+            $table->foreignId('b2b_invoice_id')->constrained('b2b_invoices', indexName: 'b2b_rli_invoice_fk');
+            $table->foreignId('b2b_invoice_schedule_id')->nullable()->constrained('b2b_invoice_schedules', indexName: 'b2b_rli_schedule_fk');
+            $table->smallInteger('offset_days')->comment('hari relatif ke jatuh tempo: -3 = H-3, 2 = lewat 2 hari');
+
+            $table->unique(['b2b_reminder_log_id', 'b2b_invoice_id'], 'b2b_rli_log_invoice_unique');
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('b2b_reminder_log_invoices');
+        Schema::dropIfExists('b2b_reminder_logs');
         Schema::dropIfExists('b2b_refunds');
         Schema::dropIfExists('b2b_payment_allocations');
         Schema::dropIfExists('b2b_payments');

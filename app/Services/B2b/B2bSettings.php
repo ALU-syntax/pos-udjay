@@ -62,6 +62,31 @@ class B2bSettings
         return $profile;
     }
 
+    /** Reminder otomatis dikirim mulai jam ini (WIB) dan percobaan ulang berhenti di jam batas, supaya tidak mengganggu waktu istirahat customer. */
+    public const REMINDER_SEND_AT = '09:00';
+
+    public const REMINDER_RETRY_UNTIL = '17:00';
+
+    /** Saklar darurat per channel reminder (tabel configs, tipe boolean). */
+    public const REMINDER_SWITCH_KEYS = [
+        'email' => 'b2b.reminder.email_enabled',
+        'whatsapp' => 'b2b.reminder.whatsapp_enabled',
+    ];
+
+    /** Channel reminder aktif? Config belum ada = aktif; hanya nilai false yang mematikan. */
+    public function reminderChannelEnabled(string $channel): bool
+    {
+        $key = self::REMINDER_SWITCH_KEYS[$channel] ?? null;
+
+        return $key !== null && Config::getValue($key, true) !== false;
+    }
+
+    /** Batas akhir percobaan ulang kiriman otomatis pada tanggal tertentu (WIB). */
+    public function reminderRetryDeadline(Carbon $date): Carbon
+    {
+        return $date->copy()->setTimeFromTimeString(self::REMINDER_RETRY_UNTIL);
+    }
+
     /** Saran termin (hari) untuk mengisi jatuh tempo di kasir. Kasir tetap bisa mengganti tanggalnya. */
     public function defaultPaymentTermDays(): int
     {

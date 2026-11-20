@@ -6,31 +6,9 @@
     <title>Invoice {{ $invoice->invoice_number }}</title>
     @php
         // Template invoice Budiman Roastery (bahasa Inggris). Identitas penjual dari B2bSettings::invoiceProfile().
-        $order = $invoice->order;
+        extract(\App\Support\B2b\InvoiceDocument::data($invoice)); // $order, $immediate, $void, $paid, $payments, $termDays, $lines, $showBalance, $emptyLines
         $rupiah = fn ($value) => 'Rp. '.number_format((int) $value, 0, ',', '.');
         $date = fn ($value) => $value?->format('d M Y');
-        $immediate = $order->payment_type === \App\Models\B2b\Order::PAYMENT_IMMEDIATE;
-        $void = $invoice->status === \App\Models\B2b\Invoice::STATUS_VOID;
-        $paid = $invoice->status === \App\Models\B2b\Invoice::STATUS_PAID;
-        $payments = $invoice->allocations->pluck('payment')->filter()->where('status', 'posted')->unique('id')->values();
-        $termDays = $invoice->issue_date->diffInDays($invoice->due_date);
-        // Baris tagihan: item pesanan, lalu ongkir dan kode unik kalau ada.
-        $lines = $order->items->map(fn ($item) => [
-            'description' => $item->displayName(),
-            'note' => $item->notes,
-            'price' => $item->final_price,
-            'qty' => $item->qty,
-            'total' => $item->line_total,
-        ]);
-        if ($order->shipping_cost) {
-            $lines->push(['description' => 'Ongkir', 'note' => null, 'price' => $order->shipping_cost, 'qty' => 1, 'total' => $order->shipping_cost]);
-        }
-        if ($invoice->unique_code_amount) {
-            $lines->push(['description' => 'Unique code', 'note' => null, 'price' => $invoice->unique_code_amount, 'qty' => 1, 'total' => $invoice->unique_code_amount]);
-        }
-        $showBalance = $invoice->paid_amount && ! $paid && ! $void;
-        // Baris kosong pengisi seperti template; dikurangi kalau ada baris Paid/Balance supaya tetap satu halaman.
-        $emptyLines = max(0, ($showBalance ? 2 : 3) - $lines->count());
     @endphp
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -113,6 +91,7 @@
 <body>
     <div class="toolbar">
         <button type="button" class="primary" onclick="window.print()">Cetak / Simpan PDF</button>
+        <a href="{{ route('b2b/invoices/pdf', $invoice->id) }}">Unduh PDF</a>
         <a href="{{ route('b2b/invoices/excel', $invoice->id) }}">Unduh Excel</a>
         <button type="button" onclick="window.close()">Tutup</button>
     </div>

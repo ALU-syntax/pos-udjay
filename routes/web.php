@@ -141,6 +141,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/export', [B2bInvoiceController::class, 'export'])->name('invoices/export');
             Route::get('/{invoice}/print', [B2bInvoiceController::class, 'print'])->whereNumber('invoice')->name('invoices/print');
             Route::get('/{invoice}/excel', [B2bInvoiceController::class, 'excel'])->whereNumber('invoice')->name('invoices/excel');
+            Route::get('/{invoice}/pdf', [B2bInvoiceController::class, 'pdf'])->whereNumber('invoice')->name('invoices/pdf');
             Route::post('/{invoice}/payments', [B2bInvoiceController::class, 'pay'])->whereNumber('invoice')->name('invoices/pay');
             Route::post('/payments/{payment}/reverse', [B2bInvoiceController::class, 'reversePayment'])->whereNumber('payment')->name('invoices/payments/reverse');
             Route::get('/payments/{payment}/attachment', [B2bInvoiceController::class, 'paymentAttachment'])->whereNumber('payment')->name('invoices/payments/attachment');
