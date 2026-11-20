@@ -5,6 +5,7 @@
     $notConfigured = $customers->where('not_configured', true)->count();
     $active = $customers->where('reminder_enabled', true)->count();
     $canEdit = auth()->user()->can('update b2b/customers');
+    $whatsappReady = app(\App\Services\B2b\ReminderService::class)->supports('whatsapp');
 @endphp
 
 <div class="ob-card">
@@ -68,7 +69,7 @@
                                             @endforeach
                                         </span>
                                         <span class="ob-cell-meta">{{ \Illuminate\Support\Str::after($customer->reminderSummary(), '· ') }}</span>
-                                        @if (in_array('whatsapp', $channels, true) && ! in_array('whatsapp', \App\Services\B2b\ReminderService::SUPPORTED_CHANNELS, true))
+                                        @if (in_array('whatsapp', $channels, true) && ! $whatsappReady)
                                             <span class="ob-cell-meta">WhatsApp belum dikirim (pengirim belum dipasang)</span>
                                         @endif
                                     @else
@@ -81,7 +82,7 @@
                                 <div class="ob-cell-stack b2b-reminder-contact">
                                     <span class="{{ in_array('email', $channels, true) && ! filter_var(trim((string) $customer->email), FILTER_VALIDATE_EMAIL) && $customer->reminder_enabled ? 'text-danger' : '' }}">
                                         <i class="fas fa-envelope" aria-hidden="true"></i> {{ $customer->email ?: 'Email kosong' }}</span>
-                                    <span class="{{ in_array('whatsapp', $channels, true) && blank($customer->phone) && $customer->reminder_enabled ? 'text-danger' : '' }}">
+                                    <span class="{{ in_array('whatsapp', $channels, true) && \App\Support\B2b\Phone::toWhatsApp($customer->phone) === null && $customer->reminder_enabled ? 'text-danger' : '' }}">
                                         <i class="fas fa-phone" aria-hidden="true"></i> {{ $customer->phone ?: 'Telepon kosong' }}</span>
                                     @foreach ($customer->issues as $issue)
                                         <span class="b2b-due b2b-due--late"><i class="fas fa-exclamation-circle" aria-hidden="true"></i> {{ $issue }}</span>

@@ -7,6 +7,7 @@ use App\Models\Wilayah\District;
 use App\Models\Wilayah\Province;
 use App\Models\Wilayah\Regency;
 use App\Models\Wilayah\Village;
+use App\Support\B2b\Phone;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -142,8 +143,8 @@ class Customer extends Model
         if (in_array('email', $channels, true) && ! filter_var(trim((string) $this->email), FILTER_VALIDATE_EMAIL)) {
             $issues[] = 'Email kosong atau tidak valid';
         }
-        if (in_array('whatsapp', $channels, true) && blank($this->phone)) {
-            $issues[] = 'Nomor WhatsApp kosong';
+        if (in_array('whatsapp', $channels, true) && Phone::toWhatsApp($this->phone) === null) {
+            $issues[] = 'Nomor WhatsApp kosong atau tidak valid';
         }
 
         return $issues;

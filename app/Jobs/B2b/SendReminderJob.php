@@ -8,6 +8,8 @@ use App\Models\B2b\ReminderLog;
 use App\Services\B2b\B2bSettings;
 use App\Services\B2b\Reminder\EmailReminderChannel;
 use App\Services\B2b\Reminder\ReminderChannel;
+use App\Services\B2b\Reminder\ReminderSendException;
+use App\Services\B2b\Reminder\WhatsAppReminderChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -72,6 +74,11 @@ class SendReminderJob implements ShouldQueue
             $messageId = $this->channel($log->channel)->send($log, $log->customer, $items, function (array $content) use ($log) {
                 $log->forceFill($content)->save();
             });
+        } catch (ReminderSendException $e) {
+            // Mencoba ulang tidak akan berhasil, atau akan mengirim dobel: langsung gagal tanpa retry.
+            $this->finish($log, ReminderLog::STATUS_FAILED, mb_substr($e->getMessage(), 0, 2000));
+
+            return;
         } catch (Throwable $e) {
             $log->forceFill(['error' => mb_substr($e->getMessage(), 0, 2000)])->save();
 
@@ -99,6 +106,7 @@ class SendReminderJob implements ShouldQueue
     {
         return match ($channel) {
             ReminderLog::CHANNEL_EMAIL => app(EmailReminderChannel::class),
+            ReminderLog::CHANNEL_WHATSAPP => app(WhatsAppReminderChannel::class),
             default => throw new \RuntimeException("Channel reminder {$channel} belum didukung."),
         };
     }

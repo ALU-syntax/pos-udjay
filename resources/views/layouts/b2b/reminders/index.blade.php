@@ -197,6 +197,8 @@
                         <p class="b2b-muted" data-detail-nobody hidden>Isi pesan belum tersimpan (kiriman belum diproses atau dilewati sebelum dikirim).</p>
                         {{-- sandbox tanpa izin apa pun: isi email tidak bisa menjalankan script atau membuka link di halaman ini --}}
                         <iframe class="b2b-mail-preview" title="Pratinjau isi email" sandbox="" data-detail-body></iframe>
+                        {{-- Pesan WhatsApp berupa teks biasa --}}
+                        <pre class="b2b-wa-preview" data-detail-text hidden></pre>
                     </div>
                 </div>
             </div>
@@ -225,6 +227,7 @@
             .b2b-attachments { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 1rem; padding: 0; list-style: none; }
             .b2b-attachments li { display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .65rem; border: 1px solid var(--ob-border); border-radius: 999px; font-size: .78rem; }
             .b2b-mail-preview { width: 100%; height: 520px; border: 1px solid var(--ob-border); border-radius: var(--ob-radius-sm); background: #f3f4f6; }
+            .b2b-wa-preview { margin: 0; padding: 1rem; border: 1px solid var(--ob-border); border-radius: var(--ob-radius-sm); background: #e7f8ee; font: .85rem/1.5 inherit; white-space: pre-wrap; word-break: break-word; color: var(--ob-text); }
         </style>
     @endpush
 
@@ -266,7 +269,9 @@
                             <span class="b2b-muted">Jatuh tempo ${B2b.escape(invoice.due_date)} · ${B2b.escape(invoice.offset)}</span></div></li>`).join(''));
                         field('attachments').html(data.attachments.map(name => `<li><i class="fas fa-file-pdf text-danger" aria-hidden="true"></i>${B2b.escape(name)}</li>`).join(''));
                         $modal.find('[data-detail-attachments]').prop('hidden', !data.attachments.length);
-                        $modal.find('[data-detail-body]').prop('hidden', !data.body).attr('srcdoc', data.body || '');
+                        const isText = data.channel_key === 'whatsapp';
+                        $modal.find('[data-detail-body]').prop('hidden', !data.body || isText).attr('srcdoc', isText ? '' : (data.body || ''));
+                        $modal.find('[data-detail-text]').prop('hidden', !data.body || !isText).text(isText ? (data.body || '') : '');
                         $modal.find('[data-detail-nobody]').prop('hidden', !!data.body);
                         $modal.find('[data-detail-loading]').prop('hidden', true);
                         $modal.find('[data-detail-content]').prop('hidden', false);

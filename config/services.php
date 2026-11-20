@@ -31,4 +31,13 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // Gateway WhatsApp (Baileys) untuk reminder tagihan B2B, repo terpisah udjaya-wa-gateway.
+    // Kosong = channel WhatsApp tidak aktif. Lokal: http://127.0.0.1:3100; production: URL HTTPS gateway.
+    'b2b_wa_gateway' => [
+        'url' => env('B2B_WA_GATEWAY_URL'),
+        'key' => env('B2B_WA_GATEWAY_KEY'),
+        // Gateway mengantrekan pesan dengan jeda 4–9 detik, jadi satu request kirim bisa menunggu cukup lama.
+        'timeout' => (int) env('B2B_WA_GATEWAY_TIMEOUT', 120),
+    ],
+
 ];

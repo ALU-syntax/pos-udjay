@@ -8,6 +8,8 @@ use App\Models\B2b\Invoice;
 use App\Models\B2b\Order;
 use App\Models\B2b\ReminderLog;
 use App\Models\User;
+use App\Services\B2b\Reminder\WhatsAppGateway;
+use App\Support\B2b\Phone;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
@@ -25,13 +27,24 @@ class ReminderService
     /** Setelah lewat jatuh tempo: harian sampai hari ke-N, lalu tiap N hari. */
     public const OVERDUE_DAILY_UNTIL = 7;
 
-    /** Channel yang sudah punya pengirim. WhatsApp menyusul (langkah 4). */
-    public const SUPPORTED_CHANNELS = [ReminderLog::CHANNEL_EMAIL];
-
     public function __construct(
         private readonly B2bSettings $settings,
         private readonly ActivityLogger $logger,
+        private readonly WhatsAppGateway $whatsapp,
     ) {}
+
+    /** Channel yang punya pengirim: email selalu; WhatsApp kalau gateway sudah dikonfigurasi. */
+    public function supportedChannels(): array
+    {
+        return $this->whatsapp->isConfigured()
+            ? [ReminderLog::CHANNEL_EMAIL, ReminderLog::CHANNEL_WHATSAPP]
+            : [ReminderLog::CHANNEL_EMAIL];
+    }
+
+    public function supports(string $channel): bool
+    {
+        return in_array($channel, $this->supportedChannels(), true);
+    }
 
     /** Apakah hari relatif ke jatuh tempo ($offset: -3 = H-3, 2 = lewat 2 hari) masuk jadwal reminder customer. */
     public function matchesSchedule(Customer $customer, int $offset): bool
@@ -162,7 +175,7 @@ class ReminderService
         if (! in_array($log->status, [ReminderLog::STATUS_FAILED, ReminderLog::STATUS_SKIPPED], true)) {
             throw ValidationException::withMessages(['status' => 'Hanya kiriman yang gagal atau dilewati yang bisa dikirim ulang.']);
         }
-        if (! in_array($log->channel, self::SUPPORTED_CHANNELS, true)) {
+        if (! $this->supports($log->channel)) {
             throw ValidationException::withMessages(['channel' => 'Channel ini belum bisa dipakai untuk mengirim.']);
         }
         if (! $this->settings->reminderChannelEnabled($log->channel)) {
@@ -207,23 +220,24 @@ class ReminderService
     /** @return list<string> */
     private function channelsFor(Customer $customer): array
     {
-        return array_values(array_intersect(self::SUPPORTED_CHANNELS, (array) ($customer->reminder_channels ?? [])));
+        return array_values(array_intersect($this->supportedChannels(), (array) ($customer->reminder_channels ?? [])));
     }
 
+    /** Tujuan kiriman: email valid, atau nomor WhatsApp yang sudah dinormalisasi ke 62…. Null kalau tidak valid. */
     private function recipient(Customer $customer, string $channel): ?string
     {
-        $value = trim((string) ($channel === ReminderLog::CHANNEL_EMAIL ? $customer->email : $customer->phone));
-        if ($value === '') {
-            return null;
+        if ($channel === ReminderLog::CHANNEL_WHATSAPP) {
+            return Phone::toWhatsApp($customer->phone);
         }
+        $email = trim((string) $customer->email);
 
-        return $channel === ReminderLog::CHANNEL_EMAIL && ! filter_var($value, FILTER_VALIDATE_EMAIL) ? null : $value;
+        return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : null;
     }
 
     private function missingRecipientMessage(string $channel): string
     {
         return $channel === ReminderLog::CHANNEL_EMAIL
             ? 'Email customer kosong atau tidak valid. Lengkapi di data customer.'
-            : 'Nomor telepon customer kosong. Lengkapi di data customer.';
+            : 'Nomor WhatsApp customer kosong atau tidak valid. Lengkapi telepon di data customer.';
     }
 }

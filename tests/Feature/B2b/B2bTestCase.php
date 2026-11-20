@@ -20,6 +20,13 @@ abstract class B2bTestCase extends TestCase
 {
     use DatabaseTransactions;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Gateway WhatsApp mati secara default supaya test tidak bergantung pada .env lokal; test WhatsApp menyalakannya sendiri.
+        config(['services.b2b_wa_gateway.url' => null, 'services.b2b_wa_gateway.key' => null]);
+    }
+
     protected function outlet(string $suffix = ''): Outlets
     {
         return Outlets::create([
