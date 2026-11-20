@@ -88,7 +88,8 @@ class OrderController extends Controller
 
     public function cancel(Request $request, int $order)
     {
-        $this->authorize('cancel b2b/orders');
+        $model = $this->order($order);
+        $this->authorize($model->cancelPermission() ?? 'cancel b2b/orders');
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:255'],
             // Wajib untuk pesanan yang sudah dibayar; dicek di OrderService/PaymentService.
@@ -103,7 +104,7 @@ class OrderController extends Controller
             'refund.category_payment_id' => 'metode pengembalian dana',
             'refund.reference' => 'no. referensi',
         ]);
-        $order = $this->orders->cancel($request->user(), $this->order($order), $validated['reason'], $validated['refund'] ?? null);
+        $order = $this->orders->cancel($request->user(), $model, $validated['reason'], $validated['refund'] ?? null);
         $refunded = (int) $order->invoice()->first()?->refunds()->sum('amount');
 
         return responseSuccess(true, $refunded

@@ -36,7 +36,10 @@ class OrderServiceTest extends B2bTestCase
             'due_date' => today()->addDays(45)->toDateString(),
         ]);
 
-        $this->assertSame(Order::STATUS_CONFIRMED, $order->status);
+        // Default helper = diambil sendiri, jadi pesanan langsung selesai.
+        $this->assertSame(Order::STATUS_COMPLETED, $order->status);
+        $this->assertSame($user->id, $order->completed_by);
+        $this->assertNotNull($order->completed_at);
         $this->assertSame($contract->id, $order->b2b_contract_id);
         $this->assertMatchesRegularExpression('#^SO/B2B/\d{4}/\d{2}/\d{4}$#', $order->order_number);
         $this->assertSame(45000, $order->subtotal);
@@ -155,6 +158,9 @@ class OrderServiceTest extends B2bTestCase
         $this->assertSame('Jl. Kantor, Kabupaten Bogor, Jawa Barat', $internal->invoice->fresh()->billing_address_snapshot['full_address']);
         // Ambil sendiri: tidak ada alamat kirim, tapi alamat tagihan tetap dicetak di invoice.
         $this->assertNull($pickup->fresh()->shipping_address_snapshot);
+        $this->assertSame(Order::STATUS_CONFIRMED, $internal->fresh()->status);
+        $this->assertNull($internal->fresh()->completed_at);
+        $this->assertSame(Order::STATUS_COMPLETED, $pickup->fresh()->status);
         $this->assertSame('Jl. Kantor, Kabupaten Bogor, Jawa Barat', $pickup->invoice->fresh()->billing_address_snapshot['full_address']);
     }
 
@@ -201,21 +207,38 @@ class OrderServiceTest extends B2bTestCase
             $this->fail('Pembatalan seharusnya ditolak.');
         } catch (ValidationException) {
             $this->assertSame(9, (int) $variant->fresh()->stok);
-            $this->assertSame(Order::STATUS_CONFIRMED, $order->fresh()->status);
+            $this->assertSame(Order::STATUS_COMPLETED, $order->fresh()->status);
         }
     }
 
-    public function test_completed_or_cancelled_order_cannot_be_cancelled_again(): void
+    public function test_completed_order_can_be_cancelled_but_not_twice(): void
     {
         $outlet = $this->outlet();
         $user = $this->userFor($outlet);
         $variant = $this->variant($outlet, 10000, 10);
         $order = $this->place(['user' => $user, 'outlet_id' => $outlet->id, 'b2b_customer_id' => $this->customer()->id,
             'items' => [['variant_id' => $variant->id, 'qty' => 2]]]);
-        app(OrderService::class)->complete($user, $order);
+        $this->assertSame(Order::STATUS_COMPLETED, $order->status);
+
+        app(OrderService::class)->cancel($user, $order, 'Salah qty');
+        $this->assertSame(Order::STATUS_CANCELLED, $order->fresh()->status);
+        $this->assertSame(10, (int) $variant->fresh()->stok);
+        $this->assertSame(Invoice::STATUS_VOID, $order->invoice()->first()->status);
 
         $this->expectException(ValidationException::class);
         app(OrderService::class)->cancel($user, $order, 'Batal');
+    }
+
+    public function test_completed_pickup_order_cannot_be_completed_again(): void
+    {
+        $outlet = $this->outlet();
+        $user = $this->userFor($outlet);
+        $variant = $this->variant($outlet, 10000, 10);
+        $order = $this->place(['user' => $user, 'outlet_id' => $outlet->id, 'b2b_customer_id' => $this->customer()->id,
+            'items' => [['variant_id' => $variant->id, 'qty' => 1]]]);
+
+        $this->expectException(ValidationException::class);
+        app(OrderService::class)->complete($user, $order);
     }
 
     public function test_due_date_must_be_between_today_and_max_days(): void

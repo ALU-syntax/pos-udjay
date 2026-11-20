@@ -153,7 +153,7 @@ class PaymentServiceTest extends B2bTestCase
             app(OrderService::class)->cancel($this->user, $order, 'Batal');
             $this->fail('Pembatalan seharusnya ditolak.');
         } catch (ValidationException) {
-            $this->assertSame(Order::STATUS_CONFIRMED, $order->fresh()->status);
+            $this->assertSame(Order::STATUS_COMPLETED, $order->fresh()->status);
             $this->assertSame(Invoice::STATUS_PAID, $order->invoice()->first()->status);
         }
     }
@@ -209,7 +209,7 @@ class PaymentServiceTest extends B2bTestCase
             $this->fail('Pembatalan seharusnya ditolak.');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('refund', $e->errors());
-            $this->assertSame(Order::STATUS_CONFIRMED, $order->fresh()->status);
+            $this->assertSame(Order::STATUS_COMPLETED, $order->fresh()->status);
             $this->assertSame(7, (int) $this->variant->fresh()->stok);
         }
     }

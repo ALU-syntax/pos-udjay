@@ -28,6 +28,7 @@ class B2bHttpTest extends B2bTestCase
         }
         $this->assertDatabaseHas('permissions', ['name' => 'terminate b2b/contracts']);
         $this->assertDatabaseHas('permissions', ['name' => 'cancel b2b/orders']);
+        $this->assertDatabaseHas('permissions', ['name' => 'cancel-completed b2b/orders']);
         $this->assertDatabaseHas('permissions', ['name' => 'pay b2b/invoices']);
     }
 
@@ -467,7 +468,7 @@ class B2bHttpTest extends B2bTestCase
     public function test_paid_order_shows_payment_and_cancels_with_refund(): void
     {
         $outlet = $this->outlet();
-        $user = $this->userFor($outlet, ['read b2b/orders', 'cancel b2b/orders', 'read b2b/invoices']);
+        $user = $this->userFor($outlet, ['read b2b/orders', 'cancel-completed b2b/orders', 'read b2b/invoices']);
         $variant = $this->variant($outlet, 15000, 20);
         [$edc, $edcMethods] = $this->paymentCategory('EDC', ['QRIS']);
         [$cash] = $this->paymentCategory('Cash');
@@ -616,12 +617,15 @@ class B2bHttpTest extends B2bTestCase
         $outlet = $this->outlet();
         $user = $this->userFor($outlet, ['complete b2b/orders', 'cancel b2b/orders']);
         $variant = $this->variant($outlet, 10000, 10);
-        $place = fn () => app(\App\Services\B2b\OrderService::class)->place($user, [
-            'outlet_id' => $outlet->id, 'b2b_customer_id' => $this->customer()->id, 'delivery_method' => 'pickup', 'due_date' => today()->addDays(7)->toDateString(),
+        $this->seedWilayah();
+        $customer = $this->customer(['address' => 'Jl. Kantor', 'province_code' => '32', 'regency_code' => '32.01']);
+        // Pesanan diantar kurir masih dikonfirmasi; diambil sendiri langsung selesai.
+        $place = fn (string $delivery) => app(\App\Services\B2b\OrderService::class)->place($user, [
+            'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id, 'delivery_method' => $delivery, 'due_date' => today()->addDays(7)->toDateString(),
             'items' => [['variant_id' => $variant->id, 'qty' => 3]],
         ]);
-        $toCancel = $place();
-        $toComplete = $place();
+        $toCancel = $place('internal');
+        $toComplete = $place('internal');
 
         $this->actingAs($user)->postJson(route('b2b/orders/cancel', $toCancel->id), [])->assertUnprocessable();
         $this->actingAs($user)->postJson(route('b2b/orders/cancel', $toCancel->id), ['reason' => 'Salah customer'])->assertOk();
@@ -630,6 +634,29 @@ class B2bHttpTest extends B2bTestCase
         $this->assertSame(Order::STATUS_CANCELLED, $toCancel->fresh()->status);
         $this->assertSame(Order::STATUS_COMPLETED, $toComplete->fresh()->status);
         $this->assertSame(7, (int) $variant->fresh()->stok);
+    }
+
+    public function test_cancelling_completed_order_needs_separate_permission(): void
+    {
+        $outlet = $this->outlet();
+        $variant = $this->variant($outlet, 10000, 10);
+        $cashier = $this->userFor($outlet, ['read b2b/orders', 'cancel b2b/orders']);
+        $supervisor = $this->userFor($outlet, ['read b2b/orders', 'cancel-completed b2b/orders']);
+        // Diambil sendiri = langsung selesai.
+        $order = app(\App\Services\B2b\OrderService::class)->place($cashier, [
+            'outlet_id' => $outlet->id, 'b2b_customer_id' => $this->customer()->id, 'delivery_method' => 'pickup', 'due_date' => today()->addDays(7)->toDateString(),
+            'items' => [['variant_id' => $variant->id, 'qty' => 3]],
+        ]);
+        $this->assertSame(Order::STATUS_COMPLETED, $order->status);
+
+        $this->actingAs($cashier)->get(route('b2b/orders/show', $order->id))->assertOk()->assertDontSee('Alasan pembatalan');
+        $this->actingAs($cashier)->postJson(route('b2b/orders/cancel', $order->id), ['reason' => 'Salah qty'])->assertForbidden();
+        $this->assertSame(Order::STATUS_COMPLETED, $order->fresh()->status);
+
+        $this->actingAs($supervisor)->get(route('b2b/orders/show', $order->id))->assertOk()->assertSee('Alasan pembatalan');
+        $this->actingAs($supervisor)->postJson(route('b2b/orders/cancel', $order->id), ['reason' => 'Salah qty'])->assertOk();
+        $this->assertSame(Order::STATUS_CANCELLED, $order->fresh()->status);
+        $this->assertSame(10, (int) $variant->fresh()->stok);
     }
 
     public function test_detail_pages_render(): void

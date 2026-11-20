@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\B2b\CashierOrderRequest;
 use App\Models\B2b\Customer;
 use App\Models\B2b\Invoice;
+use App\Models\B2b\Order;
 use App\Models\Outlets;
 use App\Models\VariantProduct;
 use App\Services\B2b\B2bSettings;
@@ -146,9 +147,10 @@ class CashierController extends Controller
     {
         $order = $this->orders->place($request->user(), $request->validated());
         $payment = $order->invoice->allocations->first()?->payment;
+        $saved = $order->status === Order::STATUS_COMPLETED ? ' tersimpan dan selesai (diambil)' : ' tersimpan';
         $message = $payment
-            ? 'Pesanan '.$order->order_number.' tersimpan dan lunas ('.$payment->method_name.'). Invoice '.$order->invoice->invoice_number.'.'
-            : 'Pesanan '.$order->order_number.' tersimpan. Invoice '.$order->invoice->invoice_number.' dibuat.';
+            ? 'Pesanan '.$order->order_number.$saved.', lunas ('.$payment->method_name.'). Invoice '.$order->invoice->invoice_number.'.'
+            : 'Pesanan '.$order->order_number.$saved.'. Invoice '.$order->invoice->invoice_number.' dibuat.';
 
         return responseSuccess(false, $message, [
             'id' => $order->id,

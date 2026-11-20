@@ -448,7 +448,7 @@ Menu **B2B** didaftarkan lewat `B2bMenuSeeder`:
 | Laporan | `b2b/reports` |
 | Pengaturan (Rekening, Reminder) | `b2b/settings` |
 
-Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay b2b/invoices` untuk mencatat pelunasan.
+Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay b2b/invoices` untuk mencatat pelunasan, `cancel b2b/orders` (batal pesanan dikonfirmasi), dan `cancel-completed b2b/orders` (batal pesanan selesai).
 
 ---
 
@@ -524,3 +524,4 @@ Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay 
 | 17 Nov 2026 | Satu kontak dan satu alamat per customer |
 | 18 Nov 2026 | Kontrak = harga tetap per varian dengan tingkat qty, bisa lintas outlet. Produk di luar kontrak harga normal. Pesanan lama tetap memakai harga snapshot. Tanpa draft. Bisa diedit saat berjalan. Overlap dicek saat buat dan edit. Harga boleh di atas harga normal. Soft delete, kontrak berjalan tidak bisa dihapus |
 | 19 Nov 2026 | Limit kredit dihapus dari rencana: tidak ada aturan limit kredit maupun override. Kolom `credit_check_result`, `credit_override_by`, `credit_override_reason` dibuang dari `b2b_orders` |
+| 20 Nov 2026 | Pesanan "Diambil sendiri" langsung berstatus Selesai saat dibuat (`completed_by/at` = kasir). Pesanan kurir internal tetap Dikonfirmasi sampai ditandai selesai. Pesanan Selesai tetap bisa dibatalkan (stok kembali, invoice void, refund bila sudah dibayar) untuk koreksi salah input, dengan permission terpisah `cancel-completed b2b/orders` |

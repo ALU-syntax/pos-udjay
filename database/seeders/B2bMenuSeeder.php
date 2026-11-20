@@ -37,7 +37,8 @@ class B2bMenuSeeder extends Seeder
             ],
             'b2b/orders' => [
                 'name' => 'Pesanan',
-                'permissions' => ['read ', 'complete ', 'cancel '],
+                // cancel = batalkan pesanan dikonfirmasi; cancel-completed = batalkan pesanan yang sudah selesai
+                'permissions' => ['read ', 'complete ', 'cancel ', 'cancel-completed '],
             ],
             'b2b/invoices' => [
                 'name' => 'Invoice',

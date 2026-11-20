@@ -96,6 +96,19 @@ class Order extends Model
         return $this->hasOne(Invoice::class, 'b2b_order_id');
     }
 
+    /**
+     * Permission untuk membatalkan pesanan ini: pesanan selesai butuh izin terpisah supaya tidak semua akun
+     * bisa membatalkan barang yang sudah diserahkan. Null kalau pesanan sudah dibatalkan.
+     */
+    public function cancelPermission(): ?string
+    {
+        return match ($this->status) {
+            self::STATUS_CONFIRMED => 'cancel b2b/orders',
+            self::STATUS_COMPLETED => 'cancel-completed b2b/orders',
+            default => null,
+        };
+    }
+
     public function statusLabel(): string
     {
         return self::STATUS_LABELS[$this->status] ?? ucfirst((string) $this->status);

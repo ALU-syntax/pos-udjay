@@ -59,6 +59,9 @@ class OrderService
                 ]);
             }
 
+            // Diambil sendiri: barang langsung diserahkan di kasir, jadi pesanan langsung selesai.
+            $pickedUp = $data['delivery_method'] === 'pickup';
+
             $order = new Order([
                 'b2b_customer_id' => $customer->id,
                 'b2b_contract_id' => $quote['contract']?->id,
@@ -67,7 +70,7 @@ class OrderService
                 'order_date' => $orderDate,
                 'due_date' => $dueDate,
                 'payment_type' => $paymentType,
-                'status' => Order::STATUS_CONFIRMED,
+                'status' => $pickedUp ? Order::STATUS_COMPLETED : Order::STATUS_CONFIRMED,
                 'subtotal' => $quote['subtotal'],
                 'tax_total' => 0,
                 'shipping_cost' => 0,
@@ -76,6 +79,8 @@ class OrderService
                 'shipping_address_snapshot' => $data['delivery_method'] === 'internal' ? $customer->addressSnapshot() : null,
                 'confirmed_by' => $user->id,
                 'confirmed_at' => $orderDate,
+                'completed_by' => $pickedUp ? $user->id : null,
+                'completed_at' => $pickedUp ? $orderDate : null,
                 'notes' => $data['notes'] ?? null,
             ]);
             $order->order_number = $this->sequences->orderNumber($orderDate);
@@ -114,6 +119,9 @@ class OrderService
                 'contract_id' => $order->b2b_contract_id,
                 'insufficient_stock' => $quote['has_insufficient_stock'],
             ], $user->id);
+            if ($pickedUp) {
+                $this->logger->log('order.completed', $order, ['reason' => 'pickup'], $user->id);
+            }
 
             return $order->load(['items', 'invoice.schedules', 'invoice.allocations.payment', 'customer', 'outlet']);
         });
@@ -139,7 +147,7 @@ class OrderService
     }
 
     /**
-     * Batalkan pesanan: stok dikembalikan dan invoice dibatalkan (void).
+     * Batalkan pesanan (dikonfirmasi atau selesai): stok dikembalikan dan invoice dibatalkan (void).
      * Kalau invoice sudah dibayar, data refund wajib diisi: pembayaran di-reverse dan pengembalian dana dicatat dulu.
      *
      * @param  array{category_payment_id?:int|string|null, payment_id?:int|string|null, reference?:string|null}|null  $refund
@@ -148,8 +156,9 @@ class OrderService
     {
         return DB::transaction(function () use ($user, $order, $reason, $refund) {
             $order = Order::query()->with('items')->whereKey($order->id)->lockForUpdate()->firstOrFail();
-            if ($order->status !== Order::STATUS_CONFIRMED) {
-                throw ValidationException::withMessages(['status' => 'Hanya pesanan berstatus dikonfirmasi yang bisa dibatalkan.']);
+            // Pesanan selesai tetap bisa dibatalkan untuk koreksi salah input (pesanan diambil sendiri langsung selesai).
+            if (! in_array($order->status, [Order::STATUS_CONFIRMED, Order::STATUS_COMPLETED], true)) {
+                throw ValidationException::withMessages(['status' => 'Pesanan ini sudah dibatalkan.']);
             }
 
             $invoice = Invoice::query()->where('b2b_order_id', $order->id)->lockForUpdate()->first();

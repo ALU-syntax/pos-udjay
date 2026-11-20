@@ -1,5 +1,5 @@
 {{-- Batal pesanan lunas: pembayaran di-reverse dan pengembalian dana dicatat. Butuh $order, $invoice, $payments, $paymentMethods, $rupiah. --}}
-    @can('cancel b2b/orders')
+    @if ($order->cancelPermission() && auth()->user()->can($order->cancelPermission()))
         @php $firstPayment = $payments->firstWhere('status', 'posted'); @endphp
         {{-- Batal pesanan lunas: pembayaran di-reverse dan pengembalian dana dicatat. Dipindah ke <body> saat halaman dimuat. --}}
         <div class="modal fade b2b-modal" id="cancel-modal" tabindex="-1" aria-labelledby="cancel-title" aria-hidden="true">
@@ -94,4 +94,4 @@
                 });
             </script>
         @endpush
-    @endcan
+    @endif

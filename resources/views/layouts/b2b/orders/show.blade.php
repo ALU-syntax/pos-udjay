@@ -6,6 +6,7 @@
     $immediate = $order->payment_type === \App\Models\B2b\Order::PAYMENT_IMMEDIATE;
     $cancelled = $order->status === \App\Models\B2b\Order::STATUS_CANCELLED;
     $paid = $invoice && $invoice->paid_amount > 0;
+    $canCancel = $order->cancelPermission() && auth()->user()->can($order->cancelPermission());
     $rupiah = fn ($value) => 'Rp '.number_format((int) $value, 0, ',', '.');
     $outstanding = $invoice?->outstandingAmount() ?? 0;
     $overdue = $invoice && $invoice->displayStatus() === \App\Models\B2b\Invoice::STATUS_OVERDUE;
@@ -57,18 +58,19 @@
                     <a href="{{ route('b2b/invoices/print', $invoice->id) }}" target="_blank" class="btn ob-btn ob-btn-outline"><i class="fas fa-print" aria-hidden="true"></i> Cetak Invoice</a>
                     <a href="{{ route('b2b/invoices/excel', $invoice->id) }}" class="btn ob-btn ob-btn-outline" title="Unduh invoice sebagai Excel"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</a>
                 @endif
+                {{-- Pesanan selesai tetap bisa dibatalkan untuk koreksi salah input, tapi butuh permission cancel-completed --}}
+                @if ($canCancel)
+                    @if ($paid)
+                        {{-- Sudah dibayar: batal wajib mencatat pengembalian dana --}}
+                        <button type="button" class="btn ob-btn ob-btn-outline b2b-btn-danger-outline" data-bs-toggle="modal" data-bs-target="#cancel-modal">
+                            <i class="fas fa-ban" aria-hidden="true"></i> Batalkan</button>
+                    @else
+                        <a href="{{ route('b2b/orders/cancel', $order->id) }}" class="btn ob-btn ob-btn-outline b2b-btn-danger-outline" data-b2b-confirm data-reason="Alasan pembatalan"
+                            data-title="Batalkan pesanan?" data-text="Stok dikembalikan dan invoice dibatalkan." data-confirm-text="Ya, batalkan">
+                            <i class="fas fa-ban" aria-hidden="true"></i> Batalkan</a>
+                    @endif
+                @endif
                 @if ($order->status === 'confirmed')
-                    @can('cancel b2b/orders')
-                        @if ($paid)
-                            {{-- Sudah dibayar: batal wajib mencatat pengembalian dana --}}
-                            <button type="button" class="btn ob-btn ob-btn-outline b2b-btn-danger-outline" data-bs-toggle="modal" data-bs-target="#cancel-modal">
-                                <i class="fas fa-ban" aria-hidden="true"></i> Batalkan</button>
-                        @else
-                            <a href="{{ route('b2b/orders/cancel', $order->id) }}" class="btn ob-btn ob-btn-outline b2b-btn-danger-outline" data-b2b-confirm data-reason="Alasan pembatalan"
-                                data-title="Batalkan pesanan?" data-text="Stok dikembalikan dan invoice dibatalkan." data-confirm-text="Ya, batalkan">
-                                <i class="fas fa-ban" aria-hidden="true"></i> Batalkan</a>
-                        @endif
-                    @endcan
                     @can('complete b2b/orders')
                         <a href="{{ route('b2b/orders/complete', $order->id) }}" class="btn ob-btn ob-btn-primary" data-b2b-confirm data-icon="question"
                             data-title="Tandai pesanan selesai?" data-text="Gunakan setelah barang diserahkan/diterima customer." data-confirm-text="Ya, selesai">
@@ -415,7 +417,7 @@
 
         @include('layouts.b2b.invoices.partials.payment-modal')
 
-        @if ($order->status === 'confirmed' && $paid)
+        @if ($canCancel && $paid)
             @include('layouts.b2b.orders.partials.cancel-modal')
         @endif
     </div>
