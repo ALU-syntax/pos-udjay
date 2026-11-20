@@ -39,8 +39,8 @@ class CustomerRequest extends FormRequest
             'contact_name' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:1000'],
             // Berjenjang: tiap tingkat wajib bila tingkat di bawahnya diisi, dan harus berada di bawah tingkat di atasnya.
-            'province_code' => ['nullable', 'required_with:regency_code', 'string', Rule::exists('provinces', 'code')],
-            'regency_code' => ['nullable', 'required_with:district_code', 'string',
+            'province_code' => ['nullable', 'required_with:regency_code,district_code,village_code', 'string', Rule::exists('provinces', 'code')],
+            'regency_code' => ['nullable', 'required_with:district_code,village_code', 'string',
                 Rule::exists('regencies', 'code')->where('province_code', (string) $this->input('province_code'))],
             'district_code' => ['nullable', 'required_with:village_code', 'string',
                 Rule::exists('districts', 'code')->where('regency_code', (string) $this->input('regency_code'))],
