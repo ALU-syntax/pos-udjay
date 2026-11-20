@@ -52,7 +52,7 @@ class CatalogSelectorController extends Controller
     public function customers(Request $request)
     {
         abort_unless(
-            $request->user()->can('read b2b/orders') || $request->user()->can('read b2b/invoices'),
+            $request->user()->can('read b2b/orders') || $request->user()->can('read b2b/invoices') || $request->user()->can('read b2b/reminders'),
             403
         );
         $q = addcslashes(trim((string) $request->query('q')), '%_\\');

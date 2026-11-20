@@ -25,6 +25,7 @@ use App\Http\Controllers\B2b\ContractController as B2bContractController;
 use App\Http\Controllers\B2b\CustomerController as B2bCustomerController;
 use App\Http\Controllers\B2b\InvoiceController as B2bInvoiceController;
 use App\Http\Controllers\B2b\OrderController as B2bOrderController;
+use App\Http\Controllers\B2b\ReminderController as B2bReminderController;
 use App\Http\Controllers\OrderTable\BannerController as OrderTableBannerController;
 use App\Http\Controllers\OrderTable\BridgeMonitorController as OrderTableBridgeMonitorController;
 use App\Http\Controllers\OrderTable\CatalogSelectorController as OrderTableCatalogSelectorController;
@@ -145,6 +146,14 @@ Route::middleware('auth')->group(function () {
             Route::post('/{invoice}/payments', [B2bInvoiceController::class, 'pay'])->whereNumber('invoice')->name('invoices/pay');
             Route::post('/payments/{payment}/reverse', [B2bInvoiceController::class, 'reversePayment'])->whereNumber('payment')->name('invoices/payments/reverse');
             Route::get('/payments/{payment}/attachment', [B2bInvoiceController::class, 'paymentAttachment'])->whereNumber('payment')->name('invoices/payments/attachment');
+        });
+
+        Route::prefix('reminders')->group(function () {
+            Route::get('/', [B2bReminderController::class, 'index'])->name('reminders');
+            Route::get('/{log}', [B2bReminderController::class, 'show'])->whereNumber('log')->name('reminders/show');
+            Route::post('/{log}/resend', [B2bReminderController::class, 'resend'])->whereNumber('log')->name('reminders/resend');
+            Route::post('/switch/{channel}/{state}', [B2bReminderController::class, 'toggle'])
+                ->whereIn('channel', ['email', 'whatsapp'])->whereIn('state', ['on', 'off'])->name('reminders/toggle');
         });
     });
 

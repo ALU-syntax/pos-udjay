@@ -13,6 +13,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Memilih tagihan yang perlu diingatkan dan mengantrekan kiriman reminder.
@@ -27,7 +28,10 @@ class ReminderService
     /** Channel yang sudah punya pengirim. WhatsApp menyusul (langkah 4). */
     public const SUPPORTED_CHANNELS = [ReminderLog::CHANNEL_EMAIL];
 
-    public function __construct(private readonly B2bSettings $settings) {}
+    public function __construct(
+        private readonly B2bSettings $settings,
+        private readonly ActivityLogger $logger,
+    ) {}
 
     /** Apakah hari relatif ke jatuh tempo ($offset: -3 = H-3, 2 = lewat 2 hari) masuk jadwal reminder customer. */
     public function matchesSchedule(Customer $customer, int $offset): bool
@@ -125,6 +129,40 @@ class ReminderService
         }
 
         return $log;
+    }
+
+    /**
+     * Kirim ulang kiriman yang gagal/dilewati sebagai kiriman manual baru (log lama tetap untuk riwayat).
+     * Tujuan diambil dari data customer terbaru, jadi email yang sudah diperbaiki langsung terpakai.
+     */
+    public function resend(ReminderLog $log, User $user): ReminderLog
+    {
+        if (! in_array($log->status, [ReminderLog::STATUS_FAILED, ReminderLog::STATUS_SKIPPED], true)) {
+            throw ValidationException::withMessages(['status' => 'Hanya kiriman yang gagal atau dilewati yang bisa dikirim ulang.']);
+        }
+        if (! in_array($log->channel, self::SUPPORTED_CHANNELS, true)) {
+            throw ValidationException::withMessages(['channel' => 'Channel ini belum bisa dipakai untuk mengirim.']);
+        }
+        if (! $this->settings->reminderChannelEnabled($log->channel)) {
+            throw ValidationException::withMessages(['channel' => 'Channel ini sedang dihentikan lewat saklar darurat.']);
+        }
+
+        $today = today();
+        $items = $this->openCreditInvoices()
+            ->whereIn('id', $log->invoices()->pluck('b2b_invoices.id'))
+            ->orderBy('due_date')
+            ->get()
+            ->map(fn (Invoice $invoice) => ['invoice' => $invoice, 'offset' => $this->offset($invoice, $today)])
+            ->values();
+        if ($items->isEmpty()) {
+            throw ValidationException::withMessages(['status' => 'Semua invoice di kiriman ini sudah lunas atau dibatalkan.']);
+        }
+
+        $customer = Customer::withTrashed()->findOrFail($log->b2b_customer_id);
+        $new = $this->createLog($customer, $log->channel, $items, $today, ReminderLog::TRIGGER_MANUAL, $user);
+        $this->logger->log('reminder.resent', $new, ['from_log_id' => $log->id, 'status' => $new->status], $user->id);
+
+        return $new;
     }
 
     /** Hari relatif tanggal reminder terhadap jatuh tempo invoice: negatif = sebelum, positif = lewat. */

@@ -45,6 +45,11 @@ class B2bMenuSeeder extends Seeder
                 // pay = catat dan batalkan pelunasan invoice tempo
                 'permissions' => ['read ', 'pay '],
             ],
+            'b2b/reminders' => [
+                'name' => 'Reminder',
+                // send = kirim ulang / kirim manual; toggle = saklar darurat per channel
+                'permissions' => ['read ', 'send ', 'toggle '],
+            ],
             'b2b/customers' => [
                 'name' => 'Customer',
                 'permissions' => ['create ', 'read ', 'update ', 'delete '],

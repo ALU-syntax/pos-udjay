@@ -81,6 +81,13 @@ class B2bSettings
         return $key !== null && Config::getValue($key, true) !== false;
     }
 
+    public function setReminderChannelEnabled(string $channel, bool $enabled): Config
+    {
+        $key = self::REMINDER_SWITCH_KEYS[$channel] ?? throw new \InvalidArgumentException("Channel reminder {$channel} tidak dikenal.");
+
+        return Config::setValue($key, $enabled ? '1' : '0', 'Saklar darurat reminder B2B '.ucfirst($channel).' (0 = hentikan semua kiriman)', 'boolean');
+    }
+
     /** Batas akhir percobaan ulang kiriman otomatis pada tanggal tertentu (WIB). */
     public function reminderRetryDeadline(Carbon $date): Carbon
     {

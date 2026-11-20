@@ -65,6 +65,42 @@ class ReminderLog extends Model
         return self::STATUS_LABELS[$this->status] ?? ucfirst((string) $this->status);
     }
 
+    public const CHANNEL_LABELS = [
+        self::CHANNEL_EMAIL => 'Email',
+        self::CHANNEL_WHATSAPP => 'WhatsApp',
+    ];
+
+    public const TRIGGER_LABELS = [
+        self::TRIGGER_AUTO => 'Otomatis',
+        self::TRIGGER_MANUAL => 'Manual',
+    ];
+
+    public function statusVariant(): string
+    {
+        return match ($this->status) {
+            self::STATUS_SENT => 'success',
+            self::STATUS_FAILED => 'danger',
+            self::STATUS_SKIPPED => 'muted',
+            default => 'warning',
+        };
+    }
+
+    public function channelLabel(): string
+    {
+        return self::CHANNEL_LABELS[$this->channel] ?? ucfirst((string) $this->channel);
+    }
+
+    public function channelIcon(): string
+    {
+        return $this->channel === self::CHANNEL_WHATSAPP ? 'fab fa-whatsapp' : 'fas fa-envelope';
+    }
+
+    /** Kiriman gagal/dilewati boleh dikirim ulang (sebagai kiriman manual baru). */
+    public function canResend(): bool
+    {
+        return in_array($this->status, [self::STATUS_FAILED, self::STATUS_SKIPPED], true);
+    }
+
     /** Label hari relatif: H-3, Hari H, H+2. */
     public static function offsetLabel(int $offset): string
     {
