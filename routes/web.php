@@ -152,6 +152,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [B2bReminderController::class, 'index'])->name('reminders');
             Route::get('/{log}', [B2bReminderController::class, 'show'])->whereNumber('log')->name('reminders/show');
             Route::post('/{log}/resend', [B2bReminderController::class, 'resend'])->whereNumber('log')->name('reminders/resend');
+            Route::post('/invoices/{invoice}', [B2bReminderController::class, 'sendInvoice'])->whereNumber('invoice')->name('reminders/send-invoice');
             Route::post('/switch/{channel}/{state}', [B2bReminderController::class, 'toggle'])
                 ->whereIn('channel', ['email', 'whatsapp'])->whereIn('state', ['on', 'off'])->name('reminders/toggle');
         });

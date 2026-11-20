@@ -5,6 +5,7 @@ namespace App\Models\B2b;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -84,6 +85,18 @@ class Invoice extends Model
             && $this->outstandingAmount() > 0
             && $this->order?->payment_type !== Order::PAYMENT_IMMEDIATE
             && $this->order?->status !== Order::STATUS_CANCELLED;
+    }
+
+    /** Reminder manual hanya untuk tagihan tempo yang masih terbuka (aturan sama dengan pelunasan). */
+    public function canSendReminder(): bool
+    {
+        return $this->canRecordPayment();
+    }
+
+    public function reminderLogs(): BelongsToMany
+    {
+        return $this->belongsToMany(ReminderLog::class, 'b2b_reminder_log_invoices', 'b2b_invoice_id', 'b2b_reminder_log_id')
+            ->withPivot(['offset_days']);
     }
 
     public function outstandingAmount(): int

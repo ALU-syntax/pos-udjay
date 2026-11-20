@@ -75,8 +75,14 @@ class OrderController extends Controller
                     ->orWhere(fn ($q) => $q->where('subject_type', (new Payment)->getMorphClass())->whereIn('subject_id', $payments->pluck('id'))))
                 ->latest('id')
                 ->get(),
+            // Riwayat reminder invoice ini (otomatis + manual), terbaru dulu.
+            'reminders' => $order->invoice
+                ? $order->invoice->reminderLogs()->with('sender:id,name')->latest('b2b_reminder_logs.id')->limit(self::REMINDER_HISTORY_LIMIT)->get()
+                : collect(),
         ]);
     }
+
+    private const REMINDER_HISTORY_LIMIT = 10;
 
     public function complete(int $order)
     {

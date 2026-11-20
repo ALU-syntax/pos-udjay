@@ -130,6 +130,30 @@ class Customer extends Model
         return trim($channels.' · '.$days->implode(', '), ' ·');
     }
 
+    /** Data kontak yang kurang untuk channel reminder yang dipilih (kosong = siap dikirim). */
+    public function reminderIssues(): array
+    {
+        if (! $this->reminder_enabled) {
+            return [];
+        }
+
+        $channels = (array) ($this->reminder_channels ?? []);
+        $issues = [];
+        if (in_array('email', $channels, true) && ! filter_var(trim((string) $this->email), FILTER_VALIDATE_EMAIL)) {
+            $issues[] = 'Email kosong atau tidak valid';
+        }
+        if (in_array('whatsapp', $channels, true) && blank($this->phone)) {
+            $issues[] = 'Nomor WhatsApp kosong';
+        }
+
+        return $issues;
+    }
+
+    public function reminderLogs(): HasMany
+    {
+        return $this->hasMany(ReminderLog::class, 'b2b_customer_id');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);

@@ -4,11 +4,14 @@ namespace App\Http\Controllers\B2b;
 
 use App\DataTables\B2b\ReminderLogDataTable;
 use App\Http\Controllers\Controller;
+use App\Models\B2b\Customer;
+use App\Models\B2b\Invoice;
 use App\Models\B2b\ReminderLog;
 use App\Services\B2b\ActivityLogger;
 use App\Services\B2b\B2bSettings;
 use App\Services\B2b\ReminderService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /** Menu Reminder: aktivitas kiriman (termasuk log email), kirim ulang, dan saklar darurat per channel. */
 class ReminderController extends Controller
@@ -20,9 +23,10 @@ class ReminderController extends Controller
         $this->abilities = [];
     }
 
-    public function index(ReminderLogDataTable $dataTable)
+    public function index(ReminderLogDataTable $dataTable, Request $request)
     {
         $this->authorize('read b2b/reminders');
+        $tab = $request->query('tab') === 'customers' ? 'customers' : 'activity';
 
         $today = ReminderLog::query()
             ->whereDate('reminder_date', today())
@@ -40,7 +44,55 @@ class ReminderController extends Controller
             ]),
             'sendAt' => B2bSettings::REMINDER_SEND_AT,
             'retryUntil' => B2bSettings::REMINDER_RETRY_UNTIL,
+            'tab' => $tab,
+            'customers' => $tab === 'customers' ? $this->reminderCustomers() : collect(),
         ]);
+    }
+
+    /**
+     * Tab Customer: customer dengan reminder aktif, ditambah customer yang reminder-nya mati tapi masih punya tagihan tempo terbuka.
+     * Urutan: yang datanya perlu dilengkapi dulu, lalu yang belum diatur, lalu sisanya menurut nama.
+     */
+    private function reminderCustomers()
+    {
+        $open = fn ($invoice) => $invoice->whereIn('id', $this->reminders->openCreditInvoices()->select('b2b_invoices.id'));
+
+        return Customer::query()
+            ->where(fn ($query) => $query->where('reminder_enabled', true)->orWhereHas('invoices', $open))
+            ->withCount(['invoices as open_invoices_count' => $open])
+            ->withSum(['invoices as open_outstanding' => $open], DB::raw('total_to_pay - paid_amount'))
+            ->addSelect(['last_reminder_id' => ReminderLog::query()->select('id')->whereColumn('b2b_customer_id', 'b2b_customers.id')->latest('id')->limit(1)])
+            ->orderBy('name')
+            ->get()
+            ->each(function (Customer $customer) {
+                $customer->setAttribute('issues', $customer->reminderIssues());
+                $customer->setAttribute('not_configured', ! $customer->reminder_enabled);
+            })
+            ->tap(function ($customers) {
+                $lastLogs = ReminderLog::query()->whereIn('id', $customers->pluck('last_reminder_id')->filter())->get()->keyBy('id');
+                $customers->each(fn (Customer $customer) => $customer->setRelation('lastReminder', $lastLogs[$customer->last_reminder_id] ?? null));
+            })
+            ->sortBy(fn (Customer $customer) => match (true) {
+                $customer->issues !== [] => 0,
+                $customer->not_configured => 1,
+                default => 2,
+            })
+            ->values();
+    }
+
+    /** Kirim reminder satu invoice sekarang (tombol di detail pesanan / daftar invoice). */
+    public function sendInvoice(Request $request, int $invoice)
+    {
+        $this->authorize('send b2b/reminders');
+        $invoice = Invoice::query()
+            ->whereHas('order', fn ($order) => $order->withTrashed()->whereIn('outlet_id', $request->user()->outletIds()))
+            ->findOrFail($invoice);
+
+        $log = $this->reminders->sendNow($invoice, $request->user());
+
+        return responseSuccess(true, $log->status === ReminderLog::STATUS_QUEUED
+            ? 'Reminder '.$invoice->invoice_number.' masuk antrean kirim ke '.$log->recipient.'.'
+            : 'Reminder dicatat tapi dilewati: '.$log->error);
     }
 
     /** Detail satu kiriman untuk dialog log (isi email ditampilkan di iframe sandbox). */

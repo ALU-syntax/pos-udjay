@@ -289,6 +289,15 @@
                                         <i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Catat pelunasan</button>
                                 @endcan
                             @endif
+                            @if ($invoice->canSendReminder())
+                                @can('send b2b/reminders')
+                                    <a href="{{ route('b2b/reminders/send-invoice', $invoice->id) }}" class="btn ob-btn ob-btn-outline w-100 mt-2"
+                                        data-b2b-confirm data-icon="question" data-title="Kirim reminder sekarang?"
+                                        data-text="{{ $customer?->email ? 'Email reminder '.$invoice->invoice_number.' beserta PDF invoice dikirim ke '.$customer->email.'.' : 'Email customer masih kosong; kiriman akan dicatat sebagai dilewati. Lengkapi email di data customer dulu.' }}"
+                                        data-confirm-text="Ya, kirim">
+                                        <i class="fas fa-bell" aria-hidden="true"></i> Kirim reminder</a>
+                                @endcan
+                            @endif
 
                             <h3 class="b2b-subtitle mt-4">Pembayaran</h3>
                             @if ($payments->isEmpty())
@@ -337,6 +346,37 @@
                                         </li>
                                     @endforeach
                                 </ul>
+                            @endif
+
+                            @if ($reminders->isNotEmpty() || ($invoice->canSendReminder() && auth()->user()->can('send b2b/reminders')))
+                                <h3 class="b2b-subtitle mt-3">Riwayat reminder</h3>
+                                @if ($reminders->isEmpty())
+                                    <p class="b2b-muted mb-3">Belum ada reminder untuk invoice ini.</p>
+                                @else
+                                    <ul class="b2b-list b2b-payments">
+                                        @foreach ($reminders as $reminder)
+                                            <li>
+                                                <div class="b2b-payments__row">
+                                                    <span class="fw-bold"><i class="{{ $reminder->channelIcon() }} me-1" aria-hidden="true"></i>{{ \App\Models\B2b\ReminderLog::offsetLabel((int) $reminder->pivot->offset_days) }}</span>
+                                                    <span class="badge badge-{{ $reminder->statusVariant() }}">{{ $reminder->statusLabel() }}</span>
+                                                </div>
+                                                <div class="b2b-muted">
+                                                    {{ ($reminder->sent_at ?? $reminder->created_at)->translatedFormat('d M Y H:i') }} ·
+                                                    {{ $reminder->trigger === 'manual' ? 'Manual'.($reminder->sender ? ' oleh '.$reminder->sender->name : '') : 'Otomatis' }}
+                                                </div>
+                                                @if ($reminder->recipient)
+                                                    <div class="b2b-muted">{{ $reminder->recipient }}</div>
+                                                @endif
+                                                @if ($reminder->error && $reminder->status !== 'sent')
+                                                    <div class="b2b-muted text-danger">{{ \Illuminate\Support\Str::limit($reminder->error, 120) }}</div>
+                                                @endif
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                    @can('read b2b/reminders')
+                                        <p class="b2b-muted mb-3"><a href="{{ route('b2b/reminders') }}">Lihat semua aktivitas reminder</a></p>
+                                    @endcan
+                                @endif
                             @endif
 
                             @if ($invoice->refunds->isNotEmpty())

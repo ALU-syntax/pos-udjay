@@ -54,6 +54,7 @@ class InvoiceDataTable extends DataTable
             ->editColumn('status', fn (Invoice $invoice) => '<span class="badge badge-'.$invoice->statusVariant().'">'.$invoice->statusLabel().'</span>')
             ->addColumn('action', fn (Invoice $invoice) => '<div class="ob-row-actions">'
                 .($invoice->canRecordPayment() && auth()->user()->can('pay b2b/invoices') ? $this->payButton($invoice) : '')
+                .($invoice->canSendReminder() && auth()->user()->can('send b2b/reminders') ? $this->reminderButton($invoice) : '')
                 .'<a href="'.route('b2b/invoices/print', $invoice->id).'" target="_blank" class="ob-icon-btn ob-icon-btn--sm" title="Cetak invoice" aria-label="Cetak invoice '.e($invoice->invoice_number).'"><i class="fas fa-print" aria-hidden="true"></i></a>'
                                 .'</div>')
             // Kolom Sisa tagihan diurutkan menurut sisa, bukan total.
@@ -82,6 +83,19 @@ class InvoiceDataTable extends DataTable
         }
 
         return '<div class="ob-cell-stack"><span class="b2b-cell-strong text-nowrap">'.$invoice->due_date->translatedFormat('d M Y').'</span>'.$hint.'</div>';
+    }
+
+    /** Kirim reminder invoice ini sekarang (email + PDF) ke email customer. */
+    private function reminderButton(Invoice $invoice): string
+    {
+        $email = $invoice->customer?->email;
+        $text = $email
+            ? 'Email reminder '.$invoice->invoice_number.' beserta PDF invoice dikirim ke '.$email.'.'
+            : 'Email customer masih kosong; kiriman akan dicatat sebagai dilewati. Lengkapi email di data customer dulu.';
+
+        return '<a href="'.route('b2b/reminders/send-invoice', $invoice->id).'" class="ob-icon-btn ob-icon-btn--sm" data-b2b-confirm data-icon="question"'
+            .' data-title="Kirim reminder sekarang?" data-text="'.e($text).'" data-confirm-text="Ya, kirim" data-table="b2b-invoice-table"'
+            .' title="Kirim reminder" aria-label="Kirim reminder '.e($invoice->invoice_number).'"><i class="fas fa-bell" aria-hidden="true"></i></a>';
     }
 
     /** Tombol pembuka dialog "Catat Pelunasan" (layouts.b2b.invoices.partials.payment-modal). */
@@ -162,7 +176,7 @@ class InvoiceDataTable extends DataTable
             Column::make('due_date')->title('Jatuh tempo')->searchable(false),
             Column::make('status')->title('Status')->searchable(false),
             Column::make('total_to_pay')->title('Sisa tagihan')->searchable(false)->addClass('text-end'),
-            Column::computed('action')->title('')->exportable(false)->printable(false)->width(90)->addClass('text-end'),
+            Column::computed('action')->title('')->exportable(false)->printable(false)->width(120)->addClass('text-end'),
         ];
     }
 

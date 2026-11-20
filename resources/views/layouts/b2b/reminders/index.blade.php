@@ -84,6 +84,16 @@
             </div>
         </div>
 
+        <nav class="nav ob-tabs b2b-reminder-tabs" aria-label="Bagian menu Reminder">
+            <a href="{{ route('b2b/reminders') }}" class="nav-link {{ $tab === 'activity' ? 'active' : '' }}" @if ($tab === 'activity') aria-current="page" @endif>
+                <i class="fas fa-stream" aria-hidden="true"></i> Aktivitas</a>
+            <a href="{{ route('b2b/reminders', ['tab' => 'customers']) }}" class="nav-link {{ $tab === 'customers' ? 'active' : '' }}" @if ($tab === 'customers') aria-current="page" @endif>
+                <i class="fas fa-building" aria-hidden="true"></i> Customer</a>
+        </nav>
+
+        @if ($tab === 'customers')
+            @include('layouts.b2b.reminders.partials.customers')
+        @else
         <div class="ob-card">
             <div class="b2b-card__head">
                 <div>
@@ -147,6 +157,7 @@
                 {!! $dataTable->table(['class' => 'table w-100 b2b-list-table']) !!}
             </div>
         </div>
+        @endif
     </div>
 
     {{-- Detail kiriman (log email). Dipindah ke <body> saat halaman dimuat. --}}
@@ -196,6 +207,7 @@
         <style>
             .ob-page .ob-stat__value { font-size: 1.15rem; }
             .b2b-switch-card { margin-bottom: 1.25rem; }
+            .b2b-reminder-tabs { margin-bottom: 1rem; }
             .b2b-switches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; padding: 0 1.25rem 1.25rem; }
             @media (max-width: 767.98px) { .b2b-switches { grid-template-columns: minmax(0, 1fr); } }
             .b2b-switch { display: flex; align-items: center; gap: .85rem; padding: .85rem 1rem; border: 1px solid var(--ob-border); border-radius: var(--ob-radius-sm); background: var(--ob-surface-2); }
@@ -217,14 +229,18 @@
     @endpush
 
     @push('js')
+        @if ($tab === 'activity')
         {!! $dataTable->scripts() !!}
+        @endif
         <script>
             $(function () {
-                B2b.listFilters({
-                    table: 'b2b-reminder-table',
-                    selects: '#status-filter, #channel-filter, #trigger-filter, #customer-filter',
-                    range: { input: '#date-filter', from: '#date-from', to: '#date-to', clear: '#date-clear', ranges: 'past' },
-                });
+                if (document.getElementById('b2b-reminder-table')) {
+                    B2b.listFilters({
+                        table: 'b2b-reminder-table',
+                        selects: '#status-filter, #channel-filter, #trigger-filter, #customer-filter',
+                        range: { input: '#date-filter', from: '#date-from', to: '#date-to', clear: '#date-clear', ranges: 'past' },
+                    });
+                }
 
                 const $modal = $('#reminder-detail').appendTo('body');
                 const field = name => $modal.find(`[data-detail="${name}"]`);
