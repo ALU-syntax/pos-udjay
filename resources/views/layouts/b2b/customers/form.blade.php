@@ -15,7 +15,16 @@
             }
             .b2b-region + .select2-container .select2-selection--single .select2-selection__rendered { padding-left: .85rem; line-height: 40px; font-size: .875rem; color: var(--ob-text); }
             .b2b-region + .select2-container .select2-selection--single .select2-selection__placeholder { color: #94a3b8; }
+            .b2b-region + .select2-container .select2-selection--single .select2-selection__rendered { padding-right: 3.6rem; }
             .b2b-region + .select2-container .select2-selection--single .select2-selection__arrow { height: 40px; right: .5rem; }
+            .b2b-region + .select2-container .select2-selection--single .select2-selection__clear {
+                position: absolute; top: 50%; right: 2rem; transform: translateY(-50%); display: inline-grid; place-items: center;
+                width: 24px; height: 24px; margin: 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--ob-muted); font-size: 1.05rem; line-height: 1;
+            }
+            .b2b-region + .select2-container .select2-selection--single .select2-selection__clear:hover { color: var(--ob-danger); }
+            .select2-dropdown.b2b-region-dropdown { border-color: var(--ob-border-strong); border-radius: var(--ob-radius-sm); overflow: hidden; box-shadow: 0 12px 32px rgba(15, 23, 42, .12); font-size: .85rem; }
+            .select2-dropdown.b2b-region-dropdown .select2-search__field { height: 36px; border-radius: 8px; border-color: var(--ob-border-strong); }
+            .select2-dropdown.b2b-region-dropdown .select2-results__option--highlighted { background: #1572e8; }
             .b2b-region + .select2-container--focus .select2-selection--single,
             .b2b-region + .select2-container--open .select2-selection--single { border-color: var(--ob-primary); }
             .b2b-region + .select2-container--disabled .select2-selection--single { background: var(--ob-surface-2, #f1f5f9); cursor: not-allowed; }
@@ -144,13 +153,13 @@
                                 </div>
                                 {{-- Dropdown berjenjang: pilihan tiap tingkat dimuat ulang (selectors/regions) saat tingkat di atasnya berubah. --}}
                                 @foreach ([
-                                    ['province_code', 'Provinsi', 'provinces', 'Pilih provinsi', 'wajib untuk pengiriman internal'],
-                                    ['regency_code', 'Kota / Kabupaten', 'regencies', 'Pilih kota/kabupaten', 'wajib untuk pengiriman internal'],
-                                    ['district_code', 'Kecamatan', 'districts', 'Pilih kecamatan', null],
-                                    ['village_code', 'Kelurahan / Desa', 'villages', 'Pilih kelurahan/desa', null],
-                                ] as [$field, $label, $level, $placeholder, $hint])
+                                    ['province_code', 'Provinsi', 'provinces', 'Pilih provinsi'],
+                                    ['regency_code', 'Kota / Kabupaten', 'regencies', 'Pilih kota/kabupaten'],
+                                    ['district_code', 'Kecamatan', 'districts', 'Pilih kecamatan'],
+                                    ['village_code', 'Kelurahan / Desa', 'villages', 'Pilih kelurahan/desa'],
+                                ] as [$field, $label, $level, $placeholder])
                                     <div class="b2b-col-6 b2b-field">
-                                        <label for="{{ $field }}" class="form-label">{{ $label }} @if ($hint)<span class="b2b-optional">({{ $hint }})</span>@endif</label>
+                                        <label for="{{ $field }}" class="form-label">{{ $label }}</label>
                                         <select id="{{ $field }}" name="{{ $field }}" class="form-select b2b-region" data-level="{{ $level }}" data-placeholder="{{ $placeholder }}"
                                             @disabled($level !== 'provinces' && $regions[$level]->isEmpty())>
                                             <option value=""></option>
@@ -161,10 +170,13 @@
                                         </select>
                                     </div>
                                 @endforeach
-                                <div class="b2b-col-4 b2b-field">
+                                <div class="b2b-col-6 b2b-field">
                                     <label for="postal_code" class="form-label">Kode pos</label>
                                     <input id="postal_code" name="postal_code" class="form-control" value="{{ old('postal_code', $customer->postal_code) }}" maxlength="10" inputmode="numeric">
-                                    <small class="b2b-help">Terisi otomatis saat kelurahan/desa dipilih. Ubah bila berbeda.</small>
+                                    <small class="b2b-help">Terisi otomatis dari kelurahan/desa, bisa diubah.</small>
+                                </div>
+                                <div class="b2b-field">
+                                    <small class="b2b-help mt-0"><i class="fas fa-truck me-1" aria-hidden="true"></i>Untuk pengiriman internal, isi alamat dan wilayah minimal sampai kota/kabupaten.</small>
                                 </div>
                             </div>
                         </div>
@@ -287,7 +299,10 @@
                 const regions = $('.b2b-region');
                 const regionUrl = @json(route('b2b/selectors/regions'));
                 regions.each(function () {
-                    $(this).select2({ width: '100%', placeholder: this.dataset.placeholder, allowClear: true });
+                    $(this).select2({
+                        width: '100%', placeholder: this.dataset.placeholder, allowClear: true, dropdownCssClass: 'b2b-region-dropdown',
+                        language: { noResults: () => 'Tidak ditemukan' },
+                    });
                 });
                 regions.on('change', function () {
                     // Kelurahan/desa membawa kode pos, jadi kode pos diisi otomatis (tetap bisa diubah manual).
