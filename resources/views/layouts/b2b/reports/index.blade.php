@@ -54,22 +54,25 @@
         </div>
 
         <section class="ob-stats b2b-report-kpis" data-report-section="summary" aria-live="polite" aria-busy="true">
-            <div class="ob-card ob-stat">
+            {{-- Kartu penjualan membuka daftar pesanan periode ini. --}}
+            <button type="button" class="ob-card ob-stat b2b-report-kpi-link" data-open-orders title="Lihat daftar pesanan">
                 <span class="ob-stat__icon ob-stat__icon--primary" aria-hidden="true"><i class="fas fa-shopping-bag"></i></span>
                 <div class="min-w-0">
                     <p class="ob-stat__label">Penjualan</p>
                     <p class="ob-stat__value" data-kpi="sales"><span class="b2b-skeleton"></span></p>
                     <p class="b2b-stat__sub" data-kpi="sales-sub">&nbsp;</p>
                 </div>
-            </div>
-            <div class="ob-card ob-stat">
+                <i class="fas fa-chevron-right b2b-report-kpi-link__arrow" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="ob-card ob-stat b2b-report-kpi-link" data-open-orders title="Lihat daftar pesanan">
                 <span class="ob-stat__icon ob-stat__icon--primary" aria-hidden="true"><i class="fas fa-receipt"></i></span>
                 <div class="min-w-0">
                     <p class="ob-stat__label">Jumlah pesanan</p>
                     <p class="ob-stat__value" data-kpi="orders"><span class="b2b-skeleton"></span></p>
                     <p class="b2b-stat__sub" data-kpi="orders-sub">&nbsp;</p>
                 </div>
-            </div>
+                <i class="fas fa-chevron-right b2b-report-kpi-link__arrow" aria-hidden="true"></i>
+            </button>
             <div class="ob-card ob-stat">
                 <span class="ob-stat__icon ob-stat__icon--success" aria-hidden="true"><i class="fas fa-hand-holding-usd"></i></span>
                 <div class="min-w-0">
@@ -108,7 +111,11 @@
                 <button type="button" class="btn ob-btn ob-btn-outline ob-btn-sm" data-report-retry>Coba lagi</button>
             </div>
         </section>
+
+        @include('layouts.b2b.reports.partials.trend')
     </div>
+
+    @include('layouts.b2b.reports.partials.orders-modal')
 
     @push('css')
         <style>
@@ -143,14 +150,48 @@
             .b2b-report-error { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .75rem 1rem;
                 border: 1px solid var(--ob-danger-soft); border-radius: var(--ob-radius-sm); background: var(--ob-danger-soft); color: var(--ob-danger); font-size: .85rem; }
             .b2b-report-error[hidden] { display: none; }
+
+            /* Kartu KPI yang bisa diklik */
+            .ob-page .b2b-report-kpi-link { position: relative; width: 100%; border: 1px solid var(--ob-border); text-align: left; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
+            .ob-page .b2b-report-kpi-link:hover { border-color: var(--ob-primary); }
+            .ob-page .b2b-report-kpi-link:focus-visible { outline: 2px solid var(--ob-primary); outline-offset: 2px; }
+            .b2b-report-kpi-link__arrow { position: absolute; top: 1rem; right: 1rem; font-size: .7rem; color: var(--ob-muted); }
+            .b2b-report-kpi-link:hover .b2b-report-kpi-link__arrow { color: var(--ob-primary); }
+
+            /* Kartu bagian laporan (chart) */
+            .b2b-report-card { margin-bottom: 1.25rem; }
+            .b2b-report-card[aria-busy="true"] .b2b-report-chart { opacity: .45; }
+            .b2b-report-card .b2b-report-error { margin-top: .75rem; }
+            .b2b-report-chart { min-height: 220px; transition: opacity .15s ease; }
+            .b2b-report-empty { display: grid; place-items: center; min-height: 240px; padding: 1rem; border: 1px dashed var(--ob-border-strong); border-radius: var(--ob-radius-sm); color: var(--ob-muted); font-size: .875rem; text-align: center; }
+            .b2b-report-empty[hidden] { display: none; }
+            /* Breadcrumb drilldown */
+            .b2b-report-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-top: .25rem; font-size: .8rem; color: var(--ob-muted); }
+            .b2b-report-crumbs[hidden] { display: none; }
+            .b2b-report-crumbs i { font-size: .6rem; }
+            .b2b-report-crumbs button { padding: 0; border: 0; background: none; color: var(--ob-primary); font-weight: 600; }
+            .b2b-report-crumbs button:hover { text-decoration: underline; }
+            .b2b-report-crumbs strong { color: var(--ob-text); }
+            /* Pilihan pengelompokan (Hari / Minggu / Bulan) */
+            .b2b-report-toggle { display: inline-flex; padding: 3px; border: 1px solid var(--ob-border-strong); border-radius: 10px; background: var(--ob-surface-2); }
+            .b2b-report-toggle[hidden] { display: none; }
+            .b2b-report-toggle button { min-height: 32px; padding: 0 .85rem; border: 0; border-radius: 7px; background: transparent; color: var(--ob-text-2); font-size: .78rem; font-weight: 600; }
+            .b2b-report-toggle button[aria-pressed="true"] { background: var(--ob-surface); color: var(--ob-primary); box-shadow: 0 1px 3px rgba(15, 23, 42, .12); }
+            .b2b-report-toggle button:disabled { opacity: .4; cursor: not-allowed; }
+            /* Tooltip chart */
+            .b2b-report-tip { padding: .55rem .7rem; font-size: .78rem; line-height: 1.5; }
+            .b2b-report-tip strong { display: block; color: var(--ob-text); }
+            .b2b-report-tip span { color: var(--ob-muted); }
         </style>
     @endpush
 
-    @push('js')
+    {{-- prepend: inti B2bReport harus terdefinisi sebelum script bagian (partial) yang mendaftarkan diri. --}}
+    @prepend('js')
         <script>
             /**
-             * Laporan B2B: satu filter untuk semua bagian. Setiap bagian didaftarkan dengan B2bReport.section(nama, render)
+             * Laporan B2B: satu filter untuk semua bagian. Setiap bagian didaftarkan dengan B2bReport.section(nama, render, params)
              * dan mengambil datanya sendiri dari b2b/reports/data/{nama}; ganti filter memuat ulang semua bagian.
+             * Drilldown dan modal memakai B2bReport.fetch(nama, override) dengan filter yang sama + rentang/customer pilihan.
              */
             window.B2bReport = (function () {
                 const dataUrl = @json(route('b2b/reports/data', ['section' => '__section__']));
@@ -161,13 +202,35 @@
 
                 const number = value => Number(value || 0).toLocaleString('id-ID');
                 const rupiah = value => (value < 0 ? '−' : '') + 'Rp ' + number(Math.abs(value));
+                // Sumbu chart: Rp 1,2 jt / Rp 350 rb
+                const compactRupiah = value => 'Rp ' + new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 }).format(value || 0);
+                const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
-                function query() {
-                    return new URLSearchParams(Object.fromEntries(Object.entries(state).filter(([, value]) => value !== '' && value != null)));
+                function query(extra = {}) {
+                    const params = Object.assign({}, state, extra);
+                    return new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, value]) => value !== '' && value != null)));
                 }
 
                 function isDefault() {
                     return state.from === defaults.from && state.to === defaults.to && !state.outlet_id && !state.customer_id;
+                }
+
+                /** Ambil data satu bagian dengan filter aktif + override (mis. rentang batang yang diklik). */
+                function fetchData(name, extra = {}, signal = undefined) {
+                    return fetch(`${dataUrl.replace('__section__', name)}?${query(extra)}`, {
+                        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        signal,
+                    }).then(async response => {
+                        const body = await response.json().catch(() => ({}));
+                        if (!response.ok) throw new Error(body.message || 'Data gagal dimuat.');
+                        return body.data;
+                    });
+                }
+
+                function showError($box, error) {
+                    $box.attr('aria-busy', 'false');
+                    $box.find('[data-report-error-text]').first().text(error.message || 'Data gagal dimuat.');
+                    $box.find('[data-report-error]').first().prop('hidden', false);
                 }
 
                 function load(name) {
@@ -178,22 +241,12 @@
                     pending[name] = controller;
 
                     $box.attr('aria-busy', 'true').find('[data-report-error]').prop('hidden', true);
-                    fetch(`${dataUrl.replace('__section__', name)}?${query()}`, {
-                        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                        signal: controller.signal,
-                    })
-                        .then(async response => {
-                            const body = await response.json().catch(() => ({}));
-                            if (!response.ok) throw new Error(body.message || 'Data gagal dimuat.');
-                            section.render(body.data, $box);
+                    fetchData(name, section.params(), controller.signal)
+                        .then(data => {
+                            section.render(data, $box);
                             $box.attr('aria-busy', 'false');
                         })
-                        .catch(error => {
-                            if (error.name === 'AbortError') return;
-                            $box.attr('aria-busy', 'false');
-                            $box.find('[data-report-error-text]').text(error.message || 'Data gagal dimuat.');
-                            $box.find('[data-report-error]').prop('hidden', false);
-                        });
+                        .catch(error => { if (error.name !== 'AbortError') showError($box, error); });
                 }
 
                 function reloadAll() {
@@ -204,7 +257,18 @@
 
                 function setFilter(patch) {
                     Object.assign(state, patch);
+                    $(document).trigger('b2b-report:filter-changed');
                     reloadAll();
+                }
+
+                /** Keterangan filter untuk judul modal, mis. "1 Nov 2026 – 21 Nov 2026 · Outlet A · PT X". */
+                function describe(extra = {}) {
+                    const params = Object.assign({}, state, extra);
+                    const parts = [B2b.rangeLabel(moment(params.from), moment(params.to))];
+                    if (params.outlet_id) parts.push($('#report-outlet option:selected').text());
+                    if (extra.customer_name) parts.push(extra.customer_name);
+                    else if (params.customer_id) parts.push($('#report-customer').select2('data')[0]?.name || $('#report-customer option:selected').text());
+                    return parts.join(' · ');
                 }
 
                 $(document).on('click', '[data-report-retry]', function () {
@@ -212,8 +276,9 @@
                 });
 
                 return {
-                    number, rupiah, state, setFilter, reloadAll,
-                    section(name, render) { sections[name] = { render }; },
+                    number, rupiah, compactRupiah, escape, state, setFilter, reloadAll, load, showError, describe,
+                    fetch: fetchData,
+                    section(name, render, params = () => ({})) { sections[name] = { render, params }; },
                 };
             })();
 
@@ -257,6 +322,8 @@
                 }
                 showPeriod();
 
+                $('[data-open-orders]').on('click', () => B2bReport.ordersModal({ title: 'Daftar pesanan' }));
+
                 $('#report-outlet').on('change', function () { B2bReport.setFilter({ outlet_id: this.value }); });
                 B2b.ajaxSelect(document.getElementById('report-customer'))
                     .on('change', function () { B2bReport.setFilter({ customer_id: this.value || '' }); });
@@ -273,5 +340,5 @@
                 B2bReport.reloadAll();
             });
         </script>
-    @endpush
+    @endprepend
 @endsection

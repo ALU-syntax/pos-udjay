@@ -2,11 +2,14 @@
 
 namespace App\Services\B2b;
 
+use App\Models\B2b\Customer;
 use App\Models\B2b\Invoice;
 use App\Models\B2b\Order;
 use App\Models\B2b\Payment;
 use App\Models\B2b\Refund;
 use App\Support\B2b\ReportFilter;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -19,15 +22,25 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class ReportService
 {
+    /** Batas panjang periode (hari) supaya chart tetap terbaca: harian s.d. 92 batang, mingguan s.d. 53 batang. */
+    public const MAX_DAYS_PER_GROUP = ['day' => 92, 'week' => 371];
+
+    /** Jumlah customer teratas di drilldown; sisanya digabung jadi "Lainnya". */
+    public const TOP_CUSTOMERS = 10;
+
+    public const ORDERS_PER_PAGE = 15;
+
+    /** Singkatan bulan disamakan dengan JS B2B (Carbon id memakai "Agt"). */
+    private const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
     /** Kartu ringkasan di bagian atas halaman. */
     public function summary(ReportFilter $filter): array
     {
-        $sales = $this->orders($filter)
-            ->whereIn('status', [Order::STATUS_CONFIRMED, Order::STATUS_COMPLETED])
+        $sales = $this->salesOrders($filter)
             ->selectRaw('count(*) as orders, count(distinct b2b_customer_id) as customers, coalesce(sum(grand_total), 0) as amount')
             ->selectRaw('coalesce(sum(case when status = ? then 1 else 0 end), 0) as completed', [Order::STATUS_COMPLETED])
             ->first();
-        $cancelled = $this->orders($filter)
+        $cancelled = $this->periodOrders($filter)
             ->where('status', Order::STATUS_CANCELLED)
             ->selectRaw('count(*) as orders, coalesce(sum(grand_total), 0) as amount')
             ->first();
@@ -61,8 +74,129 @@ class ReportService
         ];
     }
 
+    /**
+     * Tren penjualan per hari / minggu (Senin–Minggu) / bulan. Pengelompokan otomatis dari panjang periode kalau $group
+     * kosong atau terlalu rapat. Periode tanpa penjualan tetap muncul dengan nilai 0, dan batas kelompok dipotong
+     * mengikuti periode filter supaya drilldown memakai rentang tanggal yang tepat.
+     */
+    public function trend(ReportFilter $filter, ?string $group = null): array
+    {
+        $days = (int) $filter->from->diffInDays($filter->to) + 1;
+        $groups = array_values(array_filter(
+            ['day', 'week', 'month'],
+            fn (string $name) => $days <= (self::MAX_DAYS_PER_GROUP[$name] ?? PHP_INT_MAX)
+        ));
+        if (! in_array($group, $groups, true)) {
+            $group = $days <= 31 ? 'day' : ($days <= 184 ? 'week' : 'month');
+        }
+
+        $daily = $this->salesOrders($filter)
+            ->selectRaw('date(order_date) as day, count(*) as orders, coalesce(sum(grand_total), 0) as amount')
+            ->groupByRaw('date(order_date)')
+            ->get()
+            ->keyBy(fn ($row) => (string) $row->day);
+
+        $buckets = [];
+        for ($start = $filter->from; $start->lte($filter->to); $start = $end->addDay()) {
+            $end = match ($group) {
+                'day' => $start,
+                'week' => $start->endOfWeek(CarbonInterface::SUNDAY)->startOfDay(),
+                'month' => $start->endOfMonth()->startOfDay(),
+            };
+            $end = $end->min($filter->to);
+
+            $amount = 0;
+            $orders = 0;
+            for ($day = $start; $day->lte($end); $day = $day->addDay()) {
+                $row = $daily->get($day->toDateString());
+                $amount += (int) ($row->amount ?? 0);
+                $orders += (int) ($row->orders ?? 0);
+            }
+
+            $buckets[] = [
+                'from' => $start->toDateString(),
+                'to' => $end->toDateString(),
+                'label' => $this->bucketLabel($group, $start, $end),
+                'title' => $this->bucketTitle($group, $start, $end),
+                'amount' => $amount,
+                'orders' => $orders,
+            ];
+        }
+
+        return [
+            'group' => $group,
+            'groups' => $groups,
+            'total' => array_sum(array_column($buckets, 'amount')),
+            'buckets' => $buckets,
+        ];
+    }
+
+    /** Penjualan per customer (teratas + gabungan sisanya), dipakai drilldown tren dan bagian penjualan per customer. */
+    public function salesByCustomer(ReportFilter $filter, int $limit = self::TOP_CUSTOMERS): array
+    {
+        $rows = $this->salesOrders($filter)
+            ->selectRaw('b2b_customer_id, count(*) as orders, coalesce(sum(grand_total), 0) as amount')
+            ->groupBy('b2b_customer_id')
+            ->orderByDesc('amount')
+            ->orderBy('b2b_customer_id')
+            ->get();
+        $top = $rows->take($limit);
+        $rest = $rows->slice($limit);
+        $customers = Customer::withTrashed()->whereIn('id', $top->pluck('b2b_customer_id'))->get(['id', 'code', 'name'])->keyBy('id');
+
+        return [
+            'total' => (int) $rows->sum('amount'),
+            'items' => $top->map(fn ($row) => [
+                'id' => (int) $row->b2b_customer_id,
+                'name' => $customers->get($row->b2b_customer_id)?->name ?? 'Customer #'.$row->b2b_customer_id,
+                'code' => $customers->get($row->b2b_customer_id)?->code,
+                'amount' => (int) $row->amount,
+                'orders' => (int) $row->orders,
+            ])->values()->all(),
+            'others' => $rest->isEmpty() ? null : [
+                'customers' => $rest->count(),
+                'amount' => (int) $rest->sum('amount'),
+                'orders' => (int) $rest->sum('orders'),
+            ],
+        ];
+    }
+
+    /** Daftar pesanan penjualan (dikonfirmasi + selesai) untuk modal detail, terbaru dulu. */
+    public function orders(ReportFilter $filter, int $page = 1): array
+    {
+        $totals = $this->salesOrders($filter)->selectRaw('count(*) as orders, coalesce(sum(grand_total), 0) as amount')->first();
+        $paginator = $this->salesOrders($filter)
+            ->with(['customer:id,code,name', 'outlet:id,name'])
+            ->orderByDesc('order_date')
+            ->orderByDesc('id')
+            ->paginate(self::ORDERS_PER_PAGE, ['*'], 'page', max(1, $page));
+
+        return [
+            'totals' => ['amount' => (int) $totals->amount, 'orders' => (int) $totals->orders],
+            'items' => collect($paginator->items())->map(fn (Order $order) => [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'date' => $this->shortDate($order->order_date).' '.$order->order_date->format('H:i'),
+                'customer' => $order->customer?->name,
+                'outlet' => $order->outlet?->name,
+                'status' => $order->statusLabel(),
+                'status_variant' => $order->statusVariant(),
+                'payment_type' => $order->paymentTypeLabel(),
+                'amount' => (int) $order->grand_total,
+            ])->all(),
+            'page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+        ];
+    }
+
+    /** Pesanan yang dihitung sebagai penjualan: dikonfirmasi + selesai. */
+    private function salesOrders(ReportFilter $filter): Builder
+    {
+        return $this->periodOrders($filter)->whereIn('status', [Order::STATUS_CONFIRMED, Order::STATUS_COMPLETED]);
+    }
+
     /** Pesanan di periode, outlet, dan customer terpilih (semua status). */
-    private function orders(ReportFilter $filter): Builder
+    private function periodOrders(ReportFilter $filter): Builder
     {
         return Order::query()
             ->whereIn('outlet_id', $filter->outletIds)
@@ -104,5 +238,38 @@ class ReportService
     private function outstanding(object $row): array
     {
         return ['amount' => (int) $row->amount, 'invoices' => (int) $row->invoices, 'customers' => (int) $row->customers];
+    }
+
+    private function bucketLabel(string $group, CarbonImmutable $start, CarbonImmutable $end): string
+    {
+        if ($group === 'month') {
+            return $this->shortMonth($start).' '.$start->year;
+        }
+        $day = fn (CarbonImmutable $date) => $date->day.' '.$this->shortMonth($date);
+        if ($group === 'day' || $start->isSameDay($end)) {
+            return $day($start);
+        }
+
+        // Minggu: "2–8 Nov", atau "28 Okt–1 Nov" kalau melewati pergantian bulan.
+        return $start->isSameMonth($end) ? $start->day.'–'.$day($end) : $day($start).'–'.$day($end);
+    }
+
+    private function bucketTitle(string $group, CarbonImmutable $start, CarbonImmutable $end): string
+    {
+        return match ($group) {
+            'day' => $start->locale('id')->translatedFormat('l, j F Y'),
+            'week' => $start->isSameDay($end) ? $this->shortDate($start) : $this->shortDate($start).' – '.$this->shortDate($end),
+            'month' => $start->locale('id')->translatedFormat('F Y'),
+        };
+    }
+
+    private function shortDate(CarbonInterface $date): string
+    {
+        return $date->day.' '.$this->shortMonth($date).' '.$date->year;
+    }
+
+    private function shortMonth(CarbonInterface $date): string
+    {
+        return self::SHORT_MONTHS[$date->month - 1];
     }
 }

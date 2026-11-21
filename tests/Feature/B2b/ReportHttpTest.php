@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Services\B2b\OrderService;
 use App\Services\B2b\PaymentService;
 use Database\Seeders\B2bMenuSeeder;
+use Illuminate\Support\Carbon;
+use Spatie\Permission\Models\Permission;
 
 class ReportHttpTest extends B2bTestCase
 {
@@ -46,8 +48,13 @@ class ReportHttpTest extends B2bTestCase
 
     private function summary(array $query = []): array
     {
+        return $this->section('summary', $query);
+    }
+
+    private function section(string $section, array $query = []): array
+    {
         return $this->actingAs($this->staff)
-            ->getJson(route('b2b/reports/data', ['section' => 'summary'] + $query))
+            ->getJson(route('b2b/reports/data', ['section' => $section] + $query))
             ->assertOk()
             ->json('data');
     }
@@ -171,6 +178,86 @@ class ReportHttpTest extends B2bTestCase
         $this->assertSame(20000, $this->summary(['customer_id' => $x->id, 'outlet_id' => $this->outlet->id])['sales']['amount']);
     }
 
+    public function test_trend_groups_sales_by_day_week_and_month(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-21 10:00'));
+        $this->seedOrders();
+
+        // Periode bawaan 1–21 Nov (21 hari) otomatis per hari; hari tanpa penjualan tetap ada dengan nilai 0.
+        $daily = $this->section('trend');
+        $this->assertSame('day', $daily['group']);
+        $this->assertSame(['day', 'week', 'month'], $daily['groups']);
+        $this->assertCount(21, $daily['buckets']);
+        $this->assertSame(['from' => '2026-11-01', 'to' => '2026-11-01', 'label' => '1 Nov', 'title' => 'Minggu, 1 November 2026', 'amount' => 0, 'orders' => 0], $daily['buckets'][0]);
+        $this->assertSame(['amount' => 50000, 'orders' => 2], array_intersect_key($daily['buckets'][20], ['amount' => 0, 'orders' => 0]));
+        $this->assertSame(50000, $daily['total']);
+
+        // Minggu Senin–Minggu, dipotong mengikuti periode.
+        $weekly = $this->section('trend', ['group' => 'week']);
+        $this->assertSame('week', $weekly['group']);
+        $this->assertSame(
+            [['2026-11-01', '2026-11-01', '1 Nov'], ['2026-11-02', '2026-11-08', '2–8 Nov'], ['2026-11-09', '2026-11-15', '9–15 Nov'], ['2026-11-16', '2026-11-21', '16–21 Nov']],
+            array_map(fn ($bucket) => [$bucket['from'], $bucket['to'], $bucket['label']], $weekly['buckets'])
+        );
+        $this->assertSame(50000, $weekly['buckets'][3]['amount']);
+        $this->assertSame('28 Okt–1 Nov', $this->section('trend', ['group' => 'week', 'from' => '2026-10-28', 'to' => '2026-11-03'])['buckets'][0]['label']);
+
+        // Periode > 1 tahun hanya bisa per bulan; permintaan per hari kembali ke per bulan.
+        $monthly = $this->section('trend', ['group' => 'day', 'from' => '2025-11-01', 'to' => '2026-11-21']);
+        $this->assertSame('month', $monthly['group']);
+        $this->assertSame(['month'], $monthly['groups']);
+        $this->assertCount(13, $monthly['buckets']);
+        $this->assertSame(['Nov 2025', 'November 2025'], [$monthly['buckets'][0]['label'], $monthly['buckets'][0]['title']]);
+        $this->assertSame(40000, $monthly['buckets'][10]['amount']); // pesanan 21 Sep 2026
+        $this->assertSame(['2026-11-01', '2026-11-21', 50000], [$monthly['buckets'][12]['from'], $monthly['buckets'][12]['to'], $monthly['buckets'][12]['amount']]);
+        $this->assertSame(90000, $monthly['total']);
+    }
+
+    public function test_customers_drilldown_lists_top_customers_and_groups_the_rest(): void
+    {
+        [$x, $y] = $this->seedOrders();
+
+        $data = $this->section('customers');
+        $this->assertSame(50000, $data['total']);
+        $this->assertSame([[$y->id, 'PT Y', 30000, 1], [$x->id, 'PT X', 20000, 1]], array_map(
+            fn ($item) => [$item['id'], $item['name'], $item['amount'], $item['orders']], $data['items']
+        ));
+        $this->assertNull($data['others']);
+
+        // Lebih dari 10 customer: sisanya digabung jadi "Lainnya".
+        foreach (range(1, 10) as $i) {
+            $this->place($this->customer(['name' => "PT Kecil {$i}"]), 1000 + $i);
+        }
+        $data = $this->section('customers');
+        $this->assertCount(10, $data['items']);
+        $this->assertSame(['customers' => 2, 'amount' => 2003, 'orders' => 2], $data['others']);
+    }
+
+    public function test_orders_list_is_paginated_and_follows_overrides(): void
+    {
+        [$x] = $this->seedOrders();
+        $this->staff->givePermissionTo(Permission::firstOrCreate(['name' => 'read b2b/orders', 'guard_name' => 'web']));
+
+        $data = $this->section('orders');
+        $this->assertSame(['amount' => 50000, 'orders' => 2], $data['totals']);
+        $this->assertSame([30000, 20000], array_column($data['items'], 'amount')); // terbaru dulu
+        $this->assertSame(['PT Y', 'Selesai', 'success', 'Bayar langsung'], [
+            $data['items'][0]['customer'], $data['items'][0]['status'], $data['items'][0]['status_variant'], $data['items'][0]['payment_type'],
+        ]);
+        $this->assertSame([1, 1], [$data['page'], $data['last_page']]);
+
+        // Drilldown customer + rentang batang.
+        $onlyX = $this->section('orders', ['customer_id' => $x->id, 'from' => today()->toDateString(), 'to' => today()->toDateString()]);
+        $this->assertSame(['amount' => 20000, 'orders' => 1], $onlyX['totals']);
+
+        foreach (range(1, 15) as $i) {
+            $this->place($x, 1000);
+        }
+        $page2 = $this->section('orders', ['page' => 2]);
+        $this->assertSame([2, 2], [$page2['page'], $page2['last_page']]);
+        $this->assertCount(2, $page2['items']);
+    }
+
     public function test_summary_rejects_invalid_filters(): void
     {
         $this->actingAs($this->staff)
@@ -180,6 +267,10 @@ class ReportHttpTest extends B2bTestCase
         $this->actingAs($this->staff)
             ->getJson(route('b2b/reports/data', ['section' => 'summary', 'from' => '2026-11-10', 'to' => '2026-11-01']))
             ->assertUnprocessable()->assertJsonValidationErrors('to');
+
+        $this->actingAs($this->staff)
+            ->getJson(route('b2b/reports/data', ['section' => 'trend', 'group' => 'year']))
+            ->assertUnprocessable()->assertJsonValidationErrors('group');
 
         $this->actingAs($this->staff)->getJson('/b2b/reports/data/unknown')->assertNotFound();
     }
