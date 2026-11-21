@@ -268,7 +268,11 @@ Kombinasi `(kontrak, varian, min_qty)` divalidasi unik di aplikasi, bukan unique
 | billing_address_snapshot | json? | |
 | timestamps, deleted_at | | |
 
-**`b2b_invoice_schedules`**: bagian yang membuat sistem siap cicilan. Sekarang selalu 1 baris per invoice. Reminder, status overdue, dan umur piutang membaca tabel ini.
+**`b2b_invoice_schedules`**: jadwal tagihan, bagian yang membuat sistem siap cicilan dan kode unik per cicilan. Sekarang selalu 1 baris per invoice (`sequence = 1`, `unique_code = 0`, `amount_to_pay` = total invoice), dibuat bersama invoice oleh `OrderService`.
+
+- **Sudah membaca/menulis tabel ini:** pembayaran (dibagi ke jadwal yang belum lunas, urut `sequence`, dan dikembalikan saat pembayaran dibatalkan), `b2b:mark-overdue` (jadwal lewat jatuh tempo → `overdue`), pembatalan pesanan (jadwal → `void`), dan log reminder (`b2b_reminder_log_invoices.b2b_invoice_schedule_id`, hanya sebagai catatan).
+- **Masih membaca `b2b_invoices`:** pemilihan tagihan untuk reminder (`ReminderService::openCreditInvoices`) memakai jatuh tempo dan sisa tagihan invoice. Hasilnya sama selama 1 invoice = 1 jadwal.
+- **Wajib saat cicilan diaktifkan:** reminder diubah agar memilih per jadwal (jatuh tempo dan sisa per cicilan); kalau tidak, cicilan yang telat tidak ditagih selama jatuh tempo akhir invoice belum lewat. Laporan umur piutang (fase 5) sebaiknya langsung dihitung dari jadwal.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
@@ -349,16 +353,18 @@ Kombinasi `(kontrak, varian, min_qty)` divalidasi unik di aplikasi, bukan unique
 | notes | text? | |
 | timestamps | | |
 
-**`b2b_payment_allocations`**: satu transfer bisa melunasi beberapa tagihan, dan nanti juga cicilan.
+**`b2b_payment_allocations`**: penghubung pembayaran ↔ tagihan, mencatat berapa rupiah dari satu pembayaran dipakai untuk invoice/jadwal mana. Satu pembayaran bisa dibagi ke beberapa jadwal (cicilan) dan, nanti, beberapa invoice (satu transfer untuk banyak tagihan). Sekarang pembayaran selalu untuk satu invoice dan nominalnya dibatasi sisa tagihan, jadi biasanya 1 baris per pembayaran.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
 | id | bigint PK | |
 | b2b_payment_id | FK | |
-| b2b_invoice_schedule_id | FK | |
-| amount | bigint | |
-| allocated_by | FK users | |
+| b2b_invoice_id | FK, index | invoice yang dibayar |
+| b2b_invoice_schedule_id | FK? | jadwal yang dibayar; kosong kalau sisa uang tidak masuk jadwal mana pun |
+| amount | bigint | bagian pembayaran untuk baris ini |
 | timestamps | | |
+
+Pembayaran yang dibatalkan tidak menghapus baris alokasi: status `b2b_payments` menjadi `reversed` dan `paid_amount` invoice/jadwal dikurangi sebesar alokasinya. Petugas dicatat di `b2b_payments.received_by`, bukan di alokasi.
 
 **`b2b_customer_sender_aliases`**
 
