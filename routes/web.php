@@ -26,6 +26,7 @@ use App\Http\Controllers\B2b\CustomerController as B2bCustomerController;
 use App\Http\Controllers\B2b\InvoiceController as B2bInvoiceController;
 use App\Http\Controllers\B2b\OrderController as B2bOrderController;
 use App\Http\Controllers\B2b\ReminderController as B2bReminderController;
+use App\Http\Controllers\B2b\ReportController as B2bReportController;
 use App\Http\Controllers\OrderTable\BannerController as OrderTableBannerController;
 use App\Http\Controllers\OrderTable\BridgeMonitorController as OrderTableBridgeMonitorController;
 use App\Http\Controllers\OrderTable\CatalogSelectorController as OrderTableCatalogSelectorController;
@@ -161,6 +162,12 @@ Route::middleware('auth')->group(function () {
             Route::post('/whatsapp/test', [B2bReminderController::class, 'whatsappTest'])->name('reminders/whatsapp/test');
             Route::post('/switch/{channel}/{state}', [B2bReminderController::class, 'toggle'])
                 ->whereIn('channel', ['email', 'whatsapp'])->whereIn('state', ['on', 'off'])->name('reminders/toggle');
+        });
+
+        Route::prefix('reports')->group(function () {
+            Route::get('/', [B2bReportController::class, 'index'])->name('reports');
+            Route::get('/data/{section}', [B2bReportController::class, 'data'])
+                ->whereIn('section', B2bReportController::SECTIONS)->name('reports/data');
         });
     });
 

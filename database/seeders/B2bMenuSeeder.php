@@ -15,7 +15,7 @@ use Spatie\Permission\PermissionRegistrar;
  * Menu, permission, dan config Kasir B2B (fase 1–2). Aman dijalankan berulang:
  * php artisan db:seed --class=B2bMenuSeeder
  *
- * Menu pembayaran, laporan, dan pengaturan B2B ditambahkan saat fiturnya dibangun.
+ * Menu pembayaran dan pengaturan B2B ditambahkan saat fiturnya dibangun.
  */
 class B2bMenuSeeder extends Seeder
 {
@@ -50,6 +50,10 @@ class B2bMenuSeeder extends Seeder
                 // send = kirim ulang / kirim manual; toggle = saklar darurat per channel;
                 // manage-whatsapp = hubungkan / putuskan nomor WhatsApp penagihan dan kirim pesan uji
                 'permissions' => ['read ', 'send ', 'toggle ', 'manage-whatsapp '],
+            ],
+            'b2b/reports' => [
+                'name' => 'Laporan',
+                'permissions' => ['read '],
             ],
             'b2b/customers' => [
                 'name' => 'Customer',

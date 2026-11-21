@@ -1,6 +1,6 @@
 # Rencana Fitur Kasir B2B
 
-- **Status:** Fase 1 (customer, kontrak, harga), Fase 2 (kasir, pesanan, invoice), bayar langsung + pelunasan tempo manual, dan Fase 4 (status overdue, reminder email + WhatsApp, menu Reminder) sudah dibangun (per 21 Nov 2026). Pelunasan tempo otomatis ditunda sampai metodenya diputuskan (kode unik vs VA BCA). Berikutnya: laporan B2B (fase 5).
+- **Status:** Fase 1 (customer, kontrak, harga), Fase 2 (kasir, pesanan, invoice), bayar langsung + pelunasan tempo manual, dan Fase 4 (status overdue, reminder email + WhatsApp, menu Reminder) sudah dibangun (per 21 Nov 2026). Pelunasan tempo otomatis ditunda sampai metodenya diputuskan (kode unik vs VA BCA). Sedang dikerjakan: laporan B2B (fase 5), langkah 1 dari 8 selesai.
 - **Tanggal rekap:** 18 November 2026
 - **Presentasi:** `b2b-kasir-presentasi.html` (buka langsung di browser). Isinya masih versi 14 Nov (aturan diskon, banyak kontak/alamat).
 
@@ -127,6 +127,18 @@ Aturan tambahan:
 - **Saklar darurat**: tombol on/off untuk menghentikan sementara semua kiriman Email atau WhatsApp.
 - Ditunda: status baca WhatsApp (webhook), notifikasi email ke admin saat nomor WhatsApp terputus.
 
+### Laporan B2B (fase 5, disepakati 21 Nov 2026)
+
+- **Satu halaman** `b2b/reports`. Detail lewat tiga tingkat: (1) ringkasan di halaman, (2) **drilldown** di chart (klik batang/irisan → rincian berikutnya, breadcrumb + tombol kembali), (3) **modal** daftar transaksi (link ke halaman pesanan/invoice yang ada) atau **halaman baru** di dalam menu laporan untuk kartu piutang customer (`b2b/reports/customers/{id}`).
+- Filter bersama untuk semua bagian: periode (preset: hari ini, 7 hari, bulan ini, bulan lalu, 3 bulan, tahun ini, pilih sendiri), outlet (sesuai akses user), customer. Disimpan di URL. Halaman = kerangka; setiap bagian mengambil data sendiri dari `b2b/reports/data/{bagian}`.
+- Susunan: KPI → A. Tren penjualan → B. Penjualan per Customer/Outlet/Produk/Kategori (tab) → C. Umur piutang + D. Pembayaran & kas → E. Kontrak hampir berakhir (≤ 30 hari).
+- Definisi angka:
+  - **Penjualan**: `grand_total` pesanan Dikonfirmasi + Selesai menurut `order_date`. Batal dan draft tidak dihitung.
+  - **Kas masuk bersih**: uang yang benar-benar diterima menurut `paid_at` (pembayaran `posted`, atau `reversed` karena pesanan batal dan punya refund) dikurangi refund menurut `refunded_at`. Pelunasan yang dibatalkan karena salah catat tidak dihitung. (Usulan awal "posted − refund" mengurangi refund dua kali, karena batal + refund juga membuat pembayaran `reversed`.)
+  - **Piutang dan umur piutang**: sisa invoice belum lunas (`total_to_pay − paid_amount`) **per hari ini**, tidak ikut periode, tetap ikut outlet/customer. Kelompok umur dari `due_date`: belum jatuh tempo, 1–30, 31–60, 61–90, > 90 hari.
+  - **Outlet** = outlet pesanan. Rekap kas per outlet penerima (`b2b_payments.outlet_id`, kosong = rekening pusat) ada di bagian D.
+- Tahapan: 1 kerangka + KPI ✅ → 2 tren + pola drilldown/modal → 3 penjualan per dimensi → 4 umur piutang → 5 pembayaran & kas → 6 kontrak hampir berakhir → 7 kartu piutang customer → 8 export Excel (opsional).
+
 ---
 
 ## 3. Tahapan pengerjaan
@@ -137,7 +149,7 @@ Aturan tambahan:
 | **2** ✅ | Kasir B2B: pesanan → invoice + jadwal tagihan (kode unik belum aktif), cetak invoice, pengurangan stok | orders, order_items, invoices, invoice_schedules, sequences, activity_logs |
 | **3** | Pembayaran: rekening, upload mutasi BCA, pencocokan otomatis, daftar cek manual, input tunai, saldo customer | bank_accounts, mutation_imports, incoming_funds, payments, payment_allocations, customer_sender_aliases |
 | **4** | Status overdue (`mark-overdue`), reminder email + WhatsApp (Baileys), menu Reminder | reminder_logs, reminder_log_invoices |
-| **5** | Laporan B2B: penjualan per customer/outlet/produk, umur piutang, mutasi pembayaran, kontrak yang hampir berakhir | (membaca tabel di atas) |
+| **5** 🚧 | Laporan B2B satu halaman: penjualan per customer/outlet/produk, umur piutang, mutasi pembayaran, kontrak yang hampir berakhir (lihat "Laporan B2B" di atas) | (membaca tabel di atas) |
 | Nanti | Mutasi otomatis, WhatsApp, pengiriman dan ekspedisi, cicilan | — |
 
 Fase 3 membutuhkan contoh file mutasi BCA untuk membuat parser.
@@ -521,8 +533,9 @@ Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay 
   - Menu Reminder (`b2b/reminders`): tab Aktivitas (log + detail isi email/WhatsApp, kirim ulang), tab Customer (channel, jadwal, data kontak kurang), tab WhatsApp (status, QR / kode pairing, putuskan, pesan uji), saklar darurat per channel. Permission `read`, `send`, `toggle`, `manage-whatsapp b2b/reminders`.
   - Kirim reminder manual per invoice (detail pesanan + daftar invoice) dengan pilihan Email / WhatsApp, riwayat reminder di kartu Invoice.
   - Tabel `b2b_reminder_logs`, `b2b_reminder_log_invoices`; kolom `overdue_at`.
-- Belum ada: draft pesanan, pelunasan tempo otomatis (kode unik/VA), laporan B2B, status baca WhatsApp + notifikasi nomor terputus.
-- Test: `tests/Feature/B2b` (120 test, semua lolos 21 Nov 2026).
+- Laporan B2B langkah 1 (21 Nov): menu `b2b/reports` + permission `read b2b/reports`, `ReportController` (halaman + endpoint `data/{bagian}`), `ReportService::summary()`, `App\Support\B2b\ReportFilter`, halaman dengan filter periode/outlet/customer dan 6 kartu KPI (penjualan, jumlah pesanan, kas masuk bersih, piutang, lewat jatuh tempo, batal). Helper JS `B2b.rangePicker` dan `B2b.ajaxSelect` dipisah dari `list-filters` supaya dipakai bersama.
+- Belum ada: draft pesanan, pelunasan tempo otomatis (kode unik/VA), laporan B2B langkah 2–8, status baca WhatsApp + notifikasi nomor terputus.
+- Test: `tests/Feature/B2b` (126 test, 21 Nov 2026).
 
 ### Perubahan 14 Nov 2026 (bedah kolom)
 

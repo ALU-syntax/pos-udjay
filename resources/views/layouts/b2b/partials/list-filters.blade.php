@@ -8,6 +8,7 @@
         + dua <input type="hidden"> untuk tanggal awal/akhir (Y-m-d).
       - Tombol hapus filter: <button id="filter-reset" hidden>.
     JS: B2b.listFilters({ table: 'id-datatable', selects: '#a-filter, #b-filter', range: { input, from, to, clear, ranges: 'past'|'due' } }).
+    Helper yang juga dipakai Laporan B2B: B2b.ajaxSelect(el), B2b.rangePicker($input, { ranges, onApply }), B2b.rangeLabel(start, end).
 --}}
 @include('layouts.b2b.partials.datepicker')
 
@@ -83,22 +84,7 @@
                 const $to = range ? $(range.to) : $();
 
                 // Select pencarian (mis. customer) memakai select2 ber-ajax.
-                $selects.filter('[data-select2-url]').each(function () {
-                    $(this).select2({
-                        width: '100%',
-                        placeholder: this.dataset.placeholder || 'Semua',
-                        allowClear: true,
-                        dropdownCssClass: 'b2b-filter-dropdown',
-                        // Kotak terpilih cukup nama; daftar pencarian tetap menampilkan kode.
-                        templateSelection: item => item.name || item.text,
-                        language: { searching: () => 'Mencari…', noResults: () => 'Tidak ditemukan', inputTooShort: () => 'Ketik untuk mencari' },
-                        ajax: {
-                            url: this.dataset.select2Url, dataType: 'json', delay: 250,
-                            data: params => ({ q: params.term }),
-                            processResults: response => ({ results: response.data || [] }),
-                        },
-                    });
-                });
+                $selects.filter('[data-select2-url]').each(function () { B2b.ajaxSelect(this); });
 
                 function syncState() {
                     $selects.each(function () {
@@ -124,80 +110,14 @@
                     reload();
                 });
 
-                const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-                const label = date => `${date.format('DD')} ${shortMonths[date.month()]} ${date.year()}`;
                 function setRange(start, end) {
-                    $input.val(start ? (start.isSame(end, 'day') ? label(start) : `${label(start)}  –  ${label(end)}`) : '');
+                    $input.val(start ? B2b.rangeLabel(start, end) : '');
                     $from.val(start ? start.format('YYYY-MM-DD') : '');
                     $to.val(start ? end.format('YYYY-MM-DD') : '');
                     reload();
                 }
 
-                if (range && $.fn.daterangepicker) {
-                    const today = moment().startOf('day');
-                    // 'past' untuk tanggal transaksi (tidak bisa ke depan), 'due' untuk jatuh tempo (bisa ke depan).
-                    const presets = range.ranges === 'due'
-                        ? {
-                            'Hari ini': [today.clone(), today.clone()],
-                            '7 hari ke depan': [today.clone(), today.clone().add(7, 'days')],
-                            'Minggu ini': [today.clone().startOf('isoWeek'), today.clone().endOf('isoWeek')],
-                            'Bulan ini': [today.clone().startOf('month'), today.clone().endOf('month')],
-                        }
-                        : {
-                            'Hari ini': [today.clone(), today.clone()],
-                            '7 hari terakhir': [today.clone().subtract(6, 'days'), today.clone()],
-                            'Bulan ini': [today.clone().startOf('month'), today.clone()],
-                            'Bulan lalu': [today.clone().subtract(1, 'month').startOf('month'), today.clone().subtract(1, 'month').endOf('month')],
-                        };
-                    $input.daterangepicker({
-                        autoUpdateInput: false,
-                        drops: 'auto',
-                        opens: 'left',
-                        showDropdowns: true,
-                        linkedCalendars: false,
-                        alwaysShowCalendars: true,
-                        maxDate: range.ranges === 'due' ? undefined : today.clone().endOf('day'),
-                        ranges: presets,
-                        buttonClasses: 'btn btn-sm',
-                        applyButtonClasses: 'btn-primary',
-                        cancelButtonClasses: 'btn-light',
-                        locale: {
-                            format: 'DD/MM/YYYY',
-                            separator: ' – ',
-                            applyLabel: 'Terapkan',
-                            cancelLabel: 'Batal',
-                            customRangeLabel: 'Pilih sendiri',
-                            daysOfWeek: ['Mg', 'Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb'],
-                            monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
-                            firstDay: 1,
-                        },
-                    });
-                    const picker = $input.data('daterangepicker');
-                    picker.container.addClass('b2b-drp');
-
-                    // Ringkasan di footer popup dalam bahasa Indonesia, bukan format bawaan DD/MM/YYYY.
-                    function renderSelected() {
-                        const box = picker.container.find('.drp-selected');
-                        if (!picker.endDate) {
-                            box.html(`<strong>${label(picker.startDate)}  –  …</strong><small>Pilih tanggal akhir</small>`);
-                            return;
-                        }
-                        const days = picker.endDate.clone().startOf('day').diff(picker.startDate.clone().startOf('day'), 'days') + 1;
-                        box.html(`<strong>${label(picker.startDate)}  –  ${label(picker.endDate)}</strong><small class="is-days">${days.toLocaleString('id-ID')} hari</small>`);
-                    }
-                    ['updateView', 'setEndDate'].forEach(name => {
-                        const original = picker[name];
-                        picker[name] = function () {
-                            const result = original.apply(this, arguments);
-                            renderSelected();
-                            return result;
-                        };
-                    });
-
-                    $input.on('show.daterangepicker', () => { $input.addClass('is-open'); renderSelected(); })
-                        .on('hide.daterangepicker', () => $input.removeClass('is-open'))
-                        .on('apply.daterangepicker', (event, picker) => setRange(picker.startDate, picker.endDate));
-                }
+                if (range) B2b.rangePicker($input, { ranges: range.ranges, onApply: setRange });
 
                 if (range) $(range.clear).on('click', () => setRange(null));
                 $('#filter-reset').on('click', function () {
@@ -209,6 +129,107 @@
                 $(document).on('b2b:stats-refreshed', syncState);
 
                 syncState();
+            };
+
+            /** Select2 ber-ajax untuk filter (mis. customer): <select data-select2-url="..." data-placeholder="...">. */
+            B2b.ajaxSelect = function (el) {
+                $(el).select2({
+                    width: '100%',
+                    placeholder: el.dataset.placeholder || 'Semua',
+                    allowClear: true,
+                    dropdownCssClass: 'b2b-filter-dropdown',
+                    // Kotak terpilih cukup nama; daftar pencarian tetap menampilkan kode.
+                    templateSelection: item => item.name || item.text,
+                    language: { searching: () => 'Mencari…', noResults: () => 'Tidak ditemukan', inputTooShort: () => 'Ketik untuk mencari' },
+                    ajax: {
+                        url: el.dataset.select2Url, dataType: 'json', delay: 250,
+                        data: params => ({ q: params.term }),
+                        processResults: response => ({ results: response.data || [] }),
+                    },
+                });
+                return $(el);
+            };
+
+            B2b.shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            B2b.dateLabel = date => `${date.format('DD')} ${B2b.shortMonths[date.month()]} ${date.year()}`;
+            B2b.rangeLabel = (start, end) => start.isSame(end, 'day') ? B2b.dateLabel(start) : `${B2b.dateLabel(start)}  –  ${B2b.dateLabel(end)}`;
+
+            /**
+             * Date range picker B2B (tema .b2b-drp) dengan preset bahasa Indonesia; dipakai filter daftar dan Laporan B2B.
+             * ranges: 'past' untuk tanggal transaksi (tidak bisa ke depan), 'due' untuk jatuh tempo (bisa ke depan),
+             * 'report' = 'past' + rentang panjang untuk laporan. opens: arah popup ('left' | 'right').
+             * onApply(start, end) menerima moment saat Terapkan atau preset dipilih.
+             */
+            B2b.rangePicker = function ($input, { ranges = 'past', opens = 'left', onApply }) {
+                if (!$.fn.daterangepicker) return null;
+                const today = moment().startOf('day');
+                const presets = ranges === 'due'
+                    ? {
+                        'Hari ini': [today.clone(), today.clone()],
+                        '7 hari ke depan': [today.clone(), today.clone().add(7, 'days')],
+                        'Minggu ini': [today.clone().startOf('isoWeek'), today.clone().endOf('isoWeek')],
+                        'Bulan ini': [today.clone().startOf('month'), today.clone().endOf('month')],
+                    }
+                    : {
+                        'Hari ini': [today.clone(), today.clone()],
+                        '7 hari terakhir': [today.clone().subtract(6, 'days'), today.clone()],
+                        'Bulan ini': [today.clone().startOf('month'), today.clone()],
+                        'Bulan lalu': [today.clone().subtract(1, 'month').startOf('month'), today.clone().subtract(1, 'month').endOf('month')],
+                    };
+                if (ranges === 'report') {
+                    presets['3 bulan terakhir'] = [today.clone().subtract(2, 'months').startOf('month'), today.clone()];
+                    presets['Tahun ini'] = [today.clone().startOf('year'), today.clone()];
+                }
+                $input.daterangepicker({
+                    autoUpdateInput: false,
+                    drops: 'auto',
+                    opens,
+                    showDropdowns: true,
+                    linkedCalendars: false,
+                    alwaysShowCalendars: true,
+                    maxDate: ranges === 'due' ? undefined : today.clone().endOf('day'),
+                    ranges: presets,
+                    buttonClasses: 'btn btn-sm',
+                    applyButtonClasses: 'btn-primary',
+                    cancelButtonClasses: 'btn-light',
+                    locale: {
+                        format: 'DD/MM/YYYY',
+                        separator: ' – ',
+                        applyLabel: 'Terapkan',
+                        cancelLabel: 'Batal',
+                        customRangeLabel: 'Pilih sendiri',
+                        daysOfWeek: ['Mg', 'Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb'],
+                        monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+                        firstDay: 1,
+                    },
+                });
+                const picker = $input.data('daterangepicker');
+                picker.container.addClass('b2b-drp');
+
+                // Ringkasan di footer popup dalam bahasa Indonesia, bukan format bawaan DD/MM/YYYY.
+                function renderSelected() {
+                    const box = picker.container.find('.drp-selected');
+                    if (!picker.endDate) {
+                        box.html(`<strong>${B2b.dateLabel(picker.startDate)}  –  …</strong><small>Pilih tanggal akhir</small>`);
+                        return;
+                    }
+                    const days = picker.endDate.clone().startOf('day').diff(picker.startDate.clone().startOf('day'), 'days') + 1;
+                    box.html(`<strong>${B2b.dateLabel(picker.startDate)}  –  ${B2b.dateLabel(picker.endDate)}</strong><small class="is-days">${days.toLocaleString('id-ID')} hari</small>`);
+                }
+                ['updateView', 'setEndDate'].forEach(name => {
+                    const original = picker[name];
+                    picker[name] = function () {
+                        const result = original.apply(this, arguments);
+                        renderSelected();
+                        return result;
+                    };
+                });
+
+                $input.on('show.daterangepicker', () => { $input.addClass('is-open'); renderSelected(); })
+                    .on('hide.daterangepicker', () => $input.removeClass('is-open'))
+                    .on('apply.daterangepicker', (event, picker) => onApply(picker.startDate, picker.endDate));
+
+                return picker;
             };
         </script>
     @endpush
