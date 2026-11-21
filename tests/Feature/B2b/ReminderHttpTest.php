@@ -73,7 +73,7 @@ class ReminderHttpTest extends B2bTestCase
         $this->seed(B2bMenuSeeder::class);
 
         $this->assertSame(1, \App\Models\Menu::where('url', 'b2b/reminders')->count());
-        foreach (['read', 'send', 'toggle'] as $action) {
+        foreach (['read', 'send', 'toggle', 'manage-whatsapp'] as $action) {
             $this->assertDatabaseHas('permissions', ['name' => "{$action} b2b/reminders"]);
         }
     }
@@ -233,7 +233,7 @@ class ReminderHttpTest extends B2bTestCase
         [, $invoice] = $this->customerWithInvoice();
 
         app(B2bSettings::class)->setReminderChannelEnabled('email', false);
-        $this->actingAs($sender)->postJson(route('b2b/reminders/send-invoice', $invoice->id))->assertUnprocessable()->assertJsonValidationErrors('channel');
+        $this->actingAs($sender)->postJson(route('b2b/reminders/send-invoice', $invoice->id))->assertUnprocessable()->assertJsonValidationErrors('channels');
         app(B2bSettings::class)->setReminderChannelEnabled('email', true);
 
         $invoice->update(['paid_amount' => $invoice->total_to_pay, 'status' => Invoice::STATUS_PAID]);

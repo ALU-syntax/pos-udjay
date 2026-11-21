@@ -89,10 +89,14 @@
                 <i class="fas fa-stream" aria-hidden="true"></i> Aktivitas</a>
             <a href="{{ route('b2b/reminders', ['tab' => 'customers']) }}" class="nav-link {{ $tab === 'customers' ? 'active' : '' }}" @if ($tab === 'customers') aria-current="page" @endif>
                 <i class="fas fa-building" aria-hidden="true"></i> Customer</a>
+            <a href="{{ route('b2b/reminders', ['tab' => 'whatsapp']) }}" class="nav-link {{ $tab === 'whatsapp' ? 'active' : '' }}" @if ($tab === 'whatsapp') aria-current="page" @endif>
+                <i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp</a>
         </nav>
 
         @if ($tab === 'customers')
             @include('layouts.b2b.reminders.partials.customers')
+        @elseif ($tab === 'whatsapp')
+            @include('layouts.b2b.reminders.partials.whatsapp')
         @else
         <div class="ob-card">
             <div class="b2b-card__head">

@@ -146,24 +146,40 @@ class ReminderService
 
     /**
      * Kirim reminder satu invoice sekarang (permintaan customer / penagihan manual), terlepas dari jadwal customer.
-     * Lewat email, karena baru email yang punya pengirim; data tujuan yang kosong dicatat sebagai dilewati.
+     * Satu kiriman per channel yang dipilih; data tujuan yang kosong dicatat sebagai dilewati.
+     *
+     * @param  list<string>  $channels
+     * @return Collection<int, ReminderLog>
      */
-    public function sendNow(Invoice $invoice, User $user): ReminderLog
+    public function sendNow(Invoice $invoice, User $user, array $channels = [ReminderLog::CHANNEL_EMAIL]): Collection
     {
-        $channel = ReminderLog::CHANNEL_EMAIL;
+        $channels = array_values(array_unique($channels));
+        if ($channels === []) {
+            throw ValidationException::withMessages(['channels' => 'Pilih minimal satu channel.']);
+        }
+        foreach ($channels as $channel) {
+            $label = ReminderLog::CHANNEL_LABELS[$channel] ?? $channel;
+            if (! $this->supports($channel)) {
+                throw ValidationException::withMessages(['channels' => "Channel {$label} belum bisa dipakai untuk mengirim."]);
+            }
+            if (! $this->settings->reminderChannelEnabled($channel)) {
+                throw ValidationException::withMessages(['channels' => "Kiriman {$label} sedang dihentikan lewat saklar darurat."]);
+            }
+        }
         if (! $this->openCreditInvoices()->whereKey($invoice->id)->exists()) {
             throw ValidationException::withMessages(['invoice' => 'Reminder hanya untuk invoice tempo yang belum lunas.']);
-        }
-        if (! $this->settings->reminderChannelEnabled($channel)) {
-            throw ValidationException::withMessages(['channel' => 'Kiriman email sedang dihentikan lewat saklar darurat.']);
         }
 
         $today = today();
         $customer = Customer::withTrashed()->findOrFail($invoice->b2b_customer_id);
-        $log = $this->createLog($customer, $channel, collect([['invoice' => $invoice, 'offset' => $this->offset($invoice, $today)]]), $today, ReminderLog::TRIGGER_MANUAL, $user);
-        $this->logger->log('reminder.manual', $log, ['invoice_number' => $invoice->invoice_number, 'status' => $log->status], $user->id);
+        $items = collect([['invoice' => $invoice, 'offset' => $this->offset($invoice, $today)]]);
 
-        return $log;
+        return collect($channels)->map(function (string $channel) use ($customer, $items, $today, $user, $invoice) {
+            $log = $this->createLog($customer, $channel, $items, $today, ReminderLog::TRIGGER_MANUAL, $user);
+            $this->logger->log('reminder.manual', $log, ['invoice_number' => $invoice->invoice_number, 'channel' => $channel, 'status' => $log->status], $user->id);
+
+            return $log;
+        });
     }
 
     /**

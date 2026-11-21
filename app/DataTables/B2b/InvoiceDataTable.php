@@ -4,6 +4,7 @@ namespace App\DataTables\B2b;
 
 use App\Models\B2b\Invoice;
 use App\Models\B2b\Order;
+use App\Support\B2b\ReminderButton;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 use Yajra\DataTables\EloquentDataTable;
@@ -85,17 +86,11 @@ class InvoiceDataTable extends DataTable
         return '<div class="ob-cell-stack"><span class="b2b-cell-strong text-nowrap">'.$invoice->due_date->translatedFormat('d M Y').'</span>'.$hint.'</div>';
     }
 
-    /** Kirim reminder invoice ini sekarang (email + PDF) ke email customer. */
+    /** Kirim reminder invoice ini sekarang (dialog pilih Email / WhatsApp). */
     private function reminderButton(Invoice $invoice): string
     {
-        $email = $invoice->customer?->email;
-        $text = $email
-            ? 'Email reminder '.$invoice->invoice_number.' beserta PDF invoice dikirim ke '.$email.'.'
-            : 'Email customer masih kosong; kiriman akan dicatat sebagai dilewati. Lengkapi email di data customer dulu.';
-
-        return '<a href="'.route('b2b/reminders/send-invoice', $invoice->id).'" class="ob-icon-btn ob-icon-btn--sm" data-b2b-confirm data-icon="question"'
-            .' data-title="Kirim reminder sekarang?" data-text="'.e($text).'" data-confirm-text="Ya, kirim" data-table="b2b-invoice-table"'
-            .' title="Kirim reminder" aria-label="Kirim reminder '.e($invoice->invoice_number).'"><i class="fas fa-bell" aria-hidden="true"></i></a>';
+        return '<button type="button" class="ob-icon-btn ob-icon-btn--sm" '.ReminderButton::attributes($invoice, 'b2b-invoice-table')
+            .' title="Kirim reminder" aria-label="Kirim reminder '.e($invoice->invoice_number).'"><i class="fas fa-bell" aria-hidden="true"></i></button>';
     }
 
     /** Tombol pembuka dialog "Catat Pelunasan" (layouts.b2b.invoices.partials.payment-modal). */

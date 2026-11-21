@@ -29,7 +29,7 @@
         </div>
     @else
         <div class="ob-table-scroll">
-            <table class="b2b-table b2b-reminder-customers">
+            <table class="b2b-table b2b-table--card b2b-reminder-customers">
                 <thead>
                     <tr>
                         <th>Customer</th>
@@ -60,7 +60,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td>
+                            <td class="b2b-reminder-col-schedule">
                                 <div class="ob-cell-stack">
                                     @if ($customer->reminder_enabled)
                                         <span>
@@ -125,17 +125,26 @@
 
 @push('css')
     <style>
-        .b2b-reminder-summary { display: flex; flex-wrap: wrap; gap: .5rem; padding: 0 1.25rem 1rem; }
+        .b2b-reminder-summary { display: flex; flex-wrap: wrap; gap: .5rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--ob-border); }
         .b2b-reminder-summary__item { padding: .35rem .8rem; border: 1px solid var(--ob-border); border-radius: 999px; background: var(--ob-surface-2); font-size: .8rem; color: var(--ob-text-2); }
         .b2b-reminder-summary__item.is-danger { border-color: var(--ob-danger); background: #fef2f2; color: var(--ob-danger); }
         .b2b-reminder-summary__item.is-warning { border-color: #f59e0b; background: #fffbeb; color: #b45309; }
-        .b2b-reminder-customers { min-width: 900px; }
-        .b2b-reminder-customers td { vertical-align: middle; }
+        .b2b-reminder-customers { min-width: 980px; }
+        .b2b-reminder-customers .b2b-cust-cell { min-width: 200px; }
+        /* Kolom dalam 1rem, kolom tepi 1.25rem supaya sejajar dengan kepala kartu. */
+        .b2b-reminder-customers th, .b2b-reminder-customers td { padding-left: 1rem; padding-right: 1rem; }
+        .b2b-reminder-customers th:first-child, .b2b-reminder-customers td:first-child { padding-left: 1.25rem; }
+        .b2b-reminder-customers th:last-child, .b2b-reminder-customers td:last-child { padding-right: 1.25rem; }
+        .b2b-reminder-customers tr:last-child td { border-bottom: 0; }
         .b2b-reminder-customers tr.is-issue td { background: #fff7f7; }
+        .b2b-reminder-customers .ob-cell-stack { gap: .3rem; }
         .b2b-reminder-customers .badge { margin-left: 0 !important; margin-right: .25rem; }
-        .b2b-reminder-contact { font-size: .82rem; }
-        .b2b-reminder-contact .fas { width: 14px; color: var(--ob-muted); }
+        .b2b-reminder-col-schedule { min-width: 190px; }
+        .b2b-reminder-contact { min-width: 210px; font-size: .82rem; }
+        .b2b-reminder-contact .b2b-due { display: flex; align-items: baseline; gap: .3rem; line-height: 1.35; }
+        .b2b-reminder-contact .b2b-due .fas { flex-shrink: 0; margin-right: 0; }
+        .b2b-reminder-contact .fas { width: 14px; margin-right: .3rem; color: var(--ob-muted); }
         .b2b-reminder-contact .text-danger .fas { color: inherit; }
-        .b2b-last-reminder { display: flex; align-items: center; gap: .5rem; }
+        .b2b-last-reminder { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-width: 170px; }
     </style>
 @endpush

@@ -153,6 +153,12 @@ Route::middleware('auth')->group(function () {
             Route::get('/{log}', [B2bReminderController::class, 'show'])->whereNumber('log')->name('reminders/show');
             Route::post('/{log}/resend', [B2bReminderController::class, 'resend'])->whereNumber('log')->name('reminders/resend');
             Route::post('/invoices/{invoice}', [B2bReminderController::class, 'sendInvoice'])->whereNumber('invoice')->name('reminders/send-invoice');
+            Route::get('/whatsapp/status', [B2bReminderController::class, 'whatsappStatus'])->name('reminders/whatsapp/status');
+            Route::post('/whatsapp/connect', [B2bReminderController::class, 'whatsappConnect'])->name('reminders/whatsapp/connect');
+            Route::get('/whatsapp/qr', [B2bReminderController::class, 'whatsappQr'])->name('reminders/whatsapp/qr');
+            Route::post('/whatsapp/pairing-code', [B2bReminderController::class, 'whatsappPairingCode'])->name('reminders/whatsapp/pairing-code');
+            Route::post('/whatsapp/logout', [B2bReminderController::class, 'whatsappLogout'])->name('reminders/whatsapp/logout');
+            Route::post('/whatsapp/test', [B2bReminderController::class, 'whatsappTest'])->name('reminders/whatsapp/test');
             Route::post('/switch/{channel}/{state}', [B2bReminderController::class, 'toggle'])
                 ->whereIn('channel', ['email', 'whatsapp'])->whereIn('state', ['on', 'off'])->name('reminders/toggle');
         });

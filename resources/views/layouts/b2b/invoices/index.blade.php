@@ -119,6 +119,7 @@
     </div>
 
     @include('layouts.b2b.invoices.partials.payment-modal')
+    @include('layouts.b2b.reminders.partials.send-dialog')
 
     @push('css')
         <style>

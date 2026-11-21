@@ -47,8 +47,9 @@ class B2bMenuSeeder extends Seeder
             ],
             'b2b/reminders' => [
                 'name' => 'Reminder',
-                // send = kirim ulang / kirim manual; toggle = saklar darurat per channel
-                'permissions' => ['read ', 'send ', 'toggle '],
+                // send = kirim ulang / kirim manual; toggle = saklar darurat per channel;
+                // manage-whatsapp = hubungkan / putuskan nomor WhatsApp penagihan dan kirim pesan uji
+                'permissions' => ['read ', 'send ', 'toggle ', 'manage-whatsapp '],
             ],
             'b2b/customers' => [
                 'name' => 'Customer',

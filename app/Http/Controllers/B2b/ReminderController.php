@@ -9,9 +9,14 @@ use App\Models\B2b\Invoice;
 use App\Models\B2b\ReminderLog;
 use App\Services\B2b\ActivityLogger;
 use App\Services\B2b\B2bSettings;
+use App\Services\B2b\Reminder\WhatsAppGateway;
+use App\Services\B2b\Reminder\WhatsAppGatewayException;
 use App\Services\B2b\ReminderService;
+use App\Support\B2b\Phone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /** Menu Reminder: aktivitas kiriman (termasuk log email), kirim ulang, dan saklar darurat per channel. */
 class ReminderController extends Controller
@@ -19,6 +24,7 @@ class ReminderController extends Controller
     public function __construct(
         private readonly ReminderService $reminders,
         private readonly B2bSettings $settings,
+        private readonly WhatsAppGateway $gateway,
     ) {
         $this->abilities = [];
     }
@@ -26,7 +32,7 @@ class ReminderController extends Controller
     public function index(ReminderLogDataTable $dataTable, Request $request)
     {
         $this->authorize('read b2b/reminders');
-        $tab = $request->query('tab') === 'customers' ? 'customers' : 'activity';
+        $tab = in_array($request->query('tab'), ['customers', 'whatsapp'], true) ? $request->query('tab') : 'activity';
 
         $today = ReminderLog::query()
             ->whereDate('reminder_date', today())
@@ -46,6 +52,7 @@ class ReminderController extends Controller
             'retryUntil' => B2bSettings::REMINDER_RETRY_UNTIL,
             'tab' => $tab,
             'customers' => $tab === 'customers' ? $this->reminderCustomers() : collect(),
+            'whatsappConfigured' => $this->gateway->isConfigured(),
         ]);
     }
 
@@ -80,19 +87,24 @@ class ReminderController extends Controller
             ->values();
     }
 
-    /** Kirim reminder satu invoice sekarang (tombol di detail pesanan / daftar invoice). */
+    /** Kirim reminder satu invoice sekarang lewat channel yang dipilih (tombol di detail pesanan / daftar invoice). */
     public function sendInvoice(Request $request, int $invoice)
     {
         $this->authorize('send b2b/reminders');
+        $validated = $request->validate([
+            'channels' => ['nullable', 'array'],
+            'channels.*' => [Rule::in(array_keys(ReminderLog::CHANNEL_LABELS))],
+        ], [], ['channels' => 'channel']);
         $invoice = Invoice::query()
             ->whereHas('order', fn ($order) => $order->withTrashed()->whereIn('outlet_id', $request->user()->outletIds()))
             ->findOrFail($invoice);
 
-        $log = $this->reminders->sendNow($invoice, $request->user());
+        $logs = $this->reminders->sendNow($invoice, $request->user(), $validated['channels'] ?? [ReminderLog::CHANNEL_EMAIL]);
+        $parts = $logs->map(fn (ReminderLog $log) => $log->status === ReminderLog::STATUS_QUEUED
+            ? $log->channelLabel().' ke '.$log->recipient.' masuk antrean'
+            : $log->channelLabel().' dilewati: '.$log->error);
 
-        return responseSuccess(true, $log->status === ReminderLog::STATUS_QUEUED
-            ? 'Reminder '.$invoice->invoice_number.' masuk antrean kirim ke '.$log->recipient.'.'
-            : 'Reminder dicatat tapi dilewati: '.$log->error);
+        return responseSuccess(true, 'Reminder '.$invoice->invoice_number.': '.$parts->implode('; ').'.');
     }
 
     /** Detail satu kiriman untuk dialog log (isi email ditampilkan di iframe sandbox). */
@@ -156,5 +168,92 @@ class ReminderController extends Controller
         $label = ReminderLog::CHANNEL_LABELS[$channel];
 
         return responseSuccess(true, $enabled ? "Kiriman {$label} diaktifkan lagi." : "Semua kiriman {$label} dihentikan sementara.");
+    }
+
+    /** Tab WhatsApp: status gateway (dipanggil berkala dari halaman). */
+    public function whatsappStatus()
+    {
+        $this->authorize('read b2b/reminders');
+
+        return $this->gatewayCall(fn () => $this->gateway->status());
+    }
+
+    /** Mulai menautkan nomor: gateway membuat QR (atau menyambung lagi memakai sesi tersimpan). */
+    public function whatsappConnect(Request $request, ActivityLogger $logger)
+    {
+        $this->authorize('manage-whatsapp b2b/reminders');
+
+        return $this->gatewayCall(function () use ($request, $logger) {
+            $status = $this->gateway->connect();
+            $logger->log('whatsapp.connect', $request->user(), ['state' => $status['state'] ?? null], $request->user()->id);
+
+            return $status;
+        });
+    }
+
+    public function whatsappQr()
+    {
+        $this->authorize('manage-whatsapp b2b/reminders');
+
+        return $this->gatewayCall(fn () => ['qr' => $this->gateway->qr()]);
+    }
+
+    /** Alternatif QR: kode 8 karakter yang dimasukkan di HP nomor penagihan. */
+    public function whatsappPairingCode(Request $request)
+    {
+        $this->authorize('manage-whatsapp b2b/reminders');
+        $validated = $request->validate(['phone' => ['required', 'string', 'max:30']], [], ['phone' => 'nomor WhatsApp penagihan']);
+        $phone = Phone::toWhatsApp($validated['phone']);
+        if ($phone === null) {
+            throw ValidationException::withMessages(['phone' => 'Nomor WhatsApp penagihan tidak valid.']);
+        }
+
+        return $this->gatewayCall(fn () => ['code' => $this->gateway->pairingCode($phone), 'phone' => $phone]);
+    }
+
+    /** Putuskan tautan nomor penagihan dan hapus sesinya di gateway. Wajib alasan, dicatat di log aktivitas. */
+    public function whatsappLogout(Request $request, ActivityLogger $logger)
+    {
+        $this->authorize('manage-whatsapp b2b/reminders');
+        $validated = $request->validate(['reason' => ['required', 'string', 'max:255']], [], ['reason' => 'alasan']);
+
+        return $this->gatewayCall(function () use ($request, $logger, $validated) {
+            $before = $this->gateway->status();
+            $status = $this->gateway->logout();
+            $logger->log('whatsapp.logout', $request->user(), ['number' => $before['me']['id'] ?? null, 'reason' => $validated['reason']], $request->user()->id);
+
+            return $status;
+        }, 'Nomor WhatsApp diputuskan.');
+    }
+
+    /** Kirim pesan uji (teks saja) untuk memastikan nomor penagihan bisa mengirim. */
+    public function whatsappTest(Request $request, ActivityLogger $logger)
+    {
+        $this->authorize('manage-whatsapp b2b/reminders');
+        $validated = $request->validate(['phone' => ['required', 'string', 'max:30']], [], ['phone' => 'nomor tujuan']);
+        $phone = Phone::toWhatsApp($validated['phone']);
+        if ($phone === null) {
+            throw ValidationException::withMessages(['phone' => 'Nomor tujuan tidak valid.']);
+        }
+
+        return $this->gatewayCall(function () use ($request, $logger, $phone) {
+            $brand = $this->settings->invoiceProfile()['brand_name'];
+            $id = $this->gateway->send($phone, "Pesan uji dari backoffice {$brand}. Nomor ini dipakai untuk mengirim reminder tagihan. Abaikan pesan ini.");
+            $logger->log('whatsapp.test', $request->user(), ['to' => $phone, 'message_id' => $id], $request->user()->id);
+
+            return ['to' => $phone, 'id' => $id];
+        }, 'Pesan uji terkirim ke '.$phone.'.');
+    }
+
+    /** Jalankan panggilan gateway; error gateway dibalas JSON 422/503 dengan pesan yang bisa ditampilkan. */
+    private function gatewayCall(callable $call, string $message = 'OK')
+    {
+        try {
+            return responseSuccess(false, $message, $call());
+        } catch (WhatsAppGatewayException $e) {
+            $status = in_array($e->errorCode, ['not_configured', 'unreachable', 'unauthorized'], true) || $e->httpStatus >= 500 ? 503 : 422;
+
+            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'code' => $e->errorCode], $status);
+        }
     }
 }

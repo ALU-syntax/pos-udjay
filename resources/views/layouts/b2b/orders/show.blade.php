@@ -291,11 +291,8 @@
                             @endif
                             @if ($invoice->canSendReminder())
                                 @can('send b2b/reminders')
-                                    <a href="{{ route('b2b/reminders/send-invoice', $invoice->id) }}" class="btn ob-btn ob-btn-outline w-100 mt-2"
-                                        data-b2b-confirm data-icon="question" data-title="Kirim reminder sekarang?"
-                                        data-text="{{ $customer?->email ? 'Email reminder '.$invoice->invoice_number.' beserta PDF invoice dikirim ke '.$customer->email.'.' : 'Email customer masih kosong; kiriman akan dicatat sebagai dilewati. Lengkapi email di data customer dulu.' }}"
-                                        data-confirm-text="Ya, kirim">
-                                        <i class="fas fa-bell" aria-hidden="true"></i> Kirim reminder</a>
+                                    <button type="button" class="btn ob-btn ob-btn-outline w-100 mt-2" {!! \App\Support\B2b\ReminderButton::attributes($invoice) !!}>
+                                        <i class="fas fa-bell" aria-hidden="true"></i> Kirim reminder</button>
                                 @endcan
                             @endif
 
@@ -456,6 +453,7 @@
         </div>
 
         @include('layouts.b2b.invoices.partials.payment-modal')
+        @include('layouts.b2b.reminders.partials.send-dialog')
 
         @if ($canCancel && $paid)
             @include('layouts.b2b.orders.partials.cancel-modal')

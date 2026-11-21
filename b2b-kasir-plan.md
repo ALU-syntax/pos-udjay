@@ -1,6 +1,6 @@
 # Rencana Fitur Kasir B2B
 
-- **Status:** Fase 1 (customer, kontrak, harga) dan Fase 2 (kasir, pesanan, invoice) sudah dibangun. Customer disederhanakan 17 Nov 2026, kontrak diganti jadi harga per varian 18 Nov 2026. Pembayaran ditunda sampai metodenya diputuskan (kode unik vs VA BCA).
+- **Status:** Fase 1 (customer, kontrak, harga), Fase 2 (kasir, pesanan, invoice), bayar langsung + pelunasan tempo manual, dan Fase 4 (status overdue, reminder email + WhatsApp, menu Reminder) sudah dibangun (per 21 Nov 2026). Pelunasan tempo otomatis ditunda sampai metodenya diputuskan (kode unik vs VA BCA). Berikutnya: laporan B2B (fase 5).
 - **Tanggal rekap:** 18 November 2026
 - **Presentasi:** `b2b-kasir-presentasi.html` (buka langsung di browser). Isinya masih versi 14 Nov (aturan diskon, banyak kontak/alamat).
 
@@ -495,7 +495,7 @@ Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay 
 
 ---
 
-## 10. Yang sudah dibangun (per 18 Nov 2026)
+## 10. Yang sudah dibangun (per 21 Nov 2026)
 
 - Commit: `2906e8a` (fase 1–2), `470fe1b` (satu kontak dan satu alamat), `865727f` (kontrak harga per varian).
 - Migration 12 tabel: `b2b_sequences`, `b2b_activity_logs`, `b2b_customers`, `b2b_contracts`, `b2b_contract_items`, `b2b_orders`, `b2b_order_items`, `b2b_invoices`, `b2b_invoice_schedules`, `b2b_payments`, `b2b_payment_allocations`, `b2b_refunds` (3 terakhir sejak 19 Nov, belum di-commit).
@@ -506,8 +506,17 @@ Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay 
 - Menu Invoice sekarang hanya daftar dan cetak, karena pencatatan pembayaran (fase 3) belum ada.
 - Bayar langsung (19 Nov): `OrderService::place()` menerima `payment_type` + `payment`, `cancel()` menerima data refund. Dialog kasir punya pilihan Tempo / Bayar langsung (metode dari master POS, sub metode, no. referensi, uang diterima + kembalian untuk tunai). Detail pesanan menampilkan jenis pembayaran, riwayat pembayaran dan pengembalian dana; pesanan lunas dibatalkan lewat dialog refund (metode default = metode bayar semula). Cetak invoice menampilkan LUNAS + nomor bukti bayar.
 - Pelunasan tempo manual (19 Nov, B5): menu Invoice dan detail pesanan punya dialog "Catat Pelunasan" (nominal boleh sebagian, tanggal bayar mundur s.d. tanggal invoice, metode dari master POS, outlet penerima atau rekening pusat, no. referensi, bukti opsional `b2b_payments.attachment_path`, catatan). Semua metode termasuk transfer boleh dicatat manual sampai fitur mutasi ada. Pelunasan salah catat bisa dibatalkan tanpa refund (`PaymentService::reverse`); pembayaran pesanan bayar langsung tetap lewat batal pesanan + refund. Permission `pay b2b/invoices`.
-- Belum ada: draft pesanan, pelunasan tempo otomatis (kode unik/VA), reminder, laporan.
-- Test: `tests/Feature/B2b` (70 test, semua lolos 19 Nov 2026).
+- 20 Nov: pesanan "Diambil sendiri" langsung Selesai; batal pesanan Selesai butuh permission `cancel-completed b2b/orders`.
+- Fase 4 (20–21 Nov):
+  - `b2b:mark-overdue` (00:05 WIB) menulis status `overdue` + `overdue_at`; status dihitung ulang tiap bayar/batal bayar (`OverdueService`, `PaymentService`).
+  - Reminder otomatis `b2b:send-due-reminders` (09:00 WIB, retry s.d. 17:00): jadwal per customer, setelah jatuh tempo harian s.d. H+7 lalu mingguan, satu kiriman gabungan per customer per channel per hari (`ReminderService`, `SendReminderJob`).
+  - Email `InvoiceReminderMail` + PDF invoice (dompdf, `InvoicePdfService`, template `invoices/pdf.blade.php`); tombol Unduh PDF di cetak invoice.
+  - WhatsApp lewat gateway Baileys terpisah (repo `udjaya-wa-gateway`, config `services.b2b_wa_gateway` / `B2B_WA_GATEWAY_*`): teks ringkasan + PDF per invoice; nomor tidak terdaftar dan kiriman sebagian tidak di-retry (hindari pesan dobel).
+  - Menu Reminder (`b2b/reminders`): tab Aktivitas (log + detail isi email/WhatsApp, kirim ulang), tab Customer (channel, jadwal, data kontak kurang), tab WhatsApp (status, QR / kode pairing, putuskan, pesan uji), saklar darurat per channel. Permission `read`, `send`, `toggle`, `manage-whatsapp b2b/reminders`.
+  - Kirim reminder manual per invoice (detail pesanan + daftar invoice) dengan pilihan Email / WhatsApp, riwayat reminder di kartu Invoice.
+  - Tabel `b2b_reminder_logs`, `b2b_reminder_log_invoices`; kolom `overdue_at`.
+- Belum ada: draft pesanan, pelunasan tempo otomatis (kode unik/VA), laporan B2B, status baca WhatsApp + notifikasi nomor terputus.
+- Test: `tests/Feature/B2b` (120 test, semua lolos 21 Nov 2026).
 
 ### Perubahan 14 Nov 2026 (bedah kolom)
 
