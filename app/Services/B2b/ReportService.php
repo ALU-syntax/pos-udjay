@@ -21,6 +21,7 @@ use Illuminate\Support\Collection;
  * - Kas: uang yang benar-benar diterima (pembayaran posted, atau reversed karena pesanan batal + refund) menurut tanggal bayar,
  *   dikurangi refund menurut tanggal refund. Pelunasan yang dibatalkan karena salah catat tidak dihitung sama sekali.
  * - Piutang: sisa invoice yang belum lunas per hari ini (tidak ikut periode), tetap ikut filter outlet dan customer.
+ *   Umur piutang dari jatuh tempo: belum jatuh tempo, 1–30, 31–60, 61–90, > 90 hari.
  * Outlet = outlet pesanan.
  */
 class ReportService
@@ -34,7 +35,20 @@ class ReportService
     /** Jumlah baris teratas di chart peringkat; sisanya digabung jadi "Lainnya". */
     public const TOP_ITEMS = 10;
 
-    public const ORDERS_PER_PAGE = 15;
+    /** Baris per halaman di modal daftar pesanan / invoice. */
+    public const PER_PAGE = 15;
+
+    /** Kelompok umur piutang menurut hari lewat jatuh tempo (per hari ini). */
+    public const AGING_BUCKETS = [
+        'current' => 'Belum jatuh tempo',
+        '1-30' => '1–30 hari',
+        '31-60' => '31–60 hari',
+        '61-90' => '61–90 hari',
+        '90+' => '> 90 hari',
+    ];
+
+    /** Filter kelompok umur yang diterima daftar customer / invoice: kelompok di atas + semua yang lewat jatuh tempo. */
+    public const AGING_FILTERS = ['current', '1-30', '31-60', '61-90', '90+', 'overdue'];
 
     /** Singkatan bulan disamakan dengan JS B2B (Carbon id memakai "Agt"). */
     private const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -202,7 +216,7 @@ class ReportService
             ->with(['customer:id,code,name', 'outlet:id,name'])
             ->orderByDesc('order_date')
             ->orderByDesc('id')
-            ->paginate(self::ORDERS_PER_PAGE, ['*'], 'page', max(1, $page));
+            ->paginate(self::PER_PAGE, ['*'], 'page', max(1, $page));
 
         return [
             'item_filter' => $itemFilter,
@@ -218,6 +232,114 @@ class ReportService
                 'payment_type' => $order->paymentTypeLabel(),
                 'amount' => (int) ($itemFilter ? $order->item_amount : $order->grand_total),
                 'order_total' => (int) $order->grand_total,
+            ])->all(),
+            'page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+        ];
+    }
+
+    /** Umur piutang per hari ini: sisa tagihan per kelompok umur (kelompok kosong tetap muncul dengan 0). */
+    public function aging(ReportFilter $filter): array
+    {
+        $today = today();
+        $bucket = 'case when due_date >= ? then ? when due_date >= ? then ? when due_date >= ? then ? when due_date >= ? then ? else ? end';
+        $bindings = [
+            $today->toDateString(), 'current',
+            $today->copy()->subDays(30)->toDateString(), '1-30',
+            $today->copy()->subDays(60)->toDateString(), '31-60',
+            $today->copy()->subDays(90)->toDateString(), '61-90',
+            '90+',
+        ];
+        $rows = $this->openInvoices($filter)
+            ->selectRaw("{$bucket} as bucket", $bindings)
+            ->selectRaw('count(*) as invoices, count(distinct b2b_customer_id) as customers, coalesce(sum(total_to_pay - paid_amount), 0) as amount')
+            // Kelompokkan lewat alias: ekspresi dengan placeholder di GROUP BY tidak dianggap sama oleh ONLY_FULL_GROUP_BY.
+            ->groupBy('bucket')
+            ->toBase()
+            ->get()
+            ->keyBy('bucket');
+        $totals = $this->openInvoices($filter)
+            ->selectRaw('count(*) as invoices, count(distinct b2b_customer_id) as customers, coalesce(sum(total_to_pay - paid_amount), 0) as amount')
+            ->first();
+
+        return [
+            'as_of' => $today->toDateString(),
+            'total' => $this->outstanding($totals),
+            'buckets' => collect(self::AGING_BUCKETS)->map(fn (string $label, string $key) => [
+                'key' => $key,
+                'label' => $label,
+                'amount' => (int) ($rows[$key]->amount ?? 0),
+                'invoices' => (int) ($rows[$key]->invoices ?? 0),
+                'customers' => (int) ($rows[$key]->customers ?? 0),
+            ])->values()->all(),
+        ];
+    }
+
+    /** Customer dengan sisa tagihan terbesar (per hari ini), opsional untuk satu kelompok umur: 10 teratas + gabungan sisanya. */
+    public function debtors(ReportFilter $filter, ?string $bucket = null, int $limit = self::TOP_ITEMS): array
+    {
+        $rows = $this->openInvoices($filter, $bucket)
+            ->selectRaw('b2b_customer_id, count(*) as invoices, coalesce(sum(total_to_pay - paid_amount), 0) as amount, min(due_date) as oldest_due')
+            ->groupBy('b2b_customer_id')
+            ->orderByDesc('amount')
+            ->orderBy('b2b_customer_id')
+            ->toBase()
+            ->get();
+
+        $top = $rows->take($limit);
+        $rest = $rows->slice($limit);
+        $labels = $this->breakdownLabels('customer', $top->pluck('b2b_customer_id'));
+
+        return [
+            'bucket' => $bucket,
+            'total' => (int) $rows->sum('amount'),
+            'items' => $top->map(fn ($row) => [
+                'key' => (int) $row->b2b_customer_id,
+                'label' => $labels[$row->b2b_customer_id]['label'] ?? '-',
+                'sub' => $labels[$row->b2b_customer_id]['sub'] ?? null,
+                'amount' => (int) $row->amount,
+                'invoices' => (int) $row->invoices,
+                'days_overdue' => $this->daysOverdue(CarbonImmutable::parse($row->oldest_due)),
+            ])->values()->all(),
+            'others' => $rest->isEmpty() ? null : [
+                'count' => $rest->count(),
+                'amount' => (int) $rest->sum('amount'),
+                'invoices' => (int) $rest->sum('invoices'),
+            ],
+        ];
+    }
+
+    /** Daftar invoice belum lunas (per hari ini) untuk modal detail, jatuh tempo terlama dulu. */
+    public function invoices(ReportFilter $filter, ?string $bucket = null, int $page = 1): array
+    {
+        $totals = $this->openInvoices($filter, $bucket)
+            ->selectRaw('count(*) as invoices, count(distinct b2b_customer_id) as customers, coalesce(sum(total_to_pay - paid_amount), 0) as amount')
+            ->first();
+
+        $paginator = $this->openInvoices($filter, $bucket)
+            ->with(['customer:id,code,name', 'order:id,order_number,outlet_id', 'order.outlet:id,name'])
+            ->orderBy('due_date')
+            ->orderBy('id')
+            ->paginate(self::PER_PAGE, ['*'], 'page', max(1, $page));
+
+        return [
+            'bucket' => $bucket,
+            'totals' => $this->outstanding($totals),
+            'items' => collect($paginator->items())->map(fn (Invoice $invoice) => [
+                'id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'order_id' => $invoice->b2b_order_id,
+                'order_number' => $invoice->order?->order_number,
+                'issue_date' => $this->shortDate($invoice->issue_date),
+                'due_date' => $this->shortDate($invoice->due_date),
+                'days_overdue' => $this->daysOverdue(CarbonImmutable::parse($invoice->due_date)),
+                'customer' => $invoice->customer?->name,
+                'outlet' => $invoice->order?->outlet?->name,
+                'status' => $invoice->statusLabel(),
+                'status_variant' => $invoice->statusVariant(),
+                'total' => (int) $invoice->total_to_pay,
+                'paid' => (int) $invoice->paid_amount,
+                'outstanding' => $invoice->outstandingAmount(),
             ])->all(),
             'page' => $paginator->currentPage(),
             'last_page' => $paginator->lastPage(),
@@ -307,13 +429,30 @@ class ReportService
                 ->whereHas('order', fn (Builder $order) => $order->withTrashed()->whereIn('outlet_id', $filter->outletIds)));
     }
 
-    /** Invoice yang belum lunas per hari ini, tanpa melihat periode. */
-    private function openInvoices(ReportFilter $filter): Builder
+    /** Invoice yang belum lunas per hari ini, tanpa melihat periode; opsional hanya satu kelompok umur (lihat AGING_FILTERS). */
+    private function openInvoices(ReportFilter $filter, ?string $bucket = null): Builder
     {
+        $today = today();
+        $daysAgo = fn (int $days) => $today->copy()->subDays($days)->toDateString();
+
         return Invoice::query()
             ->whereIn('status', [Invoice::STATUS_UNPAID, Invoice::STATUS_PARTIAL, Invoice::STATUS_OVERDUE])
             ->whereHas('order', fn (Builder $order) => $order->whereIn('outlet_id', $filter->outletIds))
-            ->when($filter->customerId, fn (Builder $query, int $id) => $query->where('b2b_customer_id', $id));
+            ->when($filter->customerId, fn (Builder $query, int $id) => $query->where('b2b_customer_id', $id))
+            ->when($bucket, fn (Builder $query, string $bucket) => match ($bucket) {
+                'current' => $query->whereDate('due_date', '>=', $today),
+                'overdue' => $query->whereDate('due_date', '<', $today),
+                '1-30' => $query->whereBetween('due_date', [$daysAgo(30), $daysAgo(1)]),
+                '31-60' => $query->whereBetween('due_date', [$daysAgo(60), $daysAgo(31)]),
+                '61-90' => $query->whereBetween('due_date', [$daysAgo(90), $daysAgo(61)]),
+                '90+' => $query->whereDate('due_date', '<', $daysAgo(90)),
+            });
+    }
+
+    /** Hari lewat jatuh tempo per hari ini: positif = terlambat, 0 = jatuh tempo hari ini, negatif = sisa hari. */
+    private function daysOverdue(CarbonInterface $due): int
+    {
+        return (int) $due->startOfDay()->diffInDays(today(), false);
     }
 
     private function outstanding(object $row): array

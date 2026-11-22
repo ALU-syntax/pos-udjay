@@ -81,22 +81,25 @@
                     <p class="b2b-stat__sub" data-kpi="cash-sub">&nbsp;</p>
                 </div>
             </div>
-            <div class="ob-card ob-stat">
+            {{-- Kartu piutang membuka daftar invoice belum lunas (semua / yang lewat jatuh tempo). --}}
+            <button type="button" class="ob-card ob-stat b2b-report-kpi-link" data-open-invoices title="Lihat invoice belum lunas">
                 <span class="ob-stat__icon ob-stat__icon--warning" aria-hidden="true"><i class="fas fa-file-invoice-dollar"></i></span>
                 <div class="min-w-0">
                     <p class="ob-stat__label">Piutang berjalan <span class="b2b-report-asof">per hari ini</span></p>
                     <p class="ob-stat__value" data-kpi="receivable"><span class="b2b-skeleton"></span></p>
                     <p class="b2b-stat__sub" data-kpi="receivable-sub">&nbsp;</p>
                 </div>
-            </div>
-            <div class="ob-card ob-stat">
+                <i class="fas fa-chevron-right b2b-report-kpi-link__arrow" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="ob-card ob-stat b2b-report-kpi-link" data-open-invoices="overdue" title="Lihat invoice lewat jatuh tempo">
                 <span class="ob-stat__icon ob-stat__icon--danger" aria-hidden="true"><i class="fas fa-exclamation-circle"></i></span>
                 <div class="min-w-0">
                     <p class="ob-stat__label">Lewat jatuh tempo <span class="b2b-report-asof">per hari ini</span></p>
                     <p class="ob-stat__value" data-kpi="overdue"><span class="b2b-skeleton"></span></p>
                     <p class="b2b-stat__sub" data-kpi="overdue-sub">&nbsp;</p>
                 </div>
-            </div>
+                <i class="fas fa-chevron-right b2b-report-kpi-link__arrow" aria-hidden="true"></i>
+            </button>
             <div class="ob-card ob-stat">
                 <span class="ob-stat__icon b2b-stat__icon--muted" aria-hidden="true"><i class="fas fa-ban"></i></span>
                 <div class="min-w-0">
@@ -114,9 +117,10 @@
 
         @include('layouts.b2b.reports.partials.trend')
         @include('layouts.b2b.reports.partials.breakdown')
+        @include('layouts.b2b.reports.partials.aging')
     </div>
 
-    @include('layouts.b2b.reports.partials.orders-modal')
+    @include('layouts.b2b.reports.partials.list-modal')
 
     @push('css')
         <style>
@@ -266,10 +270,11 @@
                 /**
                  * Keterangan filter untuk judul modal, mis. "1 Nov 2026 – 21 Nov 2026 · Outlet A · PT X · Kopi Susu".
                  * labels = nama pilihan drilldown; outlet/customer dari filter halaman hanya disebut kalau tidak ditimpa drilldown.
+                 * period: false untuk angka per hari ini (piutang) → "Per 22 Nov 2026 · ...".
                  */
-                function describe(extra = {}, labels = []) {
+                function describe(extra = {}, labels = [], { period = true } = {}) {
                     const params = Object.assign({}, state, extra);
-                    const parts = [B2b.rangeLabel(moment(params.from), moment(params.to))];
+                    const parts = [period ? B2b.rangeLabel(moment(params.from), moment(params.to)) : `Per ${B2b.dateLabel(moment())}`];
                     if (state.outlet_id && !extra.outlet_id) parts.push($('#report-outlet option:selected').text());
                     if (state.customer_id && !extra.customer_id) {
                         parts.push($('#report-customer').select2('data')[0]?.name || $('#report-customer option:selected').text());
@@ -277,17 +282,17 @@
                     return parts.concat(labels).join(' · ');
                 }
 
-                /** Isi tooltip chart: judul, nominal, jumlah pesanan (+ qty untuk produk). */
-                function tip(title, amount, orders, qty = null) {
-                    const detail = `${number(orders)} pesanan` + (qty != null ? ` · ${number(qty)} item` : '');
+                /** Isi tooltip chart: judul, nominal, jumlah pesanan / invoice (+ qty untuk produk). */
+                function tip(title, amount, count, qty = null, unit = 'pesanan') {
+                    const detail = `${number(count)} ${unit}` + (qty != null ? ` · ${number(qty)} item` : '');
                     return `<div class="b2b-report-tip"><strong>${escape(title)}</strong>${rupiah(amount)}<br><span>${detail}</span></div>`;
                 }
 
                 /**
-                 * Chart peringkat (batang horizontal) untuk drilldown. rows: [{ label, amount, orders, qty?, muted? }];
-                 * baris muted (mis. "Lainnya") berwarna abu-abu. Mengganti chart lama di elemen yang sama.
+                 * Chart peringkat (batang horizontal) untuk drilldown. rows: [{ label, amount, count, unit, qty?, muted? }]
+                 * dari rankRows; baris muted (mis. "Lainnya") berwarna abu-abu. Mengganti chart lama di elemen yang sama.
                  */
-                function rankChart(el, previous, rows, onSelect) {
+                function rankChart(el, previous, rows, onSelect, { name = 'Penjualan', color = '#1572e8' } = {}) {
                     previous?.destroy();
                     if (typeof ApexCharts === 'undefined') {
                         $(el).html('<div class="b2b-report-empty">Chart belum siap.</div>');
@@ -300,8 +305,8 @@
                             toolbar: { show: false }, zoom: { enabled: false }, animations: { enabled: true, speed: 300 },
                             events: { dataPointSelection: (event, context, config) => select(config.dataPointIndex) },
                         },
-                        series: [{ name: 'Penjualan', data: rows.map(row => row.amount) }],
-                        colors: rows.map(row => row.muted ? '#94a3b8' : '#1572e8'),
+                        series: [{ name, data: rows.map(row => row.amount) }],
+                        colors: rows.map(row => row.muted ? '#94a3b8' : color),
                         plotOptions: { bar: { horizontal: true, distributed: true, borderRadius: 4, barHeight: '62%', dataLabels: { position: 'top' } } },
                         dataLabels: { enabled: true, formatter: compactRupiah, offsetX: 34, style: { colors: ['#334155'], fontSize: '11px', fontWeight: 600 } },
                         legend: { show: false },
@@ -311,18 +316,21 @@
                         yaxis: { labels: { maxWidth: 220, style: { colors: '#0f172a', fontSize: '12px' } } },
                         tooltip: { custom: ({ dataPointIndex }) => {
                             const row = rows[dataPointIndex];
-                            return tip(row.label, row.amount, row.orders, row.qty);
+                            return tip(row.label, row.amount, row.count, row.qty, row.unit);
                         } },
                     });
                     chart.render();
                     return chart;
                 }
 
-                /** Baris chart peringkat dari respons breakdown (10 teratas + "Lainnya"). */
-                function rankRows(data, noun) {
-                    const rows = data.items.map(item => ({ label: item.label, amount: item.amount, orders: item.orders, qty: item.qty, item }));
+                /**
+                 * Baris chart peringkat dari respons breakdown / debtors (10 teratas + "Lainnya").
+                 * count = nama field jumlah transaksi di respons, unit = sebutannya di tooltip.
+                 */
+                function rankRows(data, noun, { count = 'orders', unit = 'pesanan' } = {}) {
+                    const rows = data.items.map(item => ({ label: item.label, amount: item.amount, count: item[count], unit, qty: item.qty, item }));
                     if (data.others) {
-                        rows.push({ label: `Lainnya (${number(data.others.count)} ${noun})`, amount: data.others.amount, orders: data.others.orders, muted: true });
+                        rows.push({ label: `Lainnya (${number(data.others.count)} ${noun})`, amount: data.others.amount, count: data.others[count], unit, muted: true });
                     }
                     return rows;
                 }
@@ -379,6 +387,12 @@
                 showPeriod();
 
                 $('[data-open-orders]').on('click', () => B2bReport.ordersModal({ title: 'Daftar pesanan' }));
+                $('[data-open-invoices]').on('click', function () {
+                    const overdue = this.dataset.openInvoices === 'overdue';
+                    B2bReport.invoicesModal(overdue
+                        ? { title: 'Invoice lewat jatuh tempo', params: { bucket: 'overdue' } }
+                        : { title: 'Invoice belum lunas' });
+                });
 
                 $('#report-outlet').on('change', function () { B2bReport.setFilter({ outlet_id: this.value }); });
                 B2b.ajaxSelect(document.getElementById('report-customer'))

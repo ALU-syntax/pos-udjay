@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
 class ReportController extends Controller
 {
     /** Bagian laporan yang punya endpoint data. Bertambah seiring tahap pengerjaan. */
-    public const SECTIONS = ['summary', 'trend', 'breakdown', 'orders'];
+    public const SECTIONS = ['summary', 'trend', 'breakdown', 'orders', 'aging', 'debtors', 'invoices'];
 
     public function __construct(private readonly ReportService $reports)
     {
@@ -54,6 +54,7 @@ class ReportController extends Controller
             'product' => ['nullable', 'string', 'max:255'],
             'variant' => ['nullable', 'string', 'max:255'],
             'category_id' => ['nullable', 'integer', 'min:0'],
+            'bucket' => ['nullable', Rule::in(ReportService::AGING_FILTERS)],
         ], [
             'to.after_or_equal' => 'Tanggal akhir periode tidak boleh sebelum tanggal awal.',
             'outlet_id.in' => 'Anda tidak punya akses ke outlet ini.',
@@ -65,6 +66,9 @@ class ReportController extends Controller
             'trend' => $this->reports->trend($filter, $request->query('group')),
             'breakdown' => $this->reports->breakdown($filter, $request->query('by')),
             'orders' => $this->reports->orders($filter, $request->integer('page', 1)),
+            'aging' => $this->reports->aging($filter),
+            'debtors' => $this->reports->debtors($filter, $request->query('bucket')),
+            'invoices' => $this->reports->invoices($filter, $request->query('bucket'), $request->integer('page', 1)),
         };
 
         return response()->json(['data' => $data, 'filter' => $filter->toQuery()]);

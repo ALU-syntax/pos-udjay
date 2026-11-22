@@ -328,6 +328,103 @@ class ReportHttpTest extends B2bTestCase
         $this->assertCount(2, $page2['items']);
     }
 
+    /**
+     * Piutang per 22 Nov 2026. X: jatuh tempo hari ini 10.000, kemarin 20.000 (dibayar 5.000), 30 hari lalu 30.000, 91 hari lalu 60.000.
+     * Y: 31 hari lalu 40.000, 90 hari lalu 50.000. Invoice lunas, batal, dan outlet lain tidak ikut.
+     *
+     * @return array{0: Customer, 1: Customer}
+     */
+    private function seedReceivables(): array
+    {
+        $this->travelTo(Carbon::parse('2026-11-22 10:00'));
+        $x = $this->customer(['name' => 'PT X']);
+        $y = $this->customer(['name' => 'PT Y']);
+        $due = function (Customer $customer, int $price, int $daysAgo, int $paid = 0, ?Outlets $outlet = null) {
+            $order = $this->place($customer, $price, [], $outlet);
+            if ($paid) {
+                app(PaymentService::class)->record($this->staff, $order->invoice, ['category_payment_id' => $this->cash->id, 'amount' => $paid]);
+            }
+            $order->invoice->refresh()->forceFill(['due_date' => today()->subDays($daysAgo)])->save();
+
+            return $order;
+        };
+
+        $due($x, 10000, 0);
+        $due($x, 20000, 1, 5000);
+        $due($x, 30000, 30);
+        $due($x, 60000, 91);
+        $due($y, 40000, 31);
+        $due($y, 50000, 90);
+
+        $this->place($y, 15000, ['payment_type' => Order::PAYMENT_IMMEDIATE, 'payment' => ['category_payment_id' => $this->cash->id]]);
+        app(OrderService::class)->cancel($this->staff, $due($x, 25000, 40), 'Salah input');
+        $due($x, 70000, 5, 0, $this->otherOutlet);
+
+        return [$x, $y];
+    }
+
+    public function test_aging_groups_open_invoices_by_days_overdue(): void
+    {
+        [$x] = $this->seedReceivables();
+
+        $data = $this->section('aging');
+        $this->assertSame('2026-11-22', $data['as_of']);
+        $this->assertSame(['amount' => 205000, 'invoices' => 6, 'customers' => 2], $data['total']);
+        $this->assertSame([
+            ['current', 'Belum jatuh tempo', 10000, 1, 1],
+            ['1-30', '1–30 hari', 45000, 2, 1],
+            ['31-60', '31–60 hari', 40000, 1, 1],
+            ['61-90', '61–90 hari', 50000, 1, 1],
+            ['90+', '> 90 hari', 60000, 1, 1],
+        ], array_map(fn ($bucket) => array_values($bucket), $data['buckets']));
+
+        // Sama dengan kartu KPI; periode tidak berpengaruh, customer tetap menyaring.
+        $summary = $this->summary();
+        $this->assertSame([205000, 195000], [$summary['receivable']['amount'], $summary['overdue']['amount']]);
+        $this->assertSame($data, $this->section('aging', ['from' => '2025-01-01', 'to' => '2025-01-31']));
+        $onlyX = $this->section('aging', ['customer_id' => $x->id]);
+        $this->assertSame([10000, 45000, 0, 0, 60000], array_column($onlyX['buckets'], 'amount'));
+    }
+
+    public function test_debtors_rank_customers_per_aging_bucket(): void
+    {
+        [$x, $y] = $this->seedReceivables();
+        $rows = fn (array $query) => array_map(
+            fn ($item) => [$item['key'], $item['label'], $item['amount'], $item['invoices'], $item['days_overdue']],
+            $this->section('debtors', $query)['items']
+        );
+
+        // days_overdue = invoice terlama milik customer itu.
+        $this->assertSame([[$x->id, 'PT X', 115000, 4, 91], [$y->id, 'PT Y', 90000, 2, 90]], $rows([]));
+        $this->assertSame([[$x->id, 'PT X', 45000, 2, 30]], $rows(['bucket' => '1-30']));
+        $this->assertSame([[$x->id, 'PT X', 105000, 3, 91], [$y->id, 'PT Y', 90000, 2, 90]], $rows(['bucket' => 'overdue']));
+        $this->assertSame([[$y->id, 'PT Y', 50000, 1, 90]], $rows(['bucket' => '61-90']));
+        $this->assertSame([], $rows(['bucket' => '90+', 'customer_id' => $y->id]));
+    }
+
+    public function test_invoices_list_shows_oldest_due_first_with_bucket_filter(): void
+    {
+        [, $y] = $this->seedReceivables();
+        $this->staff->givePermissionTo(Permission::firstOrCreate(['name' => 'read b2b/orders', 'guard_name' => 'web']));
+
+        $overdue = $this->section('invoices', ['bucket' => 'overdue']);
+        $this->assertSame(['amount' => 195000, 'invoices' => 5, 'customers' => 2], $overdue['totals']);
+        $this->assertSame([[60000, 91], [50000, 90], [40000, 31], [30000, 30], [15000, 1]], array_map(
+            fn ($invoice) => [$invoice['outstanding'], $invoice['days_overdue']], $overdue['items']
+        ));
+        $partial = $overdue['items'][4];
+        $this->assertSame(['PT X', 20000, 5000, 'Lewat jatuh tempo', 'danger', '21 Nov 2026'], [
+            $partial['customer'], $partial['total'], $partial['paid'], $partial['status'], $partial['status_variant'], $partial['due_date'],
+        ]);
+        $this->assertSame($this->outlet->name, $partial['outlet']);
+
+        $current = $this->section('invoices', ['bucket' => 'current']);
+        $this->assertSame([[10000, 0, 'Belum dibayar']], array_map(fn ($invoice) => [$invoice['outstanding'], $invoice['days_overdue'], $invoice['status']], $current['items']));
+
+        $this->assertSame(['amount' => 90000, 'invoices' => 2, 'customers' => 1], $this->section('invoices', ['customer_id' => $y->id])['totals']);
+        $this->assertSame([1, 1], [$overdue['page'], $overdue['last_page']]);
+    }
+
     public function test_summary_rejects_invalid_filters(): void
     {
         $this->actingAs($this->staff)
@@ -345,6 +442,10 @@ class ReportHttpTest extends B2bTestCase
         $this->actingAs($this->staff)
             ->getJson(route('b2b/reports/data', ['section' => 'breakdown']))
             ->assertUnprocessable()->assertJsonValidationErrors('by');
+
+        $this->actingAs($this->staff)
+            ->getJson(route('b2b/reports/data', ['section' => 'invoices', 'bucket' => '1-7']))
+            ->assertUnprocessable()->assertJsonValidationErrors('bucket');
 
         $this->actingAs($this->staff)->getJson('/b2b/reports/data/unknown')->assertNotFound();
     }
