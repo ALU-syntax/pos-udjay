@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\B2b;
 
+use App\Exports\B2b\CustomerCardExport;
+use App\Exports\B2b\ReportExport;
 use App\Http\Controllers\Controller;
 use App\Models\B2b\Customer;
 use App\Models\Outlets;
@@ -9,6 +11,7 @@ use App\Services\B2b\ReportService;
 use App\Support\B2b\ReportFilter;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
 
 /**
  * Laporan B2B: satu halaman berisi semua bagian. Halaman hanya kerangka + filter;
@@ -56,6 +59,50 @@ class ReportController extends Controller
             'contract' => $customer->contracts()->effectiveOn(today())->first(['id', 'contract_number', 'start_date', 'end_date']),
             'card' => $this->reports->customerCard($filter),
         ]);
+    }
+
+    /** Export Excel Laporan B2B dengan filter yang sama dengan halaman (lihat ReportExport). */
+    public function export(Request $request)
+    {
+        $this->authorize('read b2b/reports');
+
+        $filter = ReportFilter::resolve($request->query(), $request->user()->outletIds());
+        $data = $this->reports->exportData($filter);
+        foreach (['orders' => 'pesanan', 'items' => 'item pesanan', 'receivables' => 'invoice', 'mutations' => 'mutasi kas'] as $key => $label) {
+            if (count($data[$key]) > ReportService::EXPORT_MAX_ROWS) {
+                abort(422, 'Lebih dari '.number_format(ReportService::EXPORT_MAX_ROWS, 0, ',', '.')." baris {$label}. Persempit periode atau filter dulu.");
+            }
+        }
+
+        return Excel::download(
+            new ReportExport($data, $this->exportFilters($filter)),
+            "Laporan B2B {$filter->from->toDateString()} sd {$filter->to->toDateString()}.xlsx"
+        );
+    }
+
+    /** Export Excel kartu piutang satu customer (periode + outlet dari URL). */
+    public function customerExport(Request $request, Customer $customer)
+    {
+        $this->authorize('read b2b/reports');
+
+        $filter = ReportFilter::resolve(['customer_id' => $customer->id] + $request->query(), $request->user()->outletIds());
+
+        return Excel::download(
+            new CustomerCardExport($customer, $this->reports->customerCard($filter), $this->exportFilters($filter, withCustomer: false)),
+            CustomerCardExport::filename($customer, $filter->from->toDateString(), $filter->to->toDateString())
+        );
+    }
+
+    /** Keterangan filter untuk baris judul sheet export. */
+    private function exportFilters(ReportFilter $filter, bool $withCustomer = true): array
+    {
+        $filters = ['Periode: '.$filter->from->format('d/m/Y').' – '.$filter->to->format('d/m/Y')];
+        $filters[] = 'Outlet: '.($filter->outletId ? (Outlets::query()->whereKey($filter->outletId)->value('name') ?? '-') : 'semua outlet');
+        if ($withCustomer) {
+            $filters[] = 'Customer: '.($filter->customerId ? (Customer::withTrashed()->whereKey($filter->customerId)->value('name') ?? '-') : 'semua customer');
+        }
+
+        return $filters;
     }
 
     public function data(Request $request, string $section)

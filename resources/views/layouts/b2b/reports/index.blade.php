@@ -15,6 +15,12 @@
                 </h1>
                 <p class="ob-header__desc">Ringkasan penjualan, kas, dan piutang customer B2B. Semua bagian mengikuti filter di bawah; angka piutang selalu per hari ini.</p>
             </div>
+            <div class="b2b-actions">
+                {{-- href diperbarui mengikuti filter aktif (B2bReport.reloadAll). --}}
+                <a id="report-export" class="btn ob-btn ob-btn-outline" href="{{ route('b2b/reports/export', $filter->toQuery()) }}">
+                    <i class="fas fa-file-excel" aria-hidden="true"></i> Export Excel
+                </a>
+            </div>
         </div>
 
         {{-- Filter bersama untuk semua bagian; menempel di atas saat halaman digulir. --}}
@@ -142,6 +148,7 @@
             window.B2bReport = (function () {
                 const dataUrl = @json(route('b2b/reports/data', ['section' => '__section__']));
                 const cardUrl = @json(route('b2b/reports/customers', ['customer' => '__id__']));
+                const exportUrl = @json(route('b2b/reports/export'));
                 const defaults = @json(['from' => today()->startOfMonth()->toDateString(), 'to' => today()->toDateString()]);
                 const state = Object.assign({ outlet_id: '', customer_id: '' }, @json($filter->toQuery()));
                 const sections = {};
@@ -205,6 +212,7 @@
                 function reloadAll() {
                     window.history.replaceState(null, '', `${window.location.pathname}?${query()}`);
                     $('#report-reset').prop('hidden', isDefault());
+                    $('#report-export').attr('href', `${exportUrl}?${query()}`);
                     $('#report-card').prop('hidden', !state.customer_id).attr('href', state.customer_id ? customerUrl(state.customer_id) : '#');
                     Object.keys(sections).forEach(load);
                 }

@@ -590,6 +590,106 @@ class ReportHttpTest extends B2bTestCase
         $this->actingAs($this->staff)->get(route('b2b/reports/customers', 999999))->assertNotFound();
     }
 
+    /** Baris pertama (setelah $after) yang kolom A-nya = $label. */
+    private function sheetRow(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, string $label, int $after = 0): int
+    {
+        for ($row = $after + 1; $row <= $sheet->getHighestRow(); $row++) {
+            if ($sheet->getCell("A{$row}")->getValue() === $label) {
+                return $row;
+            }
+        }
+        $this->fail("Baris \"{$label}\" tidak ada di sheet {$sheet->getTitle()}.");
+    }
+
+    public function test_report_export_builds_workbook_with_raw_lists_and_totals(): void
+    {
+        [$x] = $this->seedCash();
+
+        $this->actingAs($this->userFor($this->outlet))->get(route('b2b/reports/export'))->assertForbidden();
+
+        $from = today()->startOfMonth()->toDateString();
+        $to = today()->toDateString();
+        $response = $this->actingAs($this->staff)->get(route('b2b/reports/export'))
+            ->assertOk()
+            ->assertDownload("Laporan B2B {$from} sd {$to}.xlsx");
+        $book = \PhpOffice\PhpSpreadsheet\IOFactory::load($response->getFile()->getPathname());
+        $this->assertSame(['Ringkasan', 'Item terjual', 'Pesanan', 'Item pesanan', 'Piutang', 'Mutasi kas', 'Kontrak'], array_map(fn ($sheet) => $sheet->getTitle(), $book->getAllSheets()));
+
+        $summary = $book->getSheetByName('Ringkasan');
+        $this->assertStringContainsString('Periode: '.today()->startOfMonth()->format('d/m/Y'), $summary->getCell('A2')->getValue());
+        $this->assertSame(50000, $summary->getCell('B'.$this->sheetRow($summary, 'Penjualan'))->getValue());
+        $this->assertSame(48000, $summary->getCell('B'.$this->sheetRow($summary, 'Kas masuk bersih'))->getValue());
+
+        // Total berupa rumus yang hasilnya sama dengan angka laporan.
+        $orders = $book->getSheetByName('Pesanan');
+        $this->assertEquals(50000, $orders->getCell('I'.$this->sheetRow($orders, 'Total'))->getCalculatedValue());
+        $items = $book->getSheetByName('Item pesanan');
+        $this->assertEquals(50000, $items->getCell('L'.$this->sheetRow($items, 'Total'))->getCalculatedValue());
+
+        $receivables = $book->getSheetByName('Piutang');
+        $total = $this->sheetRow($receivables, 'Total');
+        $this->assertEquals(42000, $receivables->getCell("L{$total}")->getCalculatedValue());
+        $this->assertSame(2, $total - $this->sheetRow($receivables, 'No. Invoice') - 1);
+
+        $mutations = $book->getSheetByName('Mutasi kas');
+        $total = $this->sheetRow($mutations, 'Total');
+        $this->assertEquals([63000, 15000], [$mutations->getCell("I{$total}")->getCalculatedValue(), $mutations->getCell("J{$total}")->getCalculatedValue()]);
+
+        // Filter customer ikut ke isi file.
+        $onlyX = \PhpOffice\PhpSpreadsheet\IOFactory::load(
+            $this->actingAs($this->staff)->get(route('b2b/reports/export', ['customer_id' => $x->id]))->assertOk()->getFile()->getPathname()
+        )->getSheetByName('Pesanan');
+        $this->assertEquals(20000, $onlyX->getCell('I'.$this->sheetRow($onlyX, 'Total'))->getCalculatedValue());
+    }
+
+    public function test_report_export_lists_sold_items_grouped_like_product_tab(): void
+    {
+        [$x, , $coffee] = $this->seedProducts();
+
+        $sheet = fn (array $query = []) => \PhpOffice\PhpSpreadsheet\IOFactory::load(
+            $this->actingAs($this->staff)->get(route('b2b/reports/export', $query))->assertOk()->getFile()->getPathname()
+        )->getSheetByName('Item terjual');
+        $rows = function ($sheet) {
+            $header = $this->sheetRow($sheet, 'No');
+            $total = $this->sheetRow($sheet, 'Total', $header);
+
+            return array_map(fn ($row) => $sheet->rangeToArray("B{$row}:I{$row}", null, false, false)[0], range($header + 1, $total - 1));
+        };
+
+        // Kopi Susu di outlet A (2 × 10.000) dan C (1 × 12.000) tergabung; nilai terbesar dulu.
+        $sold = $sheet();
+        $this->assertSame([
+            ['Kopi Susu', 'Kopi Susu 1L', $coffee->name, 1, 1, 1, 50000, 50000],
+            ['Kopi Susu', 'Kopi Susu', $coffee->name, 3, 2, 2, 10667, 32000],
+            ['Roti', 'Roti', 'Tanpa kategori', 3, 1, 1, 8000, 24000],
+        ], $rows($sold));
+        $total = $this->sheetRow($sold, 'Total');
+        $this->assertEquals([7, 106000], [$sold->getCell("E{$total}")->getCalculatedValue(), $sold->getCell("I{$total}")->getCalculatedValue()]);
+
+        // Ikut filter: hanya pembelian X.
+        $this->assertSame(['Kopi Susu 1L', 'Roti', 'Kopi Susu'], array_column($rows($sheet(['customer_id' => $x->id])), 1));
+    }
+
+    public function test_customer_card_export_ends_with_balance_equal_to_receivable(): void
+    {
+        [$x] = $this->seedOrders();
+
+        $response = $this->actingAs($this->staff)->get(route('b2b/reports/customers/export', $x->id))->assertOk();
+        $this->assertStringStartsWith('attachment; filename="Kartu Piutang ', $response->headers->get('content-disposition'));
+        $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($response->getFile()->getPathname())->getSheetByName('Kartu piutang');
+
+        $this->assertSame('Kartu Piutang PT X', $sheet->getCell('A1')->getValue());
+        $ledgerHeader = $this->sheetRow($sheet, 'Tanggal');
+        // Saldo akhir kartu piutang = sisa piutang per hari ini (12.000 + 40.000).
+        $closingRow = collect(range($ledgerHeader + 1, $sheet->getHighestRow()))->first(fn ($row) => $sheet->getCell("B{$row}")->getValue() === 'Saldo akhir');
+        $this->assertSame(52000, $sheet->getCell("G{$closingRow}")->getValue());
+        $openingRow = $ledgerHeader + 1;
+        // Invoice pesanan lama tetap terbit hari ini (seedOrders hanya memundurkan tanggal pesanan), jadi saldo awal 0.
+        $this->assertSame(['Saldo awal', 0], [$sheet->getCell("B{$openingRow}")->getValue(), $sheet->getCell("G{$openingRow}")->getValue()]);
+
+        $this->actingAs($this->userFor($this->outlet))->get(route('b2b/reports/customers/export', $x->id))->assertForbidden();
+    }
+
     public function test_summary_rejects_invalid_filters(): void
     {
         $this->actingAs($this->staff)

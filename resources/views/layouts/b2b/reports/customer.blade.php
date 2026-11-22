@@ -46,13 +46,16 @@
                     @endif
                 </p>
             </div>
-            @can('read b2b/customers')
-                <div class="b2b-actions">
+            <div class="b2b-actions">
+                <a href="{{ route('b2b/reports/customers/export', ['customer' => $customer->id] + $periodQuery) }}" class="btn ob-btn ob-btn-outline">
+                    <i class="fas fa-file-excel" aria-hidden="true"></i> Export Excel
+                </a>
+                @can('read b2b/customers')
                     <a href="{{ route('b2b/customers/show', $customer->id) }}" class="btn ob-btn ob-btn-outline" target="_blank" rel="noopener">
                         <i class="fas fa-building" aria-hidden="true"></i> Profil customer
                     </a>
-                </div>
-            @endcan
+                @endcan
+            </div>
         </div>
 
         <div class="ob-card b2b-report-filter">

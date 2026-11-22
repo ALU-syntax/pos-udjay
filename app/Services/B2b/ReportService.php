@@ -15,6 +15,7 @@ use App\Support\B2b\ReportFilter;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -58,6 +59,9 @@ class ReportService
 
     /** Kontrak dianggap hampir berakhir bila berakhir dalam sekian hari (sama dengan statistik menu Kontrak). */
     public const CONTRACT_ENDING_DAYS = 30;
+
+    /** Batas baris per daftar di export Excel supaya file tetap ringan; lebih dari itu filter harus dipersempit. */
+    public const EXPORT_MAX_ROWS = 20000;
 
     /** Filter kelompok umur yang diterima daftar customer / invoice: kelompok di atas + semua yang lewat jatuh tempo. */
     public const AGING_FILTERS = ['current', '1-30', '31-60', '61-90', '90+', 'overdue'];
@@ -407,29 +411,7 @@ class ReportService
         $count = fn (Builder $query) => $query->clone()->selectRaw('count(*) as total, coalesce(sum(amount), 0) as amount')->toBase()->first();
         $received = $count($payments);
         $refunded = $count($refunds);
-
-        $union = $payments->clone()
-            ->selectRaw("'payment' as type, id, paid_at as at, amount, b2b_customer_id as customer_id, method_name, outlet_id, received_by as user_id, payment_number as number, status")
-            ->selectRaw('(select min(a.b2b_invoice_id) from b2b_payment_allocations a where a.b2b_payment_id = b2b_payments.id) as invoice_id')
-            ->toBase()
-            ->unionAll($refunds->clone()
-                ->selectRaw("'refund' as type, id, refunded_at as at, -amount as amount")
-                ->selectRaw('(select i.b2b_customer_id from b2b_invoices i where i.id = b2b_refunds.b2b_invoice_id) as customer_id')
-                ->selectRaw('method_name, outlet_id, refunded_by as user_id')
-                ->selectRaw('(select p.payment_number from b2b_payments p where p.id = b2b_refunds.b2b_payment_id) as number')
-                ->selectRaw('null as status, b2b_invoice_id as invoice_id')
-                ->toBase());
-        $paginator = DB::query()->fromSub($union, 'mutations')
-            ->orderByDesc('at')
-            ->orderByDesc('type')
-            ->orderByDesc('id')
-            ->paginate(self::PER_PAGE, ['*'], 'page', max(1, $page));
-
-        $rows = collect($paginator->items());
-        $customers = Customer::withTrashed()->whereIn('id', $rows->pluck('customer_id')->filter())->pluck('name', 'id');
-        $invoices = Invoice::withTrashed()->whereIn('id', $rows->pluck('invoice_id')->filter())->get(['id', 'invoice_number', 'b2b_order_id'])->keyBy('id');
-        $outlets = $this->cashLabels('outlet', $rows->pluck('outlet_id')->map(fn ($id) => (string) (int) $id));
-        $users = $this->cashLabels('cashier', $rows->pluck('user_id')->map(fn ($id) => (string) (int) $id));
+        $paginator = $this->mutationQuery($payments, $refunds)->paginate(self::PER_PAGE, ['*'], 'page', max(1, $page));
 
         return [
             'by' => $by,
@@ -440,26 +422,7 @@ class ReportService
                 'refund_count' => (int) $refunded->total,
                 'net' => (int) $received->amount - (int) $refunded->amount,
             ],
-            'items' => $rows->map(function ($row) use ($customers, $invoices, $outlets, $users) {
-                $at = CarbonImmutable::parse($row->at);
-                $invoice = $invoices[$row->invoice_id] ?? null;
-
-                return [
-                    'type' => $row->type,
-                    'id' => (int) $row->id,
-                    'number' => $row->number,
-                    'date' => $this->shortDate($at).' '.$at->format('H:i'),
-                    'customer' => $customers[$row->customer_id] ?? null,
-                    'invoice_number' => $invoice?->invoice_number,
-                    'order_id' => $invoice?->b2b_order_id,
-                    'method' => $row->method_name,
-                    'outlet' => $outlets[(int) $row->outlet_id]['label'] ?? null,
-                    'cashier' => $users[(int) $row->user_id]['label'] ?? null,
-                    'amount' => (int) $row->amount,
-                    // Pembayaran yang uangnya sudah dikembalikan (pesanan batal + refund) tetap terhitung sebagai uang masuk.
-                    'refunded' => $row->type === 'payment' && $row->status === Payment::STATUS_REVERSED,
-                ];
-            })->all(),
+            'items' => $this->mutationItems(collect($paginator->items())),
             'page' => $paginator->currentPage(),
             'last_page' => $paginator->lastPage(),
         ];
@@ -509,6 +472,7 @@ class ReportService
                 'customer_code' => $contract->customer?->code,
                 'start_date' => $this->shortDate($contract->start_date),
                 'end_date' => $this->shortDate($contract->end_date),
+                'end_at' => $contract->end_date->toDateString(),
                 'days_left' => (int) $today->diffInDays($contract->end_date, false),
                 'successor' => $next ? [
                     'id' => $next->id,
@@ -619,13 +583,15 @@ class ReportService
             ->map(function (array $entry) use (&$balance) {
                 $balance += $entry[2]['debit'] - $entry[2]['credit'];
 
-                return ['date' => $this->shortDate($entry[0])] + $entry[2] + ['balance' => $balance];
+                return ['date' => $this->shortDate($entry[0]), 'at' => $entry[0]->toDateString()] + $entry[2] + ['balance' => $balance];
             })
             ->values();
 
         return [
             'from' => $this->shortDate($filter->from),
             'to' => $this->shortDate($filter->to),
+            'from_at' => $filter->from->toDateString(),
+            'to_at' => $filter->to->toDateString(),
             'opening' => $opening,
             'debit' => (int) $rows->sum('debit'),
             'credit' => (int) $rows->sum('credit'),
@@ -643,8 +609,11 @@ class ReportService
             'order_number' => $invoice->order?->order_number,
             'issue_date' => $this->shortDate($invoice->issue_date),
             'due_date' => $this->shortDate($invoice->due_date),
+            'issue_at' => $invoice->issue_date->toDateString(),
+            'due_at' => $invoice->due_date->toDateString(),
             'days_overdue' => $this->daysOverdue(CarbonImmutable::parse($invoice->due_date)),
             'customer' => $invoice->customer?->name,
+            'customer_code' => $invoice->customer?->code,
             'outlet' => $invoice->order?->outlet?->name,
             'status' => $invoice->statusLabel(),
             'status_variant' => $invoice->statusVariant(),
@@ -652,6 +621,116 @@ class ReportService
             'paid' => (int) $invoice->paid_amount,
             'outstanding' => $invoice->outstandingAmount(),
         ];
+    }
+
+    /**
+     * Data lengkap untuk export Excel Laporan B2B (filter sama dengan halaman): ringkasan + daftar mentah tanpa batas
+     * "10 teratas" atau halaman, supaya finance bisa membuat pivot sendiri. Daftar yang melebihi EXPORT_MAX_ROWS
+     * dikembalikan dengan satu baris lebih (penanda) dan ditolak oleh controller.
+     */
+    public function exportData(ReportFilter $filter): array
+    {
+        $limit = self::EXPORT_MAX_ROWS + 1;
+        $orders = $this->salesOrders($filter)
+            ->with(['customer:id,code,name', 'outlet:id,name'])
+            ->orderBy('order_date')
+            ->orderBy('id')
+            ->limit($limit)
+            ->get();
+        $items = $this->salesItems($filter, true)
+            ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+            ->leftJoin('b2b_customers', 'b2b_customers.id', '=', 'b2b_orders.b2b_customer_id')
+            ->leftJoin('outlets', 'outlets.id', '=', 'b2b_orders.outlet_id')
+            ->select([
+                'b2b_orders.order_number', 'b2b_orders.order_date', 'b2b_customers.name as customer', 'outlets.name as outlet',
+                'items.product_name', 'items.variant_name', 'categories.name as category', 'items.qty', 'items.base_price',
+                'items.final_price', 'items.b2b_contract_item_id', 'items.line_total',
+            ])
+            ->orderBy('b2b_orders.order_date')
+            ->orderBy('b2b_orders.id')
+            ->orderBy('items.id')
+            ->limit($limit)
+            ->toBase()
+            ->get();
+        // Rekap item terjual: dikelompokkan seperti tab Produk (nama produk + varian di pesanan) ditambah kategori produk saat ini.
+        $category = "coalesce(categories.name, 'Tanpa kategori')";
+        $soldItems = $this->salesItems($filter, true)
+            ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+            ->selectRaw("items.product_name, items.variant_name, {$category} as category")
+            ->selectRaw('coalesce(sum(items.qty), 0) as qty, count(distinct b2b_orders.id) as orders, count(distinct b2b_orders.b2b_customer_id) as customers')
+            ->selectRaw('coalesce(sum(items.line_total), 0) as amount')
+            ->groupBy('items.product_name', 'items.variant_name')
+            ->groupByRaw($category)
+            ->orderByDesc('amount')
+            ->orderBy('items.product_name')
+            ->orderBy('items.variant_name')
+            ->toBase()
+            ->get();
+        $receivables = $this->openInvoices($filter)
+            ->with(['customer:id,code,name', 'order:id,order_number,outlet_id', 'order.outlet:id,name'])
+            ->orderBy('due_date')
+            ->orderBy('id')
+            ->limit($limit)
+            ->get()
+            ->map(fn (Invoice $invoice) => $this->invoiceRow($invoice) + ['bucket' => $this->agingBucketLabel($invoice)]);
+        $mutations = $this->mutationQuery($this->receivedPayments($filter), $this->refunds($filter), oldestFirst: true)->limit($limit)->get();
+
+        return [
+            'summary' => $this->summary($filter),
+            'aging' => $this->aging($filter),
+            'cash' => collect(self::CASH_GROUPS)->mapWithKeys(fn (string $by) => [$by => $this->cashflow($filter, $by, PHP_INT_MAX)])->all(),
+            'orders' => $orders->map(fn (Order $order) => [
+                'order_number' => $order->order_number,
+                'order_at' => $order->order_date->toDateTimeString(),
+                'customer' => $order->customer?->name,
+                'customer_code' => $order->customer?->code,
+                'outlet' => $order->outlet?->name,
+                'payment_type' => $order->paymentTypeLabel(),
+                'status' => $order->statusLabel(),
+                'total' => (int) $order->grand_total,
+            ])->all(),
+            'sold_items' => $soldItems->map(fn ($item) => [
+                'product' => $item->product_name,
+                'variant' => $item->variant_name,
+                'category' => $item->category,
+                'qty' => (int) $item->qty,
+                'orders' => (int) $item->orders,
+                'customers' => (int) $item->customers,
+                'average_price' => $item->qty ? (int) round($item->amount / $item->qty) : 0,
+                'amount' => (int) $item->amount,
+            ])->all(),
+            'items' => $items->map(fn ($item) => [
+                'order_number' => $item->order_number,
+                'order_at' => (string) $item->order_date,
+                'customer' => $item->customer,
+                'outlet' => $item->outlet,
+                'product' => $item->product_name,
+                'variant' => $item->variant_name,
+                'category' => $item->category ?? 'Tanpa kategori',
+                'qty' => (int) $item->qty,
+                'base_price' => (int) $item->base_price,
+                'price' => (int) $item->final_price,
+                'contract_price' => $item->b2b_contract_item_id !== null,
+                'total' => (int) $item->line_total,
+            ])->all(),
+            'receivables' => $receivables->all(),
+            'mutations' => $this->mutationItems($mutations),
+            'contracts' => $this->contracts($filter)['items'],
+        ];
+    }
+
+    /** Label kelompok umur satu invoice per hari ini (lihat AGING_BUCKETS). */
+    private function agingBucketLabel(Invoice $invoice): string
+    {
+        $days = $this->daysOverdue(CarbonImmutable::parse($invoice->due_date));
+
+        return self::AGING_BUCKETS[match (true) {
+            $days <= 0 => 'current',
+            $days <= 30 => '1-30',
+            $days <= 60 => '31-60',
+            $days <= 90 => '61-90',
+            default => '90+',
+        }];
     }
 
     /** Pesanan yang dihitung sebagai penjualan: dikonfirmasi + selesai. */
@@ -735,6 +814,57 @@ class ReportService
             ->whereHas('invoice', fn (Builder $invoice) => $invoice
                 ->when($filter->customerId, fn (Builder $query, int $id) => $query->where('b2b_customer_id', $id))
                 ->whereHas('order', fn (Builder $order) => $order->withTrashed()->whereIn('outlet_id', $filter->outletIds)));
+    }
+
+    /** Pembayaran (+) dan refund (−) digabung jadi satu daftar mutasi: terbaru dulu (modal) atau terlama dulu (export). */
+    private function mutationQuery(Builder $payments, Builder $refunds, bool $oldestFirst = false): QueryBuilder
+    {
+        $union = $payments->clone()
+            ->selectRaw("'payment' as type, id, paid_at as at, amount, b2b_customer_id as customer_id, method_name, outlet_id, received_by as user_id, payment_number as number, status")
+            ->selectRaw('(select min(a.b2b_invoice_id) from b2b_payment_allocations a where a.b2b_payment_id = b2b_payments.id) as invoice_id')
+            ->toBase()
+            ->unionAll($refunds->clone()
+                ->selectRaw("'refund' as type, id, refunded_at as at, -amount as amount")
+                ->selectRaw('(select i.b2b_customer_id from b2b_invoices i where i.id = b2b_refunds.b2b_invoice_id) as customer_id')
+                ->selectRaw('method_name, outlet_id, refunded_by as user_id')
+                ->selectRaw('(select p.payment_number from b2b_payments p where p.id = b2b_refunds.b2b_payment_id) as number')
+                ->selectRaw('null as status, b2b_invoice_id as invoice_id')
+                ->toBase());
+
+        $direction = $oldestFirst ? 'asc' : 'desc';
+
+        return DB::query()->fromSub($union, 'mutations')->orderBy('at', $direction)->orderBy('type', $direction)->orderBy('id', $direction);
+    }
+
+    /** Baris mutasi kas siap tampil (nama customer, invoice, outlet, kasir). */
+    private function mutationItems(Collection $rows): array
+    {
+        $customers = Customer::withTrashed()->whereIn('id', $rows->pluck('customer_id')->filter())->pluck('name', 'id');
+        $invoices = Invoice::withTrashed()->whereIn('id', $rows->pluck('invoice_id')->filter())->get(['id', 'invoice_number', 'b2b_order_id'])->keyBy('id');
+        $outlets = $this->cashLabels('outlet', $rows->pluck('outlet_id')->map(fn ($id) => (string) (int) $id));
+        $users = $this->cashLabels('cashier', $rows->pluck('user_id')->map(fn ($id) => (string) (int) $id));
+
+        return $rows->map(function ($row) use ($customers, $invoices, $outlets, $users) {
+            $at = CarbonImmutable::parse($row->at);
+            $invoice = $invoices[$row->invoice_id] ?? null;
+
+            return [
+                'type' => $row->type,
+                'id' => (int) $row->id,
+                'number' => $row->number,
+                'date' => $this->shortDate($at).' '.$at->format('H:i'),
+                'at' => $at->toDateTimeString(),
+                'customer' => $customers[$row->customer_id] ?? null,
+                'invoice_number' => $invoice?->invoice_number,
+                'order_id' => $invoice?->b2b_order_id,
+                'method' => $row->method_name,
+                'outlet' => $outlets[(int) $row->outlet_id]['label'] ?? null,
+                'cashier' => $users[(int) $row->user_id]['label'] ?? null,
+                'amount' => (int) $row->amount,
+                // Pembayaran yang uangnya sudah dikembalikan (pesanan batal + refund) tetap terhitung sebagai uang masuk.
+                'refunded' => $row->type === 'payment' && $row->status === Payment::STATUS_REVERSED,
+            ];
+        })->values()->all();
     }
 
     /**
