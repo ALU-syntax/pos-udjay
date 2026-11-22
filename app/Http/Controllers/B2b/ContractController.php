@@ -11,6 +11,8 @@ use App\Models\B2b\Customer;
 use App\Models\Outlets;
 use App\Services\B2b\ContractService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class ContractController extends Controller
@@ -157,6 +159,33 @@ class ContractController extends Controller
         ] : null;
     }
 
+    /**
+     * Kontrak terakhir (tanggal mulai paling baru, termasuk yang dihentikan) tiap customer, untuk tawaran
+     * "Salin harga" di form kontrak baru. Tombolnya memakai alur Perpanjang (`copy_from`).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function lastContracts(Collection $customers): array
+    {
+        return Contract::query()
+            ->whereIn('b2b_customer_id', $customers->pluck('id'))
+            ->withCount(['items as products_count' => fn ($items) => $items->select(DB::raw('count(distinct variant_id)'))])
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('b2b_customer_id')
+            ->mapWithKeys(fn (Contract $last) => [$last->b2b_customer_id => [
+                'number' => $last->contract_number,
+                'period' => $last->start_date->translatedFormat('d M Y').' – '.$last->end_date->translatedFormat('d M Y'),
+                'status' => $last->statusLabel(),
+                'variant' => $last->statusVariant(),
+                'products' => (int) $last->products_count,
+                'show_url' => route('b2b/contracts/show', $last->id),
+                'copy_url' => route('b2b/contracts/create', ['copy_from' => $last->id]),
+            ]])
+            ->all();
+    }
+
     private function form(Contract $contract, ?Contract $copiedFrom = null, int $skippedVariants = 0)
     {
         $contract->loadMissing('items.variant.product.category');
@@ -181,16 +210,20 @@ class ContractController extends Controller
             ];
         })->values();
 
+        // Customer nonaktif tetap muncul kalau sudah terpilih di kontrak ini.
+        $customers = Customer::query()
+            ->where(fn ($query) => $query->where('is_active', true)->orWhere('id', $contract->b2b_customer_id))
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
+
         return view('layouts.b2b.contracts.form', [
             'contract' => $contract,
             'copiedFrom' => $copiedFrom,
             'skippedVariants' => $skippedVariants,
             'initialItems' => $initialItems,
-            // Customer nonaktif tetap muncul kalau sudah terpilih di kontrak ini.
-            'customers' => Customer::query()
-                ->where(fn ($query) => $query->where('is_active', true)->orWhere('id', $contract->b2b_customer_id))
-                ->orderBy('name')
-                ->get(['id', 'code', 'name']),
+            'customers' => $customers,
+            // Tawaran salin harga hanya di form kontrak baru biasa (bukan edit, bukan sudah mode Perpanjang).
+            'lastContracts' => $contract->exists || $copiedFrom ? [] : $this->lastContracts($customers),
             'outlets' => Outlets::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }

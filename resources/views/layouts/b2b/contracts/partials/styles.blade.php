@@ -18,6 +18,13 @@
         .b2b-period--lg .b2b-period__bar { height: 8px; }
         .b2b-period--lg .b2b-period__hint { font-size: .8rem; }
 
+        /* ----- Tawaran salin harga dari kontrak terakhir (form kontrak baru) ----- */
+        .b2b-offer { display: flex; align-items: flex-start; gap: .65rem; margin-top: .6rem; padding: .7rem .85rem; border: 1px solid var(--ob-border); border-radius: var(--ob-radius-sm); background: var(--ob-primary-soft); font-size: .84rem; color: var(--ob-text); }
+        .b2b-offer__icon { margin-top: .15rem; color: var(--ob-primary); }
+        .b2b-offer__body { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+        .b2b-offer__meta { font-size: .78rem; color: var(--ob-muted); }
+        .b2b-offer__actions { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .85rem; margin-top: .2rem; }
+
         /* ----- Tabel harga (halaman detail) ----- */
         .b2b-price-table td { vertical-align: top; }
         .b2b-price-table .b2b-price-table__product { font-weight: 600; color: var(--ob-text); }

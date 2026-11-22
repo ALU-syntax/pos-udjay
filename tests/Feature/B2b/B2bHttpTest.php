@@ -469,6 +469,38 @@ class B2bHttpTest extends B2bTestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('copied_from');
     }
 
+    public function test_new_contract_form_offers_copying_from_customer_last_contract(): void
+    {
+        $user = $this->userFor(null, ['create b2b/contracts', 'update b2b/contracts']);
+        $outlet = $this->outlet();
+        [$coffee, $tea] = [$this->variant($outlet), $this->variant($outlet, name: 'Teh')];
+        $customer = $this->customer();
+        $older = $this->contract($customer, [['variant_id' => $coffee->id, 'price' => 9000]], [
+            'start_date' => today()->subYear(), 'end_date' => today()->subMonths(6),
+        ]);
+        // Kontrak terakhir = tanggal mulai paling baru, walau sudah dihentikan.
+        $last = $this->contract($customer, [
+            ['variant_id' => $coffee->id, 'price' => 9000],
+            ['variant_id' => $coffee->id, 'min_qty' => 10, 'price' => 8500],
+            ['variant_id' => $tea->id, 'price' => 7000],
+        ], ['status' => Contract::STATUS_TERMINATED, 'start_date' => today()->subMonths(5), 'end_date' => today()->addMonth()]);
+        $newcomer = $this->customer();
+        $copyParam = fn (Contract $contract) => 'copy_from='.$contract->id;
+        $offers = fn ($response) => json_decode(str($response->getContent())->after('const lastContracts = ')->before(";\n")->toString(), true);
+
+        $page = $this->actingAs($user)->get(route('b2b/contracts/create', ['customer_id' => $customer->id]))->assertOk()
+            ->assertSee('id="last-contract"', false);
+        $offer = $offers($page)[$customer->id];
+        $this->assertSame([$last->contract_number, 'Dihentikan', 2], [$offer['number'], $offer['status'], $offer['products']]);
+        $this->assertStringContainsString($copyParam($last), $offer['copy_url']);
+        $this->assertStringNotContainsString($copyParam($older), $page->getContent());
+        $this->assertArrayNotHasKey($newcomer->id, $offers($page));
+
+        // Tidak ditawarkan saat sudah mode Perpanjang atau saat edit.
+        $this->actingAs($user)->get(route('b2b/contracts/create', ['copy_from' => $last->id]))->assertOk()->assertDontSee('id="last-contract"', false);
+        $this->actingAs($user)->get(route('b2b/contracts/edit', $older->id))->assertOk()->assertDontSee('id="last-contract"', false);
+    }
+
     public function test_variant_selector_lists_every_variant_of_one_outlet(): void
     {
         $outlet = $this->outlet();

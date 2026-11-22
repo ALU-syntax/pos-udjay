@@ -84,6 +84,10 @@
                                 @if ($editing)
                                     <small class="b2b-help"><i class="fas fa-lock me-1" aria-hidden="true"></i>Customer tidak bisa diganti setelah kontrak dibuat.</small>
                                 @endif
+                                @if ($lastContracts)
+                                    {{-- Tawaran salin harga dari kontrak terakhir customer terpilih; diisi JavaScript. --}}
+                                    <div id="last-contract" aria-live="polite" hidden></div>
+                                @endif
                             </div>
                             <div class="b2b-field">
                                 <label for="period" class="form-label">Periode kontrak <span class="b2b-required">*</span></label>
@@ -240,6 +244,41 @@
                 };
 
                 $('#b2b_customer_id').select2({ width: '100%', placeholder: 'Pilih customer' });
+
+                // ---------- Tawaran salin harga dari kontrak terakhir customer ----------
+                const lastContracts = @json((object) $lastContracts);
+                function renderLastContract() {
+                    const box = $('#last-contract');
+                    const last = lastContracts[$('#b2b_customer_id').val()];
+                    if (!box.length || !last) return box.prop('hidden', true).empty();
+                    box.html(`<div class="b2b-offer">
+                        <i class="fas fa-history b2b-offer__icon" aria-hidden="true"></i>
+                        <div class="b2b-offer__body">
+                            <div>Customer ini punya kontrak <strong class="b2b-mono">${esc(last.number)}</strong></div>
+                            <div class="b2b-offer__meta">${esc(last.period)} · <span class="badge badge-${esc(last.variant)}">${esc(last.status)}</span> · ${Number(last.products).toLocaleString('id-ID')} produk</div>
+                            <div class="b2b-offer__actions">
+                                <a href="${esc(last.copy_url)}" class="btn ob-btn ob-btn-outline ob-btn-sm" data-copy-contract="${esc(last.number)}"><i class="fas fa-copy" aria-hidden="true"></i> Salin harga dari ${esc(last.number)}</a>
+                                <a href="${esc(last.show_url)}" target="_blank" rel="noopener">Lihat kontrak</a>
+                            </div>
+                        </div>
+                    </div>`).prop('hidden', false);
+                }
+                $('#b2b_customer_id').on('change', renderLastContract);
+                renderLastContract();
+                // Harga yang sudah diisi akan hilang karena halaman berpindah ke form Perpanjang, jadi minta konfirmasi dulu.
+                $(document).on('click', '[data-copy-contract]', function (event) {
+                    if (state.items.size === 0) return;
+                    event.preventDefault();
+                    const url = this.href;
+                    Swal.fire({
+                        title: 'Ganti dengan harga kontrak lama?',
+                        text: `Harga yang sudah diisi akan diganti dengan harga dari ${this.dataset.copyContract}. Lanjutkan?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, salin',
+                        cancelButtonText: 'Batal',
+                    }).then(result => { if (result.isConfirmed) window.location.href = url; });
+                });
 
                 // ---------- Periode (satu date range picker → input hidden start_date / end_date) ----------
                 function initPeriod() {
