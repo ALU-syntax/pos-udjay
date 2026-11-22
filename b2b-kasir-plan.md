@@ -2,7 +2,7 @@
 
 - **Status (23 Nov 2026):** Fase 1 (customer, kontrak, harga), Fase 2 (kasir, pesanan, invoice), bayar langsung + pelunasan tempo manual, Fase 4 (status overdue, reminder email + WhatsApp, menu Reminder), dan Fase 5 (Laporan B2B + export Excel) sudah dibangun, ditambah perbaikan alur Perpanjang kontrak. Yang tersisa: Fase 3 pelunasan tempo otomatis, menunggu keputusan metode (kode unik + mutasi BCA vs VA BCA) dan contoh file mutasi BCA.
 - **Tanggal rekap:** 23 November 2026
-- **Presentasi:** `b2b-kasir-presentasi.html` (buka langsung di browser). Isinya masih versi 14 Nov (aturan diskon, banyak kontak/alamat).
+- **Presentasi:** `b2b-kasir-presentasi.html` (buka langsung di browser). Versi 23 Nov 2026 untuk pemilik usaha + admin: 12 slide alur kerja dengan ilustrasi layar, tanpa detail teknis.
 
 Kasir B2B adalah fitur penjualan ke pelanggan bisnis (perusahaan) di web backoffice. Bedanya dengan kasir Android (POS):
 
