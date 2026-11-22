@@ -92,7 +92,8 @@ Finance upload file mutasi BCA → pencocokan otomatis → tagihan lunas
 - Menghentikan kontrak wajib disertai alasan. Kontrak yang sudah berakhir tidak perlu dihentikan.
 - Hapus = soft delete. Kontrak yang sedang berjalan harus dihentikan dulu.
 - File kontrak (PDF, JPG, PNG, DOC, DOCX, maks 5 MB) bisa diganti atau dilepas saat edit.
-- Perpanjangan dibuat sebagai kontrak baru. Ide yang belum dibangun: tombol untuk menyalin harga dari kontrak lama.
+- Perpanjangan dibuat sebagai kontrak baru lewat tombol **Perpanjang** (detail kontrak, daftar kontrak, dan Laporan B2B → `contracts/create?copy_from=`). Customer, catatan, dan semua harga + tingkat qty disalin; periode disambung setelah kontrak lama berakhir dengan panjang yang sama; file kontrak tidak disalin. Varian atau produk yang sudah dihapus tidak ikut disalin dan jumlahnya ditampilkan di form.
+- Varian/produk yang sudah dihapus tidak bisa dimasukkan ke kontrak (ditolak validasi), kecuali baris yang sudah ada di kontrak yang sedang diedit, supaya kontrak lama tetap bisa diedit.
 
 ### Kode unik dan pencocokan pembayaran
 

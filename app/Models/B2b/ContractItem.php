@@ -31,4 +31,10 @@ class ContractItem extends Model
     {
         return $this->belongsTo(VariantProduct::class, 'variant_id')->withTrashed();
     }
+
+    /** Varian dan produknya masih ada (belum dihapus). Muat `variant.product` dulu supaya tidak query per baris. */
+    public function isVariantAvailable(): bool
+    {
+        return $this->variant !== null && ! $this->variant->trashed() && $this->variant->product !== null;
+    }
 }

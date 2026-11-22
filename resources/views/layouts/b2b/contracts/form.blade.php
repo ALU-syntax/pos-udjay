@@ -37,6 +37,13 @@
             </div>
         </div>
 
+        @if ($copiedFrom && $skippedVariants > 0)
+            <div class="ob-notice mb-3" role="note">
+                <i class="fas fa-info-circle" aria-hidden="true"></i>
+                <span><strong>{{ $skippedVariants }} produk tidak disalin</strong> dari {{ $copiedFrom->contract_number }} karena produknya sudah dihapus.</span>
+            </div>
+        @endif
+
         @if ($editing && $contract->isRunning())
             <div class="ob-notice mb-3" role="note">
                 <i class="fas fa-info-circle" aria-hidden="true"></i>

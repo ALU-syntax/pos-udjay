@@ -352,6 +352,49 @@ class B2bHttpTest extends B2bTestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('b2b_customer_id');
     }
 
+    public function test_renewing_contract_skips_deleted_variants_and_new_contract_rejects_them(): void
+    {
+        $outlet = $this->outlet();
+        $user = $this->userFor(null, ['create b2b/contracts', 'update b2b/contracts']);
+        $customer = $this->customer();
+        $kept = $this->variant($outlet, name: 'Kopi Tetap');
+        $deletedVariant = $this->variant($outlet, name: 'Teh Terhapus');
+        $deletedProduct = $this->variant($outlet, name: 'Roti Terhapus');
+        $contract = $this->contract($customer, [
+            ['variant_id' => $kept->id, 'price' => 9000],
+            ['variant_id' => $deletedVariant->id, 'price' => 8000],
+            ['variant_id' => $deletedVariant->id, 'min_qty' => 10, 'price' => 7500],
+            ['variant_id' => $deletedProduct->id, 'price' => 7000],
+        ]);
+        $deletedVariant->delete();
+        $deletedProduct->product->delete();
+
+        // Dua produk (tiga baris harga) tidak ikut disalin.
+        $this->actingAs($user)->get(route('b2b/contracts/create', ['copy_from' => $contract->id]))->assertOk()
+            ->assertSee('2 produk tidak disalin')->assertSee('Kopi Tetap')
+            ->assertDontSee('Teh Terhapus')->assertDontSee('Roti Terhapus');
+
+        $period = ['start_date' => today()->addMonth()->toDateString(), 'end_date' => today()->addMonths(2)->toDateString()];
+        $this->actingAs($user)->postJson(route('b2b/contracts/store'), $period + [
+            'b2b_customer_id' => $customer->id,
+            'items' => [
+                ['variant_id' => $kept->id, 'min_qty' => 1, 'price' => 9000],
+                ['variant_id' => $deletedVariant->id, 'min_qty' => 1, 'price' => 8000],
+                ['variant_id' => $deletedProduct->id, 'min_qty' => 1, 'price' => 7000],
+            ],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['items.1.variant_id', 'items.2.variant_id'])
+            ->assertJsonMissingValidationErrors('items.0.variant_id');
+
+        // Kontrak lama yang sudah berisi produk terhapus tetap bisa diedit tanpa membuang barisnya.
+        $this->actingAs($user)->putJson(route('b2b/contracts/update', $contract->id), [
+            'start_date' => $contract->start_date->toDateString(), 'end_date' => $contract->end_date->toDateString(),
+            'items' => $contract->items->map(fn ($item) => [
+                'id' => $item->id, 'variant_id' => $item->variant_id, 'min_qty' => $item->min_qty, 'price' => $item->price - 100,
+            ])->all(),
+        ])->assertOk();
+        $this->assertSame(8900, $contract->items()->where('variant_id', $kept->id)->value('price'));
+    }
+
     public function test_variant_selector_lists_every_variant_of_one_outlet(): void
     {
         $outlet = $this->outlet();

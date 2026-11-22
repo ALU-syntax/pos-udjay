@@ -49,9 +49,13 @@ class ContractController extends Controller
         $contract->b2b_customer_id = $request->integer('customer_id') ?: null;
         $contract->setRelation('items', collect());
         $copiedFrom = null;
+        $skippedVariants = 0;
 
         if ($request->filled('copy_from')) {
-            $copiedFrom = Contract::with('items')->findOrFail($request->integer('copy_from'));
+            $copiedFrom = Contract::with('items.variant.product')->findOrFail($request->integer('copy_from'));
+            // Varian/produk yang sudah dihapus tidak ikut disalin ke kontrak baru.
+            [$available, $unavailable] = $copiedFrom->items->partition->isVariantAvailable();
+            $skippedVariants = $unavailable->pluck('variant_id')->unique()->count();
             $length = $copiedFrom->start_date->diffInDays($copiedFrom->end_date);
             $start = $copiedFrom->end_date->copy()->addDay()->max(today());
             $contract->fill([
@@ -60,10 +64,10 @@ class ContractController extends Controller
                 'notes' => $copiedFrom->notes,
             ]);
             $contract->b2b_customer_id = $copiedFrom->b2b_customer_id;
-            $contract->setRelation('items', $copiedFrom->items->map(fn ($item) => $item->replicate(['b2b_contract_id'])));
+            $contract->setRelation('items', $available->values()->map(fn ($item) => $item->replicate(['b2b_contract_id'])));
         }
 
-        return $this->form($contract, $copiedFrom);
+        return $this->form($contract, $copiedFrom, $skippedVariants);
     }
 
     public function store(ContractRequest $request)
@@ -130,7 +134,7 @@ class ContractController extends Controller
         return Storage::disk(ContractService::ATTACHMENT_DISK)->download($contract->attachment_path, $contract->attachment_name);
     }
 
-    private function form(Contract $contract, ?Contract $copiedFrom = null)
+    private function form(Contract $contract, ?Contract $copiedFrom = null, int $skippedVariants = 0)
     {
         $contract->loadMissing('items.variant.product.category');
 
@@ -157,6 +161,7 @@ class ContractController extends Controller
         return view('layouts.b2b.contracts.form', [
             'contract' => $contract,
             'copiedFrom' => $copiedFrom,
+            'skippedVariants' => $skippedVariants,
             'initialItems' => $initialItems,
             // Customer nonaktif tetap muncul kalau sudah terpilih di kontrak ini.
             'customers' => Customer::query()

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\B2b;
 
+use App\Models\VariantProduct;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -71,8 +72,15 @@ class ContractRequest extends FormRequest
                 return;
             }
 
+            $items = (array) $this->input('items', []);
+            $deletedIds = $this->deletedVariantIds(array_map(fn ($item) => (int) $item['variant_id'], $items));
+
             $seen = [];
-            foreach ((array) $this->input('items', []) as $index => $item) {
+            foreach ($items as $index => $item) {
+                if (in_array((int) $item['variant_id'], $deletedIds, true)) {
+                    $validator->errors()->add("items.$index.variant_id", 'Produk ini sudah dihapus. Buang dari daftar harga kontrak.');
+                }
+
                 $key = (int) $item['variant_id'].'|'.(int) $item['min_qty'];
                 if (isset($seen[$key])) {
                     $validator->errors()->add("items.$index.min_qty", 'Produk ini sudah punya harga untuk qty yang sama (baris '.($seen[$key] + 1).').');
@@ -94,6 +102,27 @@ class ContractRequest extends FormRequest
                 'price' => (int) $item['price'],
             ], $this->validated('items'))],
         );
+    }
+
+    /**
+     * Varian yang varian/produknya sudah dihapus. Varian yang sudah ada di kontrak yang sedang diedit
+     * dibiarkan, supaya kontrak lama tetap bisa diedit tanpa harus membuang barisnya.
+     *
+     * @param  array<int, int>  $variantIds
+     * @return array<int, int>
+     */
+    private function deletedVariantIds(array $variantIds): array
+    {
+        $existing = $this->editing() ? $this->route('contract')->items()->pluck('variant_id')->all() : [];
+
+        return VariantProduct::withTrashed()
+            ->with('product')
+            ->whereIn('id', array_diff(array_unique($variantIds), $existing))
+            ->get()
+            ->filter(fn (VariantProduct $variant) => $variant->trashed() || $variant->product === null)
+            ->map(fn (VariantProduct $variant) => (int) $variant->id)
+            ->values()
+            ->all();
     }
 
     private function editing(): bool
