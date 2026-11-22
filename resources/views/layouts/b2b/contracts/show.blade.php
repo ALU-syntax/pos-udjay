@@ -174,6 +174,14 @@
                     </div>
                     <div class="b2b-card__foot">
                         Dibuat {{ $contract->created_at?->translatedFormat('d M Y, H:i') }}{{ $contract->creator ? ' oleh '.$contract->creator->name : '' }}
+                        @if ($renewedFrom)
+                            <br>Diperpanjang dari
+                            @if ($renewedFrom['id'])
+                                <a href="{{ route('b2b/contracts/show', $renewedFrom['id']) }}" class="b2b-mono">{{ $renewedFrom['contract_number'] }}</a>
+                            @else
+                                <span class="b2b-mono">{{ $renewedFrom['contract_number'] }}</span> (sudah dihapus)
+                            @endif
+                        @endif
                         @if ($contract->modified_by)
                             <br>Diubah {{ $contract->updated_at?->translatedFormat('d M Y, H:i') }}{{ $contract->modifier ? ' oleh '.$contract->modifier->name : '' }}
                         @endif

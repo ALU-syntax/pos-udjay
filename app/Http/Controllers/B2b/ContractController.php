@@ -5,6 +5,7 @@ namespace App\Http\Controllers\B2b;
 use App\DataTables\B2b\ContractDataTable;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\B2b\ContractRequest;
+use App\Models\B2b\ActivityLog;
 use App\Models\B2b\Contract;
 use App\Models\B2b\Customer;
 use App\Models\Outlets;
@@ -88,6 +89,7 @@ class ContractController extends Controller
         return view('layouts.b2b.contracts.show', [
             'contract' => $contract,
             'successor' => $contract->successor(),
+            'renewedFrom' => $this->renewedFrom($contract),
             'orderCount' => $contract->customer->orders()->where('b2b_contract_id', $contract->id)->count(),
         ]);
     }
@@ -133,6 +135,26 @@ class ContractController extends Controller
         abort_unless($contract->attachment_path && Storage::disk(ContractService::ATTACHMENT_DISK)->exists($contract->attachment_path), 404);
 
         return Storage::disk(ContractService::ATTACHMENT_DISK)->download($contract->attachment_path, $contract->attachment_name);
+    }
+
+    /**
+     * Kontrak asal perpanjangan dari log `contract.created`: nomor (tetap tampil walau kontrak asal sudah dihapus)
+     * dan id untuk tautan (null kalau kontrak asal sudah dihapus).
+     *
+     * @return array{contract_number:string, id:int|null}|null
+     */
+    private function renewedFrom(Contract $contract): ?array
+    {
+        $source = ActivityLog::query()
+            ->where('subject_type', $contract->getMorphClass())
+            ->where('subject_id', $contract->id)
+            ->where('action', 'contract.created')
+            ->value('changes')['copied_from'] ?? null;
+
+        return $source ? [
+            'contract_number' => $source['contract_number'],
+            'id' => Contract::query()->whereKey($source['id'])->value('id'),
+        ] : null;
     }
 
     private function form(Contract $contract, ?Contract $copiedFrom = null, int $skippedVariants = 0)

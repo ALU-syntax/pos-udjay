@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\B2b;
 
+use App\Models\B2b\Contract;
 use App\Models\VariantProduct;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -26,6 +27,8 @@ class ContractRequest extends FormRequest
             'b2b_customer_id' => $this->editing()
                 ? ['prohibited']
                 : ['required', 'integer', Rule::exists('b2b_customers', 'id')->whereNull('deleted_at')],
+            // Kontrak asal saat perpanjangan (tombol Perpanjang); hanya dicatat di log.
+            'copied_from' => $this->editing() ? ['prohibited'] : ['nullable', 'integer'],
             'start_date' => ['required', 'date_format:Y-m-d'],
             'end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
             'notes' => ['nullable', 'string', 'max:2000'],
@@ -95,6 +98,7 @@ class ContractRequest extends FormRequest
     {
         return array_merge(
             $this->safe()->only(['b2b_customer_id', 'start_date', 'end_date', 'notes']),
+            ['copied_from' => $this->copiedFrom()],
             ['items' => array_map(fn (array $item) => [
                 'id' => filled($item['id'] ?? null) ? (int) $item['id'] : null,
                 'variant_id' => (int) $item['variant_id'],
@@ -102,6 +106,18 @@ class ContractRequest extends FormRequest
                 'price' => (int) $item['price'],
             ], $this->validated('items'))],
         );
+    }
+
+    /**
+     * Kontrak asal perpanjangan. Diabaikan kalau tidak ditemukan atau customer di form sudah diganti,
+     * karena kontrak baru itu bukan lagi perpanjangan kontrak asal.
+     */
+    private function copiedFrom(): ?Contract
+    {
+        $id = $this->validated('copied_from');
+        $source = $id ? Contract::find($id) : null;
+
+        return $source && (int) $source->b2b_customer_id === (int) $this->validated('b2b_customer_id') ? $source : null;
     }
 
     /**

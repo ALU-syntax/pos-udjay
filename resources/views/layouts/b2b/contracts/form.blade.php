@@ -56,6 +56,10 @@
             @if ($editing)
                 @method('PUT')
             @endif
+            @if ($copiedFrom)
+                {{-- Dicatat di log kontrak baru supaya detail kontrak bisa menampilkan "Diperpanjang dari". --}}
+                <input type="hidden" name="copied_from" value="{{ $copiedFrom->id }}">
+            @endif
 
             {{-- Baris atas: data kontrak & ringkasan; tabel harga di bawahnya selebar halaman. --}}
             <div class="b2b-contract-top">

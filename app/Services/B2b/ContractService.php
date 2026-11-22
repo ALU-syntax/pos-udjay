@@ -26,7 +26,11 @@ class ContractService
         private readonly ActivityLogger $logger,
     ) {}
 
-    /** @param  array{b2b_customer_id:int, start_date:string, end_date:string, notes?:string|null, items:array}  $data */
+    /**
+     * `copied_from` = kontrak asal saat perpanjangan; dicatat di log supaya detail kontrak bisa menampilkan "Diperpanjang dari".
+     *
+     * @param  array{b2b_customer_id:int, start_date:string, end_date:string, notes?:string|null, copied_from?:Contract|null, items:array}  $data
+     */
     public function create(array $data, ?UploadedFile $attachment = null): Contract
     {
         return DB::transaction(function () use ($data, $attachment) {
@@ -45,7 +49,10 @@ class ContractService
 
             $changes = $this->syncItems($contract, $data['items']);
             $this->storeAttachment($contract, $attachment);
-            $this->logger->log('contract.created', $contract, ['items' => $changes]);
+            $source = $data['copied_from'] ?? null;
+            $this->logger->log('contract.created', $contract, ['items' => $changes] + ($source ? [
+                'copied_from' => ['id' => $source->id, 'contract_number' => $source->contract_number],
+            ] : []));
 
             return $contract->fresh('items');
         });

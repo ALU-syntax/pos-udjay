@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\B2b;
 
+use App\Models\B2b\ActivityLog;
 use App\Models\B2b\Contract;
 use App\Models\B2b\Customer;
 use App\Models\B2b\Order;
@@ -425,6 +426,47 @@ class B2bHttpTest extends B2bTestCase
                 : $this->assertStringContainsString($renewUrl($contract), $action);
             $this->assertSame(! $successor, str_contains($action, $renewUrl($contract)));
         }
+    }
+
+    public function test_renewed_contract_records_and_shows_source_contract(): void
+    {
+        $user = $this->userFor(null, ['read b2b/contracts', 'create b2b/contracts', 'update b2b/contracts']);
+        $customer = $this->customer();
+        $variant = $this->variant($this->outlet());
+        $old = $this->contract($customer, [['variant_id' => $variant->id, 'price' => 9000]], [
+            'start_date' => today()->subMonths(3), 'end_date' => today()->subDay(),
+        ]);
+        $items = [['variant_id' => $variant->id, 'min_qty' => 1, 'price' => 9500]];
+        $store = fn (array $data) => $this->actingAs($user)->postJson(route('b2b/contracts/store'), $data + [
+            'start_date' => today()->toDateString(), 'end_date' => today()->addMonth()->toDateString(), 'items' => $items,
+        ])->assertOk()->json('data.id');
+        $sourceInLog = fn (int $id) => ActivityLog::query()
+            ->where('subject_type', (new Contract)->getMorphClass())->where('subject_id', $id)
+            ->where('action', 'contract.created')->value('changes')['copied_from'] ?? null;
+
+        $this->actingAs($user)->get(route('b2b/contracts/create', ['copy_from' => $old->id]))->assertOk()
+            ->assertSee('name="copied_from" value="'.$old->id.'"', false);
+
+        $renewedId = $store(['b2b_customer_id' => $customer->id, 'copied_from' => $old->id]);
+        $this->assertSame(['id' => $old->id, 'contract_number' => $old->contract_number], $sourceInLog($renewedId));
+        $this->actingAs($user)->get(route('b2b/contracts/show', $renewedId))->assertOk()
+            ->assertSee('Diperpanjang dari')->assertSee(route('b2b/contracts/show', $old->id))->assertDontSee('sudah dihapus');
+
+        // Kontrak asal yang sudah dihapus tetap tampil nomornya, tanpa tautan.
+        $old->delete();
+        $this->actingAs($user)->get(route('b2b/contracts/show', $renewedId))->assertOk()
+            ->assertSee($old->contract_number)->assertSee('sudah dihapus')->assertDontSee(route('b2b/contracts/show', $old->id));
+
+        // Customer diganti di form = bukan perpanjangan, jadi asal tidak dicatat.
+        $otherId = $store(['b2b_customer_id' => $this->customer()->id, 'copied_from' => $this->contract($customer, [], [
+            'start_date' => today()->addMonths(2), 'end_date' => today()->addMonths(3),
+        ])->id]);
+        $this->assertNull($sourceInLog($otherId));
+        $this->actingAs($user)->get(route('b2b/contracts/show', $otherId))->assertOk()->assertDontSee('Diperpanjang dari');
+
+        $this->actingAs($user)->putJson(route('b2b/contracts/update', $renewedId), [
+            'copied_from' => $old->id, 'start_date' => today()->toDateString(), 'end_date' => today()->addMonth()->toDateString(), 'items' => $items,
+        ])->assertUnprocessable()->assertJsonValidationErrors('copied_from');
     }
 
     public function test_variant_selector_lists_every_variant_of_one_outlet(): void
