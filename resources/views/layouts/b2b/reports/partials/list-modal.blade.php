@@ -2,9 +2,11 @@
     Modal daftar transaksi Laporan B2B (tingkat terakhir drilldown dan kartu KPI). Satu modal untuk semua daftar:
       B2bReport.ordersModal({ title, params: { from, to, customer_id, product, ... }, labels: ['PT X', ...] });
       B2bReport.invoicesModal({ title, params: { customer_id, bucket }, labels: ['PT X', '31–60 hari'] });
+      B2bReport.mutationsModal({ title, params: { by: 'outlet', key: 0 }, labels: ['Pusat'] });
     params menimpa filter aktif, labels = nama pilihan drilldown untuk keterangan di bawah judul.
     Pesanan: dengan filter produk / varian / kategori, kolom Total berganti "Nilai item" (nilai barang itu saja).
     Invoice: piutang per hari ini (tidak ikut periode), jatuh tempo terlama dulu.
+    Mutasi kas: pembayaran (+) dan refund (−) di periode, terbaru dulu.
     Nomor pesanan / invoice menjadi link ke detail pesanan kalau user punya akses menu Pesanan (detail invoice ada di sana).
 --}}
 <div class="modal fade b2b-modal" id="report-list-modal" tabindex="-1" aria-labelledby="report-list-title" aria-hidden="true">
@@ -61,6 +63,7 @@
         .b2b-report-list .ob-cell-meta.text-danger { color: var(--ob-danger) !important; font-weight: 600; }
         .b2b-report-list .text-end { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 700; }
         .b2b-report-list .text-end .ob-cell-meta { font-weight: 400; }
+        .b2b-report-list .b2b-report-list__out { color: var(--ob-danger); }
         .b2b-report-list__foot { justify-content: space-between; }
         .b2b-report-list__foot .ob-btn { min-height: 38px !important; }
         .b2b-report-list__page { font-size: .8rem; color: var(--ob-muted); }
@@ -173,6 +176,38 @@
                         <td class="text-end">${B2bReport.rupiah(invoice.outstanding)}${invoice.paid
                             ? meta(`dari ${B2bReport.rupiah(invoice.total)}`) : ''}</td>
                     </tr>`,
+                });
+            };
+
+            /** Mutasi kas di periode; params.by + params.key = satu kelompok rekap kas (metode / outlet penerima / kasir). */
+            B2bReport.mutationsModal = function ({ title = 'Mutasi kas', params = {}, labels = [] } = {}) {
+                const { number, rupiah } = B2bReport;
+                open({
+                    section: 'mutations',
+                    params,
+                    title,
+                    sub: B2bReport.describe(params, labels),
+                    empty: 'Tidak ada pembayaran atau refund di periode ini.',
+                    head: () => [{ label: 'Transaksi' }, { label: 'Customer' }, { label: 'Metode' }, { label: 'Nominal', end: true }],
+                    totals: data => `<span>Masuk <strong>${rupiah(data.totals.received)}</strong> (${number(data.totals.received_count)})</span>`
+                        + (data.totals.refund_count ? `<span>Refund <strong>${rupiah(data.totals.refunded)}</strong> (${number(data.totals.refund_count)})</span>` : '')
+                        + `<span>Bersih <strong>${rupiah(data.totals.net)}</strong></span>`,
+                    row: item => {
+                        const refund = item.type === 'refund';
+                        const label = refund
+                            ? `<span class="b2b-report-list__num b2b-report-list__out">Refund</span>${meta(`${esc(item.date)} · atas ${esc(item.number || '-')}`)}`
+                            : `<span class="b2b-report-list__num">${esc(item.number)}</span>${meta(esc(item.date) + (item.refunded ? ' · sudah direfund' : ''))}`;
+                        const invoice = item.invoice_number
+                            ? (orderUrl ? `<a href="${orderUrl.replace('__id__', item.order_id)}" target="_blank" rel="noopener">${esc(item.invoice_number)}</a>` : esc(item.invoice_number))
+                            : '-';
+                        const where = [item.outlet, item.cashier].filter(Boolean).map(esc).join(' · ');
+                        return `<tr>
+                            <td>${label}</td>
+                            <td>${esc(item.customer || '-')}${meta(invoice)}</td>
+                            <td>${esc(item.method || '-')}${meta(where || '-')}</td>
+                            <td class="text-end${refund ? ' b2b-report-list__out' : ''}">${rupiah(item.amount)}</td>
+                        </tr>`;
+                    },
                 });
             };
         })();

@@ -425,6 +425,76 @@ class ReportHttpTest extends B2bTestCase
         $this->assertSame([1, 1], [$overdue['page'], $overdue['last_page']]);
     }
 
+    /**
+     * Data seedOrders + pelunasan Transfer · BCA 10.000 oleh kasir lain di outlet A untuk pesanan lama X.
+     * Uang masuk: Cash 8.000 (pusat), 30.000 + 15.000 (outlet A, yang 15.000 direfund tunai di outlet A); Transfer 10.000.
+     *
+     * @return array{0: Customer, 1: Customer, 2: User, 3: string}
+     */
+    private function seedCash(): array
+    {
+        [$x, $y] = $this->seedOrders();
+        [$transfer, $methods] = $this->paymentCategory('Transfer', ['BCA']);
+        $cashier = $this->userFor($this->outlet);
+        $old = Order::where('b2b_customer_id', $x->id)->where('grand_total', 40000)->firstOrFail()->invoice;
+        app(PaymentService::class)->record($cashier, $old, [
+            'category_payment_id' => $transfer->id, 'payment_id' => $methods['BCA']->id, 'amount' => 10000, 'outlet_id' => $this->outlet->id,
+        ]);
+
+        return [$x, $y, $cashier, $transfer->name.' · BCA'];
+    }
+
+    public function test_cashflow_recaps_cash_per_method_outlet_and_cashier(): void
+    {
+        [, , $cashier, $transfer] = $this->seedCash();
+        $rows = fn (string $by) => array_map(
+            fn ($item) => [$item['key'], $item['label'], $item['received'], $item['received_count'], $item['refunded'], $item['refund_count'], $item['net']],
+            $this->section('cashflow', ['by' => $by])['items']
+        );
+
+        // Total sama dengan kartu KPI kas (+ pelunasan baru 10.000).
+        $data = $this->section('cashflow', ['by' => 'method']);
+        $this->assertSame(['received' => 63000, 'received_count' => 4, 'refunded' => 15000, 'refund_count' => 1, 'net' => 48000], $data['totals']);
+        $this->assertSame($this->summary()['cash']['net'], $data['totals']['net']);
+        $this->assertNull($data['others']);
+
+        $this->assertSame([[$this->cash->name, $this->cash->name, 53000, 3, 15000, 1, 38000], [$transfer, $transfer, 10000, 1, 0, 0, 10000]], $rows('method'));
+        // Pelunasan tanpa outlet = pusat.
+        $this->assertSame([[$this->outlet->id, $this->outlet->name, 55000, 3, 15000, 1, 40000], [0, 'Pusat', 8000, 1, 0, 0, 8000]], $rows('outlet'));
+        $this->assertSame([[$this->staff->id, $this->staff->name, 53000, 3, 15000, 1, 38000], [$cashier->id, $cashier->name, 10000, 1, 0, 0, 10000]], $rows('cashier'));
+
+        // Periode tanpa transaksi.
+        $empty = $this->section('cashflow', ['by' => 'outlet', 'from' => '2025-01-01', 'to' => '2025-01-31']);
+        $this->assertSame([[], 0], [$empty['items'], $empty['totals']['net']]);
+    }
+
+    public function test_mutations_list_payments_and_refunds_per_cash_group(): void
+    {
+        [$x, $y] = $this->seedCash();
+        $this->staff->givePermissionTo(Permission::firstOrCreate(['name' => 'read b2b/orders', 'guard_name' => 'web']));
+
+        $all = $this->section('mutations');
+        $this->assertSame(['received' => 63000, 'received_count' => 4, 'refunded' => 15000, 'refund_count' => 1, 'net' => 48000], $all['totals']);
+        $this->assertCount(5, $all['items']);
+        $this->assertEqualsCanonicalizing([30000, 15000, 8000, 10000, -15000], array_column($all['items'], 'amount'));
+
+        // Refund dan pembayaran yang direfund: nomor pembayaran yang sama, outlet + kasir refund.
+        $refund = collect($all['items'])->firstWhere('type', 'refund');
+        $refunded = collect($all['items'])->firstWhere('refunded', true);
+        $this->assertSame([-15000, 'PT Y', $this->outlet->name, $this->staff->name], [$refund['amount'], $refund['customer'], $refund['outlet'], $refund['cashier']]);
+        $this->assertSame([$refunded['number'], $refunded['invoice_number'], $refunded['order_id']], [$refund['number'], $refund['invoice_number'], $refund['order_id']]);
+
+        $pusat = $this->section('mutations', ['by' => 'outlet', 'key' => 0]);
+        $this->assertSame([[8000, 'PT X', 'Pusat']], array_map(fn ($item) => [$item['amount'], $item['customer'], $item['outlet']], $pusat['items']));
+
+        $cash = $this->section('mutations', ['by' => 'method', 'key' => $this->cash->name, 'customer_id' => $y->id]);
+        $this->assertSame(['received' => 45000, 'received_count' => 2, 'refunded' => 15000, 'refund_count' => 1, 'net' => 30000], $cash['totals']);
+
+        $this->actingAs($this->staff)
+            ->getJson(route('b2b/reports/data', ['section' => 'mutations', 'by' => 'outlet']))
+            ->assertUnprocessable()->assertJsonValidationErrors('key');
+    }
+
     public function test_summary_rejects_invalid_filters(): void
     {
         $this->actingAs($this->staff)
@@ -446,6 +516,10 @@ class ReportHttpTest extends B2bTestCase
         $this->actingAs($this->staff)
             ->getJson(route('b2b/reports/data', ['section' => 'invoices', 'bucket' => '1-7']))
             ->assertUnprocessable()->assertJsonValidationErrors('bucket');
+
+        $this->actingAs($this->staff)
+            ->getJson(route('b2b/reports/data', ['section' => 'cashflow', 'by' => 'product']))
+            ->assertUnprocessable()->assertJsonValidationErrors('by');
 
         $this->actingAs($this->staff)->getJson('/b2b/reports/data/unknown')->assertNotFound();
     }

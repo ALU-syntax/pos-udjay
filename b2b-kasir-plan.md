@@ -1,6 +1,6 @@
 # Rencana Fitur Kasir B2B
 
-- **Status:** Fase 1 (customer, kontrak, harga), Fase 2 (kasir, pesanan, invoice), bayar langsung + pelunasan tempo manual, dan Fase 4 (status overdue, reminder email + WhatsApp, menu Reminder) sudah dibangun (per 22 Nov 2026). Pelunasan tempo otomatis ditunda sampai metodenya diputuskan (kode unik vs VA BCA). Sedang dikerjakan: laporan B2B (fase 5), langkah 1–4 dari 8 selesai.
+- **Status:** Fase 1 (customer, kontrak, harga), Fase 2 (kasir, pesanan, invoice), bayar langsung + pelunasan tempo manual, dan Fase 4 (status overdue, reminder email + WhatsApp, menu Reminder) sudah dibangun (per 22 Nov 2026). Pelunasan tempo otomatis ditunda sampai metodenya diputuskan (kode unik vs VA BCA). Sedang dikerjakan: laporan B2B (fase 5), langkah 1–5 dari 8 selesai.
 - **Tanggal rekap:** 18 November 2026
 - **Presentasi:** `b2b-kasir-presentasi.html` (buka langsung di browser). Isinya masih versi 14 Nov (aturan diskon, banyak kontak/alamat).
 
@@ -138,7 +138,7 @@ Aturan tambahan:
   - **Piutang dan umur piutang**: sisa invoice belum lunas (`total_to_pay − paid_amount`) **per hari ini**, tidak ikut periode, tetap ikut outlet/customer. Kelompok umur dari `due_date`: belum jatuh tempo, 1–30, 31–60, 61–90, > 90 hari.
   - **Produk / varian / kategori**: dari nilai item (`line_total`), dikelompokkan menurut **nama produk dan varian di pesanan** (snapshot), jadi produk yang sama di beberapa outlet tergabung; kategori dari produk saat ini (produk terhapus / tanpa kategori = "Tanpa kategori"). Ongkir belum dipakai (selalu 0), jadi total item = penjualan.
   - **Outlet** = outlet pesanan. Rekap kas per outlet penerima (`b2b_payments.outlet_id`, kosong = rekening pusat) ada di bagian D.
-- Tahapan: 1 kerangka + KPI ✅ → 2 tren + pola drilldown/modal ✅ → 3 penjualan per dimensi ✅ → 4 umur piutang ✅ → 5 pembayaran & kas → 6 kontrak hampir berakhir → 7 kartu piutang customer → 8 export Excel (opsional).
+- Tahapan: 1 kerangka + KPI ✅ → 2 tren + pola drilldown/modal ✅ → 3 penjualan per dimensi ✅ → 4 umur piutang ✅ → 5 pembayaran & kas ✅ → 6 kontrak hampir berakhir → 7 kartu piutang customer → 8 export Excel (opsional).
 
 ---
 
@@ -538,8 +538,9 @@ Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay 
 - Laporan B2B langkah 2 (21 Nov): bagian Tren penjualan (partial `reports/partials/trend`) per hari / minggu (Senin–Minggu) / bulan, otomatis dari panjang periode (≤ 31 hari harian, ≤ 184 hari mingguan, selebihnya bulanan; harian maks 92 hari, mingguan maks 371 hari), hari tanpa penjualan tetap tampil 0. Drilldown: batang → penjualan per customer (10 teratas + "Lainnya") → modal daftar pesanan (`reports/partials/orders-modal`, 15 per halaman, link ke detail pesanan bila punya `read b2b/orders`). Kartu KPI Penjualan dan Jumlah pesanan membuka modal yang sama. Endpoint `trend`, `customers`, `orders`.
 - Laporan B2B langkah 3 (21 Nov): bagian Penjualan per (partial `reports/partials/breakdown`) dengan tab Customer / Outlet / Produk / Kategori, 10 teratas + "Lainnya". Drilldown: Customer → produk yang dibeli; Outlet → customer; Produk → varian → customer; Kategori → produk; tingkat terakhir → modal pesanan. Breadcrumb bisa diklik ke tingkat mana pun. Endpoint umum `breakdown` (`by` + filter `product`, `variant`, `category_id`) menggantikan `customers`; modal pesanan dengan filter item menampilkan "Nilai item" + total pesanan. Helper JS bersama `B2bReport.rankChart` / `rankRows` / `tip`.
 - Laporan B2B langkah 4 (22 Nov): bagian Umur piutang per hari ini (partial `reports/partials/aging`): chart 5 kelompok (belum jatuh tempo, 1–30, 31–60, 61–90, > 90 hari) + daftar kelompok yang juga tombol drilldown (bisa dipakai dengan keyboard). Drilldown: kelompok → customer dengan sisa tagihan terbesar → modal invoice belum lunas (jatuh tempo terlama dulu, "Lewat n hari"). Kartu KPI Piutang berjalan / Lewat jatuh tempo membuka modal invoice. Endpoint `aging`, `debtors`, `invoices` (filter `bucket`: kelompok di atas + `overdue`). Modal pesanan dijadikan modal daftar umum (partial `reports/partials/list-modal`: `B2bReport.ordersModal` / `invoicesModal`); nomor invoice menaut ke detail pesanan karena invoice tidak punya halaman sendiri.
-- Belum ada: draft pesanan, pelunasan tempo otomatis (kode unik/VA), laporan B2B langkah 5–8, status baca WhatsApp + notifikasi nomor terputus.
-- Test: `tests/Feature/B2b` (134 test, 22 Nov 2026).
+- Laporan B2B langkah 5 (22 Nov): bagian Pembayaran & kas (partial `reports/partials/cashflow`) dengan tab Metode / Outlet penerima / Kasir: donut uang masuk + tabel Masuk − Refund = Bersih per kelompok. Refund dikelompokkan dengan datanya sendiri (metode, outlet `b2b_refunds.outlet_id`, kasir `refunded_by`), jadi angka bersih = kas yang dipegang kelompok itu. Metode = nama di pembayaran (snapshot), outlet kosong = "Pusat" (pelunasan di luar kasir), kasir kosong = "Tidak tercatat"; 7 teratas + "Lainnya". Klik kelompok atau kartu KPI Kas masuk bersih → modal mutasi kas (pembayaran + dan refund − digabung, terbaru dulu; pembayaran yang direfund ditandai). Endpoint `cashflow` (`by`) dan `mutations` (`by` + `key`).
+- Belum ada: draft pesanan, pelunasan tempo otomatis (kode unik/VA), laporan B2B langkah 6–8, status baca WhatsApp + notifikasi nomor terputus.
+- Test: `tests/Feature/B2b` (136 test, 22 Nov 2026).
 
 ### Perubahan 14 Nov 2026 (bedah kolom)
 

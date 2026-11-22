@@ -73,14 +73,15 @@
                 </div>
                 <i class="fas fa-chevron-right b2b-report-kpi-link__arrow" aria-hidden="true"></i>
             </button>
-            <div class="ob-card ob-stat">
+            <button type="button" class="ob-card ob-stat b2b-report-kpi-link" data-open-mutations title="Lihat mutasi kas">
                 <span class="ob-stat__icon ob-stat__icon--success" aria-hidden="true"><i class="fas fa-hand-holding-usd"></i></span>
                 <div class="min-w-0">
                     <p class="ob-stat__label">Kas masuk bersih</p>
                     <p class="ob-stat__value" data-kpi="cash"><span class="b2b-skeleton"></span></p>
                     <p class="b2b-stat__sub" data-kpi="cash-sub">&nbsp;</p>
                 </div>
-            </div>
+                <i class="fas fa-chevron-right b2b-report-kpi-link__arrow" aria-hidden="true"></i>
+            </button>
             {{-- Kartu piutang membuka daftar invoice belum lunas (semua / yang lewat jatuh tempo). --}}
             <button type="button" class="ob-card ob-stat b2b-report-kpi-link" data-open-invoices title="Lihat invoice belum lunas">
                 <span class="ob-stat__icon ob-stat__icon--warning" aria-hidden="true"><i class="fas fa-file-invoice-dollar"></i></span>
@@ -118,6 +119,7 @@
         @include('layouts.b2b.reports.partials.trend')
         @include('layouts.b2b.reports.partials.breakdown')
         @include('layouts.b2b.reports.partials.aging')
+        @include('layouts.b2b.reports.partials.cashflow')
     </div>
 
     @include('layouts.b2b.reports.partials.list-modal')
@@ -185,7 +187,9 @@
             .b2b-report-toggle button[aria-selected="true"] { background: var(--ob-surface); color: var(--ob-primary); box-shadow: 0 1px 3px rgba(15, 23, 42, .12); }
             .b2b-report-toggle button:disabled { opacity: .4; cursor: not-allowed; }
             /* Tooltip chart */
-            .b2b-report-tip { padding: .55rem .7rem; font-size: .78rem; line-height: 1.5; }
+            /* Latar sendiri: tooltip pie/donut ApexCharts bisa transparan / berwarna irisan. */
+            .b2b-report-tip { padding: .55rem .7rem; border: 1px solid var(--ob-border); border-radius: 8px; background: var(--ob-surface, #fff); box-shadow: 0 6px 18px rgba(15, 23, 42, .14); color: var(--ob-text-2); font-size: .78rem; line-height: 1.5; }
+            .b2b-report .apexcharts-tooltip:has(.b2b-report-tip) { border: 0 !important; background: transparent !important; box-shadow: none !important; }
             .b2b-report-tip strong { display: block; color: var(--ob-text); }
             .b2b-report-tip span { color: var(--ob-muted); }
         </style>
@@ -387,6 +391,7 @@
                 showPeriod();
 
                 $('[data-open-orders]').on('click', () => B2bReport.ordersModal({ title: 'Daftar pesanan' }));
+                $('[data-open-mutations]').on('click', () => B2bReport.mutationsModal({ title: 'Mutasi kas' }));
                 $('[data-open-invoices]').on('click', function () {
                     const overdue = this.dataset.openInvoices === 'overdue';
                     B2bReport.invoicesModal(overdue

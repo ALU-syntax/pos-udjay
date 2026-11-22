@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
 class ReportController extends Controller
 {
     /** Bagian laporan yang punya endpoint data. Bertambah seiring tahap pengerjaan. */
-    public const SECTIONS = ['summary', 'trend', 'breakdown', 'orders', 'aging', 'debtors', 'invoices'];
+    public const SECTIONS = ['summary', 'trend', 'breakdown', 'orders', 'aging', 'debtors', 'invoices', 'cashflow', 'mutations'];
 
     public function __construct(private readonly ReportService $reports)
     {
@@ -50,7 +50,13 @@ class ReportController extends Controller
             'customer_id' => ['nullable', 'integer'],
             'group' => ['nullable', Rule::in(['day', 'week', 'month'])],
             'page' => ['nullable', 'integer', 'min:1'],
-            'by' => [Rule::requiredIf($section === 'breakdown'), Rule::in(ReportService::BREAKDOWNS)],
+            'by' => match ($section) {
+                'breakdown' => ['required', Rule::in(ReportService::BREAKDOWNS)],
+                'cashflow' => ['required', Rule::in(ReportService::CASH_GROUPS)],
+                default => ['nullable', Rule::in(ReportService::CASH_GROUPS)],
+            },
+            // Kunci kelompok rekap kas untuk mutasi: nama metode, id outlet (0 = pusat), atau id kasir (0 = tidak tercatat).
+            'key' => [Rule::requiredIf($section === 'mutations' && $request->filled('by')), 'nullable', 'string', 'max:255'],
             'product' => ['nullable', 'string', 'max:255'],
             'variant' => ['nullable', 'string', 'max:255'],
             'category_id' => ['nullable', 'integer', 'min:0'],
@@ -69,6 +75,8 @@ class ReportController extends Controller
             'aging' => $this->reports->aging($filter),
             'debtors' => $this->reports->debtors($filter, $request->query('bucket')),
             'invoices' => $this->reports->invoices($filter, $request->query('bucket'), $request->integer('page', 1)),
+            'cashflow' => $this->reports->cashflow($filter, $request->query('by')),
+            'mutations' => $this->reports->mutations($filter, $request->query('by'), $request->query('key'), $request->integer('page', 1)),
         };
 
         return response()->json(['data' => $data, 'filter' => $filter->toQuery()]);
