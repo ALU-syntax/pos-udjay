@@ -1,7 +1,7 @@
 # Rencana Fitur Kasir B2B
 
-- **Status:** Fase 1 (customer, kontrak, harga), Fase 2 (kasir, pesanan, invoice), bayar langsung + pelunasan tempo manual, dan Fase 4 (status overdue, reminder email + WhatsApp, menu Reminder) sudah dibangun (per 23 Nov 2026). Pelunasan tempo otomatis ditunda sampai metodenya diputuskan (kode unik vs VA BCA). Laporan B2B (fase 5) selesai: 8 langkah termasuk export Excel (23 Nov 2026).
-- **Tanggal rekap:** 18 November 2026
+- **Status (23 Nov 2026):** Fase 1 (customer, kontrak, harga), Fase 2 (kasir, pesanan, invoice), bayar langsung + pelunasan tempo manual, Fase 4 (status overdue, reminder email + WhatsApp, menu Reminder), dan Fase 5 (Laporan B2B + export Excel) sudah dibangun, ditambah perbaikan alur Perpanjang kontrak. Yang tersisa: Fase 3 pelunasan tempo otomatis, menunggu keputusan metode (kode unik + mutasi BCA vs VA BCA) dan contoh file mutasi BCA.
+- **Tanggal rekap:** 23 November 2026
 - **Presentasi:** `b2b-kasir-presentasi.html` (buka langsung di browser). Isinya masih versi 14 Nov (aturan diskon, banyak kontak/alamat).
 
 Kasir B2B adalah fitur penjualan ke pelanggan bisnis (perusahaan) di web backoffice. Bedanya dengan kasir Android (POS):
@@ -150,10 +150,10 @@ Aturan tambahan:
 |---|---|---|
 | **1** ✅ | Data customer (satu kontak dan alamat), kontrak dengan harga per varian, perhitungan harga, menu dan permission | customers, contracts, contract_items |
 | **2** ✅ | Kasir B2B: pesanan → invoice + jadwal tagihan (kode unik belum aktif), cetak invoice, pengurangan stok | orders, order_items, invoices, invoice_schedules, sequences, activity_logs |
-| **3** | Pembayaran: rekening, upload mutasi BCA, pencocokan otomatis, daftar cek manual, input tunai, saldo customer | bank_accounts, mutation_imports, incoming_funds, payments, payment_allocations, customer_sender_aliases |
-| **4** | Status overdue (`mark-overdue`), reminder email + WhatsApp (Baileys), menu Reminder | reminder_logs, reminder_log_invoices |
+| **3** | Pelunasan tempo otomatis: rekening, upload mutasi BCA, pencocokan otomatis, daftar cek manual, saldo customer. Bayar langsung dan pelunasan tempo manual sudah dibangun lebih dulu (tabel `b2b_payments`, `b2b_payment_allocations`, `b2b_refunds`) | bank_accounts, mutation_imports, incoming_funds, payments, payment_allocations, customer_sender_aliases |
+| **4** ✅ | Status overdue (`mark-overdue`), reminder email + WhatsApp (Baileys), menu Reminder | reminder_logs, reminder_log_invoices |
 | **5** ✅ | Laporan B2B satu halaman: penjualan per customer/outlet/produk, umur piutang, mutasi pembayaran, kontrak yang hampir berakhir (lihat "Laporan B2B" di atas) | (membaca tabel di atas) |
-| Nanti | Mutasi otomatis, WhatsApp, pengiriman dan ekspedisi, cicilan | — |
+| Nanti | Mutasi otomatis, pengiriman dan ekspedisi, cicilan, status baca WhatsApp | — |
 
 Fase 3 membutuhkan contoh file mutasi BCA untuk membuat parser.
 
@@ -465,11 +465,7 @@ Polanya sama dengan `email:birthday` di `app/Console/Kernel.php` (zona waktu Asi
 
 Status invoice dihitung ulang setiap ada pembayaran atau pembatalan pembayaran (`PaymentService`): sisa 0 → `paid`; masih sisa dan sudah lewat jatuh tempo → `overdue`; selain itu `partial`/`unpaid`. `Invoice::displayStatus()` tetap menghitung dari tanggal sebagai cadangan sebelum `mark-overdue` jalan.
 
----|---|---|
-| `b2b:mark-overdue` | 00:05 | jadwal tagihan yang lewat jatuh tempo → `overdue` |
-| `b2b:send-due-reminders` | sesuai config (default 08:00) | kirim reminder sesuai jadwal lewat queue |
-
-Belum ada yang dibangun. Status kontrak tidak butuh command harian karena dihitung dari tanggal, jadi `b2b:sync-contract-status` dihapus 18 Nov 2026. Status overdue invoice juga sudah dihitung dari tanggal saat ditampilkan (`Invoice::displayStatus()`), jadi `b2b:mark-overdue` hanya perlu untuk laporan dan reminder.
+Keduanya sudah dibangun (`MarkB2bOverdue`, `SendB2bDueReminders`). Status kontrak tidak butuh command harian karena dihitung dari tanggal, jadi `b2b:sync-contract-status` dihapus 18 Nov 2026.
 
 ---
 
@@ -477,19 +473,17 @@ Belum ada yang dibangun. Status kontrak tidak butuh command harian karena dihitu
 
 Menu **B2B** didaftarkan lewat `B2bMenuSeeder`:
 
-| Menu | URL / permission |
-|---|---|
-| Customer | `b2b/customers` |
-| Kontrak | `b2b/contracts` |
-| Kasir B2B | `b2b/cashier` |
-| Pesanan | `b2b/orders` |
-| Invoice | `b2b/invoices` |
-| Reminder (Aktivitas + log email, WhatsApp, Customer) | `b2b/reminders` |
-| Pembayaran (Upload Mutasi, Rekonsiliasi) | `b2b/payments` |
-| Laporan | `b2b/reports` |
-| Pengaturan (Rekening) | `b2b/settings` |
+| Menu | URL | Permission (`<aksi> <url>`) |
+|---|---|---|
+| Kasir B2B | `b2b/cashier` | `read`, `create` |
+| Pesanan | `b2b/orders` | `read`, `complete`, `cancel` (batal pesanan dikonfirmasi), `cancel-completed` (batal pesanan selesai) |
+| Invoice | `b2b/invoices` | `read`, `pay` (catat dan batalkan pelunasan tempo) |
+| Reminder (tab Aktivitas, Customer, WhatsApp) | `b2b/reminders` | `read`, `send` (kirim ulang/manual), `toggle` (saklar darurat per channel), `manage-whatsapp` (hubungkan/putuskan nomor, pesan uji) |
+| Laporan | `b2b/reports` | `read` |
+| Customer | `b2b/customers` | `create`, `read`, `update`, `delete` |
+| Kontrak | `b2b/contracts` | `create` (termasuk Perpanjang), `read`, `update`, `delete`, `terminate` |
 
-Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay b2b/invoices` untuk mencatat pelunasan, `cancel b2b/orders` (batal pesanan dikonfirmasi), dan `cancel-completed b2b/orders` (batal pesanan selesai). Menu Reminder: `read b2b/reminders`, `send b2b/reminders` (kirim ulang/manual), `manage-whatsapp b2b/reminders` (hubungkan/putuskan nomor).
+Rencana fase 3 (belum dibuat): menu Pembayaran (`b2b/payments`: upload mutasi, rekonsiliasi) dan Pengaturan (`b2b/settings`: rekening).
 
 ---
 
@@ -516,15 +510,16 @@ Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay 
 
 ---
 
-## 10. Yang sudah dibangun (per 21 Nov 2026)
+## 10. Yang sudah dibangun (per 23 Nov 2026)
 
-- Commit: `2906e8a` (fase 1–2), `470fe1b` (satu kontak dan satu alamat), `865727f` (kontrak harga per varian).
-- Migration 12 tabel: `b2b_sequences`, `b2b_activity_logs`, `b2b_customers`, `b2b_contracts`, `b2b_contract_items`, `b2b_orders`, `b2b_order_items`, `b2b_invoices`, `b2b_invoice_schedules`, `b2b_payments`, `b2b_payment_allocations`, `b2b_refunds` (3 terakhir sejak 19 Nov, belum di-commit).
-- Service: `PricingService`, `ContractService`, `CustomerService`, `OrderService`, `PaymentService`, `SequenceService`, `ActivityLogger`, `B2bSettings` (`app/Services/B2b`).
-- Menu `B2bMenuSeeder`: Kasir B2B, Pesanan, Invoice, Customer, Kontrak.
-- Tidak ada command terjadwal B2B.
-- Invoice dicetak dari browser (Cetak / Simpan PDF). Library PDF ditambahkan saat reminder email butuh lampiran.
-- Menu Invoice sekarang hanya daftar dan cetak, karena pencatatan pembayaran (fase 3) belum ada.
+- Semua sudah di-commit. Commit awal: `2906e8a` (fase 1–2), `470fe1b` (satu kontak dan satu alamat), `865727f` (kontrak harga per varian); selebihnya lihat `git log --grep="(b2b)"`.
+- Migration 14 tabel (5 file `2026_11_14_10000x`, B2B belum production jadi diedit di tempat): `b2b_sequences`, `b2b_activity_logs`, `b2b_customers`, `b2b_contracts`, `b2b_contract_items`, `b2b_orders`, `b2b_order_items`, `b2b_invoices`, `b2b_invoice_schedules`, `b2b_payments`, `b2b_payment_allocations`, `b2b_refunds`, `b2b_reminder_logs`, `b2b_reminder_log_invoices`. Ditambah tabel wilayah Indonesia + kode pos (`2026_11_20_000001_create_wilayah_tables`, `WilayahSeeder`) untuk alamat customer.
+- Service (`app/Services/B2b`): `PricingService`, `ContractService`, `CustomerService`, `OrderService`, `PaymentService`, `OverdueService`, `ReminderService` (+ channel email/WhatsApp di `Reminder/`), `InvoicePdfService`, `ReportService`, `SequenceService`, `ActivityLogger`, `B2bSettings`.
+- Menu `B2bMenuSeeder`: Kasir B2B, Pesanan, Invoice, Reminder, Laporan, Customer, Kontrak (permission lihat bagian 7).
+- Command terjadwal: `b2b:mark-overdue` (00:05 WIB) dan `b2b:send-due-reminders` (09:00 WIB), lihat bagian 6.
+- Customer: alamat memakai dropdown wilayah berjenjang (provinsi → kabupaten/kota → kecamatan → kelurahan), wajib berjenjang sampai provinsi.
+- Invoice: nomor invoice format baru (kode dari config `B2bSettings::INVOICE_NUMBER_CODE_KEY`, 2 digit, reset tiap bulan), cetak dengan template Budiman (Cetak / Simpan PDF di browser, Unduh PDF lewat dompdf), export Excel per invoice dan rekap (`App\Exports\B2b\InvoiceRecapExport`). Menu Invoice jadi ruang kerja penagihan: filter status/customer, catat pelunasan, kirim reminder manual.
+- Daftar pesanan dan invoice punya filter customer.
 - Bayar langsung (19 Nov): `OrderService::place()` menerima `payment_type` + `payment`, `cancel()` menerima data refund. Dialog kasir punya pilihan Tempo / Bayar langsung (metode dari master POS, sub metode, no. referensi, uang diterima + kembalian untuk tunai). Detail pesanan menampilkan jenis pembayaran, riwayat pembayaran dan pengembalian dana; pesanan lunas dibatalkan lewat dialog refund (metode default = metode bayar semula). Cetak invoice menampilkan LUNAS + nomor bukti bayar.
 - Pelunasan tempo manual (19 Nov, B5): menu Invoice dan detail pesanan punya dialog "Catat Pelunasan" (nominal boleh sebagian, tanggal bayar mundur s.d. tanggal invoice, metode dari master POS, outlet penerima atau rekening pusat, no. referensi, bukti opsional `b2b_payments.attachment_path`, catatan). Semua metode termasuk transfer boleh dicatat manual sampai fitur mutasi ada. Pelunasan salah catat bisa dibatalkan tanpa refund (`PaymentService::reverse`); pembayaran pesanan bayar langsung tetap lewat batal pesanan + refund. Permission `pay b2b/invoices`.
 - 20 Nov: pesanan "Diambil sendiri" langsung Selesai; batal pesanan Selesai butuh permission `cancel-completed b2b/orders`.
@@ -544,8 +539,9 @@ Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay 
 - Laporan B2B langkah 6 (22 Nov): bagian Kontrak hampir berakhir (partial `reports/partials/contracts`), per hari ini: kontrak berjalan yang berakhir ≤ 30 hari (definisi sama dengan statistik menu Kontrak), tidak ikut periode dan outlet karena kontrak per customer, filter customer tetap berlaku. Kolom: customer, kontrak (+ tanggal mulai), berakhir (≤ 7 hari merah), kontrak lanjutan (kontrak aktif berikutnya milik customer yang sama) atau tombol Perpanjang (`contracts/create?copy_from=`, butuh `create b2b/contracts`), penjualan kontrak (pesanan dikonfirmasi + selesai sejak kontrak mulai, ikut filter outlet). Endpoint `contracts`. Gaya tabel ringkas jadi kelas bersama `.b2b-report-table`.
 - Laporan B2B langkah 7 (23 Nov): halaman kartu piutang customer `b2b/reports/customers/{customer}` (view `reports/customer`, termasuk customer terhapus), ikut filter periode + outlet di URL. Isi: identitas customer + kontrak berjalan, 4 KPI (sisa piutang & lewat jatuh tempo per hari ini, penjualan & kas masuk bersih periode), tabel invoice belum lunas (jatuh tempo terlama dulu), dan kartu piutang periode: saldo awal → mutasi (invoice terbit +, pembayaran −, invoice dibatalkan −, refund +) dengan saldo berjalan → saldo akhir. Pelunasan salah catat tidak dihitung, jadi saldo per hari ini = sisa invoice belum lunas. Pintu masuk: tombol Kartu piutang di filter saat customer dipilih, di modal daftar yang untuk satu customer, dan nama customer di tabel kontrak. Gaya bersama halaman laporan dipindah ke `reports/partials/styles`.
 - Laporan B2B langkah 8 (23 Nov): export Excel. Tombol Export Excel di halaman laporan (`reports/export`, ikut filter aktif) → workbook `App\Exports\B2b\ReportExport`: Ringkasan (KPI, umur piutang, kas per metode / outlet penerima / kasir), Item terjual (rekap per produk + varian + kategori: qty, jumlah pesanan, customer, harga rata-rata, total; dikelompokkan seperti tab Produk), Pesanan, Item pesanan (data mentah untuk pivot produk/kategori, termasuk harga normal vs harga kontrak), Piutang (+ kolom umur), Mutasi kas (terlama dulu), Kontrak. Tombol Export Excel di kartu piutang (`reports/customers/{customer}/export`) → `CustomerCardExport`: ringkasan, invoice belum lunas, kartu piutang dengan saldo. Semua sheet memakai penulis umum `ReportSheet` (gaya Rekap Invoice: Arial, header berwarna, angka/tanggal Excel asli, total = rumus SUM). Batas 20.000 baris per daftar (`EXPORT_MAX_ROWS`), lebih dari itu ditolak dengan pesan untuk mempersempit filter.
-- Belum ada: draft pesanan, pelunasan tempo otomatis (kode unik/VA), status baca WhatsApp + notifikasi nomor terputus.
-- Test: `tests/Feature/B2b` (141 test, 23 Nov 2026).
+- Perpanjang kontrak (23 Nov): tombol Perpanjang menyalin harga ke kontrak baru tanpa produk yang sudah dihapus (jumlahnya ditampilkan di form, validasi menolak varian terhapus kecuali baris lama saat edit). Kontrak yang sudah punya lanjutan menautkan ke kontrak lanjutan (`Contract::successor()`, `scopeWithSuccessorId()`) alih-alih menampilkan Perpanjang. Kontrak asal dicatat di log `contract.created` dan tampil "Diperpanjang dari KTR-xxx". Form Buat Kontrak biasa menawarkan "Salin harga dari KTR-xxx" untuk kontrak terakhir customer yang dipilih.
+- Belum ada: pelunasan tempo otomatis (kode unik/VA), status baca WhatsApp + notifikasi nomor terputus. Draft pesanan dibatalkan (23 Nov).
+- Test: `tests/Feature/B2b` (145 test, 23 Nov 2026).
 
 ### Perubahan 14 Nov 2026 (bedah kolom)
 
@@ -584,3 +580,5 @@ Setiap URL mendapat permission `read|create|update|delete <url>`, ditambah `pay 
 | 19 Nov 2026 | Limit kredit dihapus dari rencana: tidak ada aturan limit kredit maupun override. Kolom `credit_check_result`, `credit_override_by`, `credit_override_reason` dibuang dari `b2b_orders` |
 | 20 Nov 2026 | Pesanan "Diambil sendiri" langsung berstatus Selesai saat dibuat (`completed_by/at` = kasir). Pesanan kurir internal tetap Dikonfirmasi sampai ditandai selesai. Pesanan Selesai tetap bisa dibatalkan (stok kembali, invoice void, refund bila sudah dibayar) untuk koreksi salah input, dengan permission terpisah `cancel-completed b2b/orders` |
 | 20 Nov 2026 | Fase 4: `mark-overdue` menulis status + `overdue_at`, status dihitung ulang tiap bayar/batal bayar. Reminder harian s.d. H+7 lalu mingguan, mulai 09:00 (retry s.d. 17:00), email gabungan per customer + PDF. WhatsApp via Baileys di VPS terpisah. Menu Reminder + saklar darurat |
+| 21 Nov 2026 | Laporan B2B satu halaman dengan drilldown; pesanan Dikonfirmasi ikut dihitung penjualan; piutang per hari ini; kas = diterima − refund. Perbandingan periode dan realisasi kontrak tidak dibuat dulu |
+| 23 Nov 2026 | Draft pesanan dibatalkan. Alur Perpanjang kontrak diperbaiki (produk terhapus tidak disalin, tautan ke kontrak lanjutan, catatan kontrak asal, tawaran salin harga di form Buat Kontrak). Peringatan bentrok periode di form dan tombol Perpanjang di detail customer tidak dibuat (validasi overlap di server sudah cukup) |
