@@ -17,7 +17,13 @@
                     <h2 class="b2b-modal__title" id="report-list-title">Daftar pesanan</h2>
                     <p class="b2b-modal__sub" data-list-sub></p>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                <div class="b2b-report-list__head-actions">
+                    {{-- Muncul kalau daftar ini untuk satu customer. --}}
+                    <a class="btn ob-btn ob-btn-outline ob-btn-sm" data-list-card href="#" hidden>
+                        <i class="fas fa-address-card" aria-hidden="true"></i> Kartu piutang
+                    </a>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
             </div>
             <div class="modal-body">
                 <div class="b2b-report-list__total" data-list-total></div>
@@ -65,6 +71,8 @@
         .b2b-report-list .text-end .ob-cell-meta { font-weight: 400; }
         .b2b-report-list .b2b-report-list__out { color: var(--ob-danger); }
         .b2b-report-list__foot { justify-content: space-between; }
+        .b2b-report-list__head-actions { display: flex; flex-shrink: 0; align-items: center; gap: .75rem; margin-left: auto; }
+        .b2b-report-list__head-actions .btn-close { margin: 0; }
         .b2b-report-list__foot .ob-btn { min-height: 38px !important; }
         .b2b-report-list__page { font-size: .8rem; color: var(--ob-muted); }
     </style>
@@ -114,6 +122,8 @@
                 page = 1;
                 $modal.find('#report-list-title').text(options.title);
                 $modal.find('[data-list-sub]').text(options.sub);
+                const customerId = options.params.customer_id || B2bReport.state.customer_id;
+                $modal.find('[data-list-card]').prop('hidden', !customerId).attr('href', customerId ? B2bReport.customerUrl(customerId) : '#');
                 $modal.find('[data-list-empty]').text(options.empty).prop('hidden', true);
                 $modal.find('[data-list-rows], [data-list-head]').empty();
                 $modal.find('[data-list-total]').html('<span class="b2b-skeleton"></span>');

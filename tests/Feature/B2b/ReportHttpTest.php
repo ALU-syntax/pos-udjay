@@ -527,6 +527,69 @@ class ReportHttpTest extends B2bTestCase
         $this->assertSame(['PT Y'], array_column($this->section('contracts', ['customer_id' => $y->id])['items'], 'customer'));
     }
 
+    public function test_customer_card_shows_open_invoices_and_ledger_with_running_balance(): void
+    {
+        $x = $this->customer(['name' => 'PT Kartu']);
+        $payments = app(PaymentService::class);
+        $immediate = ['payment_type' => Order::PAYMENT_IMMEDIATE, 'payment' => ['category_payment_id' => $this->cash->id]];
+
+        // Sebelum periode: invoice A 20.000 (jatuh tempo 12 Okt), dibayar 5.000; pelunasan 3.000 salah catat tidak dihitung.
+        $this->travelTo(Carbon::parse('2026-10-05 09:00'));
+        $a = $this->place($x, 20000);
+        $this->travelTo(Carbon::parse('2026-10-20 09:00'));
+        $payments->record($this->staff, $a->invoice, ['category_payment_id' => $this->cash->id, 'amount' => 5000]);
+        $payments->reverse($this->staff, $payments->record($this->staff, $a->invoice, ['category_payment_id' => $this->cash->id, 'amount' => 3000]), 'Salah catat');
+
+        // Di periode: B bayar langsung, C bayar langsung lalu batal + refund, E tempo; D di outlet lain.
+        $this->travelTo(Carbon::parse('2026-11-03 09:00'));
+        $this->place($x, 30000, $immediate);
+        $this->travelTo(Carbon::parse('2026-11-10 09:00'));
+        $c = $this->place($x, 15000, $immediate);
+        $this->travelTo(Carbon::parse('2026-11-12 09:00'));
+        app(OrderService::class)->cancel($this->staff, $c, 'Customer batal', ['category_payment_id' => $this->cash->id]);
+        $this->travelTo(Carbon::parse('2026-11-15 09:00'));
+        $this->place($x, 25000);
+        $this->place($x, 40000, [], $this->otherOutlet);
+        $this->travelTo(Carbon::parse('2026-11-22 10:00'));
+
+        $guest = $this->userFor($this->outlet);
+        $this->actingAs($guest)->get(route('b2b/reports/customers', $x->id))->assertForbidden();
+
+        $response = $this->actingAs($this->staff)->get(route('b2b/reports/customers', ['customer' => $x->id, 'customer_id' => 999]))
+            ->assertOk()
+            ->assertSee('PT Kartu')
+            ->assertSee('Saldo akhir');
+        $card = $response->viewData('card');
+
+        $this->assertSame(['amount' => 40000, 'invoices' => 2, 'customers' => 1], $card['receivable']);
+        $this->assertSame(['amount' => 15000, 'invoices' => 1, 'customers' => 1], $card['overdue']);
+        $this->assertSame(41, $card['oldest_days_overdue']);
+        $this->assertSame(['amount' => 55000, 'orders' => 2], $card['sales']);
+        $this->assertSame(['received' => 45000, 'refunded' => 15000, 'net' => 30000], $card['cash']);
+        // E dibuat 15 Nov, jatuh tempo +7 hari = hari ini.
+        $this->assertSame([[15000, 41], [25000, 0]], array_map(fn ($invoice) => [$invoice['outstanding'], $invoice['days_overdue']], $card['open_invoices']));
+
+        $ledger = $card['ledger'];
+        $this->assertSame([15000, 85000, 60000, 40000], [$ledger['opening'], $ledger['debit'], $ledger['credit'], $ledger['closing']]);
+        $this->assertSame([
+            ['3 Nov 2026', 'invoice', 30000, 0, 45000],
+            ['3 Nov 2026', 'payment', 0, 30000, 15000],
+            ['10 Nov 2026', 'invoice', 15000, 0, 30000],
+            ['10 Nov 2026', 'payment', 0, 15000, 15000],
+            ['12 Nov 2026', 'void', 0, 15000, 0],
+            ['12 Nov 2026', 'refund', 15000, 0, 15000],
+            ['15 Nov 2026', 'invoice', 25000, 0, 40000],
+        ], array_map(fn ($row) => [$row['date'], $row['type'], $row['debit'], $row['credit'], $row['balance']], $ledger['rows']));
+
+        // Periode Oktober: saldo awal 0, saldo akhir terbawa ke awal November.
+        $october = $this->actingAs($this->staff)->get(route('b2b/reports/customers', ['customer' => $x->id, 'from' => '2026-10-01', 'to' => '2026-10-31']))
+            ->viewData('card')['ledger'];
+        $this->assertSame([0, 15000], [$october['opening'], $october['closing']]);
+        $this->assertSame(['invoice', 'payment'], array_column($october['rows'], 'type'));
+
+        $this->actingAs($this->staff)->get(route('b2b/reports/customers', 999999))->assertNotFound();
+    }
+
     public function test_summary_rejects_invalid_filters(): void
     {
         $this->actingAs($this->staff)

@@ -337,22 +337,7 @@ class ReportService
         return [
             'bucket' => $bucket,
             'totals' => $this->outstanding($totals),
-            'items' => collect($paginator->items())->map(fn (Invoice $invoice) => [
-                'id' => $invoice->id,
-                'invoice_number' => $invoice->invoice_number,
-                'order_id' => $invoice->b2b_order_id,
-                'order_number' => $invoice->order?->order_number,
-                'issue_date' => $this->shortDate($invoice->issue_date),
-                'due_date' => $this->shortDate($invoice->due_date),
-                'days_overdue' => $this->daysOverdue(CarbonImmutable::parse($invoice->due_date)),
-                'customer' => $invoice->customer?->name,
-                'outlet' => $invoice->order?->outlet?->name,
-                'status' => $invoice->statusLabel(),
-                'status_variant' => $invoice->statusVariant(),
-                'total' => (int) $invoice->total_to_pay,
-                'paid' => (int) $invoice->paid_amount,
-                'outstanding' => $invoice->outstandingAmount(),
-            ])->all(),
+            'items' => collect($paginator->items())->map(fn (Invoice $invoice) => $this->invoiceRow($invoice))->all(),
             'page' => $paginator->currentPage(),
             'last_page' => $paginator->lastPage(),
         ];
@@ -540,6 +525,132 @@ class ReportService
             'total' => $items->count(),
             'without_successor' => $items->whereNull('successor')->count(),
             'items' => $items->values()->all(),
+        ];
+    }
+
+    /**
+     * Kartu piutang satu customer ($filter->customerId wajib): ringkasan, invoice belum lunas per hari ini,
+     * dan mutasi tagihan di periode dengan saldo berjalan.
+     */
+    public function customerCard(ReportFilter $filter): array
+    {
+        $outstanding = 'count(*) as invoices, count(distinct b2b_customer_id) as customers, coalesce(sum(total_to_pay - paid_amount), 0) as amount';
+        $sales = $this->salesOrders($filter)->selectRaw('count(*) as orders, coalesce(sum(grand_total), 0) as amount')->first();
+        $received = (int) $this->receivedPayments($filter)->sum('amount');
+        $refunded = (int) $this->refunds($filter)->sum('amount');
+        $open = $this->openInvoices($filter)
+            ->with(['customer:id,code,name', 'order:id,order_number,outlet_id', 'order.outlet:id,name'])
+            ->orderBy('due_date')
+            ->orderBy('id')
+            ->get();
+
+        return [
+            'as_of' => today()->toDateString(),
+            'receivable' => $this->outstanding($this->openInvoices($filter)->selectRaw($outstanding)->first()),
+            'overdue' => $this->outstanding($this->openInvoices($filter, 'overdue')->selectRaw($outstanding)->first()),
+            'oldest_days_overdue' => $open->isEmpty() ? null : max(0, $this->daysOverdue(CarbonImmutable::parse($open->first()->due_date))),
+            'sales' => ['amount' => (int) $sales->amount, 'orders' => (int) $sales->orders],
+            'cash' => ['received' => $received, 'refunded' => $refunded, 'net' => $received - $refunded],
+            'open_invoices' => $open->map(fn (Invoice $invoice) => $this->invoiceRow($invoice))->all(),
+            'ledger' => $this->ledger($filter),
+        ];
+    }
+
+    /**
+     * Mutasi piutang customer di periode. Tagihan (+): invoice terbit, refund (uang dikembalikan). Pembayaran (−): uang diterima,
+     * invoice dibatalkan. Pelunasan salah catat yang dibatalkan tidak dihitung sama sekali (sama dengan definisi kas),
+     * jadi saldo per hari ini = sisa invoice yang belum lunas.
+     */
+    private function ledger(ReportFilter $filter): array
+    {
+        [$start, $end] = $filter->between();
+        $invoices = fn () => Invoice::query()
+            ->where('b2b_customer_id', $filter->customerId)
+            ->whereHas('order', fn (Builder $order) => $order->whereIn('outlet_id', $filter->outletIds));
+        $payments = fn () => Payment::query()
+            ->where('b2b_customer_id', $filter->customerId)
+            ->where(fn (Builder $query) => $query
+                ->where('status', Payment::STATUS_POSTED)
+                ->orWhere(fn (Builder $reversed) => $reversed->where('status', Payment::STATUS_REVERSED)->whereHas('refunds')))
+            ->whereHas('allocations.invoice.order', fn (Builder $order) => $order->withTrashed()->whereIn('outlet_id', $filter->outletIds));
+        $refunds = fn () => Refund::query()
+            ->whereHas('invoice', fn (Builder $invoice) => $invoice
+                ->where('b2b_customer_id', $filter->customerId)
+                ->whereHas('order', fn (Builder $order) => $order->withTrashed()->whereIn('outlet_id', $filter->outletIds)));
+        $voided = fn () => $invoices()->where('status', Invoice::STATUS_VOID)->whereNotNull('voided_at');
+
+        $opening = (int) $invoices()->whereDate('issue_date', '<', $start)->sum('total_to_pay')
+            - (int) $voided()->where('voided_at', '<', $start)->sum('total_to_pay')
+            - (int) $payments()->where('paid_at', '<', $start)->sum('amount')
+            + (int) $refunds()->where('refunded_at', '<', $start)->sum('amount');
+
+        // [waktu urut, urutan jenis pada hari yang sama, baris]
+        $entries = collect();
+        foreach ($invoices()->with('order:id,order_number')->whereBetween('issue_date', [$start->toDateString(), $end->toDateString()])->get() as $invoice) {
+            $entries->push([CarbonImmutable::parse($invoice->issue_date), 0, [
+                'type' => 'invoice', 'number' => $invoice->invoice_number, 'note' => $invoice->order?->order_number,
+                'order_id' => $invoice->b2b_order_id, 'debit' => (int) $invoice->total_to_pay, 'credit' => 0,
+            ]]);
+        }
+        foreach ($payments()->with('allocations.invoice:id,invoice_number,b2b_order_id')->whereBetween('paid_at', [$start, $end])->get() as $payment) {
+            $invoice = $payment->allocations->first()?->invoice;
+            $entries->push([CarbonImmutable::parse($payment->paid_at), 1, [
+                'type' => 'payment', 'number' => $payment->payment_number,
+                'note' => trim($payment->method_name.' · '.($invoice?->invoice_number ?? ''), ' ·'),
+                'order_id' => $invoice?->b2b_order_id, 'debit' => 0, 'credit' => (int) $payment->amount,
+            ]]);
+        }
+        foreach ($voided()->whereBetween('voided_at', [$start, $end])->get() as $invoice) {
+            $entries->push([CarbonImmutable::parse($invoice->voided_at), 2, [
+                'type' => 'void', 'number' => $invoice->invoice_number, 'note' => $invoice->void_reason,
+                'order_id' => $invoice->b2b_order_id, 'debit' => 0, 'credit' => (int) $invoice->total_to_pay,
+            ]]);
+        }
+        foreach ($refunds()->with(['payment:id,payment_number', 'invoice:id,b2b_order_id'])->whereBetween('refunded_at', [$start, $end])->get() as $refund) {
+            $entries->push([CarbonImmutable::parse($refund->refunded_at), 3, [
+                'type' => 'refund', 'number' => $refund->payment?->payment_number, 'note' => $refund->method_name,
+                'order_id' => $refund->invoice?->b2b_order_id, 'debit' => (int) $refund->amount, 'credit' => 0,
+            ]]);
+        }
+
+        $balance = $opening;
+        $rows = $entries
+            ->sortBy([fn ($a, $b) => $a[0]->toDateString() <=> $b[0]->toDateString(), fn ($a, $b) => $a[1] <=> $b[1], fn ($a, $b) => $a[0] <=> $b[0]])
+            ->map(function (array $entry) use (&$balance) {
+                $balance += $entry[2]['debit'] - $entry[2]['credit'];
+
+                return ['date' => $this->shortDate($entry[0])] + $entry[2] + ['balance' => $balance];
+            })
+            ->values();
+
+        return [
+            'from' => $this->shortDate($filter->from),
+            'to' => $this->shortDate($filter->to),
+            'opening' => $opening,
+            'debit' => (int) $rows->sum('debit'),
+            'credit' => (int) $rows->sum('credit'),
+            'closing' => $balance,
+            'rows' => $rows->all(),
+        ];
+    }
+
+    private function invoiceRow(Invoice $invoice): array
+    {
+        return [
+            'id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'order_id' => $invoice->b2b_order_id,
+            'order_number' => $invoice->order?->order_number,
+            'issue_date' => $this->shortDate($invoice->issue_date),
+            'due_date' => $this->shortDate($invoice->due_date),
+            'days_overdue' => $this->daysOverdue(CarbonImmutable::parse($invoice->due_date)),
+            'customer' => $invoice->customer?->name,
+            'outlet' => $invoice->order?->outlet?->name,
+            'status' => $invoice->statusLabel(),
+            'status_variant' => $invoice->statusVariant(),
+            'total' => (int) $invoice->total_to_pay,
+            'paid' => (int) $invoice->paid_amount,
+            'outstanding' => $invoice->outstandingAmount(),
         ];
     }
 

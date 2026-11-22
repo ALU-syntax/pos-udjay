@@ -168,6 +168,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [B2bReportController::class, 'index'])->name('reports');
             Route::get('/data/{section}', [B2bReportController::class, 'data'])
                 ->whereIn('section', B2bReportController::SECTIONS)->name('reports/data');
+            Route::get('/customers/{customer}', [B2bReportController::class, 'customer'])
+                ->whereNumber('customer')->withTrashed()->name('reports/customers');
         });
     });
 

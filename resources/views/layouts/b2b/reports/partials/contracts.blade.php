@@ -41,7 +41,6 @@
 @push('css')
     <style>
         .b2b-report-card[aria-busy="true"] [data-contracts-body] { opacity: .45; }
-        .b2b-report-empty--short { min-height: 120px; }
         .b2b-report-contracts strong { font-weight: 600; color: var(--ob-text); }
         .b2b-report-contracts a { font-weight: 600; color: var(--ob-primary); }
         .b2b-report-contracts .ob-cell-meta.is-danger { color: var(--ob-danger); font-weight: 600; }
@@ -57,6 +56,7 @@
         (function () {
             const contractUrl = @json($contractUrl);
             const renewUrl = @json($renewUrl);
+            const customerLink = item => `<a href="${B2bReport.customerUrl(item.customer_id)}">${esc(item.customer || '-')}</a>`;
             const $box = $('[data-report-section="contracts"]');
 
             const esc = value => B2bReport.escape(value);
@@ -89,7 +89,7 @@
                 $box.find('[data-contracts-empty]').text(`Tidak ada kontrak yang berakhir dalam ${data.days} hari ke depan.`).prop('hidden', !!data.total);
                 $box.find('[data-contracts-body]').prop('hidden', !data.total);
                 $box.find('[data-contracts-rows]').html(data.items.map(item => `<tr>
-                    <td><strong>${esc(item.customer || '-')}</strong>${meta(esc(item.customer_code || ''))}</td>
+                    <td>${customerLink(item)}${meta(esc(item.customer_code || ''))}</td>
                     <td>${link(contractUrl, item.id, item.contract_number)}${meta(`Mulai ${esc(item.start_date)}`)}</td>
                     <td class="text-nowrap">${esc(item.end_date)}${daysLeft(item.days_left)}</td>
                     <td>${successor(item)}</td>

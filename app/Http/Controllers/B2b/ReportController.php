@@ -38,6 +38,26 @@ class ReportController extends Controller
         ]);
     }
 
+    /**
+     * Kartu piutang satu customer: halaman baru di dalam menu laporan. Ikut filter periode dan outlet dari URL
+     * (sama dengan halaman laporan); customer selalu customer ini.
+     */
+    public function customer(Request $request, Customer $customer)
+    {
+        $this->authorize('read b2b/reports');
+
+        $outletIds = $request->user()->outletIds();
+        $filter = ReportFilter::resolve(['customer_id' => $customer->id] + $request->query(), $outletIds);
+
+        return view('layouts.b2b.reports.customer', [
+            'customer' => $customer,
+            'filter' => $filter,
+            'outlets' => Outlets::query()->whereIn('id', $outletIds)->orderBy('name')->get(['id', 'name']),
+            'contract' => $customer->contracts()->effectiveOn(today())->first(['id', 'contract_number', 'start_date', 'end_date']),
+            'card' => $this->reports->customerCard($filter),
+        ]);
+    }
+
     public function data(Request $request, string $section)
     {
         $this->authorize('read b2b/reports');
