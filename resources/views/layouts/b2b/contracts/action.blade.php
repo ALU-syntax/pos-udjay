@@ -9,9 +9,16 @@
             </a>
         @endcan
     @endif
-    @can('create b2b/contracts')
-        <a href="{{ route('b2b/contracts/create', ['copy_from' => $contract->id]) }}" class="ob-icon-btn ob-icon-btn--sm" title="Perpanjang (salin ke kontrak baru)" aria-label="Perpanjang kontrak">
-            <i class="fas fa-copy" aria-hidden="true"></i>
+    {{-- Kontrak yang sudah punya lanjutan tidak bisa diperpanjang lagi (periode pasti bertabrakan); arahkan ke lanjutannya. --}}
+    @if ($contract->successor_id)
+        <a href="{{ route('b2b/contracts/show', $contract->successor_id) }}" class="ob-icon-btn ob-icon-btn--sm" title="Sudah diperpanjang, lihat kontrak lanjutan" aria-label="Lihat kontrak lanjutan">
+            <i class="fas fa-arrow-right" aria-hidden="true"></i>
         </a>
-    @endcan
+    @else
+        @can('create b2b/contracts')
+            <a href="{{ route('b2b/contracts/create', ['copy_from' => $contract->id]) }}" class="ob-icon-btn ob-icon-btn--sm" title="Perpanjang (salin ke kontrak baru)" aria-label="Perpanjang kontrak">
+                <i class="fas fa-copy" aria-hidden="true"></i>
+            </a>
+        @endcan
+    @endif
 </div>

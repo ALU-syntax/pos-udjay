@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class Contract extends Model
 {
@@ -62,6 +63,41 @@ class Contract extends Model
         return $query->where('status', self::STATUS_ACTIVE)
             ->whereDate('start_date', '<=', $day)
             ->whereDate('end_date', '>=', $day);
+    }
+
+    /**
+     * Kontrak lanjutan = kontrak aktif paling awal milik customer yang sama yang mulai pada/setelah kontrak ini mulai.
+     * Memakai tanggal mulai (bukan berakhir) supaya kontrak yang dihentikan lalu diganti kontrak baru di tengah
+     * periodenya tetap dianggap sudah punya lanjutan. Kontrak aktif tidak tumpang tindih, jadi untuk kontrak aktif
+     * lanjutannya selalu mulai setelah kontrak ini berakhir.
+     */
+    public function successor(): ?self
+    {
+        return static::query()
+            ->where('b2b_customer_id', $this->b2b_customer_id)
+            ->where('status', self::STATUS_ACTIVE)
+            ->whereKeyNot($this->id)
+            ->whereDate('start_date', '>=', $this->start_date->toDateString())
+            ->orderBy('start_date')
+            ->orderBy('id')
+            ->first();
+    }
+
+    /** Tambah kolom `successor_id` (lihat successor()) untuk daftar kontrak tanpa query per baris. */
+    public function scopeWithSuccessorId(Builder $query): Builder
+    {
+        // DB::table, bukan Eloquent: scope soft delete Eloquent merujuk nama tabel asli, bukan alias `nx`.
+        return $query->addSelect(['successor_id' => DB::table('b2b_contracts as nx')
+            ->select('nx.id')
+            ->whereColumn('nx.b2b_customer_id', 'b2b_contracts.b2b_customer_id')
+            ->whereColumn('nx.id', '<>', 'b2b_contracts.id')
+            ->whereColumn('nx.start_date', '>=', 'b2b_contracts.start_date')
+            ->where('nx.status', self::STATUS_ACTIVE)
+            ->whereNull('nx.deleted_at')
+            ->orderBy('nx.start_date')
+            ->orderBy('nx.id')
+            ->limit(1),
+        ]);
     }
 
     public function isTerminated(): bool

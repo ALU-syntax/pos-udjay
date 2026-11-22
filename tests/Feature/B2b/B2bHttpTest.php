@@ -395,6 +395,38 @@ class B2bHttpTest extends B2bTestCase
         $this->assertSame(8900, $contract->items()->where('variant_id', $kept->id)->value('price'));
     }
 
+    public function test_renewed_contract_links_to_successor_instead_of_renew_button(): void
+    {
+        $user = $this->userFor(null, ['read b2b/contracts', 'create b2b/contracts']);
+        $renewed = $this->customer();
+        $old = $this->contract($renewed);
+        $next = $this->contract($renewed, [], ['start_date' => today()->addDays(21), 'end_date' => today()->addDays(60)]);
+        // Kontrak dihentikan lalu diganti kontrak baru yang mulai sebelum tanggal berakhir kontrak lama.
+        $replaced = $this->customer();
+        $stopped = $this->contract($replaced, [], ['status' => Contract::STATUS_TERMINATED, 'start_date' => today()->subDays(30), 'end_date' => today()->addDays(30)]);
+        $replacement = $this->contract($replaced, [], ['start_date' => today()->subDays(5), 'end_date' => today()->addDays(60)]);
+        $alone = $this->contract($this->customer());
+        $renewUrl = fn (Contract $contract) => route('b2b/contracts/create', ['copy_from' => $contract->id]);
+
+        foreach ([[$old, $next], [$stopped, $replacement], [$next, null], [$alone, null]] as [$contract, $successor]) {
+            $page = $this->actingAs($user)->get(route('b2b/contracts/show', $contract->id))->assertOk();
+            $successor
+                ? $page->assertSee('Lanjutan: '.$successor->contract_number)->assertDontSee($renewUrl($contract))
+                : $page->assertSee($renewUrl($contract))->assertDontSee('Lanjutan:');
+
+            $this->app->forgetInstance('datatables.request');
+            $rows = collect($this->actingAs($user)->getJson(
+                route('b2b/contracts', ['draw' => 1, 'start' => 0, 'length' => 10, 'customer_id' => $contract->b2b_customer_id]),
+                ['X-Requested-With' => 'XMLHttpRequest'],
+            )->assertOk()->json('data'))->keyBy('DT_RowId');
+            $action = $rows[$contract->id]['action'];
+            $successor
+                ? $this->assertStringContainsString(route('b2b/contracts/show', $successor->id), $action)
+                : $this->assertStringContainsString($renewUrl($contract), $action);
+            $this->assertSame(! $successor, str_contains($action, $renewUrl($contract)));
+        }
+    }
+
     public function test_variant_selector_lists_every_variant_of_one_outlet(): void
     {
         $outlet = $this->outlet();

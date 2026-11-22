@@ -44,9 +44,14 @@
                             <i class="fas fa-ban" aria-hidden="true"></i> Hentikan</a>
                     @endcan
                 @endif
-                @can('create b2b/contracts')
-                    <a href="{{ route('b2b/contracts/create', ['copy_from' => $contract->id]) }}" class="btn ob-btn ob-btn-outline"><i class="fas fa-copy" aria-hidden="true"></i> Perpanjang</a>
-                @endcan
+                @if ($successor)
+                    <a href="{{ route('b2b/contracts/show', $successor->id) }}" class="btn ob-btn ob-btn-outline" title="Kontrak ini sudah diperpanjang">
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i> Lanjutan: {{ $successor->contract_number }}</a>
+                @else
+                    @can('create b2b/contracts')
+                        <a href="{{ route('b2b/contracts/create', ['copy_from' => $contract->id]) }}" class="btn ob-btn ob-btn-outline"><i class="fas fa-copy" aria-hidden="true"></i> Perpanjang</a>
+                    @endcan
+                @endif
                 @if (!$contract->isTerminated())
                     @can('update b2b/contracts')
                         <a href="{{ route('b2b/contracts/edit', $contract->id) }}" class="btn ob-btn ob-btn-primary"><i class="fas fa-pen" aria-hidden="true"></i> Edit Kontrak</a>

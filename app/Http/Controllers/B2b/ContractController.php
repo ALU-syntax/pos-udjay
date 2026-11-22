@@ -87,6 +87,7 @@ class ContractController extends Controller
 
         return view('layouts.b2b.contracts.show', [
             'contract' => $contract,
+            'successor' => $contract->successor(),
             'orderCount' => $contract->customer->orders()->where('b2b_contract_id', $contract->id)->count(),
         ]);
     }

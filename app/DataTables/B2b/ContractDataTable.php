@@ -48,6 +48,7 @@ class ContractDataTable extends DataTable
     {
         $query = $model->newQuery()
             ->select('b2b_contracts.*')
+            ->withSuccessorId()
             ->with('customer')
             ->withCount(['items', 'items as products_count' => fn ($items) => $items->select(DB::raw('count(distinct variant_id)'))]);
 
