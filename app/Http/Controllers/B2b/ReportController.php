@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
 class ReportController extends Controller
 {
     /** Bagian laporan yang punya endpoint data. Bertambah seiring tahap pengerjaan. */
-    public const SECTIONS = ['summary', 'trend', 'customers', 'orders'];
+    public const SECTIONS = ['summary', 'trend', 'breakdown', 'orders'];
 
     public function __construct(private readonly ReportService $reports)
     {
@@ -50,6 +50,10 @@ class ReportController extends Controller
             'customer_id' => ['nullable', 'integer'],
             'group' => ['nullable', Rule::in(['day', 'week', 'month'])],
             'page' => ['nullable', 'integer', 'min:1'],
+            'by' => [Rule::requiredIf($section === 'breakdown'), Rule::in(ReportService::BREAKDOWNS)],
+            'product' => ['nullable', 'string', 'max:255'],
+            'variant' => ['nullable', 'string', 'max:255'],
+            'category_id' => ['nullable', 'integer', 'min:0'],
         ], [
             'to.after_or_equal' => 'Tanggal akhir periode tidak boleh sebelum tanggal awal.',
             'outlet_id.in' => 'Anda tidak punya akses ke outlet ini.',
@@ -59,7 +63,7 @@ class ReportController extends Controller
         $data = match ($section) {
             'summary' => $this->reports->summary($filter),
             'trend' => $this->reports->trend($filter, $request->query('group')),
-            'customers' => $this->reports->salesByCustomer($filter),
+            'breakdown' => $this->reports->breakdown($filter, $request->query('by')),
             'orders' => $this->reports->orders($filter, $request->integer('page', 1)),
         };
 

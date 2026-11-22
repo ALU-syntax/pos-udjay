@@ -113,6 +113,7 @@
         </section>
 
         @include('layouts.b2b.reports.partials.trend')
+        @include('layouts.b2b.reports.partials.breakdown')
     </div>
 
     @include('layouts.b2b.reports.partials.orders-modal')
@@ -176,7 +177,8 @@
             .b2b-report-toggle { display: inline-flex; padding: 3px; border: 1px solid var(--ob-border-strong); border-radius: 10px; background: var(--ob-surface-2); }
             .b2b-report-toggle[hidden] { display: none; }
             .b2b-report-toggle button { min-height: 32px; padding: 0 .85rem; border: 0; border-radius: 7px; background: transparent; color: var(--ob-text-2); font-size: .78rem; font-weight: 600; }
-            .b2b-report-toggle button[aria-pressed="true"] { background: var(--ob-surface); color: var(--ob-primary); box-shadow: 0 1px 3px rgba(15, 23, 42, .12); }
+            .b2b-report-toggle button[aria-pressed="true"],
+            .b2b-report-toggle button[aria-selected="true"] { background: var(--ob-surface); color: var(--ob-primary); box-shadow: 0 1px 3px rgba(15, 23, 42, .12); }
             .b2b-report-toggle button:disabled { opacity: .4; cursor: not-allowed; }
             /* Tooltip chart */
             .b2b-report-tip { padding: .55rem .7rem; font-size: .78rem; line-height: 1.5; }
@@ -261,14 +263,68 @@
                     reloadAll();
                 }
 
-                /** Keterangan filter untuk judul modal, mis. "1 Nov 2026 – 21 Nov 2026 · Outlet A · PT X". */
-                function describe(extra = {}) {
+                /**
+                 * Keterangan filter untuk judul modal, mis. "1 Nov 2026 – 21 Nov 2026 · Outlet A · PT X · Kopi Susu".
+                 * labels = nama pilihan drilldown; outlet/customer dari filter halaman hanya disebut kalau tidak ditimpa drilldown.
+                 */
+                function describe(extra = {}, labels = []) {
                     const params = Object.assign({}, state, extra);
                     const parts = [B2b.rangeLabel(moment(params.from), moment(params.to))];
-                    if (params.outlet_id) parts.push($('#report-outlet option:selected').text());
-                    if (extra.customer_name) parts.push(extra.customer_name);
-                    else if (params.customer_id) parts.push($('#report-customer').select2('data')[0]?.name || $('#report-customer option:selected').text());
-                    return parts.join(' · ');
+                    if (state.outlet_id && !extra.outlet_id) parts.push($('#report-outlet option:selected').text());
+                    if (state.customer_id && !extra.customer_id) {
+                        parts.push($('#report-customer').select2('data')[0]?.name || $('#report-customer option:selected').text());
+                    }
+                    return parts.concat(labels).join(' · ');
+                }
+
+                /** Isi tooltip chart: judul, nominal, jumlah pesanan (+ qty untuk produk). */
+                function tip(title, amount, orders, qty = null) {
+                    const detail = `${number(orders)} pesanan` + (qty != null ? ` · ${number(qty)} item` : '');
+                    return `<div class="b2b-report-tip"><strong>${escape(title)}</strong>${rupiah(amount)}<br><span>${detail}</span></div>`;
+                }
+
+                /**
+                 * Chart peringkat (batang horizontal) untuk drilldown. rows: [{ label, amount, orders, qty?, muted? }];
+                 * baris muted (mis. "Lainnya") berwarna abu-abu. Mengganti chart lama di elemen yang sama.
+                 */
+                function rankChart(el, previous, rows, onSelect) {
+                    previous?.destroy();
+                    if (typeof ApexCharts === 'undefined') {
+                        $(el).html('<div class="b2b-report-empty">Chart belum siap.</div>');
+                        return null;
+                    }
+                    const select = index => rows[index] && !rows[index].muted && onSelect(rows[index], index);
+                    const chart = new ApexCharts(el, {
+                        chart: {
+                            type: 'bar', height: Math.max(220, rows.length * 42 + 50), fontFamily: 'inherit',
+                            toolbar: { show: false }, zoom: { enabled: false }, animations: { enabled: true, speed: 300 },
+                            events: { dataPointSelection: (event, context, config) => select(config.dataPointIndex) },
+                        },
+                        series: [{ name: 'Penjualan', data: rows.map(row => row.amount) }],
+                        colors: rows.map(row => row.muted ? '#94a3b8' : '#1572e8'),
+                        plotOptions: { bar: { horizontal: true, distributed: true, borderRadius: 4, barHeight: '62%', dataLabels: { position: 'top' } } },
+                        dataLabels: { enabled: true, formatter: compactRupiah, offsetX: 34, style: { colors: ['#334155'], fontSize: '11px', fontWeight: 600 } },
+                        legend: { show: false },
+                        grid: { borderColor: '#eef2f7', strokeDashArray: 4 },
+                        states: { hover: { filter: { type: 'darken', value: .9 } }, active: { filter: { type: 'none' } } },
+                        xaxis: { categories: rows.map(row => row.label), labels: { formatter: compactRupiah, style: { colors: '#64748b', fontSize: '11px' } } },
+                        yaxis: { labels: { maxWidth: 220, style: { colors: '#0f172a', fontSize: '12px' } } },
+                        tooltip: { custom: ({ dataPointIndex }) => {
+                            const row = rows[dataPointIndex];
+                            return tip(row.label, row.amount, row.orders, row.qty);
+                        } },
+                    });
+                    chart.render();
+                    return chart;
+                }
+
+                /** Baris chart peringkat dari respons breakdown (10 teratas + "Lainnya"). */
+                function rankRows(data, noun) {
+                    const rows = data.items.map(item => ({ label: item.label, amount: item.amount, orders: item.orders, qty: item.qty, item }));
+                    if (data.others) {
+                        rows.push({ label: `Lainnya (${number(data.others.count)} ${noun})`, amount: data.others.amount, orders: data.others.orders, muted: true });
+                    }
+                    return rows;
                 }
 
                 $(document).on('click', '[data-report-retry]', function () {
@@ -276,7 +332,7 @@
                 });
 
                 return {
-                    number, rupiah, compactRupiah, escape, state, setFilter, reloadAll, load, showError, describe,
+                    number, rupiah, compactRupiah, escape, state, setFilter, reloadAll, load, showError, describe, tip, rankChart, rankRows,
                     fetch: fetchData,
                     section(name, render, params = () => ({})) { sections[name] = { render, params }; },
                 };

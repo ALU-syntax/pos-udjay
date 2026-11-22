@@ -1,0 +1,1264 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alur Gudang</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --bg:#E8EEEB; --surface:#FFFFFF; --surface-2:#F2F6F4; --paper:#FFFFFF;
+  --ink:#12201A; --ink-2:#33443D; --muted:#5C6E66; --line:#D3DDD8; --line-strong:#A9BAB2;
+  --accent:#0E7A5A; --on-accent:#FFFFFF; --accent-soft:#D9EEE5;
+  --amber:#965F00; --amber-soft:#F6E7CA; --red:#B2382B; --red-soft:#F6DED9;
+  --blue:#2a6fc4; --blue-soft:#DCE8F7;
+  --shadow:0 1px 2px rgba(18,32,26,.06),0 14px 36px rgba(18,32,26,.10);
+  --font-display:"Bricolage Grotesque","Plus Jakarta Sans",system-ui,sans-serif;
+  --font-body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --bar-h:56px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0A110E; --surface:#111A16; --surface-2:#17221D; --paper:#18241F;
+    --ink:#E3ECE7; --ink-2:#C0CDC7; --muted:#8C9E96; --line:#24322C; --line-strong:#3A4A43;
+    --accent:#3EC497; --on-accent:#04241A; --accent-soft:#11372A;
+    --amber:#E2A73D; --amber-soft:#382A11; --red:#EF6C5C; --red-soft:#3C1D18;
+    --blue:#6FA8EE; --blue-soft:#14263D;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px rgba(0,0,0,.45);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0A110E; --surface:#111A16; --surface-2:#17221D; --paper:#18241F;
+  --ink:#E3ECE7; --ink-2:#C0CDC7; --muted:#8C9E96; --line:#24322C; --line-strong:#3A4A43;
+  --accent:#3EC497; --on-accent:#04241A; --accent-soft:#11372A;
+  --amber:#E2A73D; --amber-soft:#382A11; --red:#EF6C5C; --red-soft:#3C1D18;
+  --blue:#6FA8EE; --blue-soft:#14263D;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px rgba(0,0,0,.45);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--font-body);-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+h1,h2,h3,p,ul,ol,dl,dd,figure{margin:0}
+ul,ol{padding:0;list-style:none}
+h1,h2,h3{text-wrap:balance}
+code{font-family:var(--font-mono);font-size:.9em}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- Deck: default = mode tumpuk (layar sempit) ---------- */
+.deck{display:flex;flex-direction:column;gap:20px;padding-block:20px calc(var(--bar-h) + 28px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.slide{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px 20px;display:flex;flex-direction:column;gap:20px;min-width:0;overflow:hidden;scroll-margin-top:16px}
+.head{display:flex;flex-direction:column;gap:8px;max-width:960px}
+.eyebrow{font:600 12px/1.3 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.title{font:800 28px/1.08 var(--font-display);letter-spacing:-.02em;color:var(--ink)}
+.lede{font-size:16px;line-height:1.5;color:var(--ink-2);max-width:76ch}
+.body{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:16px}
+.note{font-size:12.5px;color:var(--muted)}
+.hscroll{overflow-x:auto;min-width:0}
+
+.chip{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 var(--font-body);padding:5px 9px;border-radius:999px;white-space:nowrap;font-style:normal}
+.chip.ok{background:var(--accent-soft);color:var(--accent)}
+.chip.warn{background:var(--amber-soft);color:var(--amber)}
+.chip.bad{background:var(--red-soft);color:var(--red)}
+.chip.info{background:var(--blue-soft);color:var(--blue)}
+.chip.mute{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 14px;font:600 13px/1 var(--font-body);cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line-strong);border-radius:999px;padding:3px;gap:2px;background:var(--surface)}
+.seg button{border:none;background:transparent;padding:6px 12px;border-radius:999px;cursor:pointer;font:600 13px/1 var(--font-body);color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.dots li{padding-left:14px;position:relative}
+.dots li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.dots.amber li::before{background:var(--amber)}
+.dots.mute li::before{background:var(--line-strong)}
+.lbl-mono{font:600 11px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- Bar navigasi ---------- */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;gap:10px;height:calc(var(--bar-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--bg);background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);transition:opacity .3s ease}
+.bar.is-idle{opacity:0}
+.ibtn{width:36px;height:36px;flex:none;border-radius:9px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+.ibtn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.ibtn:disabled{opacity:.4;cursor:default}
+.ibtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.counter{font:600 13px/1 var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar-title{font-size:13.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:240px}
+.progress{flex:1;height:3px;background:var(--line);border-radius:3px;overflow:hidden;min-width:32px}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s ease}
+.hint{font:500 12px/1 var(--font-mono);color:var(--muted);white-space:nowrap;display:none}
+@media (max-width:520px){.bar-title{display:none}}
+
+/* ---------- 1. Judul ---------- */
+.title-grid{display:grid;gap:28px;flex:1;min-height:0}
+.title-copy{display:flex;flex-direction:column;gap:18px;justify-content:center;min-width:0}
+.display{font:800 64px/.92 var(--font-display);letter-spacing:-.035em}
+.display span{color:var(--accent)}
+.meta-list{display:grid;gap:10px;border-top:1px solid var(--line);padding-top:16px}
+.meta-list li{display:grid;grid-template-columns:92px 1fr;gap:12px;font-size:15px;color:var(--ink-2)}
+.meta-list span{font:500 11.5px/1.7 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.doc-wrap{display:flex;align-items:center;justify-content:center;min-width:0;padding:8px}
+.doc{position:relative;width:100%;max-width:450px;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:22px 24px 74px;box-shadow:var(--shadow);transform:rotate(2deg);font-size:13px}
+.doc header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:12px;gap:10px}
+.doc-label{font:800 19px/1 var(--font-display);letter-spacing:.04em}
+.doc-no{font:500 11.5px/1.2 var(--font-mono);color:var(--ink-2);margin-top:4px}
+.doc-meta{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:6px 14px;margin-bottom:10px}
+.doc-meta span{display:block;font:500 10px/1.5 var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.doc-meta strong{font-weight:600}
+.doc-lines{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.doc-lines td{padding:6px 0;border-bottom:1px dashed var(--line);vertical-align:top}
+.doc-lines td:last-child{text-align:right;font-family:var(--font-mono);font-size:12px;white-space:nowrap}
+.doc-lines small{display:block;color:var(--muted);font-family:var(--font-mono);font-size:11px}
+.doc-total{display:flex;justify-content:space-between;border-top:1px solid var(--ink);padding-top:8px;margin-top:10px;font-weight:700}
+.doc-total dd{font-family:var(--font-mono);font-weight:600}
+.doc footer{margin-top:12px;font-size:11.5px;color:var(--muted)}
+.trail{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.trail span{font:500 10.5px/1 var(--font-mono);padding:4px 6px;border-radius:4px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+.stamp{position:absolute;right:24px;bottom:18px;font:700 30px/1 var(--font-mono);letter-spacing:.16em;color:var(--amber);border:3px solid var(--amber);border-radius:6px;padding:6px 10px 6px 16px;transform:rotate(-14deg);opacity:.9;pointer-events:none}
+
+/* ---------- 2. Peta alur ---------- */
+.flow{display:grid;gap:10px;grid-template-columns:1fr}
+.flow li{display:flex;min-width:0}
+.flow .fstep{flex:1;min-width:0}
+.fstep{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:14px 16px;border:1.5px solid var(--line-strong);border-radius:12px;background:var(--surface);cursor:pointer;transition:background .3s ease,border-color .3s ease,transform .3s ease}
+.fstep .n{font:600 11.5px/1 var(--font-mono);color:var(--muted)}
+.fstep b{font:700 16px/1.2 var(--font-body)}
+.fstep small{font-size:12.5px;line-height:1.35;color:var(--muted)}
+.fstep:hover{border-color:var(--accent)}
+.fstep.is-done{border-color:var(--accent)}
+.fstep.is-on{background:var(--accent-soft);border-color:var(--accent);border-width:2px}
+.fstep.later{border-style:dashed;border-color:var(--amber)}
+.fstep.later.is-on{background:var(--amber-soft)}
+.fstep.later .n{color:var(--amber)}
+.flow-cap{display:grid;gap:14px;padding:18px 20px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);min-height:150px}
+.cap-top{display:flex;flex-direction:column;gap:4px}
+.cap-n{font:600 11.5px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.cap-t{font:700 20px/1.25 var(--font-body)}
+.cap-d{font-size:14.5px;line-height:1.5;color:var(--ink-2);max-width:90ch}
+.cap-facts{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.cap-facts div{display:flex;flex-direction:column;gap:3px;padding-top:10px;border-top:1px solid var(--line)}
+.cap-facts dd{font-size:13.5px;color:var(--ink)}
+.flow-tools{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+
+/* ---------- 3. Master data ---------- */
+.masters{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.mcard{display:flex;flex-direction:column;gap:10px;padding:18px 20px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);min-width:0}
+.mcard header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mcard h3{font:700 17px/1.25 var(--font-body)}
+.mcard p{font-size:13.5px;color:var(--ink-2)}
+.mcard svg{width:28px;height:28px;stroke:var(--accent);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.cols{display:flex;flex-wrap:wrap;gap:5px}
+.cols li{font:500 11.5px/1.3 var(--font-mono);padding:3px 7px;border-radius:5px;background:var(--surface);border:1px solid var(--line);color:var(--ink-2)}
+.cols li i{font-style:normal;color:var(--accent);font-weight:600}
+
+/* ---------- 4. Konversi ---------- */
+.conv{display:grid;gap:22px}
+.conv-left{display:flex;flex-direction:column;gap:14px;min-width:0}
+.formula{font:500 15px/1.5 var(--font-mono);padding:14px 16px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink)}
+.formula b{color:var(--accent);font-weight:600}
+.ctable{width:100%;border-collapse:collapse;font-size:13.5px}
+.ctable th{font:600 10.5px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;color:var(--muted);padding:0 10px 8px 0;border-bottom:1px solid var(--line-strong)}
+.ctable td{padding:8px 10px 8px 0;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:top}
+.ctable td:first-child{font-weight:700;color:var(--ink)}
+.ctable code{color:var(--ink)}
+.conv-right{display:flex;flex-direction:column;gap:12px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--surface);min-width:0}
+.conv-in{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.qty-in{width:96px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface);font:600 16px/1 var(--font-mono);text-align:right}
+.calc{font-family:var(--font-mono);font-variant-numeric:tabular-nums;display:grid;gap:8px;padding:16px 18px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.calc .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.calc .k{font-family:var(--font-body);font-size:13px;color:var(--muted)}
+.calc .v{font-size:18px;color:var(--ink);white-space:nowrap}
+.calc .total{border-top:2px solid var(--ink);padding-top:8px}
+.calc .total .k{color:var(--ink);font-weight:700}
+.calc .total .v{font-size:24px;font-weight:600;color:var(--accent)}
+.calc.is-err{background:var(--red-soft);border-color:var(--red)}
+.err-msg{font:500 13px/1.45 var(--font-body);color:var(--red)}
+.snap{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font:500 12px/1.5 var(--font-mono)}
+.snap dt{color:var(--muted)}
+.snap dd{color:var(--ink);text-align:right}
+
+/* ---------- 5. Lokasi & stok ---------- */
+.loc{display:grid;gap:22px}
+.tree{display:flex;flex-direction:column;gap:8px;min-width:0}
+.tnode{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:14px;min-width:0}
+.tnode b{font-weight:700}
+.tnode .chip{font-size:11px;padding:4px 7px}
+.tchildren{display:flex;flex-direction:column;gap:8px;margin-left:14px;padding-left:16px;border-left:2px solid var(--line-strong)}
+.stock{display:flex;flex-direction:column;gap:12px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);min-width:0}
+.stock h3{font:700 16px/1.3 var(--font-body)}
+.srow{display:grid;grid-template-columns:150px 1fr 92px;gap:12px;align-items:center;font-size:13.5px}
+.srow .name{font-weight:600}
+.sbar{position:relative;height:22px;border-radius:6px;background:var(--surface);border:1px solid var(--line);overflow:hidden}
+.sbar i{position:absolute;top:0;bottom:0;left:0;transition:width .8s cubic-bezier(.2,.7,.2,1)}
+.sbar .free{background:var(--accent)}
+.sbar .res{background:repeating-linear-gradient(45deg,var(--amber) 0 4px,var(--amber-soft) 4px 8px)}
+.srow .val{font:600 12.5px/1.3 var(--font-mono);text-align:right}
+.srow .val small{display:block;font-weight:400;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:6px}
+.loc-rules{display:flex;flex-direction:column;gap:7px;font-size:13.5px;color:var(--ink-2)}
+
+/* ---------- 6. Status Request Order ---------- */
+.states{display:grid;gap:10px;grid-template-columns:1fr}
+.state{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px 16px;border:1.5px solid var(--line-strong);border-radius:12px;background:var(--surface);cursor:pointer;text-align:left;transition:background .25s ease,border-color .25s ease}
+.state .n{font:600 11.5px/1 var(--font-mono);color:var(--muted)}
+.state b{font:700 18px/1.2 var(--font-body)}
+.state small{font-size:12.5px;color:var(--muted)}
+.state:hover{border-color:var(--accent)}
+.state.is-on{background:var(--accent-soft);border-color:var(--accent);border-width:2px}
+.state.later{border-style:dashed;border-color:var(--line-strong);cursor:pointer}
+.state.later.is-on{background:var(--amber-soft);border-color:var(--amber)}
+.state-arrow{display:none}
+.later-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.rules-panel{display:grid;gap:16px;padding:18px 20px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
+.rules-panel h3{font:700 17px/1.3 var(--font-body)}
+.rules-panel ul{display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--ink-2)}
+.rules-panel code{color:var(--ink)}
+.rp-side{display:flex;flex-direction:column;gap:8px}
+.rp-side .kv{display:flex;flex-direction:column;gap:2px;padding-top:8px;border-top:1px solid var(--line);font-size:13.5px}
+
+/* ---------- 7. Approval ---------- */
+.appr-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.appr-doc{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;font-size:13.5px;color:var(--ink-2)}
+.appr-doc strong{font-family:var(--font-mono);color:var(--ink)}
+.atable{width:100%;border-collapse:collapse;font-size:14px;min-width:720px}
+.atable th{font:600 10.5px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;color:var(--muted);padding:0 12px 9px 0;border-bottom:1px solid var(--line-strong)}
+.atable th.r,.atable td.r{text-align:right}
+.atable td{padding:10px 12px 10px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+.atable td.r{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.atable td .sub{display:block;font:500 11.5px/1.3 var(--font-mono);color:var(--muted)}
+.ain{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.ain input{width:104px;padding:7px 9px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);font:600 14px/1 var(--font-mono);text-align:right}
+.ain input.bad{border-color:var(--red);background:var(--red-soft)}
+.ain span{font:500 12px/1 var(--font-mono);color:var(--muted);width:22px}
+.amsg{font-size:12.5px;line-height:1.35}
+.amsg.bad{color:var(--red)}
+.amsg.ok{color:var(--accent)}
+.amsg.mute{color:var(--muted)}
+.verdict{display:flex;gap:12px;align-items:center;padding:12px 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);font-size:14px;color:var(--ink-2)}
+.verdict.ok{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.verdict.bad{background:var(--red-soft);border-color:var(--red);color:var(--ink)}
+.verdict .chip{flex:none}
+
+/* ---------- 8. Procurement Plan ---------- */
+.plan{display:grid;gap:22px}
+.psteps{display:flex;flex-direction:column;gap:9px;counter-reset:ps}
+.psteps li{counter-increment:ps;display:grid;grid-template-columns:30px 1fr;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.psteps li::before{content:counter(ps);width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font:600 13px/1 var(--font-mono)}
+.psteps h3{font:700 15px/1.3 var(--font-body)}
+.psteps p{font-size:13px;line-height:1.45;color:var(--ink-2);margin-top:2px}
+.pcalc{display:flex;flex-direction:column;gap:12px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);min-width:0}
+.pcalc h3{font:700 16px/1.3 var(--font-body)}
+.srcs{display:flex;flex-direction:column;gap:5px;font-size:13px}
+.srcs li{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--line)}
+.srcs code{font-size:12px;color:var(--ink-2)}
+.srcs b{font-family:var(--font-mono);font-weight:600}
+.sup{display:flex;flex-direction:column;gap:6px}
+.sup label{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:13.5px;cursor:pointer}
+.sup label:has(input:checked){border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.sup input{accent-color:var(--accent);margin:0}
+.sup .price{margin-left:auto;font:600 12.5px/1 var(--font-mono)}
+.slider{display:flex;flex-direction:column;gap:6px}
+.slider-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13.5px;color:var(--ink-2)}
+.slider-top b{font:600 15px/1 var(--font-mono);color:var(--ink)}
+.slider input{width:100%;accent-color:var(--accent)}
+.need-bar{display:flex;height:26px;border-radius:7px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}
+.need-bar i{display:block;height:100%;transition:width .4s ease}
+.need-bar .from-stock{background:var(--accent)}
+.need-bar .to-buy{background:var(--amber)}
+.pout{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pout div{display:flex;flex-direction:column;gap:3px;padding:9px 10px;border-radius:9px;background:var(--surface);border:1px solid var(--line);min-width:0}
+.pout dd{font:600 15px/1.2 var(--font-mono);color:var(--ink);white-space:nowrap}
+.pout .buy dd{color:var(--amber)}
+
+/* ---------- 9. PO otomatis ---------- */
+.po{display:grid;gap:18px}
+.po-items{display:flex;flex-direction:column;gap:8px;min-width:0}
+.pitem{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);transition:background .3s ease,border-color .3s ease,opacity .3s ease}
+.pitem b{font-weight:700;font-size:14.5px}
+.pitem .q{font:600 13px/1 var(--font-mono);text-align:right}
+.pitem .s{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.pitem .s i{width:9px;height:9px;border-radius:3px;background:var(--c)}
+.pitem.on{border-color:var(--c);background:var(--surface-2)}
+.pitem.skip{opacity:.55;border-style:dashed}
+.po-mid{display:none}
+.po-cards{display:flex;flex-direction:column;gap:12px;min-width:0}
+.pocard{border:1.5px solid var(--c);border-radius:12px;background:var(--paper);overflow:hidden}
+.pocard header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:color-mix(in srgb,var(--c) 12%,var(--surface));border-bottom:1px solid var(--line)}
+.pocard header b{font:600 13px/1.2 var(--font-mono)}
+.pocard header span{font-size:12.5px;color:var(--ink-2)}
+.pocard ul{padding:6px 14px}
+.pocard li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px;transition:opacity .35s ease,transform .35s ease}
+.pocard li:last-child{border-bottom:none}
+.pocard li .m{font-family:var(--font-mono);font-size:12px;white-space:nowrap}
+.pocard li.wait{opacity:.15;transform:translateX(-8px)}
+.pocard footer{display:flex;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.pocard footer b{font-family:var(--font-mono);color:var(--ink)}
+.po-rules{display:grid;gap:8px 18px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));font-size:13.5px;color:var(--ink-2)}
+
+/* ---------- 10. Jejak tabel ---------- */
+.chain{display:grid;gap:12px;grid-template-columns:1fr}
+.cstage{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cstage > .lbl-mono{padding-left:2px}
+.tcard{display:flex;flex-direction:column;gap:7px;padding:11px 12px;border:1px solid var(--line);border-left:4px solid var(--c,var(--accent));border-radius:10px;background:var(--surface);min-width:0}
+.tcard code{font-size:12.5px;font-weight:600;color:var(--ink);word-break:break-all}
+.tcard .cols li{font-size:10.5px;padding:2px 6px;word-break:break-all}
+.tcard.schema{border-style:dashed;border-left-style:solid;background:var(--surface-2)}
+.chain-note{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.chain-note div{padding:12px 14px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);font-size:13.5px;color:var(--ink-2)}
+.chain-note b{color:var(--ink)}
+
+/* ---------- 11. Status ---------- */
+.next{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.ncol{display:flex;flex-direction:column;gap:10px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--surface);min-width:0}
+.ncol header{display:flex;align-items:center;gap:8px}
+.ncol h3{font:700 16px/1.3 var(--font-body)}
+.ncol ul{display:flex;flex-direction:column;gap:7px;font-size:13.5px;color:var(--ink-2)}
+.ncol.done{background:var(--surface)}
+.ncol.schema{background:var(--surface-2)}
+.ncol.decide{background:var(--amber-soft);border-color:transparent}
+.ncol.decide h3{color:var(--amber)}
+.ncol.decide ul{counter-reset:d}
+.ncol.decide li{counter-increment:d;display:grid;grid-template-columns:22px 1fr;gap:8px;padding:0}
+.ncol.decide li::before{content:counter(d);position:static;width:20px;height:20px;border-radius:50%;background:var(--amber);color:var(--surface);display:grid;place-items:center;font:600 11px/1 var(--font-mono);margin-top:1px}
+.closing{font:800 28px/1.1 var(--font-display);letter-spacing:-.02em}
+.closing span{color:var(--accent)}
+
+/* ---------- Animasi masuk ---------- */
+.rise{opacity:0;transform:translateY(14px)}
+.play .rise{animation:rise .55s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:calc(var(--i,0) * 90ms + 80ms)}
+@keyframes rise{to{opacity:1;transform:none}}
+
+/* ---------- Mode presentasi (layar lebar): panggung 1280×720 ---------- */
+@media (min-width:900px) and (min-height:520px){
+  body{overflow:hidden}
+  .deck{position:fixed;inset:0;padding:0;display:block}
+  .slide{position:absolute;left:50%;top:calc((100% - var(--bar-h)) / 2);width:1280px;height:720px;padding:48px 72px 50px;border-radius:6px;border:none;box-shadow:var(--shadow);transform:translate(-50%,-50%) scale(var(--scale,1));transform-origin:50% 50%;visibility:hidden;opacity:0;transition:opacity .35s ease,visibility 0s linear .35s;gap:22px}
+  .slide.is-active{visibility:visible;opacity:1;transition:opacity .35s ease}
+  .is-booting .slide,.is-booting .slide.is-active{transition:none}
+  .title{font-size:38px}
+  .lede{font-size:16.5px}
+  .hint{display:inline}
+  .hscroll{overflow:visible}
+
+  .title-grid{grid-template-columns:1.1fr .9fr;align-items:center;gap:40px}
+  .display{font-size:132px}
+
+  .head{max-width:1120px}
+  .flow{grid-template-columns:repeat(6,minmax(0,1fr));gap:22px}
+  .fstep{min-height:132px}
+  .flow li:not(:last-child) .fstep::after{content:"";position:absolute;right:-17px;top:50%;width:12px;height:12px;border-top:2px solid var(--line-strong);border-right:2px solid var(--line-strong);transform:translateY(-50%) rotate(45deg)}
+  .flow li:not(:last-child) .fstep.is-done::after{border-color:var(--accent)}
+  .flow-cap{min-height:236px;align-content:start}
+
+  .masters{grid-template-columns:repeat(2,1fr);gap:16px}
+
+  .conv{grid-template-columns:1fr 470px;gap:36px;align-items:start}
+
+  .loc{grid-template-columns:420px 1fr;gap:34px;align-items:start}
+
+  .states{grid-template-columns:1fr 34px 1fr 34px 1fr 1.25fr;gap:0;align-items:stretch}
+  .state-arrow{display:grid;place-items:center;color:var(--line-strong)}
+  .state-arrow svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .state.later{margin-left:22px}
+  .rules-panel{grid-template-columns:1fr 300px;gap:28px;min-height:220px;align-content:start}
+
+  .atable{min-width:0}
+
+  .plan{grid-template-columns:1fr 500px;gap:34px;align-items:start}
+
+  .po{grid-template-columns:1fr 70px 1fr;gap:0;align-items:start}
+  .po-mid{display:grid;place-items:center;align-self:center;color:var(--line-strong)}
+  .po-mid svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .po-rules{grid-column:1 / -1;margin-top:18px;grid-template-columns:repeat(3,1fr)}
+
+  .chain{grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+
+  .next{grid-template-columns:1fr 1fr 1.15fr;gap:16px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .slide,.slide.is-active{transition:none}
+  .rise,.play .rise{animation:none;opacity:1;transform:none}
+  .sbar i,.need-bar i{transition:none}
+}
+</style>
+</head>
+<body>
+
+<main class="deck" id="deck">
+
+<!-- 1. Judul -->
+<section class="slide is-active" id="judul" data-title="Judul" aria-label="Slide 1: Alur Gudang">
+  <div class="title-grid">
+    <div class="title-copy">
+      <p class="eyebrow">Backoffice UD.Djaya · Modul Warehouse</p>
+      <h1 class="display">Alur<br><span>Gudang</span></h1>
+      <p class="lede">Dari permintaan bahan baku sebuah lokasi sampai purchase order ke supplier: apa yang sudah jalan, aturan di tiap langkah, dan apa yang belum.</p>
+      <ul class="meta-list">
+        <li><span>Menu</span><div>Library › Satuan, Bahan Baku · Warehouse › Inventory, Supplier, Request Order, Procurement Plan</div></li>
+        <li><span>Status</span><div>Request Order → Procurement Plan → PO otomatis sudah jalan; penerimaan barang belum</div></li>
+        <li><span>Sumber</span><div>Kode di repo <code>pos-udjay</code>, per 21 November 2026</div></li>
+      </ul>
+    </div>
+    <div class="doc-wrap">
+      <article class="doc" aria-label="Contoh purchase order hasil generate">
+        <header>
+          <div><div class="doc-label">PURCHASE ORDER</div><div class="doc-no">PO-20261121-0001</div></div>
+          <span class="chip mute">Draft</span>
+        </header>
+        <div class="doc-meta">
+          <div><span>Supplier</span><strong>CV Kopi Priangan</strong></div>
+          <div><span>Diterima di</span><strong>Gudang Pusat</strong></div>
+          <div><span>Tgl order</span><strong class="num">21/11/2026</strong></div>
+        </div>
+        <table class="doc-lines">
+          <tr><td>Biji kopi arabika<small>1.500 gr × Rp 210</small></td><td>Rp 315.000</td></tr>
+          <tr><td>Gula aren cair<small>1.500 gr × Rp 38</small></td><td>Rp 57.000</td></tr>
+        </table>
+        <dl class="doc-total"><dt>Total estimasi</dt><dd>Rp 372.000</dd></dl>
+        <footer>
+          Generated dari Procurement Plan PP-20261121-0001
+          <div class="trail"><span>RO-…-0003</span><span>RO-…-0005</span><span>→ PP-…-0001</span><span>→ PO-…-0001</span></div>
+        </footer>
+        <div class="stamp" aria-hidden="true">DRAFT</div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- 2. Peta alur -->
+<section class="slide" id="alur" data-title="Peta alur" aria-label="Slide 2: Peta alur">
+  <header class="head">
+    <p class="eyebrow">Gambaran besar</p>
+    <h2 class="title">Enam langkah, dari data master sampai barang datang</h2>
+    <p class="lede">Lima langkah pertama sudah bisa dipakai. Langkah keenam baru ada tabelnya. Klik salah satu langkah untuk melihat detailnya.</p>
+  </header>
+  <div class="body">
+    <ol class="flow" id="flow">
+      <li><button type="button" class="fstep" data-step="0"><span class="n">01</span><b>Master data</b><small>Satuan, bahan, supplier, lokasi</small></button></li>
+      <li><button type="button" class="fstep" data-step="1"><span class="n">02</span><b>Request Order</b><small>Lokasi meminta bahan</small></button></li>
+      <li><button type="button" class="fstep" data-step="2"><span class="n">03</span><b>Approval</b><small>Qty disetujui per item</small></button></li>
+      <li><button type="button" class="fstep" data-step="3"><span class="n">04</span><b>Procurement Plan</b><small>Hitung kekurangan stok</small></button></li>
+      <li><button type="button" class="fstep" data-step="4"><span class="n">05</span><b>Purchase Order</b><small>Otomatis per supplier</small></button></li>
+      <li><button type="button" class="fstep later" data-step="5"><span class="n">06 · belum</span><b>Penerimaan</b><small>GRN &amp; masuk stok</small></button></li>
+    </ol>
+    <div class="flow-cap" aria-live="polite">
+      <div class="cap-top">
+        <span class="cap-n" id="capN">Langkah 01</span>
+        <h3 class="cap-t" id="capT">Master data</h3>
+        <p class="cap-d" id="capD"></p>
+      </div>
+      <dl class="cap-facts">
+        <div><dt class="lbl-mono">Dikerjakan oleh</dt><dd id="capWho"></dd></div>
+        <div><dt class="lbl-mono">Hasil</dt><dd id="capOut"></dd></div>
+        <div><dt class="lbl-mono">Menu / tabel</dt><dd id="capWhere"></dd></div>
+      </dl>
+    </div>
+    <div class="flow-tools">
+      <span class="note">Garis putus-putus = skema database sudah ada, layar dan logika belum.</span>
+      <button type="button" class="btn" id="flowPlay"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"/></svg>Putar ulang</button>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Master data -->
+<section class="slide" id="master" data-title="Master data" aria-label="Slide 3: Master data">
+  <header class="head">
+    <p class="eyebrow">Langkah 01 · Fondasi</p>
+    <h2 class="title">Empat data master yang dipakai semua dokumen gudang</h2>
+    <p class="lede">Semua qty di dokumen gudang disimpan dalam satuan dasar bahan. Karena itu konversi satuan dan harga supplier harus lengkap sebelum request dibuat.</p>
+  </header>
+  <div class="body">
+    <div class="masters">
+      <article class="mcard rise" style="--i:0">
+        <header><h3>Satuan &amp; konversi</h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg></header>
+        <p>Satuan umum (gr, kg, ml, pack…) dan konversi khusus per bahan, mis. 1 pack gula aren = 500 gr.</p>
+        <ul class="cols"><li>satuans</li><li>raw_material_unit_conversions</li><li>from_unit → to_unit</li><li><i>multiplier</i></li></ul>
+      </article>
+      <article class="mcard rise" style="--i:1">
+        <header><h3>Bahan baku</h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/></svg></header>
+        <p>Kode (RM-0001), kategori, <b>satuan dasar</b>, dan tipe penyimpanan (kering, dingin, beku, lainnya).</p>
+        <ul class="cols"><li>raw_materials</li><li>raw_material_categories</li><li><i>base_unit_id</i></li><li>storage_type_id</li></ul>
+      </article>
+      <article class="mcard rise" style="--i:2">
+        <header><h3>Supplier</h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01"/></svg></header>
+        <p>Mode pembelian (offline, online, atau keduanya), kontak utama &amp; WhatsApp, channel order, dan jam operasional per hari.</p>
+        <ul class="cols"><li>suppliers</li><li>procurement_mode 1·2·3</li><li>supplier_contacts</li><li>supplier_order_channels</li><li>supplier_operational_hours</li></ul>
+      </article>
+      <article class="mcard rise" style="--i:3">
+        <header><h3>Bahan per supplier</h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12l-8 8-9-9V3h8zM7.5 7.5h.01"/></svg></header>
+        <p>Nama versi supplier, SKU, satuan beli, MOQ, lead time, <b>harga aktif</b>, dan tanda <b>preferred</b>. Setiap perubahan harga dicatat di histori.</p>
+        <ul class="cols"><li>supplier_raw_materials</li><li><i>current_price</i></li><li><i>is_preferred</i></li><li>…_price_histories</li></ul>
+      </article>
+    </div>
+    <p class="note">Lokasi inventory (gudang, kitchen, bar) juga termasuk data master; dibahas di slide 5.</p>
+  </div>
+</section>
+
+<!-- 4. Konversi -->
+<section class="slide" id="konversi" data-title="Satuan dasar" aria-label="Slide 4: Satuan dasar dan konversi">
+  <header class="head">
+    <p class="eyebrow">Langkah 01 · Aturan satuan</p>
+    <h2 class="title">Minta dalam satuan apa saja, tersimpan dalam satuan dasar</h2>
+    <p class="lede">Peminta boleh memilih satuan apa pun yang punya konversi ke satuan dasar. Sistem mencari konversi langsung dulu, lalu konversi balik.</p>
+  </header>
+  <div class="body">
+    <div class="conv">
+      <div class="conv-left">
+        <p class="formula">requested_base_qty = qty × <b>conversion_to_base</b></p>
+        <table class="ctable">
+          <thead><tr><th>Satuan</th><th>Cara dapat faktor</th><th>Faktor</th></tr></thead>
+          <tbody>
+            <tr><td>gr</td><td>Satuan dasar bahan</td><td><code>1</code></td></tr>
+            <tr><td>pack</td><td>Konversi langsung tersimpan: <code>pack → gr × 500</code></td><td><code>500</code></td></tr>
+            <tr><td>kg</td><td>Hanya ada <code>gr → kg × 0,001</code>, jadi dibalik: 1 ÷ 0,001</td><td><code>1.000</code></td></tr>
+            <tr><td>liter</td><td>Tidak ada konversi → ditolak server</td><td><code>—</code></td></tr>
+          </tbody>
+        </table>
+        <ul class="dots" style="display:flex;flex-direction:column;gap:6px;font-size:13.5px;color:var(--ink-2)">
+          <li>Dropdown satuan di form hanya menampilkan satuan yang punya konversi.</li>
+          <li>Nama satuan &amp; faktor ikut disimpan sebagai <b>snapshot</b> di item, jadi dokumen lama tidak berubah kalau master diedit.</li>
+        </ul>
+      </div>
+      <div class="conv-right">
+        <span class="lbl-mono">Coba · Gula aren cair (satuan dasar gr)</span>
+        <div class="conv-in">
+          <input class="qty-in" id="convQty" type="number" min="0" step="0.5" value="3" aria-label="Qty diminta">
+          <div class="seg" id="convUnit" role="group" aria-label="Satuan">
+            <button type="button" data-u="gr" aria-pressed="false">gr</button>
+            <button type="button" data-u="pack" aria-pressed="true">pack</button>
+            <button type="button" data-u="kg" aria-pressed="false">kg</button>
+            <button type="button" data-u="liter" aria-pressed="false">liter</button>
+          </div>
+        </div>
+        <div class="calc" id="convCalc">
+          <div class="row"><span class="k">Qty diminta</span><span class="v" id="convA">3 pack</span></div>
+          <div class="row"><span class="k">× conversion_to_base</span><span class="v" id="convB">500</span></div>
+          <div class="row total"><span class="k">= requested_base_qty</span><span class="v" id="convC">1.500 gr</span></div>
+        </div>
+        <p class="err-msg" id="convErr" hidden></p>
+        <div>
+          <span class="lbl-mono">Snapshot yang tersimpan di item</span>
+          <dl class="snap" id="convSnap" style="margin-top:6px"></dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Lokasi & stok -->
+<section class="slide" id="lokasi" data-title="Lokasi & stok" aria-label="Slide 5: Lokasi inventory dan saldo stok">
+  <header class="head">
+    <p class="eyebrow">Langkah 01 · Lokasi</p>
+    <h2 class="title">Stok dicatat per bahan per lokasi</h2>
+    <p class="lede">Lokasi inventory bisa bertingkat lewat <code>parent_id</code> dan boleh dikaitkan ke outlet atau brand. Satu bahan punya satu baris saldo di tiap lokasi.</p>
+  </header>
+  <div class="body">
+    <div class="loc">
+      <div class="tree rise" style="--i:0" aria-label="Contoh hierarki lokasi">
+        <span class="lbl-mono">Contoh hierarki (ilustrasi)</span>
+        <div class="tnode"><b>Gudang Pusat</b><span class="chip ok">Central Warehouse</span></div>
+        <div class="tchildren">
+          <div class="tnode"><b>Gudang Cimanggu</b><span class="chip mute">Outlet Warehouse</span></div>
+          <div class="tchildren">
+            <div class="tnode"><b>Kitchen Cimanggu</b><span class="chip mute">Kitchen</span></div>
+            <div class="tnode"><b>Bar Cimanggu</b><span class="chip mute">Bar</span></div>
+          </div>
+          <div class="tnode"><b>Bar Sentul</b><span class="chip mute">Bar</span></div>
+          <div class="tnode"><b>Pastry Sentul</b><span class="chip mute">Pastry</span></div>
+        </div>
+        <p class="note">Tipe bawaan: Central Warehouse, Outlet Warehouse, Kitchen, Bar, Pastry, other.</p>
+      </div>
+      <div class="stock rise" style="--i:1">
+        <h3>Saldo biji kopi arabika (gr)</h3>
+        <div class="srow"><span class="name">Gudang Pusat</span><span class="sbar"><i class="res" data-w="0"></i><i class="free" data-w="0"></i></span><span class="val" data-a="2400" data-r="400"></span></div>
+        <div class="srow"><span class="name">Gudang Cimanggu</span><span class="sbar"><i class="res"></i><i class="free"></i></span><span class="val" data-a="1200" data-r="0"></span></div>
+        <div class="srow"><span class="name">Bar Cimanggu</span><span class="sbar"><i class="res"></i><i class="free"></i></span><span class="val" data-a="650" data-r="250"></span></div>
+        <div class="srow"><span class="name">Bar Sentul</span><span class="sbar"><i class="res"></i><i class="free"></i></span><span class="val" data-a="300" data-r="0"></span></div>
+        <div class="legend"><span><i style="background:var(--accent)"></i>Bebas = available − reserved</span><span><i style="background:repeating-linear-gradient(45deg,var(--amber) 0 3px,var(--amber-soft) 3px 6px)"></i>Reserved</span></div>
+        <ul class="loc-rules dots">
+          <li>Kunci unik <code>raw_material_id + inventory_id</code> di <code>inventory_raw_material_stock_balances</code>.</li>
+          <li><code>qty_reserved</code> tidak boleh lebih besar dari <code>qty_available</code>.</li>
+          <li>Procurement Plan hanya memakai <b>stok bebas</b> di lokasi planning.</li>
+          <li>Saat ini saldo diisi <b>manual</b> di Inventory › detail. Mutasi otomatis belum ada.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Status Request Order -->
+<section class="slide" id="request" data-title="Request Order" aria-label="Slide 6: Siklus Request Order">
+  <header class="head">
+    <p class="eyebrow">Langkah 02–03 · Request Order</p>
+    <h2 class="title">Draft, submit, approve: tiga status yang sudah berjalan</h2>
+    <p class="lede">Lokasi peminta (mis. Kitchen Cimanggu) mengisi bahan yang dibutuhkan. Dokumen terkunci setelah disubmit. Klik status untuk melihat aturannya.</p>
+  </header>
+  <div class="body">
+    <div class="states" id="states">
+      <button type="button" class="state is-on" data-s="draft"><span class="n">01</span><b>Draft</b><small>Bisa diedit &amp; dihapus</small></button>
+      <span class="state-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      <button type="button" class="state" data-s="submitted"><span class="n">02</span><b>Submitted</b><small>Menunggu review</small></button>
+      <span class="state-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      <button type="button" class="state" data-s="approved"><span class="n">03</span><b>Approved</b><small>Siap masuk Procurement Plan</small></button>
+      <button type="button" class="state later" data-s="later"><span class="n">Status tersedia, belum ada aksi</span><span class="later-list"><span class="chip mute">Partially fulfilled</span><span class="chip mute">Fulfilled</span><span class="chip mute">Rejected</span><span class="chip mute">Cancelled</span></span></button>
+    </div>
+    <div class="rules-panel" aria-live="polite">
+      <div>
+        <h3 id="rpTitle"></h3>
+        <ul class="dots" id="rpList" style="margin-top:10px"></ul>
+      </div>
+      <div class="rp-side" id="rpSide"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Approval -->
+<section class="slide" id="approval" data-title="Approval" aria-label="Slide 7: Approval qty">
+  <header class="head">
+    <p class="eyebrow">Langkah 03 · Approval</p>
+    <h2 class="title">Reviewer menentukan qty yang disetujui per item</h2>
+    <p class="lede">Qty approved diisi dalam satuan dasar. Validasinya sama dengan server. Silakan ubah angkanya untuk mencoba.</p>
+  </header>
+  <div class="body">
+    <div class="appr-head">
+      <div class="appr-doc"><strong>RO-20261121-0003</strong><span>Kitchen Cimanggu → dipenuhi Gudang Pusat</span><span class="chip info">Submitted</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn" id="apprFull">Setujui semua penuh</button>
+        <button type="button" class="btn" id="apprZero">Isi semua 0</button>
+        <button type="button" class="btn" id="apprReset">Contoh awal</button>
+      </div>
+    </div>
+    <div class="hscroll">
+      <table class="atable">
+        <thead><tr><th>Bahan baku</th><th class="r">Diminta</th><th class="r">Base request</th><th class="r">Qty approved</th><th>Keterangan</th></tr></thead>
+        <tbody id="apprBody"></tbody>
+      </table>
+    </div>
+    <div class="verdict" id="apprVerdict" aria-live="polite"></div>
+    <p class="note">Saat disetujui: satuan approved = satuan dasar, faktor = 1, <code>approved_by</code> &amp; <code>approved_at</code> terisi, status RO berubah jadi Approved. Qty 0 berarti item itu tidak dilanjutkan.</p>
+  </div>
+</section>
+
+<!-- 8. Procurement Plan -->
+<section class="slide" id="plan" data-title="Procurement Plan" aria-label="Slide 8: Procurement Plan">
+  <header class="head">
+    <p class="eyebrow">Langkah 04 · Procurement Plan</p>
+    <h2 class="title">Gabungkan permintaan, bandingkan dengan stok, beli kekurangannya</h2>
+    <p class="lede">Gudang mengumpulkan item RO yang sudah approved dari berbagai lokasi, lalu sistem menghitung berapa yang benar-benar perlu dibeli.</p>
+  </header>
+  <div class="body">
+    <div class="plan">
+      <ol class="psteps">
+        <li class="rise" style="--i:0"><div><h3>Pilih item RO approved</h3><p>Hanya item yang masih punya sisa: <code>approved − sudah dialokasikan &gt; 0</code>. Item dikelompokkan per bahan baku.</p></div></li>
+        <li class="rise" style="--i:1"><div><h3>Pilih lokasi planning</h3><p>Gudang yang akan memesan dan menerima barang. Stok bebasnya jadi pengurang.</p></div></li>
+        <li class="rise" style="--i:2"><div><h3>Pilih supplier per bahan</h3><p>Hanya supplier &amp; bahan supplier yang aktif. Supplier preferred tampil paling atas.</p></div></li>
+        <li class="rise" style="--i:3"><div><h3>Sistem menghitung &amp; menyimpan</h3><p>Sisa qty item dialokasikan penuh. Kekurangan = <code>max(dibutuhkan − stok bebas, 0)</code>. Estimasi = kekurangan × harga aktif.</p></div></li>
+      </ol>
+      <div class="pcalc">
+        <h3>Biji kopi arabika · lokasi planning Gudang Pusat</h3>
+        <ul class="srcs">
+          <li><code>RO-…-0003 · Kitchen Cimanggu</code><b>2.000 gr</b></li>
+          <li><code>RO-…-0005 · Bar Sentul</code><b>1.500 gr</b></li>
+        </ul>
+        <div class="sup" role="radiogroup" aria-label="Supplier">
+          <label><input type="radio" name="sup" value="210" checked>CV Kopi Priangan <span class="chip ok">preferred</span><span class="price">Rp 210/gr</span></label>
+          <label><input type="radio" name="sup" value="225">Toko Sentosa Kopi<span class="price">Rp 225/gr</span></label>
+        </div>
+        <div class="slider">
+          <div class="slider-top"><label for="planStock">Stok bebas di lokasi planning</label><b id="planStockV">2.000 gr</b></div>
+          <input type="range" id="planStock" min="0" max="5000" step="100" value="2000">
+        </div>
+        <div class="need-bar" aria-hidden="true"><i class="from-stock" id="barStock"></i><i class="to-buy" id="barBuy"></i></div>
+        <div class="legend"><span><i style="background:var(--accent)"></i>Ditutup stok</span><span><i style="background:var(--amber)"></i>Dibeli lewat PO</span></div>
+        <dl class="pout">
+          <div><dt class="lbl-mono">Dibutuhkan</dt><dd id="pReq">3.500 gr</dd></div>
+          <div class="buy"><dt class="lbl-mono">Dibeli</dt><dd id="pBuy">1.500 gr</dd></div>
+          <div><dt class="lbl-mono">Estimasi</dt><dd id="pEst">Rp 315.000</dd></div>
+        </dl>
+        <p class="note" id="pNote"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. PO otomatis -->
+<section class="slide" id="po" data-title="PO otomatis" aria-label="Slide 9: Purchase order otomatis">
+  <header class="head">
+    <p class="eyebrow">Langkah 05 · Purchase Order</p>
+    <h2 class="title">Satu procurement plan menghasilkan satu PO per supplier</h2>
+    <p class="lede">PO dibuat otomatis saat plan disimpan, dalam satu transaksi database. Item yang kebutuhannya sudah tertutup stok tidak masuk PO.</p>
+  </header>
+  <div class="body">
+    <div class="po">
+      <div class="po-items" id="poItems">
+        <span class="lbl-mono">Item PP-20261121-0001</span>
+        <div class="pitem" style="--c:var(--accent)" data-to="a0"><b>Biji kopi arabika</b><span class="q">beli 1.500 gr</span><span class="s"><i></i>CV Kopi Priangan</span></div>
+        <div class="pitem" style="--c:var(--blue)" data-to="b0"><b>Susu UHT full cream</b><span class="q">beli 6.000 ml</span><span class="s"><i></i>PT Susu Segar Nusantara</span></div>
+        <div class="pitem" style="--c:var(--accent)" data-to="a1"><b>Gula aren cair</b><span class="q">beli 1.500 gr</span><span class="s"><i></i>CV Kopi Priangan</span></div>
+        <div class="pitem" style="--c:var(--line-strong)" data-to="skip"><b>Sirup vanilla</b><span class="q">beli 0 ml</span><span class="s"><i></i>Stok cukup, tidak masuk PO</span></div>
+      </div>
+      <div class="po-mid" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="po-cards">
+        <span class="lbl-mono">Purchase order yang terbentuk</span>
+        <article class="pocard" style="--c:var(--accent)">
+          <header><b>PO-20261121-0001</b><span>CV Kopi Priangan · Draft</span></header>
+          <ul>
+            <li data-id="a0"><span>Biji kopi arabika · 1.500 gr</span><span class="m">Rp 315.000</span></li>
+            <li data-id="a1"><span>Gula aren cair · 1.500 gr</span><span class="m">Rp 57.000</span></li>
+          </ul>
+          <footer><span>Diterima di Gudang Pusat</span><b>Rp 372.000</b></footer>
+        </article>
+        <article class="pocard" style="--c:var(--blue)">
+          <header><b>PO-20261121-0002</b><span>PT Susu Segar Nusantara · Draft</span></header>
+          <ul>
+            <li data-id="b0"><span>Susu UHT full cream · 6.000 ml</span><span class="m">Rp 132.000</span></li>
+          </ul>
+          <footer><span>Diterima di Gudang Pusat</span><b>Rp 132.000</b></footer>
+        </article>
+        <button type="button" class="btn" id="poPlay" style="align-self:flex-start"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z"/></svg>Putar ulang</button>
+      </div>
+      <ul class="po-rules dots">
+        <li>Lokasi pemesan = lokasi penerima = lokasi planning. Tanggal order = hari ini.</li>
+        <li>Qty &amp; harga diambil dari item plan. Catatan PO: “Generated dari Procurement Plan PP-…”.</li>
+        <li>Status plan langsung jadi <b>Converted to PO</b>; <code>approved_by</code> diisi pembuat plan.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 10. Jejak tabel -->
+<section class="slide" id="jejak" data-title="Jejak data" aria-label="Slide 10: Jejak data antar tabel">
+  <header class="head">
+    <p class="eyebrow">Di balik layar</p>
+    <h2 class="title">Setiap baris PO bisa ditelusuri sampai ke request awalnya</h2>
+    <p class="lede">Tabel penghubung <code>procurement_plan_item_sources</code> mencatat berapa qty dari tiap item RO yang masuk ke sebuah plan.</p>
+  </header>
+  <div class="body">
+    <div class="chain">
+      <div class="cstage rise" style="--i:0">
+        <span class="lbl-mono">Permintaan</span>
+        <div class="tcard" style="--c:var(--accent)"><code>raw_material_requests</code><ul class="cols"><li>request_number</li><li>requester_inventory_id</li><li>fulfillment_inventory_id</li><li>status_id</li><li>needed_at</li></ul></div>
+        <div class="tcard" style="--c:var(--accent)"><code>raw_material_request_items</code><ul class="cols"><li>requested_qty + snapshot</li><li>requested_base_qty</li><li>approved_base_qty</li><li>fulfilled_base_qty</li></ul></div>
+      </div>
+      <div class="cstage rise" style="--i:1">
+        <span class="lbl-mono">Penghubung</span>
+        <div class="tcard" style="--c:var(--amber)"><code>procurement_plan_item_sources</code><ul class="cols"><li>raw_material_request_item_id</li><li>procurement_plan_item_id</li><li>qty_base_allocated</li></ul></div>
+      </div>
+      <div class="cstage rise" style="--i:2">
+        <span class="lbl-mono">Perencanaan</span>
+        <div class="tcard" style="--c:var(--blue)"><code>procurement_plans</code><ul class="cols"><li>plan_number</li><li>planning_location_id</li><li>status_id</li><li>planned_by</li></ul></div>
+        <div class="tcard" style="--c:var(--blue)"><code>procurement_plan_items</code><ul class="cols"><li>qty_required_base</li><li>qty_available_base</li><li>qty_shortage_base</li><li>qty_to_purchase_base</li><li>supplier_id</li><li>estimated_subtotal</li></ul></div>
+      </div>
+      <div class="cstage rise" style="--i:3">
+        <span class="lbl-mono">Pembelian</span>
+        <div class="tcard" style="--c:var(--accent)"><code>purchase_orders</code><ul class="cols"><li>po_number</li><li>procurement_plan_id</li><li>supplier_id</li><li>receiving_inventory_id</li><li>status_id</li></ul></div>
+        <div class="tcard" style="--c:var(--accent)"><code>purchase_order_items</code><ul class="cols"><li>qty_base_ordered</li><li>qty_base_received</li><li>qty_base_rejected</li><li>qty_base_cancelled</li><li>unit_price</li></ul></div>
+      </div>
+      <div class="cstage rise" style="--i:4">
+        <span class="lbl-mono">Setelah PO · skema saja</span>
+        <div class="tcard schema" style="--c:var(--line-strong)"><code>purchase_order_receipts (+items)</code><ul class="cols"><li>receipt_number (GRN)</li><li>delivery_note_number</li><li>qty_accepted / rejected</li><li>expiry_date</li></ul></div>
+        <div class="tcard schema" style="--c:var(--line-strong)"><code>purchase_order_cancellations (+items)</code><ul class="cols"><li>cancelled_by_party</li><li>reason</li><li>qty_base_cancelled</li></ul></div>
+      </div>
+    </div>
+    <div class="chain-note">
+      <div><b>Mencegah alokasi ganda.</b> Sisa item RO = approved − total alokasi dari plan yang belum dihapus. Item yang sisanya 0 tidak muncul lagi di form plan.</div>
+      <div><b>Penomoran harian.</b> RO-, PP-, dan PO-<code>YYYYMMDD-0001</code>. Nomor yang sudah di-soft delete tetap dihitung supaya tidak ada nomor dobel.</div>
+      <div><b>Rekap per plan.</b> Halaman PO sebuah plan menjumlahkan qty dipesan, diterima, ditolak, dibatalkan, serta jumlah penerimaan &amp; pembatalan.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 11. Status & berikutnya -->
+<section class="slide" id="status" data-title="Status & berikutnya" aria-label="Slide 11: Status dan langkah berikutnya">
+  <header class="head">
+    <p class="eyebrow">Posisi sekarang</p>
+    <h2 class="title">Sudah jalan, sudah ada skemanya, dan yang perlu diputuskan</h2>
+  </header>
+  <div class="body">
+    <div class="next">
+      <article class="ncol done rise" style="--i:0">
+        <header><span class="chip ok">Sudah jalan</span></header>
+        <ul class="dots">
+          <li>CRUD satuan &amp; konversi, kategori, bahan baku</li>
+          <li>Supplier lengkap: kontak, channel, jam buka, bahan &amp; histori harga</li>
+          <li>Lokasi inventory bertingkat + saldo stok (input manual)</li>
+          <li>Request Order: draft → submit → approve per item</li>
+          <li>Procurement Plan dengan hitung kekurangan stok</li>
+          <li>PO otomatis per supplier + halaman rekap PO per plan</li>
+        </ul>
+      </article>
+      <article class="ncol schema rise" style="--i:1">
+        <header><span class="chip mute">Skema siap, layar belum</span></header>
+        <ul class="dots mute">
+          <li>Alur PO: submitted → approved → ordered</li>
+          <li>Penerimaan barang (GRN): draft → posted → voided, qty diterima/ditolak, batch &amp; kedaluwarsa</li>
+          <li>Pembatalan PO oleh buyer atau supplier, per item</li>
+          <li>Pemenuhan RO: partially fulfilled / fulfilled</li>
+          <li>Saldo stok bertambah saat GRN di-post</li>
+        </ul>
+      </article>
+      <article class="ncol decide rise" style="--i:2">
+        <header><h3>Perlu diputuskan</h3></header>
+        <ul>
+          <li><span><b>Satuan harga.</b> Estimasi = qty satuan dasar × <code>current_price</code>, padahal harga disimpan per satuan beli. Perlu konversi atau aturan bahwa harga selalu per satuan dasar.</span></li>
+          <li><span><b>Review plan dilewati.</b> Plan langsung jadi Converted to PO, jadi status reviewed/approved tidak terpakai dan plan tidak bisa dihapus.</span></li>
+          <li><span><b>Item yang tertutup stok</b> sudah teralokasi tapi belum ada proses transfer ke lokasi peminta.</span></li>
+          <li><span><b>Alokasi selalu penuh.</b> Belum bisa mengambil sebagian qty item RO ke sebuah plan.</span></li>
+        </ul>
+      </article>
+    </div>
+    <p class="closing rise" style="--i:3">Berikutnya: <span>penerimaan barang</span>, supaya stok bergerak sendiri.</p>
+  </div>
+</section>
+
+</main>
+
+<nav class="bar" id="bar" aria-label="Navigasi slide">
+  <button type="button" class="ibtn" id="btnPrev" aria-label="Slide sebelumnya"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <button type="button" class="ibtn" id="btnNext" aria-label="Slide berikutnya"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+  <span class="counter" id="barCounter">01 / 11</span>
+  <span class="bar-title" id="barTitle">Judul</span>
+  <span class="progress" aria-hidden="true"><i id="barProg"></i></span>
+  <span class="hint">← → pindah slide · F layar penuh</span>
+  <button type="button" class="ibtn" id="btnTheme" aria-label="Ganti tema"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg></button>
+  <button type="button" class="ibtn" id="btnFull" aria-label="Layar penuh" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</nav>
+
+<script>
+(function () {
+  'use strict';
+  var root = document.documentElement;
+  var $ = function (sel, r) { return (r || document).querySelector(sel); };
+  var $$ = function (sel, r) { return Array.prototype.slice.call((r || document).querySelectorAll(sel)); };
+  var deckMQ = window.matchMedia('(min-width: 900px) and (min-height: 520px)');
+  var isDeck = function () { return deckMQ.matches; };
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var ID = function (n, d) { return Number(n).toLocaleString('id-ID', { maximumFractionDigits: d == null ? 3 : d }); };
+  var RP = function (n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); };
+
+  /* Timer per slide supaya animasi berhenti saat pindah slide */
+  var timers = {};
+  function later(id, ms, fn) { (timers[id] || (timers[id] = [])).push(setTimeout(fn, reduce ? 0 : ms)); }
+  function stopScene(id) { (timers[id] || []).forEach(clearTimeout); timers[id] = []; }
+
+  /* ---------- 2. Peta alur ---------- */
+  var FLOW = [
+    { t: 'Master data', d: 'Disiapkan sekali di awal dan menjadi acuan semua dokumen: satuan beserta konversinya, bahan baku dengan satuan dasar, supplier beserta harga per bahan, dan lokasi inventory.', who: 'Admin gudang / purchasing', out: 'Bahan baku siap diminta, supplier siap dipilih', where: 'Library › Satuan, Kategori Bahan Baku, Bahan Baku · Warehouse › Supplier, Inventory' },
+    { t: 'Request Order', d: 'Lokasi peminta membuat draft berisi bahan, qty, dan satuan. Qty langsung dikonversi ke satuan dasar. Lokasi pemenuh dan tanggal dibutuhkan bersifat opsional. Setelah lengkap, draft disubmit.', who: 'PIC lokasi (kitchen, bar, pastry, gudang outlet)', out: 'RO-YYYYMMDD-#### berstatus Submitted', where: 'Warehouse › Request Order · raw_material_requests' },
+    { t: 'Approval', d: 'Reviewer mengisi qty approved untuk setiap item dalam satuan dasar. Qty tidak boleh melebihi permintaan, dan minimal satu item harus lebih dari 0.', who: 'Reviewer / kepala gudang', out: 'RO Approved, item siap direncanakan', where: 'Detail Request Order · approved_base_qty' },
+    { t: 'Procurement Plan', d: 'Gudang mengumpulkan item RO approved yang belum teralokasi dari berbagai lokasi, memilih lokasi planning dan supplier per bahan. Sistem membandingkan total kebutuhan dengan stok bebas di lokasi itu.', who: 'Purchasing / gudang pusat', out: 'PP-YYYYMMDD-#### dengan qty kekurangan & estimasi biaya', where: 'Warehouse › Procurement Plan · procurement_plans' },
+    { t: 'Purchase Order', d: 'Saat plan disimpan, sistem langsung membuat satu PO per supplier untuk item yang qty belinya lebih dari 0. Harga diambil dari harga aktif supplier.', who: 'Otomatis oleh sistem', out: 'PO-YYYYMMDD-#### berstatus Draft, plan menjadi Converted to PO', where: 'Procurement Plan › Purchase Orders · purchase_orders' },
+    { t: 'Penerimaan barang', d: 'Tabel untuk penerimaan (GRN: draft, posted, voided) dan pembatalan PO sudah ada, termasuk qty diterima, ditolak, batch, dan kedaluwarsa. Layar input dan logika menambah saldo stok belum dibuat.', who: 'Staf gudang penerima', out: 'Rencananya: stok bertambah saat GRN di-post', where: 'purchase_order_receipts · purchase_order_cancellations' }
+  ];
+  var sAlur = $('#alur');
+  var fsteps = $$('.fstep', sAlur);
+  function flowPick(i) {
+    fsteps.forEach(function (b, k) { b.classList.toggle('is-on', k === i); b.classList.toggle('is-done', k < i); b.setAttribute('aria-pressed', k === i ? 'true' : 'false'); });
+    var f = FLOW[i];
+    $('#capN').textContent = 'Langkah ' + String(i + 1).padStart(2, '0') + (i === 5 ? ' · belum dibangun' : '');
+    $('#capN').style.color = i === 5 ? 'var(--amber)' : '';
+    $('#capT').textContent = f.t;
+    $('#capD').textContent = f.d;
+    $('#capWho').textContent = f.who;
+    $('#capOut').textContent = f.out;
+    $('#capWhere').textContent = f.where;
+  }
+  function flowPlay() {
+    stopScene('alur');
+    FLOW.forEach(function (_, i) { later('alur', i * 1700, function () { flowPick(i); }); });
+  }
+  fsteps.forEach(function (b, i) { b.addEventListener('click', function () { stopScene('alur'); flowPick(i); }); });
+  $('#flowPlay').addEventListener('click', flowPlay);
+  flowPick(0);
+
+  /* ---------- 4. Konversi ---------- */
+  var UNITS = {
+    gr: { f: 1, how: 'satuan dasar' },
+    pack: { f: 500, how: 'konversi langsung pack → gr' },
+    kg: { f: 1000, how: 'dibalik dari gr → kg × 0,001' },
+    liter: { f: null }
+  };
+  var convUnit = 'pack';
+  function convRender() {
+    var q = parseFloat($('#convQty').value);
+    if (!isFinite(q) || q < 0) { q = 0; }
+    var u = UNITS[convUnit];
+    var calc = $('#convCalc'), err = $('#convErr');
+    $('#convA').textContent = ID(q) + ' ' + convUnit;
+    if (u.f === null) {
+      calc.classList.add('is-err');
+      $('#convB').textContent = '—';
+      $('#convC').textContent = 'ditolak';
+      err.hidden = false;
+      err.textContent = '“liter belum memiliki konversi ke gr untuk Gula aren cair.” (pesan validasi server)';
+      $('#convSnap').innerHTML = '<dt>—</dt><dd>item tidak disimpan</dd>';
+      return;
+    }
+    calc.classList.remove('is-err');
+    err.hidden = true;
+    var base = Math.round(q * u.f * 1e5) / 1e5;
+    $('#convB').textContent = ID(u.f, 6);
+    $('#convC').textContent = ID(base) + ' gr';
+    var rows = [
+      ['requested_qty', ID(q, 5)],
+      ['requested_satuan_name', convUnit],
+      ['requested_conversion_to_base', ID(u.f, 6)],
+      ['requested_base_qty', ID(base, 5)],
+      ['requested_base_satuan_name', 'gr']
+    ];
+    $('#convSnap').innerHTML = rows.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('');
+  }
+  $$('#convUnit button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      convUnit = b.dataset.u;
+      $$('#convUnit button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      convRender();
+    });
+  });
+  $('#convQty').addEventListener('input', convRender);
+  convRender();
+
+  /* ---------- 5. Saldo stok ---------- */
+  var STOCK_MAX = 2600;
+  var sLokasi = $('#lokasi');
+  $$('.srow', sLokasi).forEach(function (row) {
+    var v = $('.val', row), a = Number(v.dataset.a), r = Number(v.dataset.r);
+    v.innerHTML = ID(a - r) + '<small>dari ' + ID(a) + '</small>';
+  });
+  function stockFill(on) {
+    $$('.srow', sLokasi).forEach(function (row) {
+      var v = $('.val', row), a = Number(v.dataset.a), r = Number(v.dataset.r);
+      var free = $('.free', row), res = $('.res', row);
+      free.style.width = on ? ((a - r) / STOCK_MAX * 100) + '%' : '0';
+      res.style.left = on ? ((a - r) / STOCK_MAX * 100) + '%' : '0';
+      res.style.width = on ? (r / STOCK_MAX * 100) + '%' : '0';
+    });
+  }
+
+  /* ---------- 6. Status Request Order ---------- */
+  var STATES = {
+    draft: {
+      t: 'Draft: dokumen masih bisa diubah',
+      rules: [
+        'Nomor otomatis <code>RO-YYYYMMDD-0001</code>; boleh diisi manual asal unik.',
+        'Lokasi peminta wajib. Lokasi pemenuh, tanggal dibutuhkan, dan catatan opsional.',
+        'Satu bahan cukup satu baris; qty disimpan bersama snapshot satuan.',
+        'Edit dan hapus (soft delete) hanya bisa saat masih draft. Setiap edit menyimpan ulang semua item.'
+      ],
+      side: [['Siapa', 'Pembuat RO (requested_by)'], ['Aksi berikutnya', 'Submit']]
+    },
+    submitted: {
+      t: 'Submitted: terkunci, menunggu review',
+      rules: [
+        'Submit ditolak kalau RO belum punya item.',
+        'Setelah submit, tombol edit dan hapus tidak tersedia.',
+        'Masuk hitungan “pending review” di kartu ringkasan halaman Request Order.',
+        '<code>requested_by</code> diperbarui ke user yang menekan submit.'
+      ],
+      side: [['Siapa', 'Pembuat RO'], ['Aksi berikutnya', 'Approve dengan qty per item']]
+    },
+    approved: {
+      t: 'Approved: siap diambil Procurement Plan',
+      rules: [
+        'Qty approved diisi per item dalam satuan dasar, 0 sampai qty base request.',
+        'Minimal satu item harus disetujui lebih dari 0.',
+        '<code>approved_by</code> dan <code>approved_at</code> tercatat.',
+        'Item dengan qty approved &gt; 0 muncul di form Procurement Plan sampai seluruh qty-nya teralokasi.'
+      ],
+      side: [['Siapa', 'Reviewer (approved_by)'], ['Aksi berikutnya', 'Dialokasikan ke Procurement Plan']]
+    },
+    later: {
+      t: 'Status lanjutan: sudah ada di tabel, belum dipakai',
+      rules: [
+        '<b>Partially fulfilled / Fulfilled</b>: untuk mencatat barang yang sudah dikirim ke lokasi peminta (<code>fulfilled_base_qty</code>).',
+        '<b>Rejected</b>: untuk menolak seluruh RO. Saat ini penolakan dilakukan dengan qty approved 0 per item.',
+        '<b>Cancelled</b>: untuk pembatalan oleh peminta.',
+        'Kartu ringkasan sudah menghitung status-status ini, tapi tombol aksinya belum dibuat.'
+      ],
+      side: [['Kebutuhan', 'Alur pemenuhan / transfer stok'], ['Tergantung', 'Penerimaan barang (GRN)']]
+    }
+  };
+  function statePick(key) {
+    $$('#states .state').forEach(function (b) { var on = b.dataset.s === key; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    var s = STATES[key];
+    $('#rpTitle').textContent = s.t;
+    $('#rpList').innerHTML = s.rules.map(function (r) { return '<li>' + r + '</li>'; }).join('');
+    $('#rpList').className = key === 'later' ? 'dots mute' : 'dots';
+    $('#rpSide').innerHTML = s.side.map(function (kv) { return '<div class="kv"><span class="lbl-mono">' + kv[0] + '</span><span>' + kv[1] + '</span></div>'; }).join('');
+  }
+  $$('#states .state').forEach(function (b) { b.addEventListener('click', function () { statePick(b.dataset.s); }); });
+  statePick('draft');
+
+  /* ---------- 7. Approval ---------- */
+  var APPR = [
+    { n: 'Biji kopi arabika', req: '2 kg', base: 2000, u: 'gr', a: 2000 },
+    { n: 'Susu UHT full cream', req: '12 liter', base: 12000, u: 'ml', a: 10000 },
+    { n: 'Gula aren cair', req: '3 pack', base: 1500, u: 'gr', a: 1500 },
+    { n: 'Sirup vanilla', req: '2 botol', base: 1500, u: 'ml', a: 0 }
+  ];
+  var apprBody = $('#apprBody');
+  apprBody.innerHTML = APPR.map(function (it, i) {
+    return '<tr><td><b>' + it.n + '</b></td><td class="r">' + it.req + '</td><td class="r">' + ID(it.base) + ' ' + it.u + '</td>' +
+      '<td><div class="ain"><input type="number" min="0" step="any" data-i="' + i + '" aria-label="Qty approved ' + it.n + '"><span>' + it.u + '</span></div></td>' +
+      '<td class="amsg" data-m="' + i + '"></td></tr>';
+  }).join('');
+  var apprInputs = $$('input', apprBody);
+  function apprSet(fn) { apprInputs.forEach(function (inp, i) { inp.value = fn(APPR[i]); }); apprCheck(); }
+  function apprCheck() {
+    var hasErr = false, total = 0;
+    apprInputs.forEach(function (inp, i) {
+      var it = APPR[i], msg = $('[data-m="' + i + '"]', apprBody), raw = inp.value.trim(), v = parseFloat(raw);
+      var cls = 'ok', text;
+      if (raw === '') { cls = 'bad'; text = 'Qty approved wajib diisi.'; }
+      else if (!isFinite(v)) { cls = 'bad'; text = 'Qty approved harus berupa angka.'; }
+      else if (v < 0) { cls = 'bad'; text = 'Qty approved tidak boleh kurang dari 0.'; }
+      else if (v > it.base) { cls = 'bad'; text = 'Qty approved ' + it.n + ' tidak boleh melebihi qty base request.'; }
+      else if (v === 0) { cls = 'mute'; text = 'Tidak dilanjutkan'; }
+      else if (v < it.base) { text = 'Disetujui sebagian (' + ID(v / it.base * 100, 0) + '%)'; }
+      else { text = 'Disetujui penuh'; }
+      if (cls === 'bad') { hasErr = true; } else { total += v; }
+      inp.classList.toggle('bad', cls === 'bad');
+      msg.className = 'amsg ' + cls;
+      msg.textContent = text;
+    });
+    var vd = $('#apprVerdict');
+    if (hasErr) {
+      vd.className = 'verdict bad';
+      vd.innerHTML = '<span class="chip bad">Ditolak</span><span>Perbaiki isian yang ditandai merah. Tidak ada data yang tersimpan.</span>';
+    } else if (total <= 0) {
+      vd.className = 'verdict bad';
+      vd.innerHTML = '<span class="chip bad">Ditolak</span><span>Minimal ada satu qty approved yang lebih dari 0 untuk menyetujui request order.</span>';
+    } else {
+      var n = APPR.filter(function (_, i) { return parseFloat(apprInputs[i].value) > 0; }).length;
+      vd.className = 'verdict ok';
+      vd.innerHTML = '<span class="chip ok">Bisa disetujui</span><span>' + n + ' dari ' + APPR.length + ' item akan tersedia untuk Procurement Plan.</span>';
+    }
+  }
+  apprInputs.forEach(function (inp) { inp.addEventListener('input', apprCheck); });
+  $('#apprFull').addEventListener('click', function () { apprSet(function (it) { return it.base; }); });
+  $('#apprZero').addEventListener('click', function () { apprSet(function () { return 0; }); });
+  $('#apprReset').addEventListener('click', function () { apprSet(function (it) { return it.a; }); });
+  apprSet(function (it) { return it.a; });
+
+  /* ---------- 8. Procurement Plan ---------- */
+  var PLAN_REQ = 3500;
+  function planRender() {
+    var free = Number($('#planStock').value);
+    var price = Number(($('input[name="sup"]:checked') || {}).value || 210);
+    var buy = Math.max(PLAN_REQ - free, 0);
+    var fromStock = PLAN_REQ - buy;
+    $('#planStockV').textContent = ID(free) + ' gr';
+    $('#barStock').style.width = (fromStock / PLAN_REQ * 100) + '%';
+    $('#barBuy').style.width = (buy / PLAN_REQ * 100) + '%';
+    $('#pReq').textContent = ID(PLAN_REQ) + ' gr';
+    $('#pBuy').textContent = ID(buy) + ' gr';
+    $('#pEst').textContent = RP(buy * price);
+    $('#pNote').textContent = buy === 0
+      ? 'Stok bebas cukup: item tetap tercatat di plan dan sumber RO teralokasi, tetapi tidak masuk PO.'
+      : ID(fromStock) + ' gr ditutup stok, ' + ID(buy) + ' gr masuk PO ke supplier terpilih.';
+  }
+  $('#planStock').addEventListener('input', planRender);
+  $$('input[name="sup"]').forEach(function (r) { r.addEventListener('change', planRender); });
+  planRender();
+
+  /* ---------- 9. PO otomatis ---------- */
+  var sPo = $('#po');
+  function poReset() {
+    $$('.pitem', sPo).forEach(function (p) { p.classList.remove('on', 'skip'); });
+    $$('.pocard li', sPo).forEach(function (li) { li.classList.add('wait'); });
+  }
+  function poShowAll() {
+    $$('.pitem', sPo).forEach(function (p) { p.classList.toggle('skip', p.dataset.to === 'skip'); });
+    $$('.pocard li', sPo).forEach(function (li) { li.classList.remove('wait'); });
+  }
+  function poPlay() {
+    stopScene('po');
+    if (reduce) { poShowAll(); return; }
+    poReset();
+    $$('.pitem', sPo).forEach(function (p, i) {
+      later('po', 350 + i * 750, function () {
+        $$('.pitem', sPo).forEach(function (x) { x.classList.remove('on'); });
+        if (p.dataset.to === 'skip') { p.classList.add('skip'); return; }
+        p.classList.add('on');
+        var li = $('.pocard li[data-id="' + p.dataset.to + '"]', sPo);
+        if (li) { li.classList.remove('wait'); }
+      });
+    });
+    later('po', 350 + 4 * 750, function () { $$('.pitem', sPo).forEach(function (x) { x.classList.remove('on'); }); });
+  }
+  $('#poPlay').addEventListener('click', poPlay);
+
+  /* ---------- Scene saat slide tampil ---------- */
+  var scenes = {
+    alur: flowPlay,
+    lokasi: function () { stockFill(false); later('lokasi', 120, function () { stockFill(true); }); },
+    po: poPlay
+  };
+
+  /* ---------- Navigasi ---------- */
+  var slides = $$('.slide');
+  var N = slides.length;
+  var current = 0;
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+
+  function updateBar() {
+    $('#barCounter').textContent = pad(current + 1) + ' / ' + pad(N);
+    $('#barTitle').textContent = slides[current].dataset.title || '';
+    $('#barProg').style.width = ((current + 1) / N * 100) + '%';
+    $('#btnPrev').disabled = current === 0;
+    $('#btnNext').disabled = current === N - 1;
+  }
+  function enter(i) {
+    var s = slides[i];
+    stopScene(s.id);
+    s.classList.remove('play');
+    void s.offsetWidth;
+    s.classList.add('play');
+    if (scenes[s.id]) { scenes[s.id](); }
+  }
+  function leave(i) { stopScene(slides[i].id); }
+  function show(i) {
+    i = Math.max(0, Math.min(N - 1, i));
+    if (isDeck()) {
+      if (i !== current) { leave(current); }
+      slides.forEach(function (s, k) { var on = k === i; s.classList.toggle('is-active', on); s.setAttribute('aria-hidden', on ? 'false' : 'true'); if (on) { s.removeAttribute('inert'); } else { s.setAttribute('inert', ''); } });
+      var changed = i !== current;
+      current = i;
+      if (changed) { enter(i); }
+    } else {
+      current = i;
+      slides[i].scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    }
+    updateBar();
+    try { history.replaceState(null, '', '#' + slides[i].id); } catch (e) { /* abaikan */ }
+  }
+  var next = function () { show(current + 1); };
+  var prev = function () { show(current - 1); };
+
+  function fit() {
+    var sc = Math.min(window.innerWidth / 1280, (window.innerHeight - 56) / 720);
+    root.style.setProperty('--scale', String(Math.max(0.3, sc)));
+  }
+
+  var seen = {};
+  var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function (entries) {
+    if (isDeck()) { return; }
+    entries.forEach(function (en) {
+      if (!en.isIntersecting) { return; }
+      var i = slides.indexOf(en.target);
+      if (!seen[i]) { seen[i] = true; enter(i); }
+    });
+  }, { threshold: 0.2 }) : null;
+  if (io) { slides.forEach(function (s) { io.observe(s); }); }
+
+  var raf = 0;
+  window.addEventListener('scroll', function () {
+    if (isDeck() || raf) { return; }
+    raf = requestAnimationFrame(function () {
+      raf = 0;
+      var mid = window.innerHeight * 0.35, best = 0;
+      slides.forEach(function (s, k) { if (s.getBoundingClientRect().top <= mid) { best = k; } });
+      if (best !== current) { current = best; updateBar(); }
+    });
+  }, { passive: true });
+
+  function applyMode() {
+    var deck = isDeck();
+    $('#btnFull').hidden = !deck || !document.fullscreenEnabled;
+    if (deck) {
+      fit();
+      slides.forEach(function (s, k) { var on = k === current; s.classList.toggle('is-active', on); s.setAttribute('aria-hidden', on ? 'false' : 'true'); if (on) { s.removeAttribute('inert'); } else { s.setAttribute('inert', ''); } });
+      enter(current);
+    } else {
+      slides.forEach(function (s) { s.removeAttribute('aria-hidden'); s.removeAttribute('inert'); s.classList.add('play'); });
+      seen = {};
+    }
+    updateBar();
+  }
+  if (deckMQ.addEventListener) { deckMQ.addEventListener('change', applyMode); } else if (deckMQ.addListener) { deckMQ.addListener(applyMode); }
+  window.addEventListener('resize', function () { if (isDeck()) { fit(); } });
+
+  $('#btnNext').addEventListener('click', next);
+  $('#btnPrev').addEventListener('click', prev);
+
+  document.addEventListener('keydown', function (e) {
+    if (!isDeck() || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var tag = (e.target && e.target.tagName ? e.target.tagName : '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') { return; }
+    var onButton = tag === 'button';
+    switch (e.key) {
+      case 'ArrowRight': case 'PageDown': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp': prev(); e.preventDefault(); break;
+      case ' ': if (onButton) { return; } if (e.shiftKey) { prev(); } else { next(); } e.preventDefault(); break;
+      case 'Home': show(0); e.preventDefault(); break;
+      case 'End': show(N - 1); e.preventDefault(); break;
+      case 'f': case 'F': toggleFull(); break;
+      default: break;
+    }
+  });
+
+  var tx = null, ty = 0;
+  $('#deck').addEventListener('touchstart', function (e) { if (!isDeck()) { return; } tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+  $('#deck').addEventListener('touchend', function (e) {
+    if (!isDeck() || tx === null) { return; }
+    var t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
+    tx = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { if (dx < 0) { next(); } else { prev(); } }
+  }, { passive: true });
+
+  window.addEventListener('hashchange', function () {
+    var i = slides.findIndex(function (s) { return '#' + s.id === location.hash; });
+    if (i > -1 && i !== current) { show(i); }
+  });
+
+  /* ---------- Layar penuh ---------- */
+  var barEl = $('#bar'), idleT = 0;
+  function toggleFull() {
+    try {
+      if (document.fullscreenElement) { document.exitFullscreen().catch(function () {}); }
+      else if (root.requestFullscreen) { root.requestFullscreen().catch(function () {}); }
+    } catch (e) { /* abaikan */ }
+  }
+  function wake() {
+    barEl.classList.remove('is-idle');
+    clearTimeout(idleT);
+    if (document.fullscreenElement && isDeck()) {
+      idleT = setTimeout(function () { if (!barEl.matches(':hover') && !barEl.contains(document.activeElement)) { barEl.classList.add('is-idle'); } }, 2500);
+    }
+  }
+  $('#btnFull').addEventListener('click', toggleFull);
+  document.addEventListener('fullscreenchange', function () { $('#btnFull').setAttribute('aria-pressed', document.fullscreenElement ? 'true' : 'false'); wake(); });
+  document.addEventListener('mousemove', wake, { passive: true });
+  document.addEventListener('keydown', wake);
+
+  /* ---------- Tema ---------- */
+  var darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+  try { var saved = localStorage.getItem('alur-gudang-theme'); if (saved === 'light' || saved === 'dark') { root.dataset.theme = saved; } } catch (e) { /* abaikan */ }
+  var isDark = function () { return root.dataset.theme ? root.dataset.theme === 'dark' : darkMQ.matches; };
+  function syncThemeBtn() { var b = $('#btnTheme'); var label = isDark() ? 'Ganti ke tema terang' : 'Ganti ke tema gelap'; b.setAttribute('aria-label', label); b.title = label; }
+  $('#btnTheme').addEventListener('click', function () {
+    root.dataset.theme = isDark() ? 'light' : 'dark';
+    try { localStorage.setItem('alur-gudang-theme', root.dataset.theme); } catch (e) { /* abaikan */ }
+    syncThemeBtn();
+  });
+  if (darkMQ.addEventListener) { darkMQ.addEventListener('change', syncThemeBtn); }
+  syncThemeBtn();
+
+  /* ---------- Mulai ---------- */
+  var startIdx = slides.findIndex(function (s) { return '#' + s.id === location.hash; });
+  if (startIdx > -1) { current = startIdx; }
+  root.classList.add('is-booting');
+  applyMode();
+  requestAnimationFrame(function () { requestAnimationFrame(function () { root.classList.remove('is-booting'); }); });
+  if (!isDeck() && startIdx > 0) { slides[startIdx].scrollIntoView({ block: 'start' }); }
+})();
+</script>
+</body>
+</html>

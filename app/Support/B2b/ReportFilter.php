@@ -19,6 +19,9 @@ final class ReportFilter
         public readonly array $outletIds,
         public readonly ?int $outletId,
         public readonly ?int $customerId,
+        public readonly ?string $product = null,
+        public readonly ?string $variant = null,
+        public readonly ?int $categoryId = null,
     ) {}
 
     /**
@@ -45,7 +48,20 @@ final class ReportFilter
 
         $customerId = is_numeric($input['customer_id'] ?? null) ? (int) $input['customer_id'] : null;
 
-        return new self($from, $to, $outletId !== null ? [$outletId] : $allowed, $outletId, $customerId);
+        // Filter item untuk drilldown: nama produk / varian di pesanan (snapshot), kategori produk (0 = tanpa kategori).
+        $text = fn (string $key) => is_string($input[$key] ?? null) && $input[$key] !== '' ? $input[$key] : null;
+        $categoryId = is_numeric($input['category_id'] ?? null) ? (int) $input['category_id'] : null;
+
+        return new self(
+            $from, $to, $outletId !== null ? [$outletId] : $allowed, $outletId, $customerId,
+            $text('product'), $text('variant'), $categoryId,
+        );
+    }
+
+    /** Ada filter produk / varian / kategori: angka dihitung dari item pesanan, bukan total pesanan. */
+    public function hasItemFilter(): bool
+    {
+        return $this->product !== null || $this->variant !== null || $this->categoryId !== null;
     }
 
     /** Batas waktu periode untuk kolom datetime (awal hari pertama s.d. akhir hari terakhir). */

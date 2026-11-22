@@ -1,6 +1,8 @@
 {{--
     Modal daftar pesanan Laporan B2B (tingkat terakhir drilldown dan kartu KPI penjualan).
-    JS: B2bReport.ordersModal({ title, params: { from, to, customer_id, customer_name } }); params menimpa filter aktif.
+    JS: B2bReport.ordersModal({ title, params: { from, to, customer_id, product, ... }, labels: ['PT X', ...] });
+    params menimpa filter aktif, labels = nama pilihan drilldown untuk keterangan di bawah judul.
+    Dengan filter produk / varian / kategori, kolom Total berganti "Nilai item" (nilai barang itu saja).
     Baris pesanan menjadi link ke detail pesanan kalau user punya akses menu Pesanan.
 --}}
 <div class="modal fade b2b-modal" id="report-orders-modal" tabindex="-1" aria-labelledby="report-orders-title" aria-hidden="true">
@@ -22,7 +24,7 @@
                                 <th scope="col">Pesanan</th>
                                 <th scope="col">Customer</th>
                                 <th scope="col">Status</th>
-                                <th scope="col" class="text-end">Total</th>
+                                <th scope="col" class="text-end" data-orders-amount-head>Total</th>
                             </tr>
                         </thead>
                         <tbody data-orders-rows></tbody>
@@ -87,7 +89,8 @@
                     <td>${number}<span class="ob-cell-meta">${esc(order.date)}</span></td>
                     <td>${esc(order.customer || '-')}<span class="ob-cell-meta"><i class="fas fa-store" aria-hidden="true"></i> ${esc(order.outlet || '-')}</span></td>
                     <td><span class="badge badge-${esc(order.status_variant)}">${esc(order.status)}</span><span class="ob-cell-meta">${esc(order.payment_type)}</span></td>
-                    <td class="text-end">${B2bReport.rupiah(order.amount)}</td>
+                    <td class="text-end">${B2bReport.rupiah(order.amount)}${order.amount !== order.order_total
+                        ? `<span class="ob-cell-meta">dari ${B2bReport.rupiah(order.order_total)}</span>` : ''}</td>
                 </tr>`;
             }
 
@@ -95,12 +98,14 @@
                 controller?.abort();
                 controller = new AbortController();
                 $content.attr('aria-busy', 'true').find('[data-report-error]').prop('hidden', true);
-                B2bReport.fetch('orders', Object.assign({}, params, { customer_name: undefined, page }), controller.signal)
+                B2bReport.fetch('orders', Object.assign({}, params, { page }), controller.signal)
                     .then(data => {
                         $content.attr('aria-busy', 'false');
                         $modal.find('[data-orders-total]').html(
-                            `<span><strong>${B2bReport.number(data.totals.orders)}</strong> pesanan</span><span>Total <strong>${B2bReport.rupiah(data.totals.amount)}</strong></span>`
+                            `<span><strong>${B2bReport.number(data.totals.orders)}</strong> pesanan</span>`
+                            + `<span>${data.item_filter ? 'Nilai item' : 'Total'} <strong>${B2bReport.rupiah(data.totals.amount)}</strong></span>`
                         );
+                        $modal.find('[data-orders-amount-head]').text(data.item_filter ? 'Nilai item' : 'Total');
                         $modal.find('[data-orders-rows]').html(data.items.map(row).join(''));
                         $modal.find('.b2b-report-orders__wrap').prop('hidden', !data.items.length);
                         $modal.find('[data-orders-empty]').prop('hidden', !!data.items.length);
@@ -119,11 +124,11 @@
             });
             $modal.on('click', '[data-orders-retry]', load);
 
-            B2bReport.ordersModal = function ({ title = 'Daftar pesanan', params: extra = {} } = {}) {
+            B2bReport.ordersModal = function ({ title = 'Daftar pesanan', params: extra = {}, labels = [] } = {}) {
                 params = extra;
                 page = 1;
                 $modal.find('#report-orders-title').text(title);
-                $modal.find('[data-orders-sub]').text(B2bReport.describe(extra));
+                $modal.find('[data-orders-sub]').text(B2bReport.describe(extra, labels));
                 $modal.find('[data-orders-rows]').empty();
                 $modal.find('[data-orders-total]').html('<span class="b2b-skeleton"></span>');
                 bootstrap.Modal.getOrCreateInstance($modal[0]).show();

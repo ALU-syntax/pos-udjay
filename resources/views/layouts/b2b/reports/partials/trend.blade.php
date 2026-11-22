@@ -47,12 +47,8 @@
             let chart = null;
             let trend = null;       // data tren terakhir (untuk kembali dari drilldown tanpa memuat ulang)
             let bucket = null;      // batang yang sedang di-drilldown
-            let customers = null;   // data customer pada batang itu
             let group = null;       // pilihan Hari/Minggu/Bulan; null = otomatis dari panjang periode
             let request = null;
-
-            const tip = (title, amount, orders) => `<div class="b2b-report-tip"><strong>${B2bReport.escape(title)}</strong>`
-                + `${B2bReport.rupiah(amount)}<br><span>${B2bReport.number(orders)} pesanan</span></div>`;
 
             function baseOptions(onSelect) {
                 return {
@@ -125,7 +121,7 @@
                     yaxis: { labels: { formatter: B2bReport.compactRupiah, style: { colors: '#64748b', fontSize: '11px' } } },
                     tooltip: { custom: ({ dataPointIndex }) => {
                         const item = data.buckets[dataPointIndex];
-                        return tip(item.title, item.amount, item.orders);
+                        return B2bReport.tip(item.title, item.amount, item.orders);
                     } },
                 }));
             }
@@ -141,54 +137,27 @@
 
                 request?.abort();
                 request = new AbortController();
-                B2bReport.fetch('customers', { from: item.from, to: item.to }, request.signal)
+                B2bReport.fetch('breakdown', { by: 'customer', from: item.from, to: item.to }, request.signal)
                     .then(data => {
                         $box.attr('aria-busy', 'false');
-                        customers = data;
                         renderCustomers(data);
                     })
                     .catch(error => { if (error.name !== 'AbortError') B2bReport.showError($box, error); });
             }
 
             function renderCustomers(data) {
-                const rows = data.items.map(item => ({ label: item.name, amount: item.amount, orders: item.orders, customer: item }));
-                if (data.others) {
-                    rows.push({ label: `Lainnya (${data.others.customers} customer)`, amount: data.others.amount, orders: data.others.orders, customer: null });
-                }
+                const rows = B2bReport.rankRows(data, 'customer');
                 showEmpty(!rows.length, 'Tidak ada penjualan pada rentang ini.');
                 if (!rows.length) return;
-
-                const options = baseOptions(index => openOrders(rows[index]?.customer));
-                options.chart.height = Math.max(220, rows.length * 42 + 50);
-                draw(Object.assign(options, {
-                    series: [{ name: 'Penjualan', data: rows.map(row => row.amount) }],
-                    colors: rows.map(row => row.customer ? primary : '#94a3b8'),
-                    plotOptions: { bar: { horizontal: true, distributed: true, borderRadius: 4, barHeight: '62%', dataLabels: { position: 'top' } } },
-                    dataLabels: {
-                        enabled: true, formatter: B2bReport.compactRupiah, offsetX: 34,
-                        style: { colors: ['#334155'], fontSize: '11px', fontWeight: 600 },
-                    },
-                    xaxis: {
-                        categories: rows.map(row => row.label),
-                        labels: { formatter: B2bReport.compactRupiah, style: { colors: '#64748b', fontSize: '11px' } },
-                    },
-                    yaxis: { labels: { maxWidth: 220, style: { colors: '#0f172a', fontSize: '12px' } } },
-                    tooltip: { custom: ({ dataPointIndex }) => {
-                        const row = rows[dataPointIndex];
-                        return tip(row.label, row.amount, row.orders);
-                    } },
-                }));
+                chart = B2bReport.rankChart(chartEl, chart, rows, row => openOrders(row.item));
             }
 
             // Tingkat 3: modal daftar pesanan (satu customer, atau semua pesanan pada batang)
             function openOrders(customer) {
-                if (customer === null) return; // "Lainnya" adalah gabungan, tidak dibuka
                 B2bReport.ordersModal({
-                    title: customer ? `Pesanan ${customer.name}` : 'Daftar pesanan',
-                    params: Object.assign(
-                        { from: bucket.from, to: bucket.to },
-                        customer ? { customer_id: customer.id, customer_name: customer.name } : {}
-                    ),
+                    title: customer ? `Pesanan ${customer.label}` : 'Daftar pesanan',
+                    params: Object.assign({ from: bucket.from, to: bucket.to }, customer ? { customer_id: customer.key } : {}),
+                    labels: customer ? [customer.label] : [],
                 });
             }
 

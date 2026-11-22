@@ -8,6 +8,7 @@ use App\Models\CategoryPayment;
 use App\Models\Menu;
 use App\Models\Outlets;
 use App\Models\User;
+use App\Models\VariantProduct;
 use App\Services\B2b\OrderService;
 use App\Services\B2b\PaymentService;
 use Database\Seeders\B2bMenuSeeder;
@@ -213,14 +214,14 @@ class ReportHttpTest extends B2bTestCase
         $this->assertSame(90000, $monthly['total']);
     }
 
-    public function test_customers_drilldown_lists_top_customers_and_groups_the_rest(): void
+    public function test_breakdown_by_customer_lists_top_customers_and_groups_the_rest(): void
     {
         [$x, $y] = $this->seedOrders();
 
-        $data = $this->section('customers');
-        $this->assertSame(50000, $data['total']);
-        $this->assertSame([[$y->id, 'PT Y', 30000, 1], [$x->id, 'PT X', 20000, 1]], array_map(
-            fn ($item) => [$item['id'], $item['name'], $item['amount'], $item['orders']], $data['items']
+        $data = $this->section('breakdown', ['by' => 'customer']);
+        $this->assertSame(['customer', 50000], [$data['by'], $data['total']]);
+        $this->assertSame([[$y->id, 'PT Y', 30000, 1, null], [$x->id, 'PT X', 20000, 1, null]], array_map(
+            fn ($item) => [$item['key'], $item['label'], $item['amount'], $item['orders'], $item['qty']], $data['items']
         ));
         $this->assertNull($data['others']);
 
@@ -228,9 +229,78 @@ class ReportHttpTest extends B2bTestCase
         foreach (range(1, 10) as $i) {
             $this->place($this->customer(['name' => "PT Kecil {$i}"]), 1000 + $i);
         }
-        $data = $this->section('customers');
+        $data = $this->section('breakdown', ['by' => 'customer']);
         $this->assertCount(10, $data['items']);
-        $this->assertSame(['customers' => 2, 'amount' => 2003, 'orders' => 2], $data['others']);
+        $this->assertSame(['count' => 2, 'amount' => 2003, 'orders' => 2], $data['others']);
+    }
+
+    /**
+     * Produk "Kopi Susu" ada di outlet A (dua varian) dan outlet C; "Roti" tanpa kategori.
+     * X: Kopi Susu ×2 (20.000) + Kopi Susu 1L ×1 (50.000) + Roti ×3 (24.000) di A. Y: Kopi Susu ×1 (12.000) di C.
+     *
+     * @return array{0: Customer, 1: Customer, 2: \App\Models\Category, 3: Outlets}
+     */
+    private function seedProducts(): array
+    {
+        $outletC = $this->outlet('C');
+        $this->staff = User::factory()->create(['outlet_id' => [$this->outlet->id, $outletC->id]]);
+        $this->staff->givePermissionTo(Permission::firstOrCreate(['name' => 'read b2b/reports', 'guard_name' => 'web']));
+
+        $coffee = $this->category('Kopi');
+        $kopiA = $this->variant($this->outlet, 10000, 100, $coffee, 'Kopi Susu');
+        $kopiLiter = VariantProduct::create(['product_id' => $kopiA->product_id, 'name' => 'Kopi Susu 1L', 'harga' => 50000, 'stok' => 100]);
+        $kopiC = $this->variant($outletC, 12000, 100, $coffee, 'Kopi Susu');
+        $roti = $this->variant($this->outlet, 8000, 100, null, 'Roti');
+
+        $x = $this->customer(['name' => 'PT X']);
+        $y = $this->customer(['name' => 'PT Y']);
+        $orders = app(OrderService::class);
+        $base = ['delivery_method' => 'pickup', 'due_date' => today()->addDays(7)->toDateString()];
+        $orders->place($this->staff, $base + ['outlet_id' => $this->outlet->id, 'b2b_customer_id' => $x->id, 'items' => [
+            ['variant_id' => $kopiA->id, 'qty' => 2], ['variant_id' => $kopiLiter->id, 'qty' => 1], ['variant_id' => $roti->id, 'qty' => 3],
+        ]]);
+        $orders->place($this->staff, $base + ['outlet_id' => $outletC->id, 'b2b_customer_id' => $y->id, 'items' => [['variant_id' => $kopiC->id, 'qty' => 1]]]);
+
+        return [$x, $y, $coffee, $outletC];
+    }
+
+    public function test_breakdown_by_product_variant_category_and_outlet(): void
+    {
+        [$x, $y, $coffee, $outletC] = $this->seedProducts();
+        $rows = fn (array $query) => array_map(
+            fn ($item) => [$item['key'], $item['label'], $item['amount'], $item['orders'], $item['qty']],
+            $this->section('breakdown', $query)['items']
+        );
+
+        // Produk dikelompokkan menurut nama, jadi Kopi Susu di outlet A dan C tergabung.
+        $this->assertSame([['Kopi Susu', 'Kopi Susu', 82000, 2, 4], ['Roti', 'Roti', 24000, 1, 3]], $rows(['by' => 'product']));
+        $this->assertSame([['Kopi Susu 1L', 'Kopi Susu 1L', 50000, 1, 1], ['Kopi Susu', 'Kopi Susu', 32000, 2, 3]], $rows(['by' => 'variant', 'product' => 'Kopi Susu']));
+        $this->assertSame([[$x->id, 'PT X', 20000, 1, 2], [$y->id, 'PT Y', 12000, 1, 1]], $rows(['by' => 'customer', 'product' => 'Kopi Susu', 'variant' => 'Kopi Susu']));
+
+        $this->assertSame([[$coffee->id, $coffee->name, 82000, 2, 4], [0, 'Tanpa kategori', 24000, 1, 3]], $rows(['by' => 'category']));
+        $this->assertSame([['Roti', 'Roti', 24000, 1, 3]], $rows(['by' => 'product', 'category_id' => 0]));
+        $this->assertSame([['Kopi Susu', 'Kopi Susu', 70000, 1, 3], ['Roti', 'Roti', 24000, 1, 3]], $rows(['by' => 'product', 'customer_id' => $x->id]));
+
+        // Outlet memakai total pesanan; drilldown outlet → customer.
+        $this->assertSame([[$this->outlet->id, $this->outlet->name, 94000, 1, null], [$outletC->id, $outletC->name, 12000, 1, null]], $rows(['by' => 'outlet']));
+        $this->assertSame([[$y->id, 'PT Y', 12000, 1, null]], $rows(['by' => 'customer', 'outlet_id' => $outletC->id]));
+    }
+
+    public function test_orders_list_with_item_filter_shows_item_value(): void
+    {
+        [$x] = $this->seedProducts();
+
+        $data = $this->section('orders', ['product' => 'Kopi Susu']);
+        $this->assertTrue($data['item_filter']);
+        $this->assertSame(['amount' => 82000, 'orders' => 2], $data['totals']);
+        $this->assertSame([['PT Y', 12000, 12000], ['PT X', 70000, 94000]], array_map(
+            fn ($order) => [$order['customer'], $order['amount'], $order['order_total']], $data['items']
+        ));
+
+        $roti = $this->section('orders', ['category_id' => 0, 'customer_id' => $x->id]);
+        $this->assertSame(['amount' => 24000, 'orders' => 1], $roti['totals']);
+        $this->assertSame([24000], array_column($roti['items'], 'amount'));
+        $this->assertFalse($this->section('orders')['item_filter']);
     }
 
     public function test_orders_list_is_paginated_and_follows_overrides(): void
@@ -271,6 +341,10 @@ class ReportHttpTest extends B2bTestCase
         $this->actingAs($this->staff)
             ->getJson(route('b2b/reports/data', ['section' => 'trend', 'group' => 'year']))
             ->assertUnprocessable()->assertJsonValidationErrors('group');
+
+        $this->actingAs($this->staff)
+            ->getJson(route('b2b/reports/data', ['section' => 'breakdown']))
+            ->assertUnprocessable()->assertJsonValidationErrors('by');
 
         $this->actingAs($this->staff)->getJson('/b2b/reports/data/unknown')->assertNotFound();
     }
