@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
 class ReportController extends Controller
 {
     /** Bagian laporan yang punya endpoint data. Bertambah seiring tahap pengerjaan. */
-    public const SECTIONS = ['summary', 'trend', 'breakdown', 'orders', 'aging', 'debtors', 'invoices', 'cashflow', 'mutations'];
+    public const SECTIONS = ['summary', 'trend', 'breakdown', 'orders', 'aging', 'debtors', 'invoices', 'cashflow', 'mutations', 'contracts'];
 
     public function __construct(private readonly ReportService $reports)
     {
@@ -76,6 +76,7 @@ class ReportController extends Controller
             'debtors' => $this->reports->debtors($filter, $request->query('bucket')),
             'invoices' => $this->reports->invoices($filter, $request->query('bucket'), $request->integer('page', 1)),
             'cashflow' => $this->reports->cashflow($filter, $request->query('by')),
+            'contracts' => $this->reports->contracts($filter),
             'mutations' => $this->reports->mutations($filter, $request->query('by'), $request->query('key'), $request->integer('page', 1)),
         };
 

@@ -120,6 +120,7 @@
         @include('layouts.b2b.reports.partials.breakdown')
         @include('layouts.b2b.reports.partials.aging')
         @include('layouts.b2b.reports.partials.cashflow')
+        @include('layouts.b2b.reports.partials.contracts')
     </div>
 
     @include('layouts.b2b.reports.partials.list-modal')
@@ -186,6 +187,14 @@
             .b2b-report-toggle button[aria-pressed="true"],
             .b2b-report-toggle button[aria-selected="true"] { background: var(--ob-surface); color: var(--ob-primary); box-shadow: 0 1px 3px rgba(15, 23, 42, .12); }
             .b2b-report-toggle button:disabled { opacity: .4; cursor: not-allowed; }
+            /* Tabel ringkas di dalam kartu bagian (rekap kas, kontrak) */
+            .b2b-report-table-wrap { overflow-x: auto; }
+            .b2b-report-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+            .b2b-report-table th { padding: .45rem .6rem; border-bottom: 1px solid var(--ob-border); font-size: .68rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ob-muted); white-space: nowrap; }
+            .b2b-report-table td { padding: .5rem .6rem; border-bottom: 1px solid var(--ob-border); vertical-align: middle; }
+            .b2b-report-table .text-end { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+            .b2b-report-table tfoot td { border-bottom: 0; font-weight: 700; color: var(--ob-text); }
+            .b2b-report-table .ob-cell-meta { display: block; font-size: .74rem; color: var(--ob-muted); white-space: nowrap; }
             /* Tooltip chart */
             /* Latar sendiri: tooltip pie/donut ApexCharts bisa transparan / berwarna irisan. */
             .b2b-report-tip { padding: .55rem .7rem; border: 1px solid var(--ob-border); border-radius: 8px; background: var(--ob-surface, #fff); box-shadow: 0 6px 18px rgba(15, 23, 42, .14); color: var(--ob-text-2); font-size: .78rem; line-height: 1.5; }

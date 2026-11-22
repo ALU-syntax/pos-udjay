@@ -23,8 +23,8 @@
     <div class="b2b-card__body">
         <div class="b2b-report-cash" data-cash-body>
             <div class="b2b-report-chart b2b-report-cash__chart" id="report-cash-chart"></div>
-            <div class="b2b-report-cash__table-wrap">
-                <table class="b2b-report-cash__table">
+            <div class="b2b-report-table-wrap">
+                <table class="b2b-report-table">
                     <thead>
                         <tr>
                             <th scope="col" data-cash-head>Metode</th>
@@ -52,12 +52,6 @@
         .b2b-report-cash { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.4fr); gap: 1rem 1.5rem; align-items: center; }
         .b2b-report-cash[hidden] { display: none; }
         @media (max-width: 991.98px) { .b2b-report-cash { grid-template-columns: minmax(0, 1fr); } }
-        .b2b-report-cash__table-wrap { overflow-x: auto; }
-        .b2b-report-cash__table { width: 100%; border-collapse: collapse; font-size: .84rem; }
-        .b2b-report-cash__table th { padding: .45rem .6rem; border-bottom: 1px solid var(--ob-border); font-size: .68rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ob-muted); white-space: nowrap; }
-        .b2b-report-cash__table td { padding: .5rem .6rem; border-bottom: 1px solid var(--ob-border); vertical-align: middle; }
-        .b2b-report-cash__table .text-end { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-        .b2b-report-cash__table tfoot td { border-bottom: 0; font-weight: 700; color: var(--ob-text); }
         .b2b-report-cash__out { color: var(--ob-danger); }
         .b2b-report-cash__net { font-weight: 700; color: var(--ob-text); }
         .b2b-report-cash__name { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 .55rem; align-items: center; width: 100%; padding: 0; border: 0; background: none; text-align: left; color: var(--ob-text); }

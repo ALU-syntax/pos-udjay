@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\B2b;
 
+use App\Models\B2b\Contract;
 use App\Models\B2b\Customer;
 use App\Models\B2b\Order;
 use App\Models\CategoryPayment;
@@ -493,6 +494,37 @@ class ReportHttpTest extends B2bTestCase
         $this->actingAs($this->staff)
             ->getJson(route('b2b/reports/data', ['section' => 'mutations', 'by' => 'outlet']))
             ->assertUnprocessable()->assertJsonValidationErrors('key');
+    }
+
+    public function test_contracts_ending_within_30_days_with_successor_and_sales(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-22 10:00'));
+        $x = $this->customer(['name' => 'PT X']);
+        $y = $this->customer(['name' => 'PT Y']);
+        $ending = $this->contract($x, [], ['start_date' => '2026-08-01', 'end_date' => '2026-11-29']);
+        $next = $this->contract($x, [], ['start_date' => '2026-11-30', 'end_date' => '2027-11-29']);
+        $this->contract($y, [], ['start_date' => '2026-01-01', 'end_date' => '2026-12-22']);
+        // Tidak ikut: berakhir 31 hari lagi, sudah dihentikan, sudah berakhir kemarin.
+        $this->contract($this->customer(['name' => 'PT Z']), [], ['start_date' => '2026-01-01', 'end_date' => '2026-12-23']);
+        $this->contract($this->customer(['name' => 'PT W']), [], ['start_date' => '2026-01-01', 'end_date' => '2026-12-01', 'status' => Contract::STATUS_TERMINATED]);
+        $this->contract($this->customer(['name' => 'PT V']), [], ['start_date' => '2026-01-01', 'end_date' => '2026-11-21']);
+
+        // Penjualan selama kontrak X: hanya pesanan dikonfirmasi/selesai di outlet yang bisa diakses.
+        $this->place($x, 20000);
+        $this->place($x, 50000, [], $this->otherOutlet);
+        app(OrderService::class)->cancel($this->staff, $this->place($x, 10000), 'Salah input');
+
+        $data = $this->section('contracts', ['from' => '2025-01-01', 'to' => '2025-01-31']);
+        $this->assertSame([2, 1, 30], [$data['total'], $data['without_successor'], $data['days']]);
+        $this->assertSame([['PT X', 7, $next->contract_number, 20000, 1], ['PT Y', 30, null, 0, 0]], array_map(
+            fn ($item) => [$item['customer'], $item['days_left'], $item['successor']['contract_number'] ?? null, $item['sales']['amount'], $item['sales']['orders']],
+            $data['items']
+        ));
+        $this->assertSame([$ending->id, '1 Agu 2026', '29 Nov 2026', '30 Nov 2026'], [
+            $data['items'][0]['id'], $data['items'][0]['start_date'], $data['items'][0]['end_date'], $data['items'][0]['successor']['start_date'],
+        ]);
+
+        $this->assertSame(['PT Y'], array_column($this->section('contracts', ['customer_id' => $y->id])['items'], 'customer'));
     }
 
     public function test_summary_rejects_invalid_filters(): void

@@ -2,6 +2,7 @@
 
 namespace App\Services\B2b;
 
+use App\Models\B2b\Contract;
 use App\Models\B2b\Customer;
 use App\Models\B2b\Invoice;
 use App\Models\B2b\Order;
@@ -54,6 +55,9 @@ class ReportService
 
     /** Jumlah irisan donut kas; sisanya digabung jadi "Lainnya". */
     public const TOP_CASH_GROUPS = 7;
+
+    /** Kontrak dianggap hampir berakhir bila berakhir dalam sekian hari (sama dengan statistik menu Kontrak). */
+    public const CONTRACT_ENDING_DAYS = 30;
 
     /** Filter kelompok umur yang diterima daftar customer / invoice: kelompok di atas + semua yang lewat jatuh tempo. */
     public const AGING_FILTERS = ['current', '1-30', '31-60', '61-90', '90+', 'overdue'];
@@ -473,6 +477,69 @@ class ReportService
             })->all(),
             'page' => $paginator->currentPage(),
             'last_page' => $paginator->lastPage(),
+        ];
+    }
+
+    /**
+     * Kontrak berjalan yang berakhir dalam 30 hari (per hari ini, tidak ikut periode dan outlet karena kontrak per customer),
+     * berakhir paling dekat dulu. Disertai kontrak lanjutan customer itu (kalau sudah dibuat) dan penjualan selama kontrak
+     * (pesanan dikonfirmasi + selesai di outlet terpilih, dari tanggal mulai sampai hari ini).
+     */
+    public function contracts(ReportFilter $filter): array
+    {
+        $today = today();
+        $contracts = Contract::query()
+            ->with('customer:id,code,name')
+            ->effectiveOn($today)
+            ->whereDate('end_date', '<=', $today->copy()->addDays(self::CONTRACT_ENDING_DAYS))
+            ->when($filter->customerId, fn (Builder $query, int $id) => $query->where('b2b_customer_id', $id))
+            ->orderBy('end_date')
+            ->orderBy('id')
+            ->get();
+
+        // Kontrak lanjutan = kontrak aktif berikutnya milik customer yang sama (periode kontrak tidak boleh tumpang tindih).
+        $successors = Contract::query()
+            ->where('status', Contract::STATUS_ACTIVE)
+            ->whereIn('b2b_customer_id', $contracts->pluck('b2b_customer_id')->unique())
+            ->whereDate('start_date', '>', $today)
+            ->orderBy('start_date')
+            ->get(['id', 'b2b_customer_id', 'contract_number', 'start_date', 'end_date'])
+            ->groupBy('b2b_customer_id');
+
+        $items = $contracts->map(function (Contract $contract) use ($filter, $successors, $today) {
+            $next = $successors->get($contract->b2b_customer_id)?->first(fn (Contract $next) => $next->start_date->gt($contract->end_date));
+            $sales = Order::query()
+                ->whereIn('outlet_id', $filter->outletIds)
+                ->where('b2b_customer_id', $contract->b2b_customer_id)
+                ->whereIn('status', [Order::STATUS_CONFIRMED, Order::STATUS_COMPLETED])
+                ->whereBetween('order_date', [$contract->start_date->copy()->startOfDay(), $today->copy()->endOfDay()])
+                ->selectRaw('count(*) as orders, coalesce(sum(grand_total), 0) as amount')
+                ->first();
+
+            return [
+                'id' => $contract->id,
+                'contract_number' => $contract->contract_number,
+                'customer_id' => $contract->b2b_customer_id,
+                'customer' => $contract->customer?->name,
+                'customer_code' => $contract->customer?->code,
+                'start_date' => $this->shortDate($contract->start_date),
+                'end_date' => $this->shortDate($contract->end_date),
+                'days_left' => (int) $today->diffInDays($contract->end_date, false),
+                'successor' => $next ? [
+                    'id' => $next->id,
+                    'contract_number' => $next->contract_number,
+                    'start_date' => $this->shortDate($next->start_date),
+                ] : null,
+                'sales' => ['amount' => (int) $sales->amount, 'orders' => (int) $sales->orders],
+            ];
+        });
+
+        return [
+            'as_of' => $today->toDateString(),
+            'days' => self::CONTRACT_ENDING_DAYS,
+            'total' => $items->count(),
+            'without_successor' => $items->whereNull('successor')->count(),
+            'items' => $items->values()->all(),
         ];
     }
 
