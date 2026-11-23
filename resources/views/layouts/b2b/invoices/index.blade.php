@@ -87,9 +87,7 @@
                 </div>
                 <div class="ob-field">
                     <label for="customer-filter"><i class="fas fa-building" aria-hidden="true"></i> Customer</label>
-                    <select id="customer-filter" class="form-select" data-select2-url="{{ route('b2b/selectors/customers') }}" data-placeholder="Semua customer">
-                        <option value=""></option>
-                    </select>
+                    <select id="customer-filter" class="form-select" multiple data-select2-url="{{ route('b2b/selectors/customers') }}" data-placeholder="Semua customer"></select>
                 </div>
                 <div class="ob-field">
                     <label for="outlet-filter"><i class="fas fa-store" aria-hidden="true"></i> Outlet</label>
@@ -156,11 +154,11 @@
                     }
                     const params = new URLSearchParams({
                         status: $('#status-filter').val() || '',
-                        customer_id: $('#customer-filter').val() || '',
                         outlet_id: $('#outlet-filter').val() || '',
                         due_from: $('#due-from').val() || '',
                         due_to: $('#due-to').val() || '',
                     });
+                    ($('#customer-filter').val() || []).forEach(id => params.append('customer_ids[]', id));
                     window.location.href = `${this.dataset.url}?${params}`;
                 });
             });

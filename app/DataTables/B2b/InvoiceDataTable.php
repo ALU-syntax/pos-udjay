@@ -126,8 +126,8 @@ class InvoiceDataTable extends DataTable
         if (request()->filled('outlet_id') && in_array(request()->integer('outlet_id'), $outletIds, true)) {
             $query->whereHas('order', fn ($order) => $order->withTrashed()->where('outlet_id', request()->integer('outlet_id')));
         }
-        if (request()->filled('customer_id')) {
-            $query->where('b2b_invoices.b2b_customer_id', request()->integer('customer_id'));
+        if ($customerIds = self::customerIds()) {
+            $query->whereIn('b2b_invoices.b2b_customer_id', $customerIds);
         }
         if (request()->filled('due_from') && request()->filled('due_to')) {
             $query->whereBetween('b2b_invoices.due_date', [
@@ -147,6 +147,22 @@ class InvoiceDataTable extends DataTable
         };
     }
 
+    /**
+     * Customer yang dipilih di filter (boleh lebih dari satu): `customer_ids[]`, atau `customer_id` tunggal untuk tautan lama.
+     *
+     * @return list<int>
+     */
+    public static function customerIds(): array
+    {
+        return collect(request()->input('customer_ids', []))
+            ->push(request()->input('customer_id'))
+            ->filter(fn ($id) => is_scalar($id) && ctype_digit((string) $id) && (int) $id > 0)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     public function html(): HtmlBuilder
     {
         return $this->builder()
@@ -155,7 +171,7 @@ class InvoiceDataTable extends DataTable
             ->minifiedAjax('', null, [
                 'status' => "$('#status-filter').val()",
                 'outlet_id' => "$('#outlet-filter').val()",
-                'customer_id' => "$('#customer-filter').val()",
+                'customer_ids' => "$('#customer-filter').val()",
                 'due_from' => "$('#due-from').val()",
                 'due_to' => "$('#due-to').val()",
             ])

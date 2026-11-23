@@ -4,6 +4,7 @@
       - Kartu: <button class="ob-card ob-stat b2b-stat-filter" data-filter="status" data-value="overdue" aria-pressed="false"> → mengubah #status-filter.
       - Baris: <div class="b2b-filter-row"> berisi .ob-field dengan <select id="...-filter" class="form-select" data-default="...">.
         Select dengan data-select2-url jadi select2 ber-ajax (mis. customer); beri <option value=""></option> kosong.
+        Tambah atribut multiple untuk multi-pilih (tanpa option kosong); nilainya dikirim sebagai array (mis. customer_ids[]).
       - Rentang: <div class="ob-field b2b-form"><div class="b2b-range"><i></i><input readonly><button class="b2b-range__clear"></button></div>
         + dua <input type="hidden"> untuk tanggal awal/akhir (Y-m-d).
       - Tombol hapus filter: <button id="filter-reset" hidden>.
@@ -54,6 +55,34 @@
             .b2b-filter-row .select2-container--default.select2-container--focus .select2-selection--single,
             .b2b-filter-row .select2-container--open .select2-selection--single { border-color: var(--ob-primary); }
             .b2b-filter-row .select2-container.is-set .select2-selection--single { border-color: var(--ob-primary); background: var(--ob-primary-soft); }
+            /* select2 multi-pilih (customer di Invoice): chip nama, tinggi minimum sama dengan .form-select */
+            .b2b-filter-row .select2-container--default .select2-selection--multiple {
+                display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+                min-height: 42px; padding: 4px 2rem 4px .5rem; border: 1px solid var(--ob-border-strong); border-radius: var(--ob-radius-sm); background: var(--ob-surface);
+                /* maks ±3 baris chip, sisanya di-scroll supaya tabel tidak terdorong jauh */
+                max-height: 6.6rem; overflow-y: auto;
+            }
+            /* select2 4.1: chip di ul.__rendered, kotak ketik di span.select2-search--inline (saudara ul) */
+            .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-selection__rendered { display: contents; }
+            .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-selection__choice__display { padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-selection__choice {
+                display: inline-flex; align-items: center; gap: .3rem; max-width: 100%; margin: 0; padding: 2px .5rem 2px .35rem;
+                border: 1px solid var(--ob-border-strong); border-radius: 6px; background: var(--ob-surface); font-size: .8rem; color: var(--ob-text);
+            }
+            .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+                position: static; margin: 0; padding: 0 .15rem; border: 0; background: transparent; color: var(--ob-muted); font-size: .95rem; line-height: 1;
+            }
+            .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover { color: var(--ob-danger); background: transparent; }
+            .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-selection__clear {
+                position: absolute; top: 50%; right: .5rem; transform: translateY(-50%); margin: 0; padding: 0; border: 0; background: transparent; color: var(--ob-muted); font-size: 1.05rem;
+            }
+            .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-search--inline { flex: 1 1 6rem; }
+            .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-search__field {
+                width: 100% !important; height: 32px; margin: 0; padding: 0 0 0 .35rem; font-size: .875rem; font-family: inherit; line-height: 32px; vertical-align: middle; resize: none; overflow: hidden;
+            }
+            .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-search__field::placeholder { color: var(--ob-text); }
+            .b2b-filter-row .select2-container--default.select2-container--focus .select2-selection--multiple { border-color: var(--ob-primary); }
+            .b2b-filter-row .select2-container.is-set .select2-selection--multiple { border-color: var(--ob-primary); background: var(--ob-primary-soft); }
             .select2-dropdown.b2b-filter-dropdown { border-color: var(--ob-border-strong); border-radius: var(--ob-radius-sm); overflow: hidden; box-shadow: 0 12px 32px rgba(15, 23, 42, .12); font-size: .85rem; }
             .select2-dropdown.b2b-filter-dropdown .select2-search__field { height: 36px; border-radius: 8px; border-color: var(--ob-border-strong); }
             .select2-dropdown.b2b-filter-dropdown .select2-results__option--highlighted { background: #1572e8; }
@@ -79,6 +108,8 @@
                 const $selects = $(selects);
                 const datatable = () => window.LaravelDataTables[table];
                 const initial = el => el.dataset.default ?? '';
+                // Select multi-pilih (mis. customer di Invoice) dibandingkan sebagai daftar nilai; kosong = tanpa filter.
+                const current = el => el.multiple ? ($(el).val() || []).join(',') : (el.value || '');
                 const $input = range ? $(range.input) : $();
                 const $from = range ? $(range.from) : $();
                 const $to = range ? $(range.to) : $();
@@ -88,7 +119,7 @@
 
                 function syncState() {
                     $selects.each(function () {
-                        const set = (this.value || '') !== initial(this);
+                        const set = current(this) !== initial(this);
                         $(this).toggleClass('is-set', set).next('.select2-container').toggleClass('is-set', set);
                     });
                     $input.toggleClass('is-set', $from.val() !== '');
@@ -96,7 +127,7 @@
                     $('.b2b-stat-filter').each(function () {
                         $(this).attr('aria-pressed', $(`#${this.dataset.filter}-filter`).val() === this.dataset.value);
                     });
-                    const dirty = $selects.toArray().some(el => (el.value || '') !== initial(el)) || !!$from.val();
+                    const dirty = $selects.toArray().some(el => current(el) !== initial(el)) || !!$from.val();
                     $('#filter-reset').prop('hidden', !dirty);
                 }
                 const reload = () => { syncState(); datatable().ajax.reload(); };
@@ -121,7 +152,7 @@
 
                 if (range) $(range.clear).on('click', () => setRange(null));
                 $('#filter-reset').on('click', function () {
-                    $selects.each(function () { $(this).val(initial(this)).trigger('change.select2'); });
+                    $selects.each(function () { $(this).val(this.multiple ? [] : initial(this)).trigger('change.select2'); });
                     if (range) setRange(null); else reload();
                 });
 

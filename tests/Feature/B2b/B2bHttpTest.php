@@ -948,4 +948,35 @@ class B2bHttpTest extends B2bTestCase
         // Tidak ada hasil: ditolak dengan pesan, bukan file kosong.
         $this->actingAs($user)->get(route('b2b/invoices/export', ['status' => 'paid', 'customer_id' => $buyer->id]))->assertStatus(422);
     }
+
+    public function test_invoice_list_and_export_filter_many_customers(): void
+    {
+        $outlet = $this->outlet();
+        $user = $this->userFor($outlet, ['read b2b/invoices']);
+        $variant = $this->variant($outlet, 100000);
+        $alpha = $this->customer(['name' => 'PT Multi Alpha']);
+        $beta = $this->customer(['name' => 'PT Multi Beta']);
+        $gamma = $this->customer(['name' => 'PT Multi Gamma']);
+        $place = fn ($customer) => app(\App\Services\B2b\OrderService::class)->place($user, [
+            'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id, 'delivery_method' => 'pickup',
+            'due_date' => today()->addDays(7)->toDateString(), 'items' => [['variant_id' => $variant->id, 'qty' => 1]],
+        ])->invoice;
+        $forAlpha = $place($alpha);
+        $forBeta = $place($beta);
+        $place($gamma);
+
+        // Daftar: hanya invoice milik customer yang dipilih; id tidak valid diabaikan.
+        $ajax = ['X-Requested-With' => 'XMLHttpRequest'];
+        $rows = $this->actingAs($user)->getJson(route('b2b/invoices', [
+            'draw' => 1, 'start' => 0, 'length' => 10, 'status' => '', 'customer_ids' => [$alpha->id, $beta->id, 'x', ''],
+        ]), $ajax)->assertOk()->json('data.*.DT_RowId');
+        $this->assertEqualsCanonicalizing([$forAlpha->id, $forBeta->id], $rows);
+
+        // Export: isi file dan keterangan filter mengikuti semua customer terpilih.
+        $response = $this->actingAs($user)->get(route('b2b/invoices/export', ['status' => 'open', 'customer_ids' => [$beta->id, $alpha->id]]))->assertOk();
+        $recap = \PhpOffice\PhpSpreadsheet\IOFactory::load($response->getFile()->getPathname())->getSheetByName('Rekap');
+        $this->assertStringContainsString('Customer: PT Multi Alpha, PT Multi Beta', $recap->getCell('A2')->getValue());
+        $this->assertEqualsCanonicalizing([$forAlpha->invoice_number, $forBeta->invoice_number], [$recap->getCell('B6')->getValue(), $recap->getCell('B7')->getValue()]);
+        $this->assertSame('Total', $recap->getCell('A8')->getValue());
+    }
 }

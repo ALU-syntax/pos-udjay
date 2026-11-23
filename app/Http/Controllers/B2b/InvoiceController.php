@@ -22,6 +22,9 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class InvoiceController extends Controller
 {
+    /** Jumlah nama customer yang ditulis di keterangan filter sheet Rekap; sisanya jadi "+n lainnya". */
+    private const EXPORT_FILTER_MAX_CUSTOMERS = 5;
+
     public function __construct(private readonly PaymentService $payments)
     {
         $this->abilities = [];
@@ -102,8 +105,12 @@ class InvoiceController extends Controller
         if (isset($statuses[$request->query('status')])) {
             $filters[] = 'Status: '.$statuses[$request->query('status')];
         }
-        if ($request->filled('customer_id')) {
-            $filters[] = 'Customer: '.(Customer::query()->whereKey($request->integer('customer_id'))->value('name') ?? '-');
+        if ($customerIds = InvoiceDataTable::customerIds()) {
+            // Customer terhapus tetap disebut supaya keterangan filter = isi file.
+            $names = Customer::withTrashed()->whereKey($customerIds)->orderBy('name')->pluck('name');
+            $shown = $names->take(self::EXPORT_FILTER_MAX_CUSTOMERS)->implode(', ');
+            $more = $names->count() - self::EXPORT_FILTER_MAX_CUSTOMERS;
+            $filters[] = 'Customer: '.($names->isEmpty() ? '-' : $shown.($more > 0 ? ' +'.$more.' lainnya' : ''));
         }
         if ($request->filled('outlet_id')) {
             $filters[] = 'Outlet: '.(Outlets::query()->whereKey($request->integer('outlet_id'))->value('name') ?? '-');
