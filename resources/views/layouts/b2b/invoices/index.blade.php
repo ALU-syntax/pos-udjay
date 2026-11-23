@@ -66,6 +66,12 @@
                     <button type="button" class="btn ob-btn ob-btn-outline ob-btn-sm" id="filter-reset" hidden>
                         <i class="fas fa-undo" aria-hidden="true"></i> Reset filter
                     </button>
+                    {{-- Muncul saat filter customer berisi tepat satu customer; href diisi JS. --}}
+                    <a href="#" target="_blank" class="btn ob-btn ob-btn-outline ob-btn-sm" id="statement-link" hidden
+                        data-url="{{ route('b2b/invoices/statement', ['customer' => '__ID__']) }}"
+                        title="Rekap semua invoice belum lunas customer ini untuk dikirim ke customer">
+                        <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i> Rekap Tagihan
+                    </a>
                     <button type="button" class="btn ob-btn ob-btn-outline ob-btn-sm" id="export-excel" data-url="{{ route('b2b/invoices/export') }}"
                         title="Unduh daftar sesuai filter: sheet Rekap + satu sheet per invoice">
                         <i class="fas fa-file-excel" aria-hidden="true"></i> Export Excel
@@ -144,6 +150,17 @@
                     selects: '#status-filter, #customer-filter, #outlet-filter',
                     range: { input: '#due-filter', from: '#due-from', to: '#due-to', clear: '#due-clear', ranges: 'due' },
                 });
+
+                // Rekap tagihan hanya untuk satu customer; isinya selalu semua invoice belum lunas (tidak ikut filter lain).
+                function syncStatementLink() {
+                    const ids = $('#customer-filter').val() || [];
+                    const link = $('#statement-link');
+                    link.prop('hidden', ids.length !== 1);
+                    if (ids.length === 1) link.attr('href', link.data('url').replace('__ID__', encodeURIComponent(ids[0])));
+                }
+                $('#customer-filter').on('change', syncStatementLink);
+                $('#filter-reset').on('click', syncStatementLink);
+                syncStatementLink();
 
                 // Export mengikuti filter yang sedang dipakai (sama dengan isi tabel).
                 $('#export-excel').on('click', function () {

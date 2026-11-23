@@ -134,6 +134,18 @@ class InvoiceController extends Controller
         ]);
     }
 
+    /** Unduh rekap tagihan customer sebagai PDF. */
+    public function statementPdf(Request $request, Customer $customer)
+    {
+        $this->authorize('read b2b/invoices');
+        $statement = CustomerStatement::for($customer, $request->user()->outletIds());
+
+        return response(app(InvoicePdfService::class)->statement($statement), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$statement->pdfFilename().'"',
+        ]);
+    }
+
     /** Halaman cetak invoice. "Simpan sebagai PDF" lewat dialog cetak browser. */
     public function print(int $invoice)
     {

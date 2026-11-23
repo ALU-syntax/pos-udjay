@@ -3,9 +3,10 @@
 namespace App\Services\B2b;
 
 use App\Models\B2b\Invoice;
+use App\Support\B2b\CustomerStatement;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-/** PDF invoice (dompdf) untuk lampiran reminder dan unduhan dari menu Invoice. */
+/** PDF invoice dan rekap tagihan (dompdf) untuk lampiran reminder dan unduhan dari menu Invoice. */
 class InvoicePdfService
 {
     public function __construct(private readonly B2bSettings $settings) {}
@@ -20,6 +21,18 @@ class InvoicePdfService
         ])
             ->setPaper('a4')
             // Hanya huruf yang dipakai yang ditanam; tanpa ini font DejaVu ikut utuh dan PDF jadi ±1 MB per invoice.
+            ->setOption('isFontSubsettingEnabled', true)
+            ->output();
+    }
+
+    /** PDF rekap tagihan customer (Statement of Account). */
+    public function statement(CustomerStatement $statement): string
+    {
+        return Pdf::loadView('layouts.b2b.invoices.statement-pdf', [
+            'statement' => $statement,
+            'profile' => $this->settings->invoiceProfile(),
+        ])
+            ->setPaper('a4')
             ->setOption('isFontSubsettingEnabled', true)
             ->output();
     }

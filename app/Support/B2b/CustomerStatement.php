@@ -44,6 +44,14 @@ final class CustomerStatement
         return new self($customer, $today, $rows);
     }
 
+    /** "Statement of Account - PT Maju - 2026-11-23.pdf" */
+    public function pdfFilename(): string
+    {
+        $customer = preg_replace('/[^\pL\pN ._-]+/u', '', $this->customer->name);
+
+        return 'Statement of Account'.($customer !== '' ? ' - '.$customer : '').' - '.$this->date->format('Y-m-d').'.pdf';
+    }
+
     public function total(): int
     {
         return (int) $this->rows->sum(fn ($row) => $row['invoice']->total_to_pay);

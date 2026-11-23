@@ -76,7 +76,7 @@
             .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-selection__clear {
                 position: absolute; top: 50%; right: .5rem; transform: translateY(-50%); margin: 0; padding: 0; border: 0; background: transparent; color: var(--ob-muted); font-size: 1.05rem;
             }
-            .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-search--inline { flex: 1 1 6rem; }
+            .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-search--inline { flex: 1 1 2.5rem; }
             .b2b-filter-row .select2-container--default .select2-selection--multiple .select2-search__field {
                 width: 100% !important; height: 32px; margin: 0; padding: 0 0 0 .35rem; font-size: .875rem; font-family: inherit; line-height: 32px; vertical-align: middle; resize: none; overflow: hidden;
             }

@@ -90,6 +90,7 @@
 <body>
     <div class="toolbar">
         <button type="button" class="primary" onclick="window.print()">Cetak / Simpan PDF</button>
+        <a href="{{ route('b2b/invoices/statement/pdf', $customer->id) }}">Unduh PDF</a>
         <button type="button" onclick="window.close()">Tutup</button>
     </div>
 

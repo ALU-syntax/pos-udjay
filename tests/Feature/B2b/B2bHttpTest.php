@@ -1076,6 +1076,17 @@ class B2bHttpTest extends B2bTestCase
             ->assertOk()->assertDontSee(route('b2b/invoices/statement', $customer->id));
         $this->actingAs($this->userFor($outlet, ['read b2b/customers']))->get(route('b2b/invoices/statement', $customer->id))->assertForbidden();
 
+        // PDF: unduhan dengan nama file rekap; tanpa akses Invoice ditolak.
+        $pdf = $this->actingAs($user)->get(route('b2b/invoices/statement/pdf', $customer->id))->assertOk()
+            ->assertDownload('Statement of Account - PT Rekap Tagihan - '.today()->format('Y-m-d').'.pdf');
+        $this->assertSame('application/pdf', $pdf->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $pdf->getContent());
+        $this->actingAs($this->userFor($outlet, ['read b2b/customers']))->get(route('b2b/invoices/statement/pdf', $customer->id))->assertForbidden();
+        $this->actingAs($user)->get(route('b2b/invoices/statement', $customer->id))->assertSee(route('b2b/invoices/statement/pdf', $customer->id));
+
+        // Daftar Invoice punya tombol Rekap Tagihan (muncul lewat JS saat tepat satu customer dipilih).
+        $this->actingAs($user)->get(route('b2b/invoices'))->assertOk()->assertSee('id="statement-link"', false);
+
         // Tanpa invoice belum lunas: tetap bisa dicetak dengan keterangan.
         $this->actingAs($user)->get(route('b2b/invoices/statement', $this->customer()->id))->assertOk()->assertSee('There are no unpaid invoices');
     }
