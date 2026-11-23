@@ -3,6 +3,22 @@
 @section('content')
     @include('layouts.b2b.partials.assets')
     @include('layouts.b2b.partials.page-styles')
+    @push('css')
+        <style>
+            /* Kartu Rekening Pengirim */
+            .b2b-accounts { list-style: none; margin: 0; padding: 0; }
+            .b2b-account { display: flex; gap: .75rem; padding: .85rem 1.25rem; border-top: 1px solid var(--ob-border); }
+            .b2b-account:first-child { border-top: 0; }
+            .b2b-account__icon { flex: none; display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; font-size: .9rem; }
+            .b2b-account__icon--bank { background: var(--ob-primary-soft); color: var(--ob-primary); }
+            .b2b-account__icon--ewallet { background: #ecfdf5; color: #047857; }
+            .b2b-account__body { display: flex; flex-direction: column; gap: .1rem; min-width: 0; font-size: .82rem; }
+            .b2b-account__top { display: flex; align-items: center; gap: .4rem; }
+            .b2b-account__top strong { font-size: .875rem; color: var(--ob-text); }
+            .b2b-account__number { font-size: .92rem; font-weight: 600; letter-spacing: .02em; color: var(--ob-text); }
+            .b2b-account__name { color: var(--ob-text-2); overflow-wrap: anywhere; }
+        </style>
+    @endpush
 
     <div class="main-content ob-page">
         <div class="ob-header">
@@ -171,6 +187,49 @@
                             <br>Diubah {{ $customer->updated_at?->translatedFormat('d M Y, H:i') }}{{ $customer->modifier ? ' oleh '.$customer->modifier->name : '' }}
                         @endif
                     </div>
+                </div>
+
+                <div class="ob-card">
+                    <div class="b2b-card__head">
+                        <div>
+                            <h2 class="b2b-card__title"><i class="fas fa-university" aria-hidden="true"></i> Rekening Pengirim <span class="b2b-count">{{ $customer->accounts->count() }}</span></h2>
+                            <p class="b2b-card__desc">Rekening &amp; e-wallet yang biasa dipakai customer untuk transfer.</p>
+                        </div>
+                    </div>
+                    @if ($customer->accounts->isEmpty())
+                        <div class="b2b-empty">
+                            <span class="b2b-empty__icon" aria-hidden="true"><i class="fas fa-university"></i></span>
+                            <p class="b2b-empty__title">Belum ada rekening terdaftar</p>
+                            <p class="b2b-empty__text">
+                                @can('update b2b/customers')
+                                    Tambahkan lewat <a href="{{ route('b2b/customers/edit', $customer->id) }}">Edit customer</a> supaya pembayaran mudah dikenali.
+                                @else
+                                    Rekening ditambahkan lewat Edit customer.
+                                @endcan
+                            </p>
+                        </div>
+                    @else
+                        <ul class="b2b-accounts">
+                            @foreach ($customer->accounts as $account)
+                                <li class="b2b-account">
+                                    <span class="b2b-account__icon b2b-account__icon--{{ $account->type }}" aria-hidden="true">
+                                        <i class="fas {{ $account->type === \App\Models\B2b\CustomerAccount::TYPE_EWALLET ? 'fa-mobile-alt' : 'fa-university' }}"></i>
+                                    </span>
+                                    <div class="b2b-account__body">
+                                        <div class="b2b-account__top">
+                                            <strong>{{ $account->providerLabel() }}</strong>
+                                            <span class="b2b-tag">{{ $account->typeLabel() }}</span>
+                                        </div>
+                                        <span class="b2b-account__number b2b-mono">{{ $account->formattedNumber() }}</span>
+                                        <span class="b2b-account__name">a.n. {{ $account->account_name }}</span>
+                                        @if ($account->notes)
+                                            <span class="b2b-muted">{{ $account->notes }}</span>
+                                        @endif
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                 </div>
 
                 @can('delete b2b/customers')

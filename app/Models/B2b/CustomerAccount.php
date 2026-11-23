@@ -97,6 +97,12 @@ class CustomerAccount extends Model
         return self::TYPES[$this->type] ?? $this->type;
     }
 
+    /** Nomor dikelompokkan per 4 digit supaya mudah dibaca/dicocokkan: "1234 5678 90". */
+    public function formattedNumber(): string
+    {
+        return trim(chunk_split($this->account_number, 4, ' '));
+    }
+
     /** Ringkasan untuk log & tampilan: "BCA 1234567890 a.n. PT Maju". */
     public function summary(): string
     {

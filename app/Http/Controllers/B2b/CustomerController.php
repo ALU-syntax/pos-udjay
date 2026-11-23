@@ -50,7 +50,7 @@ class CustomerController extends Controller
     public function show(Customer $customer)
     {
         $this->authorize('read b2b/customers');
-        $customer->load(['creator', 'modifier']);
+        $customer->load(['creator', 'modifier', 'accounts']);
 
         $contracts = $customer->contracts()->withCount('items')->latest('start_date')->get();
         $recentOrders = $customer->orders()->with(['outlet', 'invoice'])->latest('order_date')->limit(10)->get();

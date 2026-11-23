@@ -188,7 +188,7 @@ Keterangan: `?` = boleh kosong, FK = relasi. Nominal rupiah disimpan sebagai `bi
 | created_by, modified_by | bigint? | audit trail, tanpa foreign key/index |
 | timestamps, deleted_at | | soft delete |
 
-**`b2b_customer_accounts`** (23 Nov 2026): rekening bank / e-wallet terdaftar yang biasa dipakai customer untuk transfer, dasar pencocokan mutasi fase 3. Diisi di form customer (maks 10 baris). Rekening perusahaan (tujuan transfer) tetap di config `b2b.invoice.bank_*`.
+**`b2b_customer_accounts`** (23 Nov 2026): rekening bank / e-wallet terdaftar yang biasa dipakai customer untuk transfer, dasar pencocokan mutasi fase 3. Diisi di form customer (maks 10 baris), tampil di kartu "Rekening Pengirim" halaman detail customer (nomor dikelompokkan per 4 digit). Rekening perusahaan (tujuan transfer) tetap di config `b2b.invoice.bank_*`.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|

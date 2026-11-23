@@ -139,9 +139,14 @@ class B2bHttpTest extends B2bTestCase
         $this->assertSame(['BCA 1234567890 a.n. PT Rekening', 'GoPay 081234567890 a.n. Budi'], $log['before']['accounts']);
         $this->assertSame(['BCA 1234567890 a.n. PT Rekening Baru', 'Mandiri 9876543210 a.n. PT Rekening'], $log['after']['accounts']);
 
+        // Detail customer menampilkan rekening (nomor dikelompokkan per 4 digit).
+        $this->actingAs($user)->get(route('b2b/customers/show', $id))->assertOk()
+            ->assertSeeInOrder(['Rekening Pengirim', 'BCA', '1234 5678 90', 'a.n. PT Rekening Baru', 'Rekening utama', 'Mandiri', '9876 5432 10']);
+
         // Form tanpa baris rekening = semua rekening dihapus.
         $this->actingAs($user)->putJson(route('b2b/customers/update', $id), ['type' => 'pt', 'name' => 'PT Rekening'])->assertOk();
         $this->assertSame(0, $customer->accounts()->count());
+        $this->actingAs($user)->get(route('b2b/customers/show', $id))->assertOk()->assertSee('Belum ada rekening terdaftar');
 
         $this->actingAs($user)->get(route('b2b/customers/edit', $id))->assertOk()->assertSee('Rekening &amp; E-wallet Pengirim', false);
     }
