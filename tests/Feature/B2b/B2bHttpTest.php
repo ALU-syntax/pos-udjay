@@ -1037,6 +1037,49 @@ class B2bHttpTest extends B2bTestCase
         $this->actingAs($user)->get(route('b2b/invoices/export', ['status' => 'paid', 'customer_id' => $buyer->id]))->assertStatus(422);
     }
 
+    public function test_customer_statement_lists_unpaid_invoices_in_user_outlets(): void
+    {
+        $outlet = $this->outlet();
+        $otherOutlet = $this->outlet('Lain');
+        $user = $this->userFor($outlet, ['read b2b/invoices', 'read b2b/customers', 'pay b2b/invoices']);
+        $cashier = $this->userFor($otherOutlet);
+        $customer = $this->customer(['name' => 'PT Rekap Tagihan', 'contact_name' => 'Sari']);
+        $variant = $this->variant($outlet, 100000);
+        [$cash] = $this->paymentCategory('Cash');
+        $place = fn (int $qty, string $due, $by = null, $at = null, $item = null) => app(\App\Services\B2b\OrderService::class)->place($by ?? $user, [
+            'outlet_id' => ($at ?? $outlet)->id, 'b2b_customer_id' => $customer->id, 'delivery_method' => 'pickup',
+            'due_date' => $due, 'items' => [['variant_id' => ($item ?? $variant)->id, 'qty' => $qty]],
+        ])->invoice;
+
+        $late = $place(2, today()->addDays(1)->toDateString());
+        $late->forceFill(['issue_date' => today()->subDays(20), 'due_date' => today()->subDays(5)])->save();
+        $partial = $place(3, today()->addDays(10)->toDateString());
+        app(\App\Services\B2b\PaymentService::class)->record($user, $partial, [
+            'amount' => 100000, 'paid_date' => today()->toDateString(), 'category_payment_id' => $cash->id,
+        ]);
+        $paid = $place(1, today()->addDays(3)->toDateString());
+        app(\App\Services\B2b\PaymentService::class)->record($user, $paid, [
+            'amount' => 100000, 'paid_date' => today()->toDateString(), 'category_payment_id' => $cash->id,
+        ]);
+        // Invoice di outlet yang tidak bisa diakses user tidak ikut.
+        $hidden = $place(5, today()->addDays(3)->toDateString(), $cashier, $otherOutlet, $this->variant($otherOutlet, 100000));
+
+        $this->actingAs($user)->get(route('b2b/invoices/statement', $customer->id))->assertOk()
+            ->assertSee('Statement of Account')->assertSee('PT Rekap Tagihan')->assertSee('Attn. Sari')->assertSee('Unpaid Invoices:</strong> 2', false)
+            ->assertSeeInOrder([$late->invoice_number, '200.000', '5 days', $partial->invoice_number, '300.000', '100.000', '200.000'])
+            ->assertSee('Overdue (1 invoice)')->assertSee('Rp. 500.000') // total 200.000 + 300.000
+            ->assertSeeInOrder(['TOTAL BALANCE DUE', 'Rp. 400.000'])
+            ->assertDontSee($paid->invoice_number)->assertDontSee($hidden->invoice_number);
+
+        $this->actingAs($user)->get(route('b2b/customers/show', $customer->id))->assertOk()->assertSee(route('b2b/invoices/statement', $customer->id));
+        $this->actingAs($this->userFor($outlet, ['read b2b/customers']))->get(route('b2b/customers/show', $customer->id))
+            ->assertOk()->assertDontSee(route('b2b/invoices/statement', $customer->id));
+        $this->actingAs($this->userFor($outlet, ['read b2b/customers']))->get(route('b2b/invoices/statement', $customer->id))->assertForbidden();
+
+        // Tanpa invoice belum lunas: tetap bisa dicetak dengan keterangan.
+        $this->actingAs($user)->get(route('b2b/invoices/statement', $this->customer()->id))->assertOk()->assertSee('There are no unpaid invoices');
+    }
+
     public function test_invoice_list_and_export_filter_many_customers(): void
     {
         $outlet = $this->outlet();

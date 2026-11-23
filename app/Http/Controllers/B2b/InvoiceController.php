@@ -14,6 +14,7 @@ use App\Models\Outlets;
 use App\Services\B2b\B2bSettings;
 use App\Services\B2b\InvoicePdfService;
 use App\Services\B2b\PaymentService;
+use App\Support\B2b\CustomerStatement;
 use App\Support\B2b\InvoiceDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -120,6 +121,17 @@ class InvoiceController extends Controller
         }
 
         return $filters;
+    }
+
+    /** Rekap tagihan customer: semua invoice belum lunas di outlet user, satu lembar untuk dikirim ke customer. */
+    public function statement(Request $request, Customer $customer)
+    {
+        $this->authorize('read b2b/invoices');
+
+        return view('layouts.b2b.invoices.statement', [
+            'statement' => CustomerStatement::for($customer, $request->user()->outletIds()),
+            'profile' => app(B2bSettings::class)->invoiceProfile(),
+        ]);
     }
 
     /** Halaman cetak invoice. "Simpan sebagai PDF" lewat dialog cetak browser. */

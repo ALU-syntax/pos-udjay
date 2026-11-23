@@ -44,6 +44,10 @@
                 </div>
             </div>
             <div class="b2b-actions">
+                @can('read b2b/invoices')
+                    <a href="{{ route('b2b/invoices/statement', $customer->id) }}" target="_blank" class="btn ob-btn ob-btn-outline"
+                        title="Rekap semua invoice belum lunas untuk dikirim ke customer"><i class="fas fa-file-invoice-dollar" aria-hidden="true"></i> Rekap Tagihan</a>
+                @endcan
                 @can('create b2b/contracts')
                     <a href="{{ route('b2b/contracts/create', ['customer_id' => $customer->id]) }}" class="btn ob-btn ob-btn-outline"><i class="fas fa-file-signature" aria-hidden="true"></i> Buat Kontrak</a>
                 @endcan
