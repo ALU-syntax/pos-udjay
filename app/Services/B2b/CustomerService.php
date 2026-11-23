@@ -4,6 +4,7 @@ namespace App\Services\B2b;
 
 use App\Models\B2b\Contract;
 use App\Models\B2b\Customer;
+use App\Models\B2b\CustomerAccount;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -28,8 +29,9 @@ class CustomerService
             $customer->code = $this->sequences->customerCode();
             $customer->created_by = auth()->id();
             $customer->save();
+            $this->syncAccounts($customer, $data['accounts'] ?? []);
 
-            $this->logger->log('customer.created', $customer);
+            $this->logger->log('customer.created', $customer, ['accounts' => $this->accountSummaries($customer)]);
 
             return $customer->fresh();
         });
@@ -38,18 +40,56 @@ class CustomerService
     public function update(Customer $customer, array $data): Customer
     {
         return DB::transaction(function () use ($customer, $data) {
-            $before = $customer->only(self::CUSTOMER_FIELDS);
+            $before = $customer->only(self::CUSTOMER_FIELDS) + ['accounts' => $this->accountSummaries($customer)];
             $customer->fill(Arr::only($data, self::CUSTOMER_FIELDS));
             $customer->modified_by = auth()->id();
             $customer->save();
+            if (array_key_exists('accounts', $data)) {
+                $this->syncAccounts($customer, $data['accounts']);
+            }
 
             $this->logger->log('customer.updated', $customer, [
                 'before' => $before,
-                'after' => $customer->only(self::CUSTOMER_FIELDS),
+                'after' => $customer->only(self::CUSTOMER_FIELDS) + ['accounts' => $this->accountSummaries($customer)],
             ]);
 
             return $customer->fresh();
         });
+    }
+
+    /**
+     * Samakan rekening customer dengan isi form. Rekening dikenali dari provider + nomor:
+     * yang sama diperbarui (nama, catatan), yang hilang dihapus, yang baru dibuat. Hapus dulu baru buat,
+     * supaya mengganti nomor tidak bentrok dengan indeks unik.
+     *
+     * @param  list<array{provider: string, account_number: string, account_name: string, notes: ?string}>  $accounts
+     */
+    private function syncAccounts(Customer $customer, array $accounts): void
+    {
+        $key = fn ($account) => $account['provider'].'|'.$account['account_number'];
+        $submitted = collect($accounts)->keyBy($key);
+        $existing = $customer->accounts()->get()->keyBy(fn (CustomerAccount $account) => $key($account));
+
+        $existing->diffKeys($submitted)->each(fn (CustomerAccount $account) => $account->delete());
+        foreach ($submitted as $id => $account) {
+            $values = ['account_name' => $account['account_name'], 'notes' => $account['notes'] ?? null];
+            if ($existing->has($id)) {
+                $existing[$id]->update($values);
+
+                continue;
+            }
+            $customer->accounts()->create($values + [
+                'type' => CustomerAccount::typeOf($account['provider']),
+                'provider' => $account['provider'],
+                'account_number' => $account['account_number'],
+            ]);
+        }
+    }
+
+    /** @return list<string> */
+    private function accountSummaries(Customer $customer): array
+    {
+        return $customer->accounts()->get()->map(fn (CustomerAccount $account) => $account->summary())->all();
     }
 
     public function toggle(Customer $customer): Customer
@@ -74,6 +114,8 @@ class CustomerService
                 'status' => Contract::STATUS_TERMINATED, 'terminated_at' => now(), 'terminated_by' => auth()->id(), 'termination_reason' => 'Customer dihapus',
             ]);
             $customer->forceFill(['modified_by' => auth()->id()])->save();
+            // Rekening dilepas supaya bisa didaftarkan ke customer lain (satu rekening = satu customer).
+            $customer->accounts()->delete();
             $customer->delete();
             $this->logger->log('customer.deleted', $customer);
         });

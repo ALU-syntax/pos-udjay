@@ -43,10 +43,27 @@ return new class extends Migration
             $table->index('name');
             $table->index('type');
         });
+
+        // Rekening bank / e-wallet yang biasa dipakai customer untuk transfer; dasar pencocokan mutasi (fase 3).
+        Schema::create('b2b_customer_accounts', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('b2b_customer_id')->constrained('b2b_customers')->cascadeOnDelete();
+            $table->enum('type', ['bank', 'ewallet'])->comment('mengikuti provider (CustomerAccount::PROVIDERS)');
+            $table->string('provider', 30)->comment('kode bank/e-wallet dari daftar baku, mis. bca, gopay');
+            $table->string('account_number', 30)->comment('angka saja; e-wallet = nomor HP 08…');
+            $table->string('account_name')->comment('nama pemilik rekening, biasanya yang muncul di mutasi');
+            $table->string('notes')->nullable();
+            $table->timestamps();
+
+            // Satu rekening hanya milik satu customer, supaya pencocokan mutasi tidak ambigu.
+            // Rekening customer yang dihapus ikut dihapus (CustomerService::delete) agar bisa didaftarkan ulang.
+            $table->unique(['provider', 'account_number']);
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('b2b_customer_accounts');
         Schema::dropIfExists('b2b_customers');
     }
 };

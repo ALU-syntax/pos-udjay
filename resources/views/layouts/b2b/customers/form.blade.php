@@ -29,6 +29,9 @@
             .b2b-region + .select2-container--open .select2-selection--single { border-color: var(--ob-primary); }
             .b2b-region + .select2-container--disabled .select2-selection--single { background: var(--ob-surface-2, #f1f5f9); cursor: not-allowed; }
             .b2b-region.is-invalid + .select2-container .select2-selection--single { border-color: var(--ob-danger); }
+            /* Baris rekening: ruang kanan untuk tombol hapus */
+            .b2b-account-row { padding: 1rem 3.25rem 1rem 1rem; }
+            .b2b-account-row .b2b-fields { gap: .75rem 1rem; }
         </style>
     @endpush
 
@@ -40,6 +43,7 @@
         ];
         $reminderChannels = old('reminder_channels', $customer->reminder_channels ?? []);
         $reminderDays = array_map('intval', old('reminder_days', $customer->reminder_days ?? []));
+        $accounts = $editing ? $customer->accounts->map->only(['provider', 'account_number', 'account_name', 'notes'])->all() : [];
     @endphp
 
     <div class="main-content ob-page">
@@ -179,6 +183,32 @@
                                     <small class="b2b-help mt-0"><i class="fas fa-truck me-1" aria-hidden="true"></i>Untuk pengiriman internal, isi alamat dan wilayah minimal sampai kota/kabupaten.</small>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="ob-card">
+                        <div class="b2b-card__head">
+                            <div>
+                                <h2 class="b2b-card__title"><i class="fas fa-university" aria-hidden="true"></i> Rekening &amp; E-wallet Pengirim</h2>
+                                <p class="b2b-card__desc">Rekening yang biasa dipakai customer untuk transfer, untuk mengenali pembayaran di mutasi. Satu rekening hanya boleh terdaftar di satu customer.</p>
+                            </div>
+                            <button type="button" class="btn ob-btn ob-btn-outline ob-btn-sm" id="account-add">
+                                <i class="fas fa-plus" aria-hidden="true"></i> Tambah rekening
+                            </button>
+                        </div>
+                        <div class="b2b-card__body">
+                            <div class="b2b-repeater" id="account-rows">
+                                @foreach ($accounts as $account)
+                                    @include('layouts.b2b.customers.partials.account-row', ['account' => $account])
+                                @endforeach
+                            </div>
+                            <div class="b2b-repeater-empty" id="account-empty" @if (count($accounts)) hidden @endif>
+                                Belum ada rekening terdaftar. Customer tetap bisa disimpan tanpa rekening.
+                            </div>
+                            <small class="b2b-help" id="account-limit" hidden>Maksimal {{ \App\Models\B2b\CustomerAccount::MAX_PER_CUSTOMER }} rekening per customer.</small>
+                            <template id="account-template">
+                                @include('layouts.b2b.customers.partials.account-row', ['account' => []])
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -335,8 +365,39 @@
                 $('#reminder_enabled').on('change', toggleReminder);
                 toggleReminder();
 
+                // Rekening pengirim: baris bisa ditambah/dihapus; nama input diurutkan ulang supaya error server (accounts.i.field) jatuh ke baris yang benar.
+                const accountRows = $('#account-rows');
+                const accountMax = {{ \App\Models\B2b\CustomerAccount::MAX_PER_CUSTOMER }};
+                const ewallets = @json(collect(\App\Models\B2b\CustomerAccount::PROVIDERS)->filter(fn ($provider) => $provider[0] === \App\Models\B2b\CustomerAccount::TYPE_EWALLET)->keys());
+                function refreshAccounts() {
+                    B2b.reindex(accountRows, 'accounts');
+                    const count = accountRows.children('.b2b-account-row').length;
+                    $('#account-empty').prop('hidden', count > 0);
+                    $('#account-add').prop('disabled', count >= accountMax);
+                    $('#account-limit').prop('hidden', count < accountMax);
+                }
+                $('#account-add').on('click', function () {
+                    const row = $($('#account-template').html());
+                    accountRows.append(row);
+                    refreshAccounts();
+                    row.find('[data-field="provider"]').trigger('focus');
+                });
+                accountRows.on('click', '[data-account-remove]', function () {
+                    $(this).closest('.b2b-account-row').remove();
+                    refreshAccounts();
+                });
+                // E-wallet memakai nomor HP: label dan contoh isian ikut berganti.
+                accountRows.on('change', '[data-field="provider"]', function () {
+                    const ewallet = ewallets.includes(this.value);
+                    const row = $(this).closest('.b2b-account-row');
+                    row.find('[data-number-label]').text(ewallet ? 'Nomor HP' : 'Nomor rekening');
+                    row.find('[data-field="account_number"]').attr('placeholder', ewallet ? '081234567890' : '1234567890');
+                });
+                refreshAccounts();
+
                 form.on('submit', function (event) {
                     event.preventDefault();
+                    refreshAccounts();
                     B2b.submit(this);
                 });
             });

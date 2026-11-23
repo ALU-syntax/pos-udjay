@@ -188,6 +188,21 @@ Keterangan: `?` = boleh kosong, FK = relasi. Nominal rupiah disimpan sebagai `bi
 | created_by, modified_by | bigint? | audit trail, tanpa foreign key/index |
 | timestamps, deleted_at | | soft delete |
 
+**`b2b_customer_accounts`** (23 Nov 2026): rekening bank / e-wallet terdaftar yang biasa dipakai customer untuk transfer, dasar pencocokan mutasi fase 3. Diisi di form customer (maks 10 baris). Rekening perusahaan (tujuan transfer) tetap di config `b2b.invoice.bank_*`.
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| id | bigint PK | |
+| b2b_customer_id | FK, cascade | |
+| type | enum: bank, ewallet | ikut provider, diisi sistem |
+| provider | varchar(30) | kode dari daftar baku `CustomerAccount::PROVIDERS` (tidak bisa ketik bebas) |
+| account_number | varchar(30) | angka saja; e-wallet = nomor HP 08… (62… diseragamkan) |
+| account_name | varchar | nama pemilik, yang biasanya muncul di mutasi |
+| notes | varchar? | |
+| timestamps | | |
+
+Unik `provider` + `account_number` di seluruh customer: satu rekening hanya milik satu customer (keputusan 23 Nov: kalau dipakai bersama, pencocokan dan kelebihan transfer jadi ambigu). Rekening customer yang dihapus ikut dihapus supaya bisa didaftarkan ulang. Form disinkronkan berdasarkan provider + nomor (sama = diperbarui, hilang = dihapus, baru = dibuat); perubahan tercatat di log `customer.created` / `customer.updated`.
+
 ### B. Kontrak (fase 1)
 
 **`b2b_contracts`**

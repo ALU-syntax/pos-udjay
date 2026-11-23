@@ -5,6 +5,7 @@ namespace Tests\Feature\B2b;
 use App\Models\B2b\ActivityLog;
 use App\Models\B2b\Contract;
 use App\Models\B2b\Customer;
+use App\Models\B2b\CustomerAccount;
 use App\Models\B2b\Order;
 use Database\Seeders\B2bMenuSeeder;
 use Illuminate\Http\UploadedFile;
@@ -98,6 +99,88 @@ class B2bHttpTest extends B2bTestCase
         $this->assertSame('Budi', $customer->contact_name);
         $this->assertSame('32.01.01.1001', $customer->village_code);
         $this->assertSame('Jl. Sudirman 1, Pondok Rajeg, Kec. Cibinong, Kabupaten Bogor, Jawa Barat 16914', $customer->fullAddress());
+    }
+
+    public function test_customer_accounts_are_normalized_and_synced_with_the_form(): void
+    {
+        $user = $this->userFor(null, ['create b2b/customers', 'update b2b/customers', 'read b2b/customers']);
+
+        $id = $this->actingAs($user)->postJson(route('b2b/customers/store'), [
+            'type' => 'pt', 'name' => 'PT Rekening',
+            'accounts' => [
+                ['provider' => 'bca', 'account_number' => '123-456 7890', 'account_name' => ' PT Rekening ', 'notes' => ''],
+                ['provider' => '', 'account_number' => '', 'account_name' => '', 'notes' => ''], // baris kosong diabaikan
+                ['provider' => 'gopay', 'account_number' => '+62 812-3456-7890', 'account_name' => 'Budi'],
+            ],
+        ])->assertOk()->json('data.id');
+
+        $customer = Customer::findOrFail($id);
+        $this->assertSame(
+            [['bank', 'bca', '1234567890', 'PT Rekening', null], ['ewallet', 'gopay', '081234567890', 'Budi', null]],
+            $customer->accounts->map(fn ($account) => [$account->type, $account->provider, $account->account_number, $account->account_name, $account->notes])->all()
+        );
+        $bcaId = $customer->accounts->first()->id;
+        $this->assertSame(['BCA 1234567890 a.n. PT Rekening', 'GoPay 081234567890 a.n. Budi'], ActivityLog::query()
+            ->where('action', 'customer.created')->where('subject_id', $id)->first()->changes['accounts']);
+
+        // Edit: BCA tetap (nama diubah, id sama), GoPay dihapus, Mandiri ditambah.
+        $this->actingAs($user)->putJson(route('b2b/customers/update', $id), [
+            'type' => 'pt', 'name' => 'PT Rekening',
+            'accounts' => [
+                ['provider' => 'bca', 'account_number' => '1234567890', 'account_name' => 'PT Rekening Baru', 'notes' => 'Rekening utama'],
+                ['provider' => 'mandiri', 'account_number' => '9876543210', 'account_name' => 'PT Rekening'],
+            ],
+        ])->assertOk();
+        $accounts = $customer->accounts()->get();
+        $this->assertSame(['bca', 'mandiri'], $accounts->pluck('provider')->all());
+        $this->assertSame($bcaId, $accounts->first()->id);
+        $this->assertSame(['PT Rekening Baru', 'Rekening utama'], [$accounts->first()->account_name, $accounts->first()->notes]);
+        $log = ActivityLog::query()->where('action', 'customer.updated')->where('subject_id', $id)->latest('id')->first()->changes;
+        $this->assertSame(['BCA 1234567890 a.n. PT Rekening', 'GoPay 081234567890 a.n. Budi'], $log['before']['accounts']);
+        $this->assertSame(['BCA 1234567890 a.n. PT Rekening Baru', 'Mandiri 9876543210 a.n. PT Rekening'], $log['after']['accounts']);
+
+        // Form tanpa baris rekening = semua rekening dihapus.
+        $this->actingAs($user)->putJson(route('b2b/customers/update', $id), ['type' => 'pt', 'name' => 'PT Rekening'])->assertOk();
+        $this->assertSame(0, $customer->accounts()->count());
+
+        $this->actingAs($user)->get(route('b2b/customers/edit', $id))->assertOk()->assertSee('Rekening &amp; E-wallet Pengirim', false);
+    }
+
+    public function test_customer_account_rules_and_one_owner_per_account(): void
+    {
+        $user = $this->userFor(null, ['create b2b/customers', 'update b2b/customers', 'delete b2b/customers']);
+        $owner = $this->customer(['name' => 'PT Pemilik Rekening']);
+        $owner->accounts()->create(['type' => 'bank', 'provider' => 'bca', 'account_number' => '1111222233', 'account_name' => 'PT Pemilik']);
+        $store = fn (array $accounts) => $this->actingAs($user)->postJson(route('b2b/customers/store'), ['type' => 'pt', 'name' => 'PT Baru', 'accounts' => $accounts]);
+        $row = fn (string $provider, string $number) => ['provider' => $provider, 'account_number' => $number, 'account_name' => 'PT Baru'];
+
+        // Hanya dari daftar baku, nomor angka, nama wajib.
+        $store([['provider' => 'bank-lain', 'account_number' => '12', 'account_name' => '']])->assertUnprocessable()
+            ->assertJsonValidationErrors(['accounts.0.provider', 'accounts.0.account_number', 'accounts.0.account_name']);
+        // E-wallet harus nomor HP.
+        $store([$row('ovo', '1234567890')])->assertUnprocessable()->assertJsonValidationErrors(['accounts.0.account_number']);
+        // Dobel di form yang sama.
+        $store([$row('bni', '5555666677'), $row('bni', '5555-6666-77')])->assertUnprocessable()
+            ->assertJsonValidationErrors(['accounts.1.account_number' => 'baris 1']);
+        // Maksimal per customer.
+        $many = array_map(fn ($i) => $row('bri', '70000000'.$i), range(10, 10 + CustomerAccount::MAX_PER_CUSTOMER));
+        $store($many)->assertUnprocessable()->assertJsonValidationErrors(['accounts']);
+
+        // Rekening milik customer lain ditolak dan menyebut pemiliknya; nomor sama di bank lain boleh.
+        $store([$row('bca', '1111-2222-33')])->assertUnprocessable()
+            ->assertJsonValidationErrors(['accounts.0.account_number' => 'PT Pemilik Rekening ('.$owner->code.')']);
+        $this->assertDatabaseMissing('b2b_customers', ['name' => 'PT Baru']);
+        $store([$row('mandiri', '1111222233')])->assertOk();
+
+        // Pemilik sendiri boleh menyimpan ulang rekeningnya.
+        $this->actingAs($user)->putJson(route('b2b/customers/update', $owner->id), [
+            'type' => 'pt', 'name' => $owner->name, 'accounts' => [['provider' => 'bca', 'account_number' => '1111222233', 'account_name' => 'PT Pemilik']],
+        ])->assertOk();
+
+        // Customer dihapus → rekeningnya dilepas dan bisa didaftarkan ke customer lain.
+        $this->actingAs($user)->deleteJson(route('b2b/customers/destroy', $owner->id))->assertOk();
+        $this->assertDatabaseMissing('b2b_customer_accounts', ['b2b_customer_id' => $owner->id]);
+        $this->actingAs($user)->postJson(route('b2b/customers/store'), ['type' => 'pt', 'name' => 'PT Penerus', 'accounts' => [$row('bca', '1111222233')]])->assertOk();
     }
 
     public function test_customer_region_must_follow_the_hierarchy(): void

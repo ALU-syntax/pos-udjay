@@ -67,6 +67,12 @@ class Customer extends Model
         return $this->hasMany(Invoice::class, 'b2b_customer_id');
     }
 
+    /** Rekening bank / e-wallet terdaftar (pengirim transfer). */
+    public function accounts(): HasMany
+    {
+        return $this->hasMany(CustomerAccount::class, 'b2b_customer_id')->orderBy('id');
+    }
+
     public function province(): BelongsTo
     {
         return $this->belongsTo(Province::class, 'province_code');
