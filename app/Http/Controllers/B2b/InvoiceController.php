@@ -167,6 +167,18 @@ class InvoiceController extends Controller
         ]);
     }
 
+    /** Unduh kwitansi invoice lunas sebagai PDF. */
+    public function receiptPdf(int $invoice)
+    {
+        $invoice = $this->documentInvoice($invoice);
+        abort_unless($invoice->status === Invoice::STATUS_PAID, 404);
+
+        return response(app(InvoicePdfService::class)->receipt($invoice), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.InvoiceDocument::receiptPdfFilename($invoice).'"',
+        ]);
+    }
+
     /** Unduh invoice sebagai Excel bertemplate "Invoice External", untuk rekap/rekonsiliasi finance. */
     public function excel(int $invoice)
     {

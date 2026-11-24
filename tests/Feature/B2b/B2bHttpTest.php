@@ -1000,6 +1000,14 @@ class B2bHttpTest extends B2bTestCase
             ->assertSee('LUNAS')->assertSee('Budiman Roastery')->assertSee('budimanroastery@gmail.com');
         $this->actingAs($user)->get(route('b2b/invoices/receipt', $unpaid->invoice->id))->assertNotFound();
 
+        // Unduh PDF dari halaman kwitansi; invoice belum lunas ditolak.
+        $this->actingAs($user)->get(route('b2b/invoices/receipt', $paid->invoice->id))->assertSee(route('b2b/invoices/receipt/pdf', $paid->invoice->id));
+        $pdf = $this->actingAs($user)->get(route('b2b/invoices/receipt/pdf', $paid->invoice->id))->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('Content-Disposition', 'attachment; filename="Kwitansi '.str_replace('/', '-', $receiptNumber).' - Raksa Koffie.pdf"');
+        $this->assertStringStartsWith('%PDF', $pdf->getContent());
+        $this->actingAs($user)->get(route('b2b/invoices/receipt/pdf', $unpaid->invoice->id))->assertNotFound();
+
         // Tombol kwitansi hanya untuk invoice lunas.
         $this->actingAs($user)->get(route('b2b/orders/show', $paid->id))->assertSee(route('b2b/invoices/receipt', $paid->invoice->id));
         $this->actingAs($user)->get(route('b2b/orders/show', $unpaid->id))->assertDontSee(route('b2b/invoices/receipt', $unpaid->invoice->id));

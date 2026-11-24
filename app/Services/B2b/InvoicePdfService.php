@@ -25,6 +25,20 @@ class InvoicePdfService
             ->output();
     }
 
+    /** PDF kwitansi invoice lunas. */
+    public function receipt(Invoice $invoice): string
+    {
+        $invoice->loadMissing(['order', 'customer', 'allocations.payment']);
+
+        return Pdf::loadView('layouts.b2b.invoices.receipt-pdf', [
+            'invoice' => $invoice,
+            'profile' => $this->settings->invoiceProfile(),
+        ])
+            ->setPaper('a4')
+            ->setOption('isFontSubsettingEnabled', true)
+            ->output();
+    }
+
     /** PDF rekap tagihan customer (Statement of Account). */
     public function statement(CustomerStatement $statement): string
     {

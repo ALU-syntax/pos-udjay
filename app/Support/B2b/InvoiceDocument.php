@@ -57,6 +57,15 @@ final class InvoiceDocument
         return str_replace('/INV/', '/KWI/', $invoice->invoice_number);
     }
 
+    /** Nama file PDF kwitansi, mis. "Kwitansi 07-KWI-BGR-11-2026 - PT Contoh.pdf". */
+    public static function receiptPdfFilename(Invoice $invoice): string
+    {
+        $number = str_replace('/', '-', self::receiptNumber($invoice));
+        $customer = preg_replace('/[^\pL\pN ._-]+/u', '', (string) $invoice->customer?->name);
+
+        return trim('Kwitansi '.$number.($customer !== '' ? ' - '.$customer : '')).'.pdf';
+    }
+
     /** Nama file PDF, mis. "Invoice 07-INV-BGR-11-2026 - PT Contoh.pdf". */
     public static function pdfFilename(Invoice $invoice): string
     {
