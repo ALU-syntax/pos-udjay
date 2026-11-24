@@ -19,7 +19,8 @@ class CustomerDataTable extends DataTable
                 .'<span class="b2b-avatar b2b-avatar--'.e($customer->type).($customer->is_active ? '' : ' is-inactive').'" aria-hidden="true">'.e($customer->initials()).'</span>'
                 .'<div class="ob-cell-stack">'
                 .'<a href="'.route('b2b/customers/show', $customer->id).'" class="b2b-cust-cell__name">'.e($customer->name).'</a>'
-                .'<span class="ob-cell-meta">'.e($customer->typeLabel()).' · '.e($customer->code).'</span>'
+                .'<span class="ob-cell-meta">'.e($customer->typeLabel()).' · '.e($customer->code)
+                .($customer->registeredViaPortal() ? ' · <span class="text-primary" title="Mendaftar sendiri lewat form pendaftaran B2B">Daftar via form</span>' : '').'</span>'
                 .'</div></div>')
             ->addColumn('contact', function (Customer $customer) {
                 $details = array_values(array_filter([$customer->phone, $customer->email]));

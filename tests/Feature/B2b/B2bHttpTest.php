@@ -101,6 +101,30 @@ class B2bHttpTest extends B2bTestCase
         $this->assertSame('Jl. Sudirman 1, Pondok Rajeg, Kec. Cibinong, Kabupaten Bogor, Jawa Barat 16914', $customer->fullAddress());
     }
 
+    public function test_registered_via_marks_portal_customers_and_cannot_be_set_from_backoffice(): void
+    {
+        $user = $this->userFor(null, ['create b2b/customers', 'update b2b/customers', 'read b2b/customers']);
+
+        // Dari backoffice selalu "backoffice", walau form dikirimi registered_via.
+        $id = $this->actingAs($user)->postJson(route('b2b/customers/store'), ['type' => 'pt', 'name' => 'PT Admin', 'registered_via' => 'portal'])
+            ->assertOk()->json('data.id');
+        $this->assertSame(Customer::REGISTERED_VIA_BACKOFFICE, Customer::findOrFail($id)->registered_via);
+        $this->actingAs($user)->get(route('b2b/customers/show', $id))->assertOk()->assertDontSee('Daftar via form');
+
+        // Customer dari form pendaftaran umum (ditulis aplikasi membership) diberi label, dan edit admin tidak mengubah sumbernya.
+        $portal = $this->customer(['name' => 'CV Pendaftar']);
+        $portal->forceFill(['registered_via' => Customer::REGISTERED_VIA_PORTAL])->save();
+        $this->actingAs($user)->get(route('b2b/customers/show', $portal->id))->assertOk()->assertSee('Daftar via form');
+        $this->actingAs($user)->putJson(route('b2b/customers/update', $portal->id), ['type' => 'cv', 'name' => 'CV Pendaftar', 'registered_via' => 'backoffice'])->assertOk();
+        $this->assertTrue($portal->fresh()->registeredViaPortal());
+
+        $this->app->forgetInstance('datatables.request');
+        $names = $this->actingAs($user)->getJson(route('b2b/customers', ['draw' => 1, 'start' => 0, 'length' => 50]), ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()->json('data.*.name');
+        $this->assertStringContainsString('Daftar via form', collect($names)->first(fn ($cell) => str_contains($cell, 'CV Pendaftar')));
+        $this->assertStringNotContainsString('Daftar via form', collect($names)->first(fn ($cell) => str_contains($cell, 'PT Admin')));
+    }
+
     public function test_customer_accounts_are_normalized_and_synced_with_the_form(): void
     {
         $user = $this->userFor(null, ['create b2b/customers', 'update b2b/customers', 'read b2b/customers']);

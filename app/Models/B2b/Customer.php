@@ -39,10 +39,15 @@ class Customer extends Model
         0 => 'Hari H',
     ];
 
+    /** Sumber pendaftaran (kolom registered_via). Portal = form pendaftaran umum di aplikasi membership (uddjaya-membership). */
+    public const REGISTERED_VIA_BACKOFFICE = 'backoffice';
+
+    public const REGISTERED_VIA_PORTAL = 'portal';
+
     protected $table = 'b2b_customers';
 
-    /** Kolom audit hanya diisi oleh CustomerService, tidak lewat fill(). */
-    protected $guarded = ['id', 'code', 'created_by', 'modified_by'];
+    /** Kolom audit & sumber pendaftaran hanya diisi oleh CustomerService / aplikasi membership, tidak lewat fill(). */
+    protected $guarded = ['id', 'code', 'created_by', 'modified_by', 'registered_via'];
 
     protected $casts = [
         'reminder_enabled' => 'boolean',
@@ -109,6 +114,12 @@ class Customer extends Model
     public function typeLabel(): string
     {
         return self::TYPES[$this->type] ?? (string) $this->type;
+    }
+
+    /** Mendaftar sendiri lewat form pendaftaran umum (aplikasi membership), bukan dibuat admin. */
+    public function registeredViaPortal(): bool
+    {
+        return $this->registered_via === self::REGISTERED_VIA_PORTAL;
     }
 
     /** Inisial untuk avatar, tanpa awalan badan usaha: "PT Kantor Sejahtera" → "KS". */

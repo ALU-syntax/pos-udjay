@@ -32,6 +32,9 @@
                     <div class="b2b-profile__meta">
                         <span class="badge badge-primary">{{ $customer->typeLabel() }}</span>
                         <span class="badge {{ $customer->is_active ? 'badge-success' : 'badge-muted' }}">{{ $customer->is_active ? 'Aktif' : 'Nonaktif' }}</span>
+                        @if ($customer->registeredViaPortal())
+                            <span class="badge badge-info" title="Mendaftar sendiri lewat form pendaftaran B2B pada {{ $customer->created_at?->translatedFormat('d M Y H:i') }}">Daftar via form</span>
+                        @endif
                         <span>
                             @if ($effectiveContract)
                                 Kontrak <a href="{{ route('b2b/contracts/show', $effectiveContract->id) }}">{{ $effectiveContract->contract_number }}</a>

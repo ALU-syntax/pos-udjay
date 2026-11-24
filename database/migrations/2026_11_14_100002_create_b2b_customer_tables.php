@@ -34,6 +34,9 @@ return new class extends Migration
             $table->boolean('reminder_overdue_daily')->default(false)->comment('kirim tiap hari setelah lewat jatuh tempo');
             $table->text('notes')->nullable();
             $table->boolean('is_active')->default(true);
+            // Sumber data: dibuat admin di backoffice, atau didaftarkan sendiri lewat form umum di aplikasi membership (Node, menulis langsung ke DB).
+            // Pendaftar portal langsung aktif; kolom ini hanya penanda. Tidak bisa diubah dari form backoffice.
+            $table->enum('registered_via', ['backoffice', 'portal'])->default('backoffice');
             // Audit trail: id user disimpan apa adanya, tanpa foreign key/index (user tidak dihapus permanen).
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('modified_by')->nullable();
