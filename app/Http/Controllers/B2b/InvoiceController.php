@@ -155,6 +155,18 @@ class InvoiceController extends Controller
         ]);
     }
 
+    /** Halaman cetak kwitansi; hanya untuk invoice yang sudah lunas. */
+    public function receipt(int $invoice)
+    {
+        $invoice = $this->documentInvoice($invoice);
+        abort_unless($invoice->status === Invoice::STATUS_PAID, 404);
+
+        return view('layouts.b2b.invoices.receipt', [
+            'invoice' => $invoice,
+            'profile' => app(B2bSettings::class)->invoiceProfile(),
+        ]);
+    }
+
     /** Unduh invoice sebagai Excel bertemplate "Invoice External", untuk rekap/rekonsiliasi finance. */
     public function excel(int $invoice)
     {

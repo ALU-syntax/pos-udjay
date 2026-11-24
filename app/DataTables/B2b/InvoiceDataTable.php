@@ -57,6 +57,7 @@ class InvoiceDataTable extends DataTable
                 .($invoice->canRecordPayment() && auth()->user()->can('pay b2b/invoices') ? $this->payButton($invoice) : '')
                 .($invoice->canSendReminder() && auth()->user()->can('send b2b/reminders') ? $this->reminderButton($invoice) : '')
                 .'<a href="'.route('b2b/invoices/print', $invoice->id).'" target="_blank" class="ob-icon-btn ob-icon-btn--sm" title="Cetak invoice" aria-label="Cetak invoice '.e($invoice->invoice_number).'"><i class="fas fa-print" aria-hidden="true"></i></a>'
+                .($invoice->status === Invoice::STATUS_PAID ? '<a href="'.route('b2b/invoices/receipt', $invoice->id).'" target="_blank" class="ob-icon-btn ob-icon-btn--sm" title="Cetak kwitansi" aria-label="Cetak kwitansi '.e($invoice->invoice_number).'"><i class="fas fa-receipt" aria-hidden="true"></i></a>' : '')
                                 .'</div>')
             // Kolom Sisa tagihan diurutkan menurut sisa, bukan total.
             ->orderColumn('total_to_pay', '(b2b_invoices.total_to_pay - b2b_invoices.paid_amount) $1')

@@ -57,6 +57,9 @@
                 @if ($invoice)
                     <a href="{{ route('b2b/invoices/print', $invoice->id) }}" target="_blank" class="btn ob-btn ob-btn-outline"><i class="fas fa-print" aria-hidden="true"></i> Cetak Invoice</a>
                     <a href="{{ route('b2b/invoices/excel', $invoice->id) }}" class="btn ob-btn ob-btn-outline" title="Unduh invoice sebagai Excel"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</a>
+                    @if ($invoice->status === \App\Models\B2b\Invoice::STATUS_PAID)
+                        <a href="{{ route('b2b/invoices/receipt', $invoice->id) }}" target="_blank" class="btn ob-btn ob-btn-outline"><i class="fas fa-receipt" aria-hidden="true"></i> Kwitansi</a>
+                    @endif
                 @endif
                 {{-- Pesanan selesai tetap bisa dibatalkan untuk koreksi salah input, tapi butuh permission cancel-completed --}}
                 @if ($canCancel)

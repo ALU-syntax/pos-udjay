@@ -51,6 +51,12 @@ final class InvoiceDocument
         ];
     }
 
+    /** Nomor kwitansi mengikuti nomor invoice: 07/INV/BGR/11/2026 → 07/KWI/BGR/11/2026 (tanpa penomoran terpisah). */
+    public static function receiptNumber(Invoice $invoice): string
+    {
+        return str_replace('/INV/', '/KWI/', $invoice->invoice_number);
+    }
+
     /** Nama file PDF, mis. "Invoice 07-INV-BGR-11-2026 - PT Contoh.pdf". */
     public static function pdfFilename(Invoice $invoice): string
     {

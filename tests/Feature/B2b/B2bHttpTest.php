@@ -973,6 +973,50 @@ class B2bHttpTest extends B2bTestCase
             ->assertSee('Rp. 1.350.000')->assertSee('@budiman.roastery')->assertDontSee('PAID');
     }
 
+    public function test_receipt_only_for_paid_invoice_and_follows_template(): void
+    {
+        $outlet = $this->outlet();
+        $user = $this->userFor($outlet, ['read b2b/orders', 'read b2b/invoices']);
+        $variant = $this->variant($outlet, 1250000, 20);
+        [$cash, $cashMethods] = $this->paymentCategory('Cash', ['Tunai']);
+        $customer = $this->customer(['name' => 'Raksa Koffie', 'contact_name' => 'Khairina Nurhafizah']);
+        $paid = app(\App\Services\B2b\OrderService::class)->place($user, [
+            'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id, 'delivery_method' => 'pickup',
+            'items' => [['variant_id' => $variant->id, 'qty' => 2]], 'payment_type' => Order::PAYMENT_IMMEDIATE,
+            'payment' => ['category_payment_id' => $cash->id, 'payment_id' => $cashMethods['Tunai']->id],
+        ]);
+        $unpaid = app(\App\Services\B2b\OrderService::class)->place($user, [
+            'outlet_id' => $outlet->id, 'b2b_customer_id' => $customer->id, 'delivery_method' => 'pickup',
+            'due_date' => today()->addDays(7)->toDateString(), 'items' => [['variant_id' => $variant->id, 'qty' => 1]],
+        ]);
+        $receiptNumber = str_replace('/INV/', '/KWI/', $paid->invoice->invoice_number);
+        \App\Models\Config::setValue('b2b.invoice.phone', '+62 812-3456-7890', null, 'string');
+
+        $this->actingAs($user)->get(route('b2b/invoices/receipt', $paid->invoice->id))->assertOk()
+            ->assertSee('+62 812-3456-7890')->assertSee('@budiman.roastery')->assertSee('Tunai')
+            ->assertSee('KWITANSI')->assertSee($receiptNumber)->assertSee('Raksa Koffie')->assertSee('Khairina Nurhafizah')
+            ->assertSee('Rp 2.500.000')->assertSee('Dua Juta Lima Ratus Ribu Rupiah')
+            ->assertSee('Pembayaran Invoice '.$paid->invoice->invoice_number.' – Pesanan '.$paid->order_number)
+            ->assertSee('LUNAS')->assertSee('Budiman Roastery')->assertSee('budimanroastery@gmail.com');
+        $this->actingAs($user)->get(route('b2b/invoices/receipt', $unpaid->invoice->id))->assertNotFound();
+
+        // Tombol kwitansi hanya untuk invoice lunas.
+        $this->actingAs($user)->get(route('b2b/orders/show', $paid->id))->assertSee(route('b2b/invoices/receipt', $paid->invoice->id));
+        $this->actingAs($user)->get(route('b2b/orders/show', $unpaid->id))->assertDontSee(route('b2b/invoices/receipt', $unpaid->invoice->id));
+
+        $this->actingAs($this->userFor($this->outlet(), ['read b2b/invoices']))->get(route('b2b/invoices/receipt', $paid->invoice->id))->assertNotFound();
+    }
+
+    public function test_terbilang_rupiah(): void
+    {
+        $cases = [0 => 'Nol', 11 => 'Sebelas', 15 => 'Lima Belas', 100 => 'Seratus', 1000 => 'Seribu', 1_100 => 'Seribu Seratus',
+            21_500 => 'Dua Puluh Satu Ribu Lima Ratus', 2_500_000 => 'Dua Juta Lima Ratus Ribu', 1_000_000 => 'Satu Juta',
+            1_350_250_000 => 'Satu Miliar Tiga Ratus Lima Puluh Juta Dua Ratus Lima Puluh Ribu'];
+        foreach ($cases as $amount => $words) {
+            $this->assertSame($words.' Rupiah', \App\Support\B2b\Terbilang::rupiah($amount));
+        }
+    }
+
     public function test_invoice_excel_export_uses_template_and_real_numbers(): void
     {
         $outlet = $this->outlet();
