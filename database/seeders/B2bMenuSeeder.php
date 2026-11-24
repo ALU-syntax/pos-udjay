@@ -101,6 +101,9 @@ class B2bMenuSeeder extends Seeder
             );
         }
 
+        // Master bank & e-wallet untuk rekening customer (tabel umum account_providers).
+        $this->call(AccountProviderSeeder::class);
+
         Cache::forget('menus');
         Cache::forget('urlMenu');
         app(PermissionRegistrar::class)->forgetCachedPermissions();

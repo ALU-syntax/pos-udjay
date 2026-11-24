@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\B2b;
 
+use App\Models\AccountProvider;
 use App\Models\B2b\Contract;
 use App\Models\B2b\Customer;
 use App\Models\Category;
@@ -25,6 +26,9 @@ abstract class B2bTestCase extends TestCase
         parent::setUp();
         // Gateway WhatsApp mati secara default supaya test tidak bergantung pada .env lokal; test WhatsApp menyalakannya sendiri.
         config(['services.b2b_wa_gateway.url' => null, 'services.b2b_wa_gateway.key' => null]);
+        // Master bank & e-wallet (ikut di-rollback per test); cache dibuang supaya perubahan test sebelumnya tidak terbawa.
+        $this->seed(\Database\Seeders\AccountProviderSeeder::class);
+        AccountProvider::flushCache();
     }
 
     protected function outlet(string $suffix = ''): Outlets

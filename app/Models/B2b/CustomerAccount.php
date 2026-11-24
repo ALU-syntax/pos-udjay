@@ -2,6 +2,7 @@
 
 namespace App\Models\B2b;
 
+use App\Models\AccountProvider;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -17,35 +18,7 @@ class CustomerAccount extends Model
         self::TYPE_EWALLET => 'E-wallet',
     ];
 
-    /** Daftar baku bank / e-wallet: kode => [jenis, nama tampil]. Tambah di sini bila perlu, jangan ketik bebas. */
-    public const PROVIDERS = [
-        'bca' => [self::TYPE_BANK, 'BCA'],
-        'mandiri' => [self::TYPE_BANK, 'Mandiri'],
-        'bri' => [self::TYPE_BANK, 'BRI'],
-        'bni' => [self::TYPE_BANK, 'BNI'],
-        'bsi' => [self::TYPE_BANK, 'BSI'],
-        'cimb' => [self::TYPE_BANK, 'CIMB Niaga'],
-        'danamon' => [self::TYPE_BANK, 'Danamon'],
-        'permata' => [self::TYPE_BANK, 'Permata'],
-        'btn' => [self::TYPE_BANK, 'BTN'],
-        'ocbc' => [self::TYPE_BANK, 'OCBC'],
-        'panin' => [self::TYPE_BANK, 'Panin'],
-        'maybank' => [self::TYPE_BANK, 'Maybank'],
-        'mega' => [self::TYPE_BANK, 'Bank Mega'],
-        'jenius' => [self::TYPE_BANK, 'Jenius / SMBC Indonesia'],
-        'jago' => [self::TYPE_BANK, 'Bank Jago'],
-        'seabank' => [self::TYPE_BANK, 'SeaBank'],
-        'blu' => [self::TYPE_BANK, 'blu by BCA Digital'],
-        'bjb' => [self::TYPE_BANK, 'Bank BJB'],
-        'dki' => [self::TYPE_BANK, 'Bank DKI'],
-        'jateng' => [self::TYPE_BANK, 'Bank Jateng'],
-        'jatim' => [self::TYPE_BANK, 'Bank Jatim'],
-        'gopay' => [self::TYPE_EWALLET, 'GoPay'],
-        'ovo' => [self::TYPE_EWALLET, 'OVO'],
-        'dana' => [self::TYPE_EWALLET, 'DANA'],
-        'shopeepay' => [self::TYPE_EWALLET, 'ShopeePay'],
-        'linkaja' => [self::TYPE_EWALLET, 'LinkAja'],
-    ];
+    // Daftar bank / e-wallet ada di tabel master account_providers (App\Models\AccountProvider), bukan di kode.
 
     public const MAX_PER_CUSTOMER = 10;
 
@@ -58,20 +31,16 @@ class CustomerAccount extends Model
         return $this->belongsTo(Customer::class, 'b2b_customer_id');
     }
 
-    public static function typeOf(string $provider): ?string
+    /** Jenis (bank/ewallet) dari master account_providers; null kalau kode tidak dikenal. */
+    public static function typeOf(?string $provider): ?string
     {
-        return self::PROVIDERS[$provider][0] ?? null;
+        return AccountProvider::lookup($provider)?->type;
     }
 
-    /** Pilihan dropdown dikelompokkan per jenis: ['Bank' => [kode => nama], 'E-wallet' => [...]]. */
-    public static function providerOptions(): array
+    /** Pilihan dropdown per jenis (hanya provider aktif, kecuali kode di $keep yang sudah dipakai rekening ini). */
+    public static function providerOptions(array $keep = []): array
     {
-        $groups = [];
-        foreach (self::PROVIDERS as $code => [$type, $label]) {
-            $groups[self::TYPES[$type]][$code] = $label;
-        }
-
-        return $groups;
+        return AccountProvider::options($keep);
     }
 
     /**
@@ -89,7 +58,7 @@ class CustomerAccount extends Model
 
     public function providerLabel(): string
     {
-        return self::PROVIDERS[$this->provider][1] ?? strtoupper($this->provider);
+        return AccountProvider::lookup($this->provider)?->name ?? strtoupper($this->provider);
     }
 
     public function typeLabel(): string

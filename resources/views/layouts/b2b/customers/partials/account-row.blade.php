@@ -12,7 +12,7 @@
             <label class="form-label">Bank / E-wallet <span class="b2b-required">*</span></label>
             <select class="form-select" data-field="provider" aria-label="Bank / E-wallet">
                 <option value="">Pilih</option>
-                @foreach (\App\Models\B2b\CustomerAccount::providerOptions() as $group => $options)
+                @foreach (\App\Models\B2b\CustomerAccount::providerOptions(array_filter([$provider])) as $group => $options)
                     <optgroup label="{{ $group }}">
                         @foreach ($options as $code => $label)
                             <option value="{{ $code }}" @selected($code === $provider)>{{ $label }}</option>

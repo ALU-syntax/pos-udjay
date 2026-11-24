@@ -42,6 +42,7 @@ class DatabaseSeeder extends Seeder
             SupplierSeeder::class,
             ConfigSeeder::class,
             WilayahSeeder::class,
+            AccountProviderSeeder::class,
         ]);
 
         // Memanggil ProductFactory

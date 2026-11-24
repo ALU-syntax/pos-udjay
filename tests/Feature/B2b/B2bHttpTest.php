@@ -175,6 +175,34 @@ class B2bHttpTest extends B2bTestCase
         $this->actingAs($user)->get(route('b2b/customers/edit', $id))->assertOk()->assertSee('Rekening &amp; E-wallet Pengirim', false);
     }
 
+    public function test_account_providers_come_from_master_table(): void
+    {
+        $user = $this->userFor(null, ['create b2b/customers', 'update b2b/customers', 'read b2b/customers']);
+        $this->assertSame(26, \App\Models\AccountProvider::count());
+        $row = fn (string $provider, string $number) => ['provider' => $provider, 'account_number' => $number, 'account_name' => 'Pemilik'];
+
+        // Provider baru cukup ditambah di tabel, langsung bisa dipilih tanpa ubah kode.
+        \App\Models\AccountProvider::create(['code' => 'bankuji', 'type' => 'bank', 'name' => 'Bank Uji', 'sort_order' => 999]);
+        $this->actingAs($user)->get(route('b2b/customers/create'))->assertOk()->assertSee('Bank Uji');
+        $id = $this->actingAs($user)->postJson(route('b2b/customers/store'), ['type' => 'pt', 'name' => 'PT Master', 'accounts' => [$row('bankuji', '5551112222')]])
+            ->assertOk()->json('data.id');
+        $customer = Customer::findOrFail($id);
+        $this->assertSame('Bank Uji 5551112222 a.n. Pemilik', $customer->accounts->first()->summary());
+        $this->assertSame('bank', $customer->accounts->first()->type);
+
+        // Dinonaktifkan: tidak bisa untuk rekening baru, tapi rekening lama customer tetap tersimpan dan tampil namanya.
+        \App\Models\AccountProvider::query()->whereKey('bankuji')->first()->update(['is_active' => false]);
+        $this->actingAs($user)->postJson(route('b2b/customers/store'), ['type' => 'pt', 'name' => 'PT Lain', 'accounts' => [$row('bankuji', '5553334444')]])
+            ->assertUnprocessable()->assertJsonValidationErrors(['accounts.0.provider']);
+        $this->actingAs($user)->get(route('b2b/customers/create'))->assertDontSee('Bank Uji');
+        $this->actingAs($user)->get(route('b2b/customers/edit', $id))->assertOk()->assertSee('Bank Uji (nonaktif)');
+        $this->actingAs($user)->putJson(route('b2b/customers/update', $id), ['type' => 'pt', 'name' => 'PT Master', 'accounts' => [$row('bankuji', '5551112222')]])->assertOk();
+        // Mengganti nomor = rekening baru, jadi ditolak.
+        $this->actingAs($user)->putJson(route('b2b/customers/update', $id), ['type' => 'pt', 'name' => 'PT Master', 'accounts' => [$row('bankuji', '5559990000')]])
+            ->assertUnprocessable()->assertJsonValidationErrors(['accounts.0.provider']);
+        $this->actingAs($user)->get(route('b2b/customers/show', $id))->assertOk()->assertSee('Bank Uji');
+    }
+
     public function test_customer_account_rules_and_one_owner_per_account(): void
     {
         $user = $this->userFor(null, ['create b2b/customers', 'update b2b/customers', 'delete b2b/customers']);

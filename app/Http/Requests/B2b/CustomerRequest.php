@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\B2b;
 
+use App\Models\AccountProvider;
 use App\Models\B2b\Customer;
 use App\Models\B2b\CustomerAccount;
 use Illuminate\Foundation\Http\FormRequest;
@@ -77,7 +78,7 @@ class CustomerRequest extends FormRequest
             'reminder_overdue_daily' => ['boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'accounts' => ['array', 'max:'.CustomerAccount::MAX_PER_CUSTOMER],
-            'accounts.*.provider' => ['required', Rule::in(array_keys(CustomerAccount::PROVIDERS))],
+            'accounts.*.provider' => ['required', 'string', Rule::exists('account_providers', 'code')],
             // Nomor rekening bank 6–20 digit; e-wallet = nomor HP 08… (10–15 digit).
             'accounts.*.account_number' => ['required', 'regex:/^\d{6,20}$/'],
             'accounts.*.account_name' => ['required', 'string', 'max:255'],
@@ -90,7 +91,7 @@ class CustomerRequest extends FormRequest
         return [
             'accounts.max' => 'Maksimal '.CustomerAccount::MAX_PER_CUSTOMER.' rekening per customer.',
             'accounts.*.provider.required' => 'Pilih bank / e-wallet.',
-            'accounts.*.provider.in' => 'Pilih bank / e-wallet dari daftar.',
+            'accounts.*.provider.exists' => 'Pilih bank / e-wallet dari daftar.',
             'accounts.*.account_number.required' => 'Nomor wajib diisi.',
             'accounts.*.account_number.regex' => 'Nomor harus 6–20 angka.',
             'accounts.*.account_name.required' => 'Nama pemilik wajib diisi.',
@@ -117,6 +118,17 @@ class CustomerRequest extends FormRequest
             return;
         }
         $customerId = $this->route('customer')?->id;
+
+        // Provider nonaktif tidak bisa dipakai untuk rekening baru; rekening lama customer ini tetap boleh disimpan.
+        $owned = $customerId
+            ? CustomerAccount::query()->where('b2b_customer_id', $customerId)->get()->map(fn ($account) => $account->provider.'|'.$account->account_number)->all()
+            : [];
+        foreach ($accounts as $index => $account) {
+            if (AccountProvider::lookup($account['provider'])?->is_active === false && ! in_array($account['provider'].'|'.$account['account_number'], $owned, true)) {
+                $validator->errors()->add("accounts.$index.provider", AccountProvider::lookup($account['provider'])->name.' sudah tidak bisa dipilih. Pilih bank / e-wallet lain.');
+            }
+        }
+
         $taken = CustomerAccount::query()
             ->with(['customer' => fn ($customer) => $customer->withTrashed()])
             ->when($customerId, fn ($query) => $query->where('b2b_customer_id', '!=', $customerId))

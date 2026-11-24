@@ -368,7 +368,7 @@
                 // Rekening pengirim: baris bisa ditambah/dihapus; nama input diurutkan ulang supaya error server (accounts.i.field) jatuh ke baris yang benar.
                 const accountRows = $('#account-rows');
                 const accountMax = {{ \App\Models\B2b\CustomerAccount::MAX_PER_CUSTOMER }};
-                const ewallets = @json(collect(\App\Models\B2b\CustomerAccount::PROVIDERS)->filter(fn ($provider) => $provider[0] === \App\Models\B2b\CustomerAccount::TYPE_EWALLET)->keys());
+                const ewallets = @json(\App\Models\AccountProvider::ewalletCodes());
                 function refreshAccounts() {
                     B2b.reindex(accountRows, 'accounts');
                     const count = accountRows.children('.b2b-account-row').length;
