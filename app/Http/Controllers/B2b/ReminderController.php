@@ -87,24 +87,29 @@ class ReminderController extends Controller
             ->values();
     }
 
-    /** Kirim reminder satu invoice sekarang lewat channel yang dipilih (tombol di detail pesanan / daftar invoice). */
+    /**
+     * Kirim satu invoice ke customer sekarang lewat channel yang dipilih (tombol "Kirim ke customer" di detail pesanan /
+     * daftar invoice): reminder atau invoice untuk tagihan tempo terbuka, kwitansi untuk invoice lunas. Tanpa jenis = reminder.
+     */
     public function sendInvoice(Request $request, int $invoice)
     {
         $this->authorize('send b2b/reminders');
         $validated = $request->validate([
+            'kind' => ['nullable', Rule::in(array_keys(ReminderLog::KIND_LABELS))],
             'channels' => ['nullable', 'array'],
             'channels.*' => [Rule::in(array_keys(ReminderLog::CHANNEL_LABELS))],
-        ], [], ['channels' => 'channel']);
+        ], [], ['channels' => 'channel', 'kind' => 'jenis kiriman']);
+        $kind = $validated['kind'] ?? ReminderLog::KIND_REMINDER;
         $invoice = Invoice::query()
             ->whereHas('order', fn ($order) => $order->withTrashed()->whereIn('outlet_id', $request->user()->outletIds()))
             ->findOrFail($invoice);
 
-        $logs = $this->reminders->sendNow($invoice, $request->user(), $validated['channels'] ?? [ReminderLog::CHANNEL_EMAIL]);
+        $logs = $this->reminders->sendNow($invoice, $request->user(), $validated['channels'] ?? [ReminderLog::CHANNEL_EMAIL], $kind);
         $parts = $logs->map(fn (ReminderLog $log) => $log->status === ReminderLog::STATUS_QUEUED
             ? $log->channelLabel().' ke '.$log->recipient.' masuk antrean'
             : $log->channelLabel().' dilewati: '.$log->error);
 
-        return responseSuccess(true, 'Reminder '.$invoice->invoice_number.': '.$parts->implode('; ').'.');
+        return responseSuccess(true, ReminderLog::KIND_LABELS[$kind].' '.$invoice->invoice_number.': '.$parts->implode('; ').'.');
     }
 
     /** Detail satu kiriman untuk dialog log (isi email ditampilkan di iframe sandbox). */

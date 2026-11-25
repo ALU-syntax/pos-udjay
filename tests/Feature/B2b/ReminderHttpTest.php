@@ -204,7 +204,7 @@ class ReminderHttpTest extends B2bTestCase
 
         $sender = $this->userFor($this->outlet, ['send b2b/reminders', 'read b2b/orders', 'read b2b/invoices']);
         $this->actingAs($sender)->get(route('b2b/orders/show', $invoice->b2b_order_id))
-            ->assertOk()->assertSee('Kirim reminder')->assertSee('Belum ada kiriman untuk invoice ini.');
+            ->assertOk()->assertSee('Kirim ke customer')->assertSee('Belum ada kiriman untuk invoice ini.');
 
         $this->actingAs($sender)->postJson($url)->assertOk()->assertJsonPath('message', fn ($message) => str_contains($message, 'finance@pelanggan.test'));
 
@@ -225,6 +225,41 @@ class ReminderHttpTest extends B2bTestCase
             ->getJson(route('b2b/invoices', ['draw' => 1, 'start' => 0, 'length' => 10]), ['X-Requested-With' => 'XMLHttpRequest'])
             ->assertOk()->json('data');
         $this->assertStringContainsString($url, $rows[0]['action']);
+    }
+
+    public function test_send_to_customer_offers_kinds_by_invoice_state(): void
+    {
+        $sender = $this->userFor($this->outlet, ['send b2b/reminders', 'read b2b/orders']);
+        [$customer, $credit] = $this->customerWithInvoice(['reminder_enabled' => false]);
+        $url = route('b2b/reminders/send-invoice', $credit->id);
+
+        // Tempo belum lunas: pilihan Invoice atau Reminder, tidak bisa kwitansi.
+        $this->actingAs($sender)->get(route('b2b/orders/show', $credit->b2b_order_id))
+            ->assertOk()->assertSee('Kirim ke customer')->assertSee('Invoice pesanan beserta PDF invoice')->assertSee('Pengingat jatuh tempo beserta PDF invoice');
+        $this->actingAs($sender)->postJson($url, ['kind' => 'invoice'])->assertOk()->assertJsonPath('message', fn ($message) => str_starts_with($message, 'Invoice '.$credit->invoice_number));
+        $this->assertSame(ReminderLog::KIND_INVOICE, ReminderLog::query()->latest('id')->value('kind'));
+        $this->actingAs($sender)->postJson($url, ['kind' => 'receipt'])->assertUnprocessable()
+            ->assertJsonPath('errors.invoice.0', 'Kwitansi hanya untuk invoice yang sudah lunas.');
+        $this->actingAs($sender)->postJson($url, ['kind' => 'sms'])->assertUnprocessable()->assertJsonValidationErrors('kind');
+
+        // Bayar langsung (lunas): hanya kwitansi.
+        [$cash] = $this->paymentCategory('Cash');
+        $paid = app(OrderService::class)->place($this->staff, [
+            'outlet_id' => $this->outlet->id,
+            'b2b_customer_id' => $customer->id,
+            'items' => [['variant_id' => $this->variant($this->outlet, 10000)->id, 'qty' => 1]],
+            'delivery_method' => 'pickup',
+            'payment_type' => 'immediate',
+            'payment' => ['category_payment_id' => $cash->id],
+        ])->invoice;
+        $this->assertSame([ReminderLog::KIND_RECEIPT], $paid->sendableKinds());
+        $this->actingAs($sender)->get(route('b2b/orders/show', $paid->b2b_order_id))
+            ->assertOk()->assertSee('Kirim kwitansi')->assertSee('Kwitansi pembayaran beserta PDF kwitansi')->assertDontSee('Pengingat jatuh tempo beserta PDF invoice');
+        $paidUrl = route('b2b/reminders/send-invoice', $paid->id);
+        $this->actingAs($sender)->postJson($paidUrl, ['kind' => 'receipt'])->assertOk();
+        $this->assertSame(ReminderLog::KIND_RECEIPT, ReminderLog::query()->latest('id')->value('kind'));
+        $this->actingAs($sender)->postJson($paidUrl, ['kind' => 'invoice'])->assertUnprocessable()->assertJsonValidationErrors('invoice');
+        Bus::assertDispatchedTimes(SendReminderJob::class, 2);
     }
 
     public function test_send_now_is_rejected_for_settled_invoice_or_stopped_channel_and_skips_missing_email(): void

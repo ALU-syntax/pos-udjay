@@ -292,10 +292,10 @@
                                         <i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Catat pelunasan</button>
                                 @endcan
                             @endif
-                            @if ($invoice->canSendReminder())
+                            @if ($invoice->sendableKinds())
                                 @can('send b2b/reminders')
                                     <button type="button" class="btn ob-btn ob-btn-outline w-100 mt-2" {!! \App\Support\B2b\ReminderButton::attributes($invoice) !!}>
-                                        <i class="fas fa-bell" aria-hidden="true"></i> Kirim reminder</button>
+                                        <i class="fas fa-paper-plane" aria-hidden="true"></i> {{ \App\Support\B2b\ReminderButton::label($invoice) }}</button>
                                 @endcan
                             @endif
 
@@ -348,7 +348,7 @@
                                 </ul>
                             @endif
 
-                            @if ($reminders->isNotEmpty() || ($invoice->canSendReminder() && auth()->user()->can('send b2b/reminders')))
+                            @if ($reminders->isNotEmpty() || ($invoice->sendableKinds() && auth()->user()->can('send b2b/reminders')))
                                 <h3 class="b2b-subtitle mt-3">Riwayat kiriman ke customer</h3>
                                 @if ($reminders->isEmpty())
                                     <p class="b2b-muted mb-3">Belum ada kiriman untuk invoice ini.</p>

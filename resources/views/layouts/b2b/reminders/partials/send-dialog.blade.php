@@ -1,6 +1,7 @@
 {{--
-    Dialog "Kirim reminder" dengan pilihan channel (Email / WhatsApp). Tombol: <button data-send-reminder ...> dari
-    App\Support\B2b\ReminderButton::attributes(). Include sekali di halaman yang punya tombolnya (setelah partials.assets).
+    Dialog "Kirim ke customer": pilih jenis (Invoice / Reminder untuk tagihan tempo terbuka; Kwitansi untuk invoice lunas)
+    lalu channel (Email / WhatsApp). Tombol: <button data-send-reminder ...> dari App\Support\B2b\ReminderButton::attributes().
+    Include sekali di halaman yang punya tombolnya (setelah partials.assets).
 --}}
 @once
     @push('css')
@@ -13,6 +14,7 @@
             .b2b-send-channel strong { display: block; font-size: .92rem; color: #111827; }
             .b2b-send-channel small { display: block; font-size: .78rem; color: #6b7280; }
             .b2b-send-channel small.is-blocked { color: #b91c1c; }
+            .b2b-send-label { margin: .9rem 0 0; font-size: .82rem; font-weight: 700; color: #374151; text-align: left; }
         </style>
     @endpush
     @push('js')
@@ -21,9 +23,18 @@
                 event.preventDefault();
                 const el = this.dataset;
                 const channels = JSON.parse(el.channels || '[]');
+                const kinds = JSON.parse(el.kinds || '[]');
+                if (!kinds.length) return;
+                // Reminder: channel reminder customer; invoice/kwitansi: semua channel yang bisa dipakai.
+                const defaultChecked = (channel, kind) => !channel.blocked && (kind === 'reminder' ? channel.reminder : true);
+                const kindOptions = kinds.length > 1 ? kinds.map((kind, index) => `
+                    <label class="b2b-send-channel">
+                        <input type="radio" name="b2b-send-kind" value="${kind.value}" ${index === 0 ? 'checked' : ''}>
+                        <span><strong>${B2b.escape(kind.label)}</strong><small>${B2b.escape(kind.hint)}</small></span>
+                    </label>`).join('') : '';
                 const options = channels.map(channel => `
                     <label class="b2b-send-channel ${channel.blocked ? 'is-blocked' : ''}">
-                        <input type="checkbox" name="b2b-send-channel" value="${channel.value}" ${channel.checked && !channel.blocked ? 'checked' : ''} ${channel.blocked ? 'disabled' : ''}>
+                        <input type="checkbox" name="b2b-send-channel" value="${channel.value}" ${defaultChecked(channel, kinds[0].value) ? 'checked' : ''} ${channel.blocked ? 'disabled' : ''}>
                         <span>
                             <strong>${B2b.escape(channel.label)}</strong>
                             ${channel.blocked
@@ -32,29 +43,42 @@
                         </span>
                     </label>`).join('');
 
+                const intro = kinds.length > 1
+                    ? `<p class="mb-1">Invoice <strong>${B2b.escape(el.number)}</strong></p><p class="b2b-send-label">Jenis kiriman</p><div class="b2b-send-channels">${kindOptions}</div><p class="b2b-send-label">Kirim lewat</p>`
+                    : `<p class="mb-1">${B2b.escape(kinds[0].hint)} untuk invoice <strong>${B2b.escape(el.number)}</strong> dikirim lewat:</p>`;
+
                 Swal.fire({
-                    title: 'Kirim reminder sekarang?',
-                    html: `<p class="mb-1">Reminder <strong>${B2b.escape(el.number)}</strong> beserta PDF invoice dikirim lewat:</p><div class="b2b-send-channels">${options}</div>`,
+                    title: kinds.length > 1 ? 'Kirim ke customer?' : `Kirim ${kinds[0].label.toLowerCase()}?`,
+                    html: `${intro}<div class="b2b-send-channels">${options}</div>`,
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: 'Ya, kirim',
                     cancelButtonText: 'Batal',
+                    didOpen: popup => {
+                        // Ganti jenis: centang channel kembali ke default jenis tersebut.
+                        $(popup).on('change', 'input[name="b2b-send-kind"]', event => {
+                            $(popup).find('input[name="b2b-send-channel"]').each((i, input) => {
+                                input.checked = defaultChecked(channels.find(channel => channel.value === input.value), event.target.value);
+                            });
+                        });
+                    },
                     preConfirm: () => {
-                        const picked = $(Swal.getHtmlContainer()).find('input[name="b2b-send-channel"]:checked').map((i, input) => input.value).get();
+                        const container = $(Swal.getHtmlContainer());
+                        const picked = container.find('input[name="b2b-send-channel"]:checked').map((i, input) => input.value).get();
                         if (!picked.length) Swal.showValidationMessage('Pilih minimal satu channel yang bisa dipakai.');
-                        return picked;
+                        return { kind: container.find('input[name="b2b-send-kind"]:checked').val() || kinds[0].value, channels: picked };
                     },
                 }).then(result => {
                     if (!result.isConfirmed) return;
-                    $.post(el.url, { _token: @json(csrf_token()), channels: result.value })
+                    $.post(el.url, { _token: @json(csrf_token()), kind: result.value.kind, channels: result.value.channels })
                         .done(response => {
-                            showToast('success', response.message || 'Reminder dikirim');
+                            showToast('success', response.message || 'Kiriman masuk antrean');
                             if (el.table && window.LaravelDataTables?.[el.table]) window.LaravelDataTables[el.table].ajax.reload(null, false);
                             else window.location.reload();
                         })
                         .fail(xhr => {
                             const errors = xhr.responseJSON?.errors;
-                            showToast('error', errors ? Object.values(errors)[0][0] : (xhr.responseJSON?.message || 'Gagal mengirim reminder'));
+                            showToast('error', errors ? Object.values(errors)[0][0] : (xhr.responseJSON?.message || 'Gagal mengirim'));
                         });
                 });
             });

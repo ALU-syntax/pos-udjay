@@ -55,7 +55,7 @@ class InvoiceDataTable extends DataTable
             ->editColumn('status', fn (Invoice $invoice) => '<span class="badge badge-'.$invoice->statusVariant().'">'.$invoice->statusLabel().'</span>')
             ->addColumn('action', fn (Invoice $invoice) => '<div class="ob-row-actions">'
                 .($invoice->canRecordPayment() && auth()->user()->can('pay b2b/invoices') ? $this->payButton($invoice) : '')
-                .($invoice->canSendReminder() && auth()->user()->can('send b2b/reminders') ? $this->reminderButton($invoice) : '')
+                .($invoice->sendableKinds() && auth()->user()->can('send b2b/reminders') ? $this->sendButton($invoice) : '')
                 .'<a href="'.route('b2b/invoices/print', $invoice->id).'" target="_blank" class="ob-icon-btn ob-icon-btn--sm" title="Cetak invoice" aria-label="Cetak invoice '.e($invoice->invoice_number).'"><i class="fas fa-print" aria-hidden="true"></i></a>'
                 .($invoice->status === Invoice::STATUS_PAID ? '<a href="'.route('b2b/invoices/receipt', $invoice->id).'" target="_blank" class="ob-icon-btn ob-icon-btn--sm" title="Cetak kwitansi" aria-label="Cetak kwitansi '.e($invoice->invoice_number).'"><i class="fas fa-receipt" aria-hidden="true"></i></a>' : '')
                                 .'</div>')
@@ -87,11 +87,13 @@ class InvoiceDataTable extends DataTable
         return '<div class="ob-cell-stack"><span class="b2b-cell-strong text-nowrap">'.$invoice->due_date->translatedFormat('d M Y').'</span>'.$hint.'</div>';
     }
 
-    /** Kirim reminder invoice ini sekarang (dialog pilih Email / WhatsApp). */
-    private function reminderButton(Invoice $invoice): string
+    /** Kirim invoice / reminder / kwitansi ke customer sekarang (dialog pilih jenis + Email / WhatsApp). */
+    private function sendButton(Invoice $invoice): string
     {
+        $label = ReminderButton::label($invoice);
+
         return '<button type="button" class="ob-icon-btn ob-icon-btn--sm" '.ReminderButton::attributes($invoice, 'b2b-invoice-table')
-            .' title="Kirim reminder" aria-label="Kirim reminder '.e($invoice->invoice_number).'"><i class="fas fa-bell" aria-hidden="true"></i></button>';
+            .' title="'.$label.'" aria-label="'.$label.' '.e($invoice->invoice_number).'"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>';
     }
 
     /** Tombol pembuka dialog "Catat Pelunasan" (layouts.b2b.invoices.partials.payment-modal). */

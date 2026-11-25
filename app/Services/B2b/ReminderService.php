@@ -148,14 +148,18 @@ class ReminderService
     }
 
     /**
-     * Kirim reminder satu invoice sekarang (permintaan customer / penagihan manual), terlepas dari jadwal customer.
+     * Kirim satu invoice ke customer sekarang (permintaan customer / penagihan manual), terlepas dari jadwal customer:
+     * reminder atau invoice untuk tagihan tempo terbuka, kwitansi untuk invoice lunas.
      * Satu kiriman per channel yang dipilih; data tujuan yang kosong dicatat sebagai dilewati.
      *
      * @param  list<string>  $channels
      * @return Collection<int, ReminderLog>
      */
-    public function sendNow(Invoice $invoice, User $user, array $channels = [ReminderLog::CHANNEL_EMAIL]): Collection
+    public function sendNow(Invoice $invoice, User $user, array $channels = [ReminderLog::CHANNEL_EMAIL], string $kind = ReminderLog::KIND_REMINDER): Collection
     {
+        if (! array_key_exists($kind, ReminderLog::KIND_LABELS)) {
+            throw ValidationException::withMessages(['kind' => 'Jenis kiriman tidak dikenal.']);
+        }
         $channels = array_values(array_unique($channels));
         if ($channels === []) {
             throw ValidationException::withMessages(['channels' => 'Pilih minimal satu channel.']);
@@ -169,17 +173,21 @@ class ReminderService
                 throw ValidationException::withMessages(['channels' => "Kiriman {$label} sedang dihentikan lewat saklar darurat."]);
             }
         }
-        if (! $this->openCreditInvoices()->whereKey($invoice->id)->exists()) {
-            throw ValidationException::withMessages(['invoice' => 'Reminder hanya untuk invoice tempo yang belum lunas.']);
+        if (! $this->deliverableInvoices($kind)->whereKey($invoice->id)->exists()) {
+            throw ValidationException::withMessages(['invoice' => match ($kind) {
+                ReminderLog::KIND_RECEIPT => 'Kwitansi hanya untuk invoice yang sudah lunas.',
+                ReminderLog::KIND_INVOICE => 'Kirim invoice hanya untuk invoice tempo yang belum lunas.',
+                default => 'Reminder hanya untuk invoice tempo yang belum lunas.',
+            }]);
         }
 
         $today = today();
         $customer = Customer::withTrashed()->findOrFail($invoice->b2b_customer_id);
         $items = collect([['invoice' => $invoice, 'offset' => $this->offset($invoice, $today)]]);
 
-        return collect($channels)->map(function (string $channel) use ($customer, $items, $today, $user, $invoice) {
-            $log = $this->createLog($customer, $channel, $items, $today, ReminderLog::TRIGGER_MANUAL, $user);
-            $this->logger->log('reminder.manual', $log, ['invoice_number' => $invoice->invoice_number, 'channel' => $channel, 'status' => $log->status], $user->id);
+        return collect($channels)->map(function (string $channel) use ($customer, $items, $today, $user, $invoice, $kind) {
+            $log = $this->createLog($customer, $channel, $items, $today, ReminderLog::TRIGGER_MANUAL, $user, $kind);
+            $this->logger->log('reminder.manual', $log, ['invoice_number' => $invoice->invoice_number, 'kind' => $kind, 'channel' => $channel, 'status' => $log->status], $user->id);
 
             return $log;
         });

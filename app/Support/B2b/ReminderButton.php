@@ -8,11 +8,24 @@ use App\Services\B2b\B2bSettings;
 use App\Services\B2b\ReminderService;
 
 /**
- * Atribut data-* untuk tombol "Kirim reminder" (dialog pilih channel di layouts.b2b.reminders.partials.send-dialog).
- * Dipakai di detail pesanan dan daftar invoice supaya isinya sama.
+ * Tombol "Kirim ke customer" / "Kirim kwitansi" (dialog pilih jenis + channel di layouts.b2b.reminders.partials.send-dialog).
+ * Dipakai di detail pesanan dan daftar invoice supaya isinya sama. Tampilkan hanya kalau Invoice::sendableKinds() tidak kosong.
  */
 final class ReminderButton
 {
+    /** Keterangan per jenis kiriman di dialog. */
+    private const KIND_HINTS = [
+        ReminderLog::KIND_INVOICE => 'Invoice pesanan beserta PDF invoice',
+        ReminderLog::KIND_REMINDER => 'Pengingat jatuh tempo beserta PDF invoice',
+        ReminderLog::KIND_RECEIPT => 'Kwitansi pembayaran beserta PDF kwitansi',
+    ];
+
+    /** Label tombol: kwitansi untuk invoice lunas, selain itu "Kirim ke customer". */
+    public static function label(Invoice $invoice): string
+    {
+        return $invoice->sendableKinds() === [ReminderLog::KIND_RECEIPT] ? 'Kirim kwitansi' : 'Kirim ke customer';
+    }
+
     public static function attributes(Invoice $invoice, ?string $table = null): string
     {
         $customer = $invoice->customer;
@@ -33,15 +46,22 @@ final class ReminderButton
                     $contact === null => ($channel === ReminderLog::CHANNEL_EMAIL ? 'Email' : 'Nomor WhatsApp').' customer kosong / tidak valid',
                     default => null,
                 },
-                // Default mengikuti channel reminder customer; tanpa pengaturan, email.
-                'checked' => in_array($channel, (array) ($customer?->reminder_channels ?: [ReminderLog::CHANNEL_EMAIL]), true),
+                // Default reminder mengikuti channel reminder customer (tanpa pengaturan: email).
+                // Invoice/kwitansi: semua channel yang bisa dipakai (diatur di dialog).
+                'reminder' => in_array($channel, (array) ($customer?->reminder_channels ?: [ReminderLog::CHANNEL_EMAIL]), true),
             ];
         }
+        $kinds = array_map(fn (string $kind) => [
+            'value' => $kind,
+            'label' => ReminderLog::KIND_LABELS[$kind],
+            'hint' => self::KIND_HINTS[$kind],
+        ], $invoice->sendableKinds());
 
         $data = [
             'send-reminder' => '',
             'url' => route('b2b/reminders/send-invoice', $invoice->id),
             'number' => $invoice->invoice_number,
+            'kinds' => json_encode($kinds),
             'channels' => json_encode($channels),
             'table' => $table,
         ];

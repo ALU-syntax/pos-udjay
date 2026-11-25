@@ -93,6 +93,24 @@ class Invoice extends Model
         return $this->canRecordPayment();
     }
 
+    /**
+     * Jenis kiriman manual ke customer (tombol "Kirim ke customer"): kwitansi untuk invoice lunas,
+     * invoice atau reminder untuk tagihan tempo yang masih terbuka. Kosong = tidak ada yang bisa dikirim.
+     *
+     * @return list<string>
+     */
+    public function sendableKinds(): array
+    {
+        if ($this->order?->status === Order::STATUS_CANCELLED) {
+            return [];
+        }
+        if ($this->status === self::STATUS_PAID) {
+            return [ReminderLog::KIND_RECEIPT];
+        }
+
+        return $this->canSendReminder() ? [ReminderLog::KIND_INVOICE, ReminderLog::KIND_REMINDER] : [];
+    }
+
     public function reminderLogs(): BelongsToMany
     {
         return $this->belongsToMany(ReminderLog::class, 'b2b_reminder_log_invoices', 'b2b_invoice_id', 'b2b_reminder_log_id')
