@@ -192,6 +192,13 @@
                                     </div>
                                 </div>
 
+                                {{-- Kirim invoice (tempo) / kwitansi (bayar langsung) ke kontak customer setelah pesanan tersimpan --}}
+                                <div id="notify-field" hidden>
+                                    <span class="form-label" id="notify-title">Kirim invoice ke customer</span>
+                                    <div class="b2b-notify" id="notify-channels" role="group" aria-labelledby="notify-title"></div>
+                                    <small class="b2b-help" id="notify-hint"></small>
+                                </div>
+
                                 <div>
                                     <label for="order-notes" class="form-label">Catatan pesanan <span class="b2b-optional">(opsional)</span></label>
                                     <textarea id="order-notes" class="form-control" rows="2" maxlength="1000" placeholder="Misalnya: antar sebelum jam 9 pagi"></textarea>
@@ -379,6 +386,7 @@
                 function renderCustomer() {
                     const c = state.customer;
                     const info = $('#customer-info');
+                    renderNotify();
                     if (!c) {
                         info.html('<span class="b2b-cust-hint">Wajib dipilih. Kontrak dan piutangnya akan tampil di sini.</span>');
                         renderAddress();
@@ -615,8 +623,33 @@
                     $('#pay-cash-field').prop('hidden', !category?.is_cash);
                     $('#pay-ref-field').prop('hidden', !category || category.is_cash);
                     renderCash();
+                    renderNotifyText();
                     if (!state.submitting) $('#submit-order .b2b-submit__label').text(submitLabel());
                 }
+
+                // ---------- Kirim invoice / kwitansi ke customer ----------
+                // Channel dengan kontak valid langsung dicentang; yang tidak bisa dipakai ditampilkan dengan alasannya.
+                function renderNotify() {
+                    const channels = state.customer?.send_channels || [];
+                    $('#notify-field').prop('hidden', !channels.length);
+                    $('#notify-channels').html(channels.map(channel => `
+                        <label class="b2b-notify__option ${channel.blocked ? 'is-blocked' : ''}">
+                            <input type="checkbox" name="send_channels" value="${channel.value}" ${channel.blocked ? 'disabled' : 'checked'}>
+                            <span>
+                                <strong><i class="${channel.value === 'whatsapp' ? 'fab fa-whatsapp' : 'fas fa-envelope'} me-1" aria-hidden="true"></i>${B2b.escape(channel.label)}</strong>
+                                <small>${B2b.escape(channel.blocked || channel.contact)}</small>
+                            </span>
+                        </label>`).join(''));
+                    renderNotifyText();
+                }
+
+                function renderNotifyText() {
+                    const doc = $('input[name="payment_type"]:checked').val() === 'immediate' ? 'kwitansi' : 'invoice';
+                    $('#notify-title').text(`Kirim ${doc} ke customer`);
+                    $('#notify-hint').text(`PDF ${doc} dikirim setelah pesanan tersimpan. Hapus centang bila tidak perlu dikirim.`);
+                }
+
+                const sendChannels = () => $('input[name="send_channels"]:checked:not(:disabled)').map((i, input) => input.value).get();
 
                 // Tunai: uang diterima dan kembalian hanya hitungan di layar, tidak disimpan.
                 function renderCash() {
@@ -644,6 +677,7 @@
                         items: cartPayload(),
                         payment_type: pay.type,
                         notes: $('#order-notes').val() || null,
+                        send_channels: sendChannels(),
                     };
                     let change = 0;
 
@@ -700,7 +734,8 @@
                         Swal.fire({
                             title: paid ? 'Pesanan lunas' : 'Pesanan tersimpan',
                             html: B2b.escape(response.message)
-                                + (change > 0 ? `<div class="b2b-swal-change">Kembalian <strong>${B2b.rupiah(change)}</strong></div>` : ''),
+                                + (change > 0 ? `<div class="b2b-swal-change">Kembalian <strong>${B2b.rupiah(change)}</strong></div>` : '')
+                                + (response.data.send_note ? `<div class="b2b-swal-note"><i class="fas fa-paper-plane me-1" aria-hidden="true"></i>${B2b.escape(response.data.send_note)}</div>` : ''),
                             icon: 'success',
                             showDenyButton: true,
                             showCancelButton: true,

@@ -174,6 +174,16 @@
         .b2b-address > i { margin-top: .2rem; color: var(--ob-muted); }
         .b2b-address.is-missing { border-color: #fde68a; background: #fffbeb; color: var(--cs-warning); }
         .b2b-address.is-missing > i { color: var(--cs-warning); }
+        .b2b-notify { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+        @media (max-width: 575.98px) { .b2b-notify { grid-template-columns: minmax(0, 1fr); } }
+        .b2b-notify__option { display: flex; align-items: flex-start; gap: .6rem; min-height: 44px; margin: 0; padding: .6rem .75rem; border: 1px solid var(--ob-border-strong); border-radius: var(--ob-radius-sm); background: var(--ob-surface); cursor: pointer; }
+        .b2b-notify__option:has(input:checked) { border-color: var(--ob-primary); background: var(--ob-primary-soft); }
+        .b2b-notify__option.is-blocked { cursor: not-allowed; opacity: .65; }
+        .b2b-notify__option input { flex-shrink: 0; width: 1.1rem; height: 1.1rem; margin-top: .15rem; }
+        .b2b-notify__option > span { min-width: 0; }
+        .b2b-notify__option strong { display: block; font-size: .85rem; color: var(--ob-text); }
+        .b2b-notify__option small { display: block; overflow-wrap: anywhere; font-size: .75rem; color: var(--ob-muted); }
+        .b2b-notify__option.is-blocked small { color: var(--ob-danger); }
         .b2b-stock-alert { display: flex; gap: .6rem; padding: .65rem .8rem; border-radius: var(--ob-radius-sm); background: #fffbeb; color: var(--cs-warning); font-size: .8rem; font-weight: 600; }
 
         /* Bayar langsung */
@@ -190,6 +200,7 @@
         .b2b-change.is-short { background: var(--ob-danger-soft); color: var(--ob-danger); }
         .b2b-swal-change { margin-top: .9rem; padding: .7rem 1rem; border-radius: 10px; background: #ecfdf5; color: #047857; font-size: 1rem; }
         .b2b-swal-change strong { display: block; font-size: 1.5rem; }
+        .b2b-swal-note { margin-top: .75rem; padding: .6rem .85rem; border-radius: 10px; background: #f3f4f6; color: #374151; font-size: .85rem; line-height: 1.5; text-align: left; }
 
         /* Bilah bawah tablet/HP: total + lompat ke panel pesanan */
         .b2b-mobile-bar { display: none; }

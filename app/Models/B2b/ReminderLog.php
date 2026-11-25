@@ -116,6 +116,14 @@ class ReminderLog extends Model
         return in_array($this->status, [self::STATUS_FAILED, self::STATUS_SKIPPED], true);
     }
 
+    /** Ringkasan hasil antre untuk pesan ke staf: "Email ke x masuk antrean" / "WhatsApp dilewati: alasan". */
+    public function outcome(): string
+    {
+        return $this->status === self::STATUS_QUEUED
+            ? $this->channelLabel().' ke '.$this->recipient.' masuk antrean'
+            : $this->channelLabel().' dilewati: '.$this->error;
+    }
+
     public function kindLabel(): string
     {
         return self::KIND_LABELS[$this->kind] ?? ucfirst((string) $this->kind);

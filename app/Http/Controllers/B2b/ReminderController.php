@@ -105,9 +105,7 @@ class ReminderController extends Controller
             ->findOrFail($invoice);
 
         $logs = $this->reminders->sendNow($invoice, $request->user(), $validated['channels'] ?? [ReminderLog::CHANNEL_EMAIL], $kind);
-        $parts = $logs->map(fn (ReminderLog $log) => $log->status === ReminderLog::STATUS_QUEUED
-            ? $log->channelLabel().' ke '.$log->recipient.' masuk antrean'
-            : $log->channelLabel().' dilewati: '.$log->error);
+        $parts = $logs->map(fn (ReminderLog $log) => $log->outcome());
 
         return responseSuccess(true, ReminderLog::KIND_LABELS[$kind].' '.$invoice->invoice_number.': '.$parts->implode('; ').'.');
     }

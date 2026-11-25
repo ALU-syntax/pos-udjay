@@ -7,13 +7,17 @@ use App\Http\Requests\B2b\CashierOrderRequest;
 use App\Models\B2b\Customer;
 use App\Models\B2b\Invoice;
 use App\Models\B2b\Order;
+use App\Models\B2b\ReminderLog;
 use App\Models\Outlets;
 use App\Models\VariantProduct;
 use App\Services\B2b\B2bSettings;
 use App\Services\B2b\OrderService;
 use App\Services\B2b\PaymentService;
 use App\Services\B2b\PricingService;
+use App\Services\B2b\ReminderService;
+use App\Support\B2b\ReminderButton;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class CashierController extends Controller
 {
@@ -22,6 +26,7 @@ class CashierController extends Controller
         private readonly OrderService $orders,
         private readonly B2bSettings $settings,
         private readonly PaymentService $payments,
+        private readonly ReminderService $reminders,
     ) {
         $this->abilities = [];
     }
@@ -80,6 +85,8 @@ class CashierController extends Controller
             ] : null,
             'address' => $customer->hasAddress() ? $customer->fullAddress() : null,
             'can_deliver' => $customer->hasDeliveryAddress(),
+            // Pilihan kirim invoice/kwitansi di dialog selesaikan pesanan.
+            'send_channels' => ReminderButton::channels($customer),
             'receivables' => [
                 'open_invoices' => (clone $openInvoices)->count(),
                 'outstanding' => (int) (clone $openInvoices)->selectRaw('COALESCE(SUM(total_to_pay - paid_amount), 0) as total')->value('total'),
@@ -153,6 +160,7 @@ class CashierController extends Controller
             : 'Pesanan '.$order->order_number.$saved.'. Invoice '.$order->invoice->invoice_number.' dibuat.';
 
         return responseSuccess(false, $message, [
+            'send_note' => $this->sendToCustomer($request, $order),
             'id' => $order->id,
             'order_number' => $order->order_number,
             'payment_type' => $order->payment_type,
@@ -160,5 +168,28 @@ class CashierController extends Controller
             'redirect' => route('b2b/orders/show', $order->id),
             'invoice_url' => route('b2b/invoices/print', $order->invoice->id),
         ]);
+    }
+
+    /**
+     * Kirim invoice (tempo) atau kwitansi (bayar langsung) ke customer sesuai centang di dialog kasir, setelah pesanan
+     * tersimpan. Tanpa izin tambahan: tujuannya kontak di data customer. Kendala kirim tidak membatalkan pesanan,
+     * cukup dilaporkan ke kasir. Null kalau tidak ada channel yang dicentang.
+     */
+    private function sendToCustomer(CashierOrderRequest $request, Order $order): ?string
+    {
+        $picked = $request->validated('send_channels') ?? [];
+        if ($picked === []) {
+            return null;
+        }
+
+        $kind = $order->payment_type === Order::PAYMENT_IMMEDIATE ? ReminderLog::KIND_RECEIPT : ReminderLog::KIND_INVOICE;
+        $label = ReminderLog::KIND_LABELS[$kind];
+        try {
+            $logs = $this->reminders->sendNow($order->invoice, $request->user(), $picked, $kind);
+        } catch (ValidationException $e) {
+            return $label.' tidak dikirim: '.collect($e->errors())->flatten()->first();
+        }
+
+        return $label.': '.$logs->map(fn (ReminderLog $log) => $log->outcome())->implode('; ').'.';
     }
 }

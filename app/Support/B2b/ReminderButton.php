@@ -2,6 +2,7 @@
 
 namespace App\Support\B2b;
 
+use App\Models\B2b\Customer;
 use App\Models\B2b\Invoice;
 use App\Models\B2b\ReminderLog;
 use App\Services\B2b\B2bSettings;
@@ -26,9 +27,14 @@ final class ReminderButton
         return $invoice->sendableKinds() === [ReminderLog::KIND_RECEIPT] ? 'Kirim kwitansi' : 'Kirim ke customer';
     }
 
-    public static function attributes(Invoice $invoice, ?string $table = null): string
+    /**
+     * Pilihan channel kirim untuk customer: kontak tujuan, alasan tidak bisa dipakai (blocked), dan default reminder.
+     * Dipakai dialog "Kirim ke customer" dan bagian kirim invoice/kwitansi di dialog kasir.
+     *
+     * @return list<array{value: string, label: string, contact: ?string, blocked: ?string, reminder: bool}>
+     */
+    public static function channels(?Customer $customer): array
     {
-        $customer = $invoice->customer;
         $reminders = app(ReminderService::class);
         $settings = app(B2bSettings::class);
         $email = trim((string) $customer?->email);
@@ -51,6 +57,12 @@ final class ReminderButton
                 'reminder' => in_array($channel, (array) ($customer?->reminder_channels ?: [ReminderLog::CHANNEL_EMAIL]), true),
             ];
         }
+
+        return $channels;
+    }
+
+    public static function attributes(Invoice $invoice, ?string $table = null): string
+    {
         $kinds = array_map(fn (string $kind) => [
             'value' => $kind,
             'label' => ReminderLog::KIND_LABELS[$kind],
@@ -62,7 +74,7 @@ final class ReminderButton
             'url' => route('b2b/reminders/send-invoice', $invoice->id),
             'number' => $invoice->invoice_number,
             'kinds' => json_encode($kinds),
-            'channels' => json_encode($channels),
+            'channels' => json_encode(self::channels($invoice->customer)),
             'table' => $table,
         ];
 

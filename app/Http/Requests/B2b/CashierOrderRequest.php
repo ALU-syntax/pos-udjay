@@ -3,6 +3,7 @@
 namespace App\Http\Requests\B2b;
 
 use App\Models\B2b\Order;
+use App\Models\B2b\ReminderLog;
 use App\Services\B2b\B2bSettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -43,6 +44,9 @@ class CashierOrderRequest extends FormRequest
                 'payment.category_payment_id' => ['exclude_unless:payment_type,'.Order::PAYMENT_IMMEDIATE, 'required', 'integer'],
                 'payment.payment_id' => ['exclude_unless:payment_type,'.Order::PAYMENT_IMMEDIATE, 'nullable', 'integer'],
                 'payment.reference' => ['exclude_unless:payment_type,'.Order::PAYMENT_IMMEDIATE, 'nullable', 'string', 'max:100'],
+                // Kirim invoice (tempo) / kwitansi (bayar langsung) ke customer setelah pesanan tersimpan.
+                'send_channels' => ['nullable', 'array'],
+                'send_channels.*' => ['distinct', Rule::in(array_keys(ReminderLog::CHANNEL_LABELS))],
             ];
         }
 
@@ -61,6 +65,8 @@ class CashierOrderRequest extends FormRequest
             'payment.category_payment_id' => 'metode pembayaran',
             'payment.payment_id' => 'jenis metode pembayaran',
             'payment.reference' => 'no. referensi',
+            'send_channels' => 'channel kirim',
+            'send_channels.*' => 'channel kirim',
         ];
     }
 
