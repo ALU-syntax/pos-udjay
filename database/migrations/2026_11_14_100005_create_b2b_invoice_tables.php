@@ -112,11 +112,13 @@ return new class extends Migration
             $table->index(['outlet_id', 'refunded_at']);
         });
 
-        // Log reminder tagihan: satu baris per kiriman (email digabung per customer per hari).
+        // Log kiriman ke customer: satu baris per kiriman (reminder email digabung per customer per hari).
         Schema::create('b2b_reminder_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('b2b_customer_id')->constrained('b2b_customers');
             $table->enum('channel', ['email', 'whatsapp']);
+            $table->enum('kind', ['reminder', 'invoice', 'receipt'])->default('reminder')
+                ->comment('reminder = pengingat tagihan; invoice = invoice pesanan tempo; receipt = kwitansi invoice lunas');
             $table->string('recipient')->nullable()->comment('email / nomor tujuan; kosong kalau data customer tidak lengkap');
             $table->date('reminder_date');
             $table->enum('trigger', ['auto', 'manual']);

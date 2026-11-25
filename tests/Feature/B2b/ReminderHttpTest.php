@@ -204,7 +204,7 @@ class ReminderHttpTest extends B2bTestCase
 
         $sender = $this->userFor($this->outlet, ['send b2b/reminders', 'read b2b/orders', 'read b2b/invoices']);
         $this->actingAs($sender)->get(route('b2b/orders/show', $invoice->b2b_order_id))
-            ->assertOk()->assertSee('Kirim reminder')->assertSee('Belum ada reminder untuk invoice ini.');
+            ->assertOk()->assertSee('Kirim reminder')->assertSee('Belum ada kiriman untuk invoice ini.');
 
         $this->actingAs($sender)->postJson($url)->assertOk()->assertJsonPath('message', fn ($message) => str_contains($message, 'finance@pelanggan.test'));
 
@@ -219,7 +219,7 @@ class ReminderHttpTest extends B2bTestCase
 
         // Riwayat muncul di detail pesanan; tombol lonceng ada di daftar invoice.
         $this->actingAs($sender)->get(route('b2b/orders/show', $invoice->b2b_order_id))
-            ->assertOk()->assertSee('Riwayat reminder')->assertSee('Manual oleh '.$sender->name)->assertSee('Antre');
+            ->assertOk()->assertSee('Riwayat kiriman ke customer')->assertSee('Manual oleh '.$sender->name)->assertSee('Antre');
         $this->app->forgetInstance('datatables.request');
         $rows = $this->actingAs($sender)
             ->getJson(route('b2b/invoices', ['draw' => 1, 'start' => 0, 'length' => 10]), ['X-Requested-With' => 'XMLHttpRequest'])

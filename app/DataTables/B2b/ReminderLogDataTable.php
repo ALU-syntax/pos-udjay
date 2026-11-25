@@ -11,7 +11,7 @@ use Yajra\DataTables\Html\Builder as HtmlBuilder;
 use Yajra\DataTables\Html\Column;
 use Yajra\DataTables\Services\DataTable;
 
-/** Aktivitas reminder: satu baris per kiriman (email gabungan / pesan WhatsApp). */
+/** Aktivitas kiriman ke customer: satu baris per kiriman (reminder, invoice, kwitansi; email / WhatsApp). */
 class ReminderLogDataTable extends DataTable
 {
     /** Jumlah invoice yang ditampilkan per baris sebelum diringkas "+N lainnya". */
@@ -40,12 +40,15 @@ class ReminderLogDataTable extends DataTable
                 $invoices = $log->invoices->sortBy('due_date')->values();
                 $chips = $invoices->take(self::INVOICE_PREVIEW)->map(fn ($invoice) => '<span class="text-nowrap">'
                     .'<span class="b2b-mono">'.e($invoice->invoice_number).'</span> '
-                    .'<span class="b2b-due '.((int) $invoice->pivot->offset_days > 0 ? 'b2b-due--late' : 'b2b-due--soon').'">'.ReminderLog::offsetLabel((int) $invoice->pivot->offset_days).'</span>'
+                    .($log->kind === ReminderLog::KIND_REMINDER
+                        ? '<span class="b2b-due '.((int) $invoice->pivot->offset_days > 0 ? 'b2b-due--late' : 'b2b-due--soon').'">'.ReminderLog::offsetLabel((int) $invoice->pivot->offset_days).'</span>'
+                        : '')
                     .'</span>')->implode('<br>');
                 $more = $invoices->count() - self::INVOICE_PREVIEW;
 
                 return '<div class="ob-cell-stack">'.$chips.($more > 0 ? '<span class="ob-cell-meta">+'.$more.' invoice lainnya</span>' : '').'</div>';
             })
+            ->editColumn('kind', fn (ReminderLog $log) => '<span class="text-nowrap">'.e($log->kindLabel()).'</span>')
             ->editColumn('trigger', fn (ReminderLog $log) => '<div class="ob-cell-stack">'
                 .'<span class="text-nowrap">'.(ReminderLog::TRIGGER_LABELS[$log->trigger] ?? $log->trigger).'</span>'
                 .($log->trigger === ReminderLog::TRIGGER_MANUAL && $log->sender ? '<span class="ob-cell-meta">'.e($log->sender->name).'</span>' : '')
@@ -58,13 +61,14 @@ class ReminderLogDataTable extends DataTable
                 $buttons = '<button type="button" class="ob-icon-btn ob-icon-btn--sm" data-reminder-detail="'.route('b2b/reminders/show', $log->id).'" title="Lihat detail" aria-label="Lihat detail kiriman"><i class="fas fa-eye" aria-hidden="true"></i></button>';
                 if ($log->canResend() && auth()->user()->can('send b2b/reminders')) {
                     $buttons = '<a href="'.route('b2b/reminders/resend', $log->id).'" class="ob-icon-btn ob-icon-btn--sm ob-icon-btn--primary" data-b2b-confirm data-icon="question"'
-                        .' data-title="Kirim ulang reminder?" data-text="Dikirim sebagai kiriman manual ke tujuan terbaru di data customer. Invoice yang sudah lunas tidak ikut."'
+                        .' data-title="Kirim ulang '.e(strtolower($log->kindLabel())).'?" data-text="Dikirim sebagai kiriman manual ke tujuan terbaru di data customer.'
+                        .($log->kind === ReminderLog::KIND_RECEIPT ? '' : ' Invoice yang sudah lunas tidak ikut.').'"'
                         .' data-confirm-text="Ya, kirim ulang" data-table="b2b-reminder-table" title="Kirim ulang" aria-label="Kirim ulang"><i class="fas fa-redo" aria-hidden="true"></i></a>'.$buttons;
                 }
 
                 return '<div class="ob-row-actions">'.$buttons.'</div>';
             })
-            ->rawColumns(['created_at', 'customer_name', 'invoice_list', 'trigger', 'status', 'action'])
+            ->rawColumns(['created_at', 'customer_name', 'invoice_list', 'kind', 'trigger', 'status', 'action'])
             ->setRowId('id');
     }
 
@@ -115,6 +119,7 @@ class ReminderLogDataTable extends DataTable
             Column::make('created_at')->title('Waktu')->searchable(false),
             Column::make('customer_name')->title('Customer & tujuan')->name('customer.name'),
             Column::computed('invoice_list')->title('Invoice'),
+            Column::make('kind')->title('Jenis')->searchable(false),
             Column::make('trigger')->title('Pemicu')->searchable(false),
             Column::make('status')->title('Status')->searchable(false),
             Column::computed('action')->title('')->exportable(false)->printable(false)->width(80)->addClass('text-end'),

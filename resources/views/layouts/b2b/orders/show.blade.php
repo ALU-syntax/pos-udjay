@@ -349,15 +349,15 @@
                             @endif
 
                             @if ($reminders->isNotEmpty() || ($invoice->canSendReminder() && auth()->user()->can('send b2b/reminders')))
-                                <h3 class="b2b-subtitle mt-3">Riwayat reminder</h3>
+                                <h3 class="b2b-subtitle mt-3">Riwayat kiriman ke customer</h3>
                                 @if ($reminders->isEmpty())
-                                    <p class="b2b-muted mb-3">Belum ada reminder untuk invoice ini.</p>
+                                    <p class="b2b-muted mb-3">Belum ada kiriman untuk invoice ini.</p>
                                 @else
                                     <ul class="b2b-list b2b-payments">
                                         @foreach ($reminders as $reminder)
                                             <li>
                                                 <div class="b2b-payments__row">
-                                                    <span class="fw-bold"><i class="{{ $reminder->channelIcon() }} me-1" aria-hidden="true"></i>{{ \App\Models\B2b\ReminderLog::offsetLabel((int) $reminder->pivot->offset_days) }}</span>
+                                                    <span class="fw-bold"><i class="{{ $reminder->channelIcon() }} me-1" aria-hidden="true"></i>{{ $reminder->invoiceLabel((int) $reminder->pivot->offset_days) }}</span>
                                                     <span class="badge badge-{{ $reminder->statusVariant() }}">{{ $reminder->statusLabel() }}</span>
                                                 </div>
                                                 <div class="b2b-muted">
@@ -374,7 +374,7 @@
                                         @endforeach
                                     </ul>
                                     @can('read b2b/reminders')
-                                        <p class="b2b-muted mb-3"><a href="{{ route('b2b/reminders') }}">Lihat semua aktivitas reminder</a></p>
+                                        <p class="b2b-muted mb-3"><a href="{{ route('b2b/reminders') }}">Lihat semua aktivitas kiriman</a></p>
                                     @endcan
                                 @endif
                             @endif

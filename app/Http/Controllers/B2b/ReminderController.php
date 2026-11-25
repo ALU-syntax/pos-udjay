@@ -119,6 +119,7 @@ class ReminderController extends Controller
             'channel' => $log->channelLabel(),
             'channel_key' => $log->channel,
             'channel_icon' => $log->channelIcon(),
+            'kind' => $log->kindLabel(),
             'recipient' => $log->recipient,
             'trigger' => ReminderLog::TRIGGER_LABELS[$log->trigger] ?? $log->trigger,
             'sender' => $log->sender?->name,
@@ -135,7 +136,7 @@ class ReminderController extends Controller
             'invoices' => $log->invoices->sortBy('due_date')->values()->map(fn ($invoice) => [
                 'number' => $invoice->invoice_number,
                 'due_date' => $invoice->due_date->translatedFormat('d M Y'),
-                'offset' => ReminderLog::offsetLabel((int) $invoice->pivot->offset_days),
+                'offset' => $log->invoiceLabel((int) $invoice->pivot->offset_days),
                 'url' => route('b2b/invoices/print', $invoice->id),
             ]),
         ]);
@@ -147,8 +148,8 @@ class ReminderController extends Controller
         $new = $this->reminders->resend(ReminderLog::query()->findOrFail($log), $request->user());
 
         return responseSuccess(true, $new->status === ReminderLog::STATUS_QUEUED
-            ? 'Reminder dikirim ulang dan masuk antrean.'
-            : 'Reminder dicatat tapi dilewati: '.$new->error);
+            ? $new->kindLabel().' dikirim ulang dan masuk antrean.'
+            : $new->kindLabel().' dicatat tapi dilewati: '.$new->error);
     }
 
     /** Saklar darurat: hentikan / aktifkan lagi semua kiriman satu channel. Menghentikan wajib menyertakan alasan. */

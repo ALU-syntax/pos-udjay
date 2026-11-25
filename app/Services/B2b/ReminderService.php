@@ -107,21 +107,24 @@ class ReminderService
      *
      * @param  Collection<int, array{invoice: Invoice, offset: int}>  $items
      */
-    public function createLog(Customer $customer, string $channel, Collection $items, Carbon $date, string $trigger, ?User $sender = null): ?ReminderLog
+    public function createLog(Customer $customer, string $channel, Collection $items, Carbon $date, string $trigger, ?User $sender = null, string $kind = ReminderLog::KIND_REMINDER): ?ReminderLog
     {
         $recipient = $this->recipient($customer, $channel);
 
         try {
-            $log = DB::transaction(function () use ($customer, $channel, $items, $date, $trigger, $sender, $recipient) {
+            $log = DB::transaction(function () use ($customer, $channel, $items, $date, $trigger, $sender, $recipient, $kind) {
                 $log = ReminderLog::create([
                     'b2b_customer_id' => $customer->id,
                     'channel' => $channel,
+                    'kind' => $kind,
                     'recipient' => $recipient,
                     'reminder_date' => $date->toDateString(),
                     'trigger' => $trigger,
                     'status' => $recipient ? ReminderLog::STATUS_QUEUED : ReminderLog::STATUS_SKIPPED,
                     'error' => $recipient ? null : $this->missingRecipientMessage($channel),
-                    'dedupe_key' => $trigger === ReminderLog::TRIGGER_AUTO ? "auto:{$customer->id}:{$channel}:{$date->toDateString()}" : null,
+                    'dedupe_key' => $trigger === ReminderLog::TRIGGER_AUTO && $kind === ReminderLog::KIND_REMINDER
+                        ? "auto:{$customer->id}:{$channel}:{$date->toDateString()}"
+                        : null,
                     'sent_by' => $sender?->id,
                 ]);
                 foreach ($items as $item) {
@@ -199,18 +202,20 @@ class ReminderService
         }
 
         $today = today();
-        $items = $this->openCreditInvoices()
+        $items = $this->deliverableInvoices($log->kind)
             ->whereIn('id', $log->invoices()->pluck('b2b_invoices.id'))
             ->orderBy('due_date')
             ->get()
             ->map(fn (Invoice $invoice) => ['invoice' => $invoice, 'offset' => $this->offset($invoice, $today)])
             ->values();
         if ($items->isEmpty()) {
-            throw ValidationException::withMessages(['status' => 'Semua invoice di kiriman ini sudah lunas atau dibatalkan.']);
+            throw ValidationException::withMessages(['status' => $log->kind === ReminderLog::KIND_RECEIPT
+                ? 'Invoice di kiriman ini belum lunas atau pesanannya dibatalkan.'
+                : 'Semua invoice di kiriman ini sudah lunas atau dibatalkan.']);
         }
 
         $customer = Customer::withTrashed()->findOrFail($log->b2b_customer_id);
-        $new = $this->createLog($customer, $log->channel, $items, $today, ReminderLog::TRIGGER_MANUAL, $user);
+        $new = $this->createLog($customer, $log->channel, $items, $today, ReminderLog::TRIGGER_MANUAL, $user, $log->kind);
         $this->logger->log('reminder.resent', $new, ['from_log_id' => $log->id, 'status' => $new->status], $user->id);
 
         return $new;
@@ -220,6 +225,18 @@ class ReminderService
     public function offset(Invoice $invoice, Carbon $date): int
     {
         return (int) $invoice->due_date->copy()->startOfDay()->diffInDays($date->copy()->startOfDay(), false);
+    }
+
+    /** Invoice yang boleh dikirim untuk jenis kiriman: kwitansi = invoice lunas, selain itu tagihan tempo yang masih terbuka. */
+    public function deliverableInvoices(string $kind): Builder
+    {
+        if ($kind !== ReminderLog::KIND_RECEIPT) {
+            return $this->openCreditInvoices();
+        }
+
+        return Invoice::query()
+            ->where('status', Invoice::STATUS_PAID)
+            ->whereHas('order', fn (Builder $order) => $order->where('status', '!=', Order::STATUS_CANCELLED));
     }
 
     /** Invoice tempo yang masih punya sisa tagihan dan pesanannya tidak dibatalkan. */

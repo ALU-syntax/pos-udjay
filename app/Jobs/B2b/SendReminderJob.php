@@ -3,7 +3,6 @@
 namespace App\Jobs\B2b;
 
 use App\Models\B2b\Invoice;
-use App\Models\B2b\Order;
 use App\Models\B2b\ReminderLog;
 use App\Services\B2b\B2bSettings;
 use App\Services\B2b\Reminder\EmailReminderChannel;
@@ -17,8 +16,9 @@ use Illuminate\Queue\InteractsWithQueue;
 use Throwable;
 
 /**
- * Kirim satu reminder (satu baris b2b_reminder_logs). Dicoba ulang kalau gagal; kiriman otomatis
- * tidak dikirim lewat batas jam (17:00 WIB) supaya tidak mengganggu waktu istirahat customer.
+ * Kirim satu kiriman ke customer (satu baris b2b_reminder_logs): reminder, invoice, atau kwitansi. Dicoba ulang kalau gagal;
+ * reminder otomatis tidak dikirim lewat batas jam (17:00 WIB) supaya tidak mengganggu waktu istirahat customer.
+ * Invoice/kwitansi dikirim saat transaksi terjadi, jadi tidak terikat batas jam.
  */
 class SendReminderJob implements ShouldQueue
 {
@@ -46,24 +46,28 @@ class SendReminderJob implements ShouldQueue
 
             return;
         }
-        if ($log->trigger === ReminderLog::TRIGGER_AUTO && now()->gt($settings->reminderRetryDeadline($log->reminder_date))) {
+        if ($log->kind === ReminderLog::KIND_REMINDER && $log->trigger === ReminderLog::TRIGGER_AUTO
+            && now()->gt($settings->reminderRetryDeadline($log->reminder_date))) {
             $this->finish($log, ReminderLog::STATUS_FAILED, $log->error ?: 'Lewat batas jam kirim '.B2bSettings::REMINDER_RETRY_UNTIL.' WIB.');
 
             return;
         }
 
-        // Dicek ulang saat kirim: invoice yang sudah lunas atau dibatalkan sejak diantrekan tidak ikut ditagih.
+        // Dicek ulang saat kirim: tagihan yang sudah lunas/dibatalkan sejak diantrekan tidak ikut ditagih,
+        // dan kwitansi hanya untuk invoice yang masih lunas.
         $offsets = $log->invoices()->pluck('b2b_reminder_log_invoices.offset_days', 'b2b_invoices.id');
         $items = Invoice::query()
             ->whereIn('id', $offsets->keys())
             ->with(['order.items', 'customer', 'allocations.payment', 'schedules'])
             ->orderBy('due_date')
             ->get()
-            ->filter(fn (Invoice $invoice) => $invoice->outstandingAmount() > 0 && $invoice->order?->status !== Order::STATUS_CANCELLED)
+            ->filter(fn (Invoice $invoice) => $log->stillDeliverable($invoice))
             ->map(fn (Invoice $invoice) => ['invoice' => $invoice, 'offset' => (int) $offsets[$invoice->id]])
             ->values();
         if ($items->isEmpty()) {
-            $this->finish($log, ReminderLog::STATUS_SKIPPED, 'Semua invoice sudah lunas atau dibatalkan.');
+            $this->finish($log, ReminderLog::STATUS_SKIPPED, $log->kind === ReminderLog::KIND_RECEIPT
+                ? 'Invoice belum lunas atau pesanannya dibatalkan.'
+                : 'Semua invoice sudah lunas atau dibatalkan.');
 
             return;
         }

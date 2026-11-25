@@ -179,6 +179,7 @@
                     <div class="b2b-detail-loading text-center py-4" data-detail-loading><span class="spinner-border spinner-border-sm me-2"></span>Memuat…</div>
                     <div data-detail-content hidden>
                         <dl class="ob-meta">
+                            <div class="ob-meta__item"><dt>Jenis</dt><dd data-detail="kind"></dd></div>
                             <div class="ob-meta__item"><dt>Status</dt><dd data-detail="status"></dd></div>
                             <div class="ob-meta__item"><dt>Tujuan</dt><dd data-detail="recipient"></dd></div>
                             <div class="ob-meta__item"><dt>Pemicu</dt><dd data-detail="trigger"></dd></div>
@@ -258,7 +259,8 @@
                     bootstrap.Modal.getOrCreateInstance($modal[0]).show();
 
                     $.getJSON(this.dataset.reminderDetail).done(({ data }) => {
-                        field('headline').text(`${data.customer || '-'} · ${data.channel} · ${data.reminder_date}`);
+                        field('headline').text(`${data.customer || '-'} · ${data.kind} · ${data.channel} · ${data.reminder_date}`);
+                        field('kind').text(data.kind);
                         field('status').html(`<span class="badge badge-${data.status_variant}">${B2b.escape(data.status)}</span>`);
                         field('recipient').html(data.recipient ? `<i class="${data.channel_icon} me-1" aria-hidden="true"></i>${B2b.escape(data.recipient)}` : '');
                         field('trigger').text(data.sender ? `${data.trigger} · ${data.sender}` : data.trigger);

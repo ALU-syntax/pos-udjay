@@ -7,12 +7,27 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-/** Satu kiriman reminder tagihan (email gabungan per customer per hari, atau pesan WhatsApp). */
+/**
+ * Satu kiriman ke customer lewat email/WhatsApp: reminder tagihan (email gabungan per customer per hari),
+ * invoice pesanan tempo, atau kwitansi invoice lunas.
+ */
 class ReminderLog extends Model
 {
     public const CHANNEL_EMAIL = 'email';
 
     public const CHANNEL_WHATSAPP = 'whatsapp';
+
+    public const KIND_REMINDER = 'reminder';
+
+    public const KIND_INVOICE = 'invoice';
+
+    public const KIND_RECEIPT = 'receipt';
+
+    public const KIND_LABELS = [
+        self::KIND_REMINDER => 'Reminder',
+        self::KIND_INVOICE => 'Invoice',
+        self::KIND_RECEIPT => 'Kwitansi',
+    ];
 
     public const TRIGGER_AUTO = 'auto';
 
@@ -99,6 +114,32 @@ class ReminderLog extends Model
     public function canResend(): bool
     {
         return in_array($this->status, [self::STATUS_FAILED, self::STATUS_SKIPPED], true);
+    }
+
+    public function kindLabel(): string
+    {
+        return self::KIND_LABELS[$this->kind] ?? ucfirst((string) $this->kind);
+    }
+
+    /** Label per invoice di riwayat: hari relatif untuk reminder (H-3), jenis dokumen untuk kiriman invoice/kwitansi. */
+    public function invoiceLabel(int $offset): string
+    {
+        return $this->kind === self::KIND_REMINDER ? self::offsetLabel($offset) : $this->kindLabel();
+    }
+
+    /**
+     * Apakah invoice masih layak dikirim untuk jenis kiriman ini (dicek ulang saat job jalan):
+     * reminder/invoice hanya untuk tagihan yang masih bersisa, kwitansi hanya untuk invoice lunas; pesanan batal tidak dikirim.
+     */
+    public function stillDeliverable(Invoice $invoice): bool
+    {
+        if ($invoice->order?->status === Order::STATUS_CANCELLED) {
+            return false;
+        }
+
+        return $this->kind === self::KIND_RECEIPT
+            ? $invoice->status === Invoice::STATUS_PAID
+            : $invoice->outstandingAmount() > 0;
     }
 
     /** Label hari relatif: H-3, Hari H, H+2. */
