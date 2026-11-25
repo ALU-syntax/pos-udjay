@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
 
 /**
  * Kiriman lewat WhatsApp (gateway Baileys): satu pesan teks, lalu satu pesan PDF per invoice
- * (PDF invoice untuk reminder/invoice, PDF kwitansi untuk kwitansi).
+ * (PDF invoice untuk reminder/invoice, PDF kwitansi untuk kwitansi; konfirmasi pendaftaran hanya teks).
  * Kalau gagal sebelum ada pesan terkirim, job boleh mencoba ulang. Kalau sebagian sudah terkirim, kiriman dihentikan
  * (ReminderSendException) supaya customer tidak menerima pesan dobel; staf bisa kirim ulang manual.
  */
@@ -31,6 +31,7 @@ class WhatsAppReminderChannel implements ReminderChannel
         $text = match ($log->kind) {
             ReminderLog::KIND_INVOICE => $this->invoiceMessage($customer, $items->first()['invoice'], $profile),
             ReminderLog::KIND_RECEIPT => $this->receiptMessage($customer, $items->first()['invoice'], $profile),
+            ReminderLog::KIND_REGISTRATION => $this->registrationMessage($customer, $profile, $this->settings->orderContactPhone()),
             default => $this->message($customer, $items, $profile),
         };
         $documents = $items->map(fn (array $item) => [
@@ -145,6 +146,27 @@ class WhatsAppReminderChannel implements ReminderChannel
         $lines[] = '*Jumlah dibayar: '.$this->rupiah($invoice->paid_amount).'*';
         $lines[] = '';
         $lines[] = 'Kwitansi terlampir dalam PDF. Terima kasih.';
+
+        return implode("\n", $lines);
+    }
+
+    /** Teks WhatsApp konfirmasi pendaftaran lewat form umum: kode customer + nomor admin untuk pemesanan. */
+    public function registrationMessage(Customer $customer, array $profile, ?string $adminPhone): string
+    {
+        $lines = ["Yth. {$this->greeting($customer)},", ''];
+        $lines[] = "Terima kasih telah mendaftar sebagai customer B2B *{$profile['brand_name']}*. Pendaftaran Anda sudah kami terima.";
+        $lines[] = '';
+        $lines[] = 'Kode customer: *'.$customer->code.'*';
+        $lines[] = 'Nama: '.$customer->name;
+        if (filled($customer->contact_name) && $customer->contact_name !== $customer->name) {
+            $lines[] = 'PIC: '.$customer->contact_name;
+        }
+        $lines[] = '';
+        $lines[] = $adminPhone
+            ? "Untuk pemesanan, silakan hubungi admin kami di *{$adminPhone}* dan sebutkan kode customer di atas."
+            : "Untuk pemesanan, silakan hubungi kami di {$profile['email']} dan sebutkan kode customer di atas.";
+        $lines[] = '';
+        $lines[] = 'Jika Anda tidak merasa mendaftar, abaikan pesan ini. Terima kasih.';
 
         return implode("\n", $lines);
     }

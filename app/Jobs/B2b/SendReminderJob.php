@@ -16,9 +16,9 @@ use Illuminate\Queue\InteractsWithQueue;
 use Throwable;
 
 /**
- * Kirim satu kiriman ke customer (satu baris b2b_reminder_logs): reminder, invoice, atau kwitansi. Dicoba ulang kalau gagal;
- * reminder otomatis tidak dikirim lewat batas jam (17:00 WIB) supaya tidak mengganggu waktu istirahat customer.
- * Invoice/kwitansi dikirim saat transaksi terjadi, jadi tidak terikat batas jam.
+ * Kirim satu kiriman ke customer (satu baris b2b_reminder_logs): reminder, invoice, kwitansi, atau konfirmasi pendaftaran.
+ * Dicoba ulang kalau gagal; reminder otomatis tidak dikirim lewat batas jam (17:00 WIB) supaya tidak mengganggu waktu
+ * istirahat customer. Invoice/kwitansi/pendaftaran dikirim saat kejadiannya, jadi tidak terikat batas jam.
  */
 class SendReminderJob implements ShouldQueue
 {
@@ -53,23 +53,33 @@ class SendReminderJob implements ShouldQueue
             return;
         }
 
-        // Dicek ulang saat kirim: tagihan yang sudah lunas/dibatalkan sejak diantrekan tidak ikut ditagih,
-        // dan kwitansi hanya untuk invoice yang masih lunas.
-        $offsets = $log->invoices()->pluck('b2b_reminder_log_invoices.offset_days', 'b2b_invoices.id');
-        $items = Invoice::query()
-            ->whereIn('id', $offsets->keys())
-            ->with(['order.items', 'customer', 'allocations.payment', 'schedules'])
-            ->orderBy('due_date')
-            ->get()
-            ->filter(fn (Invoice $invoice) => $log->stillDeliverable($invoice))
-            ->map(fn (Invoice $invoice) => ['invoice' => $invoice, 'offset' => (int) $offsets[$invoice->id]])
-            ->values();
-        if ($items->isEmpty()) {
-            $this->finish($log, ReminderLog::STATUS_SKIPPED, $log->kind === ReminderLog::KIND_RECEIPT
-                ? 'Invoice belum lunas atau pesanannya dibatalkan.'
-                : 'Semua invoice sudah lunas atau dibatalkan.');
+        if (! $log->hasInvoices()) {
+            // Konfirmasi pendaftaran: customer yang sudah dihapus (mis. pendaftaran palsu) tidak dikirimi.
+            if (! $log->customer || $log->customer->trashed()) {
+                $this->finish($log, ReminderLog::STATUS_SKIPPED, 'Customer sudah dihapus.');
 
-            return;
+                return;
+            }
+            $items = collect();
+        } else {
+            // Dicek ulang saat kirim: tagihan yang sudah lunas/dibatalkan sejak diantrekan tidak ikut ditagih,
+            // dan kwitansi hanya untuk invoice yang masih lunas.
+            $offsets = $log->invoices()->pluck('b2b_reminder_log_invoices.offset_days', 'b2b_invoices.id');
+            $items = Invoice::query()
+                ->whereIn('id', $offsets->keys())
+                ->with(['order.items', 'customer', 'allocations.payment', 'schedules'])
+                ->orderBy('due_date')
+                ->get()
+                ->filter(fn (Invoice $invoice) => $log->stillDeliverable($invoice))
+                ->map(fn (Invoice $invoice) => ['invoice' => $invoice, 'offset' => (int) $offsets[$invoice->id]])
+                ->values();
+            if ($items->isEmpty()) {
+                $this->finish($log, ReminderLog::STATUS_SKIPPED, $log->kind === ReminderLog::KIND_RECEIPT
+                    ? 'Invoice belum lunas atau pesanannya dibatalkan.'
+                    : 'Semua invoice sudah lunas atau dibatalkan.');
+
+                return;
+            }
         }
 
         $log->increment('attempts');

@@ -95,7 +95,7 @@ class ReminderController extends Controller
     {
         $this->authorize('send b2b/reminders');
         $validated = $request->validate([
-            'kind' => ['nullable', Rule::in(array_keys(ReminderLog::KIND_LABELS))],
+            'kind' => ['nullable', Rule::in(ReminderLog::INVOICE_KINDS)],
             'channels' => ['nullable', 'array'],
             'channels.*' => [Rule::in(array_keys(ReminderLog::CHANNEL_LABELS))],
         ], [], ['channels' => 'channel', 'kind' => 'jenis kiriman']);

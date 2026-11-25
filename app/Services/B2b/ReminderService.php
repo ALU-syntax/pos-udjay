@@ -122,9 +122,12 @@ class ReminderService
                     'trigger' => $trigger,
                     'status' => $recipient ? ReminderLog::STATUS_QUEUED : ReminderLog::STATUS_SKIPPED,
                     'error' => $recipient ? null : $this->missingRecipientMessage($channel),
-                    'dedupe_key' => $trigger === ReminderLog::TRIGGER_AUTO && $kind === ReminderLog::KIND_REMINDER
-                        ? "auto:{$customer->id}:{$channel}:{$date->toDateString()}"
-                        : null,
+                    'dedupe_key' => match (true) {
+                        $trigger !== ReminderLog::TRIGGER_AUTO => null,
+                        $kind === ReminderLog::KIND_REMINDER => "auto:{$customer->id}:{$channel}:{$date->toDateString()}",
+                        $kind === ReminderLog::KIND_REGISTRATION => "registration:{$customer->id}:{$channel}",
+                        default => null,
+                    },
                     'sent_by' => $sender?->id,
                 ]);
                 foreach ($items as $item) {
@@ -157,7 +160,7 @@ class ReminderService
      */
     public function sendNow(Invoice $invoice, User $user, array $channels = [ReminderLog::CHANNEL_EMAIL], string $kind = ReminderLog::KIND_REMINDER): Collection
     {
-        if (! array_key_exists($kind, ReminderLog::KIND_LABELS)) {
+        if (! in_array($kind, ReminderLog::INVOICE_KINDS, true)) {
             throw ValidationException::withMessages(['kind' => 'Jenis kiriman tidak dikenal.']);
         }
         $channels = array_values(array_unique($channels));
@@ -210,23 +213,46 @@ class ReminderService
         }
 
         $today = today();
-        $items = $this->deliverableInvoices($log->kind)
-            ->whereIn('id', $log->invoices()->pluck('b2b_invoices.id'))
-            ->orderBy('due_date')
-            ->get()
-            ->map(fn (Invoice $invoice) => ['invoice' => $invoice, 'offset' => $this->offset($invoice, $today)])
-            ->values();
-        if ($items->isEmpty()) {
-            throw ValidationException::withMessages(['status' => $log->kind === ReminderLog::KIND_RECEIPT
-                ? 'Invoice di kiriman ini belum lunas atau pesanannya dibatalkan.'
-                : 'Semua invoice di kiriman ini sudah lunas atau dibatalkan.']);
+        $customer = Customer::withTrashed()->findOrFail($log->b2b_customer_id);
+        if (! $log->hasInvoices()) {
+            if ($customer->trashed()) {
+                throw ValidationException::withMessages(['status' => 'Customer sudah dihapus.']);
+            }
+            $items = collect();
+        } else {
+            $items = $this->deliverableInvoices($log->kind)
+                ->whereIn('id', $log->invoices()->pluck('b2b_invoices.id'))
+                ->orderBy('due_date')
+                ->get()
+                ->map(fn (Invoice $invoice) => ['invoice' => $invoice, 'offset' => $this->offset($invoice, $today)])
+                ->values();
+            if ($items->isEmpty()) {
+                throw ValidationException::withMessages(['status' => $log->kind === ReminderLog::KIND_RECEIPT
+                    ? 'Invoice di kiriman ini belum lunas atau pesanannya dibatalkan.'
+                    : 'Semua invoice di kiriman ini sudah lunas atau dibatalkan.']);
+            }
         }
 
-        $customer = Customer::withTrashed()->findOrFail($log->b2b_customer_id);
         $new = $this->createLog($customer, $log->channel, $items, $today, ReminderLog::TRIGGER_MANUAL, $user, $log->kind);
         $this->logger->log('reminder.resent', $new, ['from_log_id' => $log->id, 'status' => $new->status], $user->id);
 
         return $new;
+    }
+
+    /**
+     * Antrekan konfirmasi pendaftaran untuk customer yang mendaftar lewat form umum: satu kiriman per channel
+     * yang kontaknya terisi (email kalau valid, WhatsApp kalau nomor valid dan gateway terpasang).
+     * Anti dobel per customer per channel; kiriman yang sudah pernah dibuat tidak diulang.
+     *
+     * @return Collection<int, ReminderLog> kiriman yang baru dibuat
+     */
+    public function queueRegistrationNotice(Customer $customer): Collection
+    {
+        return collect($this->supportedChannels())
+            ->filter(fn (string $channel) => $this->recipient($customer, $channel) !== null)
+            ->map(fn (string $channel) => $this->createLog($customer, $channel, collect(), today(), ReminderLog::TRIGGER_AUTO, null, ReminderLog::KIND_REGISTRATION))
+            ->filter()
+            ->values();
     }
 
     /** Hari relatif tanggal reminder terhadap jatuh tempo invoice: negatif = sebelum, positif = lewat. */

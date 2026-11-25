@@ -117,13 +117,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('b2b_customer_id')->constrained('b2b_customers');
             $table->enum('channel', ['email', 'whatsapp']);
-            $table->enum('kind', ['reminder', 'invoice', 'receipt'])->default('reminder')
-                ->comment('reminder = pengingat tagihan; invoice = invoice pesanan tempo; receipt = kwitansi invoice lunas');
+            $table->enum('kind', ['reminder', 'invoice', 'receipt', 'registration'])->default('reminder')
+                ->comment('reminder = pengingat tagihan; invoice = invoice pesanan tempo; receipt = kwitansi invoice lunas; registration = konfirmasi pendaftaran lewat form umum (tanpa invoice)');
             $table->string('recipient')->nullable()->comment('email / nomor tujuan; kosong kalau data customer tidak lengkap');
             $table->date('reminder_date');
             $table->enum('trigger', ['auto', 'manual']);
             $table->enum('status', ['queued', 'sent', 'failed', 'skipped'])->default('queued');
-            // Anti dobel kiriman otomatis: auto:{customer}:{channel}:{tanggal}. Manual = null, boleh berulang.
+            // Anti dobel kiriman otomatis: auto:{customer}:{channel}:{tanggal} (reminder), registration:{customer}:{channel}
+            // (konfirmasi pendaftaran). Manual = null, boleh berulang.
             $table->string('dedupe_key', 80)->nullable()->unique();
             $table->string('subject')->nullable();
             $table->longText('body')->nullable()->comment('isi email/pesan yang dikirim, untuk log');

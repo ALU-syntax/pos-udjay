@@ -190,8 +190,10 @@
                             <div class="ob-meta__item ob-meta__item--wide"><dt>Subjek</dt><dd data-detail="subject"></dd></div>
                         </dl>
 
-                        <p class="b2b-subtitle mt-3">Invoice di kiriman ini</p>
-                        <ul class="b2b-list b2b-payments" data-detail="invoices"></ul>
+                        <div data-detail-invoices>
+                            <p class="b2b-subtitle mt-3">Invoice di kiriman ini</p>
+                            <ul class="b2b-list b2b-payments" data-detail="invoices"></ul>
+                        </div>
 
                         <div data-detail-attachments hidden>
                             <p class="b2b-subtitle">Lampiran</p>
@@ -273,6 +275,7 @@
                         field('invoices').html(data.invoices.map(invoice => `<li><div class="b2b-payments__row">
                             <a href="${invoice.url}" target="_blank" class="b2b-mono">${B2b.escape(invoice.number)}</a>
                             <span class="b2b-muted">Jatuh tempo ${B2b.escape(invoice.due_date)} · ${B2b.escape(invoice.offset)}</span></div></li>`).join(''));
+                        $modal.find('[data-detail-invoices]').prop('hidden', !data.invoices.length);
                         field('attachments').html(data.attachments.map(name => `<li><i class="fas fa-file-pdf text-danger" aria-hidden="true"></i>${B2b.escape(name)}</li>`).join(''));
                         $modal.find('[data-detail-attachments]').prop('hidden', !data.attachments.length);
                         const isText = data.channel_key === 'whatsapp';

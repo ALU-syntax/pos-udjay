@@ -11,7 +11,7 @@ use Yajra\DataTables\Html\Builder as HtmlBuilder;
 use Yajra\DataTables\Html\Column;
 use Yajra\DataTables\Services\DataTable;
 
-/** Aktivitas kiriman ke customer: satu baris per kiriman (reminder, invoice, kwitansi; email / WhatsApp). */
+/** Aktivitas kiriman ke customer: satu baris per kiriman (reminder, invoice, kwitansi, pendaftaran; email / WhatsApp). */
 class ReminderLogDataTable extends DataTable
 {
     /** Jumlah invoice yang ditampilkan per baris sebelum diringkas "+N lainnya". */
@@ -38,6 +38,9 @@ class ReminderLogDataTable extends DataTable
             })
             ->addColumn('invoice_list', function (ReminderLog $log) {
                 $invoices = $log->invoices->sortBy('due_date')->values();
+                if ($invoices->isEmpty()) {
+                    return '<span class="ob-cell-meta">'.($log->hasInvoices() ? '-' : 'Tanpa invoice').'</span>';
+                }
                 $chips = $invoices->take(self::INVOICE_PREVIEW)->map(fn ($invoice) => '<span class="text-nowrap">'
                     .'<span class="b2b-mono">'.e($invoice->invoice_number).'</span> '
                     .($log->kind === ReminderLog::KIND_REMINDER
@@ -62,7 +65,7 @@ class ReminderLogDataTable extends DataTable
                 if ($log->canResend() && auth()->user()->can('send b2b/reminders')) {
                     $buttons = '<a href="'.route('b2b/reminders/resend', $log->id).'" class="ob-icon-btn ob-icon-btn--sm ob-icon-btn--primary" data-b2b-confirm data-icon="question"'
                         .' data-title="Kirim ulang '.e(strtolower($log->kindLabel())).'?" data-text="Dikirim sebagai kiriman manual ke tujuan terbaru di data customer.'
-                        .($log->kind === ReminderLog::KIND_RECEIPT ? '' : ' Invoice yang sudah lunas tidak ikut.').'"'
+                        .(in_array($log->kind, [ReminderLog::KIND_REMINDER, ReminderLog::KIND_INVOICE], true) ? ' Invoice yang sudah lunas tidak ikut.' : '').'"'
                         .' data-confirm-text="Ya, kirim ulang" data-table="b2b-reminder-table" title="Kirim ulang" aria-label="Kirim ulang"><i class="fas fa-redo" aria-hidden="true"></i></a>'.$buttons;
                 }
 

@@ -62,6 +62,19 @@ class B2bSettings
         return $profile;
     }
 
+    public const ORDER_CONTACT_PHONE_KEY = 'b2b.order_contact_phone';
+
+    /**
+     * Nomor admin pemesanan B2B yang dicantumkan di konfirmasi pendaftaran.
+     * Kosong = pakai telepon penagihan (b2b.invoice.phone); keduanya kosong = null (pesan mengarahkan ke email).
+     */
+    public function orderContactPhone(): ?string
+    {
+        $value = trim((string) Config::getValue(self::ORDER_CONTACT_PHONE_KEY));
+
+        return $value !== '' ? $value : ($this->invoiceProfile()['phone'] ?: null);
+    }
+
     /** Reminder otomatis dikirim mulai jam ini (WIB) dan percobaan ulang berhenti di jam batas, supaya tidak mengganggu waktu istirahat customer. */
     public const REMINDER_SEND_AT = '09:00';
 

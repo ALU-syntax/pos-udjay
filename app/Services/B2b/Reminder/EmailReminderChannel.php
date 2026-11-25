@@ -2,6 +2,7 @@
 
 namespace App\Services\B2b\Reminder;
 
+use App\Mail\B2b\CustomerRegisteredMail;
 use App\Mail\B2b\InvoiceDocumentMail;
 use App\Mail\B2b\InvoiceReminderMail;
 use App\Models\B2b\Customer;
@@ -23,7 +24,10 @@ class EmailReminderChannel implements ReminderChannel
     {
         $profile = $this->settings->invoiceProfile();
 
-        if ($log->kind === ReminderLog::KIND_REMINDER) {
+        if ($log->kind === ReminderLog::KIND_REGISTRATION) {
+            $mail = new CustomerRegisteredMail($customer, $profile, $this->settings->orderContactPhone());
+            $attachments = [];
+        } elseif ($log->kind === ReminderLog::KIND_REMINDER) {
             $mail = new InvoiceReminderMail($customer, $items, $profile, $this->pdf);
             $attachments = $items->map(fn (array $item) => InvoiceDocument::pdfFilename($item['invoice']))->values()->all();
         } else {

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * Satu kiriman ke customer lewat email/WhatsApp: reminder tagihan (email gabungan per customer per hari),
- * invoice pesanan tempo, atau kwitansi invoice lunas.
+ * invoice pesanan tempo, kwitansi invoice lunas, atau konfirmasi pendaftaran (tanpa invoice).
  */
 class ReminderLog extends Model
 {
@@ -23,11 +23,17 @@ class ReminderLog extends Model
 
     public const KIND_RECEIPT = 'receipt';
 
+    public const KIND_REGISTRATION = 'registration';
+
     public const KIND_LABELS = [
         self::KIND_REMINDER => 'Reminder',
         self::KIND_INVOICE => 'Invoice',
         self::KIND_RECEIPT => 'Kwitansi',
+        self::KIND_REGISTRATION => 'Pendaftaran',
     ];
+
+    /** Jenis kiriman yang membawa invoice (boleh dipilih di tombol "Kirim ke customer"). */
+    public const INVOICE_KINDS = [self::KIND_REMINDER, self::KIND_INVOICE, self::KIND_RECEIPT];
 
     public const TRIGGER_AUTO = 'auto';
 
@@ -122,6 +128,12 @@ class ReminderLog extends Model
         return $this->status === self::STATUS_QUEUED
             ? $this->channelLabel().' ke '.$this->recipient.' masuk antrean'
             : $this->channelLabel().' dilewati: '.$this->error;
+    }
+
+    /** Konfirmasi pendaftaran tidak membawa invoice. */
+    public function hasInvoices(): bool
+    {
+        return in_array($this->kind, self::INVOICE_KINDS, true);
     }
 
     public function kindLabel(): string
