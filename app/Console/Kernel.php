@@ -35,6 +35,10 @@ class Kernel extends ConsoleKernel
             ->timezone('Asia/Jakarta')
             ->dailyAt(B2bSettings::REMINDER_SEND_AT)
             ->withoutOverlapping();
+        // Tiap menit: konfirmasi pendaftaran (email/WhatsApp) untuk customer baru dari form pendaftaran umum.
+        $schedule->command('b2b:send-registration-notices')
+            ->everyMinute()
+            ->withoutOverlapping();
     }
 
     /**

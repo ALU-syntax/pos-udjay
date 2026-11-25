@@ -164,4 +164,39 @@ class RegistrationNoticeTest extends B2bTestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('kind');
     }
+
+    /** Customer dari form pendaftaran umum (registered_via portal) dengan waktu daftar tertentu. */
+    private function portalCustomer(array $attributes = [], ?string $registeredAt = null): Customer
+    {
+        $customer = $this->customer(array_merge(['email' => 'baru.'.uniqid().'@pelanggan.test', 'phone' => '0812-9999-0000'], $attributes));
+        $customer->forceFill(['registered_via' => Customer::REGISTERED_VIA_PORTAL, 'created_at' => $registeredAt ?? now()])->save();
+
+        return $customer;
+    }
+
+    public function test_scheduled_command_notifies_new_portal_customers_once(): void
+    {
+        Bus::fake([SendReminderJob::class]);
+        $new = $this->portalCustomer();
+        $emailOnly = $this->portalCustomer(['phone' => null]);
+        $this->portalCustomer([], now()->subDays(ReminderService::REGISTRATION_NOTICE_WINDOW_DAYS + 1)->toDateTimeString());
+        $this->portalCustomer(['is_active' => false]);
+        $this->portalCustomer()->delete();
+        // $this->customer dari setUp = input backoffice: tidak dikirimi.
+
+        $this->artisan('b2b:send-registration-notices')
+            ->expectsOutput('Customer: 2, diantrekan: 3, dilewati: 0')
+            ->assertSuccessful();
+
+        $this->assertSame(
+            [$new->id, $new->id, $emailOnly->id],
+            ReminderLog::query()->orderBy('b2b_customer_id')->orderBy('channel')->pluck('b2b_customer_id')->all()
+        );
+        $this->assertSame(['email'], ReminderLog::query()->where('b2b_customer_id', $emailOnly->id)->pluck('channel')->all());
+
+        // Menit berikutnya: tidak dobel.
+        $this->artisan('b2b:send-registration-notices')->expectsOutput('Customer: 0, diantrekan: 0, dilewati: 0');
+        $this->assertSame(3, ReminderLog::query()->count());
+        Bus::assertDispatchedTimes(SendReminderJob::class, 3);
+    }
 }

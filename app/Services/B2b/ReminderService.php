@@ -27,6 +27,9 @@ class ReminderService
     /** Setelah lewat jatuh tempo: harian sampai hari ke-N, lalu tiap N hari. */
     public const OVERDUE_DAILY_UNTIL = 7;
 
+    /** Konfirmasi pendaftaran hanya untuk pendaftar beberapa hari terakhir, supaya pendaftar lama tidak ikut terkirim. */
+    public const REGISTRATION_NOTICE_WINDOW_DAYS = 2;
+
     public function __construct(
         private readonly B2bSettings $settings,
         private readonly ActivityLogger $logger,
@@ -253,6 +256,35 @@ class ReminderService
             ->map(fn (string $channel) => $this->createLog($customer, $channel, collect(), today(), ReminderLog::TRIGGER_AUTO, null, ReminderLog::KIND_REGISTRATION))
             ->filter()
             ->values();
+    }
+
+    /**
+     * Antrekan konfirmasi untuk pendaftar form umum yang belum dikirimi (dipanggil b2b:send-registration-notices tiap menit).
+     * Hanya customer aktif yang mendaftar dalam REGISTRATION_NOTICE_WINDOW_DAYS hari terakhir.
+     *
+     * @return array{customers:int, queued:int, skipped:int}
+     */
+    public function queuePendingRegistrationNotices(): array
+    {
+        $result = ['customers' => 0, 'queued' => 0, 'skipped' => 0];
+
+        Customer::query()
+            ->where('registered_via', Customer::REGISTERED_VIA_PORTAL)
+            ->where('is_active', true)
+            ->where('created_at', '>=', now()->subDays(self::REGISTRATION_NOTICE_WINDOW_DAYS))
+            ->whereDoesntHave('reminderLogs', fn (Builder $log) => $log->where('kind', ReminderLog::KIND_REGISTRATION))
+            ->orderBy('id')
+            ->each(function (Customer $customer) use (&$result) {
+                $logs = $this->queueRegistrationNotice($customer);
+                if ($logs->isNotEmpty()) {
+                    $result['customers']++;
+                }
+                foreach ($logs as $log) {
+                    $result[$log->status === ReminderLog::STATUS_QUEUED ? 'queued' : 'skipped']++;
+                }
+            });
+
+        return $result;
     }
 
     /** Hari relatif tanggal reminder terhadap jatuh tempo invoice: negatif = sebelum, positif = lewat. */
