@@ -154,7 +154,7 @@ class WhatsAppReminderChannel implements ReminderChannel
     public function registrationMessage(Customer $customer, array $profile, ?string $adminPhone): string
     {
         $lines = ["Yth. {$this->greeting($customer)},", ''];
-        $lines[] = "Terima kasih telah mendaftar sebagai customer B2B *{$profile['brand_name']}*. Pendaftaran Anda sudah kami terima.";
+        $lines[] = "Terima kasih telah mendaftar sebagai customer *{$profile['brand_name']}*. Pendaftaran Anda sudah kami terima.";
         $lines[] = '';
         $lines[] = 'Kode customer: *'.$customer->code.'*';
         $lines[] = 'Nama: '.$customer->name;

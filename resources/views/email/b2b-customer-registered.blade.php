@@ -22,7 +22,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light only">
-    <title>Pendaftaran Customer B2B</title>
+    <title>Pendaftaran Customer</title>
 </head>
 <body style="margin:0; padding:0; background:{{ $c['page'] }}; font-family:Arial, Helvetica, sans-serif; color:{{ $c['text'] }};">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{{ $c['page'] }}; padding:24px 12px;">
@@ -32,7 +32,7 @@
                     <tr>
                         <td style="padding:24px 28px; background:{{ $c['brand'] }}; color:#ffffff;">
                             <p style="margin:0; font-size:20px; font-weight:bold; letter-spacing:.3px;">{{ $profile['brand_name'] }}</p>
-                            <p style="margin:4px 0 0; font-size:13px; color:{{ $c['peach'] }};">Pendaftaran Customer B2B</p>
+                            <p style="margin:4px 0 0; font-size:13px; color:{{ $c['peach'] }};">Pendaftaran Customer</p>
                         </td>
                     </tr>
                     <tr>
@@ -42,7 +42,7 @@
                         <td style="padding:24px 28px 8px; font-size:14px; line-height:1.6;">
                             <p style="margin:0 0 12px;">Yth. {{ $customer->contact_name ?: $customer->name }},</p>
                             <p style="margin:0 0 12px;">
-                                Terima kasih telah mendaftar sebagai customer B2B <strong style="color:{{ $c['brand'] }};">{{ $profile['brand_name'] }}</strong>.
+                                Terima kasih telah mendaftar sebagai customer <strong style="color:{{ $c['brand'] }};">{{ $profile['brand_name'] }}</strong>.
                                 Pendaftaran Anda sudah kami terima dengan data berikut.
                             </p>
                         </td>
@@ -66,13 +66,10 @@
                                     <td style="padding:14px 16px; font-size:13px; line-height:1.6;">
                                         @if ($adminPhone)
                                             Untuk pemesanan, silakan hubungi admin kami di
-                                            <strong style="color:{{ $c['brand'] }};">{{ $adminPhone }}</strong>
-                                            dan sebutkan kode customer <strong>{{ $customer->code }}</strong>.
+                                            <strong style="color:{{ $c['brand'] }};">{{ $adminPhone }}</strong>.
                                             @if ($adminWhatsAppUrl)
                                                 <br><a href="{{ $adminWhatsAppUrl }}" style="display:inline-block; margin-top:10px; padding:8px 16px; background:{{ $c['brand'] }}; color:#ffffff; text-decoration:none; border-radius:6px; font-weight:bold;">Chat admin lewat WhatsApp</a>
                                             @endif
-                                        @else
-                                            Untuk pemesanan, silakan balas email ini dan sebutkan kode customer <strong>{{ $customer->code }}</strong>.
                                         @endif
                                     </td>
                                 </tr>

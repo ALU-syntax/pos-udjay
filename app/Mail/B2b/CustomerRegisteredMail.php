@@ -27,7 +27,7 @@ class CustomerRegisteredMail extends Mailable
 
     public function subjectLine(): string
     {
-        return '['.$this->profile['brand_name'].'] Pendaftaran customer B2B '.$this->customer->code;
+        return '['.$this->profile['brand_name'].'] Pendaftaran customer '.$this->customer->code;
     }
 
     public function envelope(): Envelope
