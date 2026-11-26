@@ -10,6 +10,7 @@ use App\Models\Supplier;
 use App\Models\SupplierRawMaterialPriceHistories;
 use App\Models\SupplierRawMaterials;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
 class SupplierController extends Controller
@@ -106,23 +107,36 @@ class SupplierController extends Controller
 
     public function show(Supplier $supplier)
     {
-        $supplier->load(['contacts', 'orderChannels', 'operationalHours', 'rawMaterials.rawMaterial', 'rawMaterials.purchaseUnit', 'rawMaterials.priceHistories']);
+        $supplier->load([
+            'contacts' => fn ($contacts) => $contacts->orderByDesc('is_primary')->orderBy('name'),
+            'orderChannels' => fn ($channels) => $channels->with('channelType')->orderByDesc('is_primary')->orderBy('id'),
+            'operationalHours' => fn ($hours) => $hours->orderBy('day_of_week')->orderBy('sequence'),
+            'rawMaterials' => fn ($materials) => $materials->with(['rawMaterial', 'purchaseUnit'])
+                ->orderByDesc('is_preferred')
+                ->orderBy('id'),
+        ]);
 
-        $rawMaterials = RawMaterials::where('is_active', true)->orderBy('name')->get();
-        $units = Satuan::orderBy('name')->get();
+        $priceHistories = $this->priceHistories($supplier);
+        $materials = $supplier->rawMaterials;
 
-        return view('layouts.supplier.show', compact('supplier', 'rawMaterials', 'units'));
+        $stats = [
+            'materials' => $materials->count(),
+            'active_materials' => $materials->where('is_active', true)->count(),
+            'preferred' => $materials->where('is_preferred', true)->count(),
+            'avg_lead_time' => $materials->isEmpty() ? null : round((float) $materials->avg('lead_time_days'), 1),
+            'price_changes' => $priceHistories->count(),
+            'last_price_change' => $priceHistories->first()?->effective_from,
+        ];
+
+        return view('layouts.supplier.show', compact('supplier', 'priceHistories', 'stats'));
     }
 
     public function createRawMaterial(Supplier $supplier)
     {
-        $rawMaterials = RawMaterials::where('is_active', true)->orderBy('name')->get();
-        $units = Satuan::orderBy('name')->get();
-
         return view('layouts.supplier.raw-material-modal', [
             'supplier' => $supplier,
-            'rawMaterials' => $rawMaterials,
-            'units' => $units,
+            'rawMaterials' => $this->rawMaterialOptions(),
+            'units' => Satuan::orderBy('name')->get(),
             'action' => route('warehouse/supplier/raw-materials/store', $supplier->id),
             'item' => new SupplierRawMaterials(),
         ]);
@@ -130,13 +144,12 @@ class SupplierController extends Controller
 
     public function editRawMaterial(Supplier $supplier, SupplierRawMaterials $supplierRawMaterial)
     {
-        $rawMaterials = RawMaterials::where('is_active', true)->orderBy('name')->get();
-        $units = Satuan::orderBy('name')->get();
+        $this->ensureBelongsToSupplier($supplier, $supplierRawMaterial);
 
         return view('layouts.supplier.raw-material-modal', [
             'supplier' => $supplier,
-            'rawMaterials' => $rawMaterials,
-            'units' => $units,
+            'rawMaterials' => $this->rawMaterialOptions($supplierRawMaterial->raw_material_id),
+            'units' => Satuan::orderBy('name')->get(),
             'action' => route('warehouse/supplier/raw-materials/update', [$supplier->id, $supplierRawMaterial->id]),
             'item' => $supplierRawMaterial,
             'update' => true,
@@ -182,7 +195,7 @@ class SupplierController extends Controller
                 'effective_from' => now()->toDateString(),
                 'updated_by' => $request->user()->id,
                 'tax_type' => 'non_tax',
-                'notes' => 'Initial price set',
+                'notes' => 'Harga awal',
             ]);
         }
 
@@ -191,6 +204,8 @@ class SupplierController extends Controller
 
     public function updateRawMaterial(Request $request, Supplier $supplier, SupplierRawMaterials $supplierRawMaterial)
     {
+        $this->ensureBelongsToSupplier($supplier, $supplierRawMaterial);
+
         $validated = $request->validate([
             'raw_material_id' => ['required', 'exists:raw_materials,id'],
             'supplier_material_name' => ['nullable', 'string', 'max:255'],
@@ -229,17 +244,58 @@ class SupplierController extends Controller
                 'effective_from' => now()->toDateString(),
                 'updated_by' => $request->user()->id,
                 'tax_type' => 'non_tax',
-                'notes' => 'Price updated from ' . ($oldPrice ?? 'N/A'),
+                'notes' => $oldPrice !== null
+                    ? 'Harga sebelumnya Rp ' . number_format((float) $oldPrice, 2, ',', '.')
+                    : 'Harga pertama diisi',
             ]);
         }
 
         return responseSuccess(true, 'Bahan baku supplier berhasil diperbarui');
     }
 
-    public function destroyRawMaterial(SupplierRawMaterials $supplierRawMaterial)
+    public function destroyRawMaterial(Supplier $supplier, SupplierRawMaterials $supplierRawMaterial)
     {
+        $this->ensureBelongsToSupplier($supplier, $supplierRawMaterial);
+
         $supplierRawMaterial->delete();
 
-        return responseSuccessDelete();
+        return responseSuccess(false, 'Bahan baku dihapus dari supplier');
+    }
+
+    /**
+     * Histori harga terbaru di atas, lengkap dengan harga sebelumnya per bahan untuk menghitung selisih.
+     */
+    private function priceHistories(Supplier $supplier): Collection
+    {
+        $lastPrice = [];
+
+        return SupplierRawMaterialPriceHistories::with(['supplierRawMaterial.rawMaterial', 'supplierRawMaterial.purchaseUnit', 'updatedBy'])
+            ->whereIn('supplier_raw_material_id', $supplier->rawMaterials->pluck('id'))
+            ->orderBy('effective_from')
+            ->orderBy('id')
+            ->get()
+            ->each(function (SupplierRawMaterialPriceHistories $history) use (&$lastPrice) {
+                $history->previous_price = $lastPrice[$history->supplier_raw_material_id] ?? null;
+                $lastPrice[$history->supplier_raw_material_id] = (float) $history->price;
+            })
+            ->reverse()
+            ->values();
+    }
+
+    /**
+     * Bahan baku aktif, ditambah bahan yang sedang dipakai item ini walau sudah nonaktif agar pilihannya tidak hilang saat edit.
+     */
+    private function rawMaterialOptions(?int $currentRawMaterialId = null): Collection
+    {
+        return RawMaterials::with('baseUnit')
+            ->where(fn ($query) => $query->where('is_active', true)
+                ->when($currentRawMaterialId, fn ($query) => $query->orWhere('id', $currentRawMaterialId)))
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function ensureBelongsToSupplier(Supplier $supplier, SupplierRawMaterials $supplierRawMaterial): void
+    {
+        abort_unless((int) $supplierRawMaterial->supplier_id === (int) $supplier->id, 404);
     }
 }

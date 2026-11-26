@@ -17,6 +17,11 @@ class SupplierRawMaterialPriceHistories extends Model
         'price' => 'decimal:2',
     ];
 
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
     public function supplierRawMaterial()
     {
         return $this->belongsTo(SupplierRawMaterials::class, 'supplier_raw_material_id');
