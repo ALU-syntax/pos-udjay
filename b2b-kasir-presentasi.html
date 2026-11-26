@@ -7,7 +7,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
 <style>
-/* Presentasi Kasir B2B untuk pemilik usaha + admin (23 Nov 2026).
+/* Presentasi Kasir B2B untuk pemilik usaha + admin (23 Nov 2026; screenshot asli + slide 12 diperbarui 27 Nov 2026).
    Panggung slide 16:9 (1280×720) diskalakan ke layar; di layar sempit slide ditumpuk dan digulir. */
 :root{
   --bg:#E8EEEB; --surface:#FFFFFF; --surface-2:#F2F6F4; --paper:#FFFFFF; --bezel:#1C2723;
@@ -92,6 +92,16 @@ button{font:inherit;color:inherit}
 .panel-head h3{font:700 14.5px/1.3 var(--font-body)}
 .panel-head .mono{font-size:12px;color:var(--muted)}
 
+/* Screenshot asli backoffice (data contoh di DB testing, 26 Nov 2026) */
+.shot{margin:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;box-shadow:var(--shadow);min-width:0}
+.shot img{display:block;width:100%;height:auto}
+.shot-wrap{position:relative;display:flex;flex-direction:column;gap:10px;min-width:0}
+.shot-insets{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+.shot-insets .shot{flex:1 1 140px}
+.shot-insets .shot-cap{flex-basis:100%}
+.shot-insets .w-checkout{flex:0 1 220px}
+.shot-cap{font-size:12px;color:var(--muted)}
+
 /* ---------- Bar navigasi ---------- */
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;gap:10px;height:calc(var(--bar-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--bg);background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);transition:opacity .3s ease}
 .bar.is-idle{opacity:0}
@@ -159,61 +169,12 @@ button{font:inherit;color:inherit}
 .step-arrow{position:absolute;right:-13px;top:50%;width:12px;height:12px;transform:translateY(-50%);color:var(--line-strong);display:none}
 .step-arrow svg{width:12px;height:12px;fill:currentColor}
 
-/* ---------- 4. Customer ---------- */
-.form-mock{padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
-.fm{display:flex;flex-direction:column;gap:4px;min-width:0}
-.fm.wide{grid-column:1 / -1}
-.fm label{font:500 10.5px/1.3 var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-.fm .val{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;background:var(--surface);color:var(--ink);min-height:36px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.crumb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:13px}
-.crumb i{font-style:normal;color:var(--muted)}
-.pick{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;color:var(--muted)}
-.pick.on{border-color:var(--accent);background:var(--accent-soft);color:var(--ink);font-weight:600}
-.pick.on::before{content:"✓";color:var(--accent);font-weight:700}
-
 /* ---------- 5. Kontrak ---------- */
-.ptable{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
-.ptable th{font:600 10.5px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;color:var(--muted);padding:10px 16px 8px;border-bottom:1px solid var(--line)}
-.ptable th.r,.ptable td.r{text-align:right}
-.ptable td{padding:10px 16px;border-bottom:1px solid var(--line);vertical-align:top}
-.ptable tr:last-child td{border-bottom:0}
-.ptable .prod{font-weight:600}
-.ptable .prod small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
-.ptable .normal{color:var(--muted);font-family:var(--font-mono);font-size:13px}
-.ptable .deal{font-family:var(--font-mono);font-weight:600;color:var(--ink)}
-.ptable .tier{display:block;font-size:12px;color:var(--accent);font-weight:600;margin-top:3px}
-.ptable tr.outside td{background:var(--surface-2)}
 .renew{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--accent-soft);font-size:13.5px;color:var(--ink)}
 .renew .btnm{flex:none;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:var(--surface);font-weight:700;font-size:13px}
 .renew svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 /* ---------- 6. Kasir ---------- */
-.tablet{min-width:640px;border-radius:28px;background:var(--bezel);padding:14px;box-shadow:var(--shadow)}
-.screen{background:var(--surface);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
-.pos-top{display:grid;grid-template-columns:120px 1fr 132px;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface-2);align-items:start}
-.pos-field{display:flex;flex-direction:column;gap:3px;min-width:0}
-.pos-field span{font:500 10.5px/1.3 var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-.pos-field strong{font-size:14.5px;font-weight:700}
-.pos-field .chip{align-self:flex-start;margin-top:3px}
-.pos-table{padding:2px 16px}
-.pos-row{display:grid;grid-template-columns:1fr 44px 120px 108px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
-.pos-row.headrow{font:600 10.5px/1.3 var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:9px 0 7px}
-.pos-row > :not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
-.pname{display:flex;flex-direction:column;align-items:flex-start;gap:3px;font-weight:600}
-.pname small{font:500 11px/1.2 var(--font-mono);color:var(--accent)}
-.pname small.plain{color:var(--muted)}
-.price{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
-.old{color:var(--muted);font-size:12px;text-decoration:line-through;text-decoration-color:var(--red)}
-.new{font-weight:700;color:var(--ink)}
-.pos-pay{display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;font-size:13px}
-.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:999px;padding:3px;gap:2px;background:var(--surface)}
-.seg span{padding:5px 11px;border-radius:999px;font:600 12.5px/1 var(--font-body);color:var(--ink-2)}
-.seg span.on{background:var(--ink);color:var(--surface)}
-.pos-foot{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 16px 14px}
-.pos-foot .grand{display:flex;flex-direction:column}
-.pos-foot .grand span{font-size:12px;color:var(--muted)}
-.pos-foot .grand strong{font:700 20px/1.2 var(--font-mono)}
-.pos-btn{background:var(--accent);color:var(--on-accent);border-radius:10px;padding:11px 18px;font-weight:700;font-size:14.5px;white-space:nowrap}
 .ksteps{display:flex;flex-direction:column;gap:8px}
 .kstep{display:grid;grid-template-columns:32px 1fr;gap:12px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
 .kstep .n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:600 13px/1 var(--font-mono);background:var(--accent);color:var(--on-accent)}
@@ -231,19 +192,6 @@ button{font:inherit;color:inherit}
 .arrow svg{width:44px;height:14px;stroke:var(--line-strong);stroke-width:2;fill:none}
 .shortcut{grid-column:1 / -1;font-size:13px;color:var(--ink-2);padding:10px 14px;border-radius:10px;border:1px dashed var(--accent);display:flex;gap:8px;align-items:center}
 .cancel-list{display:flex;flex-direction:column;gap:10px}
-
-/* ---------- 8. Invoice ---------- */
-.inv-filters{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line)}
-.inv-table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
-.inv-table th{font:600 10.5px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;color:var(--muted);padding:9px 16px 7px;border-bottom:1px solid var(--line)}
-.inv-table td{padding:9px 16px;border-bottom:1px solid var(--line);vertical-align:middle}
-.inv-table tr:last-child td{border-bottom:0}
-.inv-table td.r,.inv-table th.r{text-align:right}
-.inv-table .amt{display:block;font:600 13.5px/1.3 var(--font-mono);margin-bottom:4px}
-.inv-table strong{font-weight:600}
-.inv-table small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
-.act{display:inline-block;padding:4px 9px;border-radius:7px;border:1px solid var(--line-strong);font-size:12px;font-weight:600;color:var(--ink-2);white-space:nowrap}
-.act.primary{border-color:var(--accent);color:var(--accent)}
 
 /* ---------- 9. Pengingat ---------- */
 .tl{position:relative;padding:8px 6px 0}
@@ -271,21 +219,6 @@ button{font:inherit;color:inherit}
 .channel ul li{padding-left:12px;position:relative;line-height:1.4}
 .channel ul li::before{content:"";position:absolute;left:0;top:.55em;width:5px;height:5px;border-radius:50%;background:var(--line-strong)}
 
-/* ---------- 10. Laporan ---------- */
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.kpi{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);display:flex;flex-direction:column;gap:3px;min-width:0}
-.kpi span{font-size:12px;color:var(--muted)}
-.kpi strong{font:700 19px/1.2 var(--font-mono);color:var(--ink);white-space:nowrap}
-.kpi.bad strong{color:var(--red)}
-.aging{display:flex;flex-direction:column;gap:7px;padding:14px 16px}
-.ag{display:grid;grid-template-columns:118px 1fr 74px;gap:10px;align-items:center;font-size:12.5px;color:var(--ink-2)}
-.ag .barbg{height:14px;border-radius:4px;background:var(--surface-2);overflow:hidden}
-.ag .barbg i{display:block;height:100%;border-radius:4px;background:var(--accent);transform-origin:left center}
-.ag.o1 .barbg i{background:var(--amber)}
-.ag.o2 .barbg i{background:var(--orange)}
-.ag.o3 .barbg i,.ag.o4 .barbg i{background:var(--red)}
-.ag b{font:600 12px/1 var(--font-mono);text-align:right;color:var(--ink)}
-
 /* ---------- 11. Hak akses ---------- */
 .access{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}
 .access th{font:600 11px/1.3 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 10px 10px;border-bottom:1px solid var(--line-strong);text-align:center;vertical-align:bottom}
@@ -300,6 +233,7 @@ button{font:inherit;color:inherit}
 .next{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
 .ncol{display:flex;flex-direction:column;gap:10px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--surface);min-width:0}
 .ncol h3{font:700 16px/1.3 var(--font-body)}
+.ncol-sub{font-size:12.5px;color:var(--muted);margin-top:-6px}
 .ncol ul,.ncol ol{display:flex;flex-direction:column;gap:9px;font-size:13.5px;line-height:1.45;color:var(--ink-2)}
 .ncol ul li{padding-left:14px;position:relative}
 .ncol ul li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--line-strong)}
@@ -341,9 +275,19 @@ button{font:inherit;color:inherit}
   .step:nth-child(4n) .step-arrow{display:none}
 
   .kasir-grid{grid-template-columns:700px 1fr;gap:30px}
-  .tablet{min-width:0}
+  /* Potongan kecil menumpuk di pojok kanan bawah screenshot utama. */
+  .shot-wrap.has-insets{padding-right:18px;padding-bottom:18px}
+  .has-insets > .shot-insets{position:absolute;right:0;bottom:0;gap:12px;align-items:flex-end}
+  .has-insets > .shot-insets .shot{flex:none;box-shadow:0 2px 4px rgba(18,32,26,.12),0 18px 40px rgba(18,32,26,.28)}
+  .has-insets .w-checkout{width:188px}
+  /* Baris dokumen cetak di bawah screenshot utama (slide Invoice). */
+  .shot-insets.below{align-items:center;gap:14px}
+  .shot-insets.below .shot{flex:none;width:200px}
+  .shot-insets.below{flex-wrap:nowrap}
+  .shot-insets.below .shot-cap{flex:1;flex-basis:auto;font-size:13px;line-height:1.45}
   .access{min-width:0}
   .next{grid-template-columns:1.25fr 1fr 1fr;gap:16px}
+  .next .closing{grid-column:2 / -1;align-self:end}
 }
 
 @media (prefers-reduced-motion:reduce){
@@ -463,17 +407,10 @@ button{font:inherit;color:inherit}
     </header>
     <div class="body">
       <div class="cols-2">
-        <div class="panel rise">
-          <div class="panel-head"><h3>PT Contoh Sejahtera</h3><span class="mono">CUS-B2B-0001 · nomor otomatis</span></div>
-          <div class="form-mock">
-            <div class="fm"><label>Jenis</label><div class="val"><span class="pick">Perorangan</span><span class="pick on">PT</span><span class="pick">CV</span></div></div>
-            <div class="fm"><label>PIC (penanggung jawab)</label><div class="val">Ibu Rina · Purchasing</div></div>
-            <div class="fm"><label>Telepon / WhatsApp</label><div class="val">0812-xxxx-1234</div></div>
-            <div class="fm"><label>Email</label><div class="val">purchasing@contoh.co.id</div></div>
-            <div class="fm wide"><label>Alamat · wilayah dipilih dari daftar</label><div class="val"><span class="crumb">Jawa Barat <i>›</i> Kota Bogor <i>›</i> Bogor Tengah <i>›</i> Pabaton</span><span class="chip mute">16121</span></div></div>
-            <div class="fm wide"><label>Pengingat tagihan</label><div class="val"><span class="pick on">Email</span><span class="pick on">WhatsApp</span><span style="color:var(--line-strong)">|</span><span class="pick">H-7</span><span class="pick on">H-3</span><span class="pick">H-1</span><span class="pick on">Hari H</span><span class="pick on">Setelah jatuh tempo</span></div></div>
-          </div>
-        </div>
+        <figure class="shot-wrap rise">
+          <div class="shot"><img src="b2b-kasir-presentasi/customer.jpg" width="1600" height="1130" loading="lazy" alt="Halaman detail customer PT Sinar Kopi Nusantara: kontrak berjalan, jumlah pesanan, invoice belum lunas, sisa piutang, data PIC, alamat, dan jadwal pengingat"></div>
+          <figcaption class="shot-cap">Detail customer di backoffice · data contoh</figcaption>
+        </figure>
         <ul class="points">
           <li class="rise"><span class="ic"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span><strong>Satu PIC per customer.</strong> Nomor dan email PIC menjadi tujuan pengingat tagihan.</span></li>
           <li class="rise"><span class="ic"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span><strong>Alamat dari daftar wilayah resmi,</strong> lengkap dengan kode pos. Tidak ada salah ketik, dan alamat ikut tercetak di invoice.</span></li>
@@ -494,17 +431,7 @@ button{font:inherit;color:inherit}
     <div class="body">
       <div class="cols-2">
         <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
-          <div class="panel rise">
-            <div class="panel-head"><h3>KTR/B2B/2026/0003 · PT Contoh Sejahtera</h3><span class="chip ok">Berjalan · 1 Jan – 31 Des 2026</span></div>
-            <table class="ptable">
-              <thead><tr><th>Produk</th><th class="r">Harga normal</th><th class="r">Harga kontrak</th></tr></thead>
-              <tbody>
-                <tr><td class="prod">Kopi Susu Literan 1L</td><td class="r normal">85.000</td><td class="r"><span class="deal">78.000</span><span class="tier">mulai 50 pcs: 75.000</span></td></tr>
-                <tr><td class="prod">Biji Kopi House Blend 1kg</td><td class="r normal">210.000</td><td class="r deal">189.000</td></tr>
-                <tr class="outside"><td class="prod">Cold Brew 250ml<small>Tidak ada di kontrak</small></td><td class="r normal">25.000</td><td class="r"><span class="chip mute">pakai harga normal</span></td></tr>
-              </tbody>
-            </table>
-          </div>
+          <div class="shot rise"><img src="b2b-kasir-presentasi/kontrak.jpg" width="1600" height="993" loading="lazy" alt="Halaman detail kontrak KTR/B2B/2026/0001: harga normal dibanding harga kontrak per produk, termasuk harga bertingkat mulai qty 40 dan 50, serta periode kontrak"></div>
           <div class="renew rise">
             <span class="btnm"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>Perpanjang</span>
             <span>Kontrak habis? Satu klik: semua harga lama tersalin ke kontrak baru dan periodenya langsung disambung. Admin tinggal mengubah harga yang naik.</span>
@@ -529,37 +456,18 @@ button{font:inherit;color:inherit}
     </header>
     <div class="body">
       <div class="cols-2 kasir-grid">
-        <div class="scroll-x">
-          <div class="tablet rise" aria-label="Ilustrasi layar Kasir B2B">
-            <div class="screen">
-              <div class="pos-top">
-                <div class="pos-field"><span>Outlet</span><strong>Outlet Pusat</strong></div>
-                <div class="pos-field"><span>Customer</span><strong>PT Contoh Sejahtera</strong><em class="chip ok">Kontrak berjalan</em></div>
-                <div class="pos-field"><span>Pengiriman</span><strong>Diambil sendiri</strong></div>
-              </div>
-              <div class="pos-table">
-                <div class="pos-row headrow"><span>Produk</span><span>Qty</span><span>Harga</span><span>Subtotal</span></div>
-                <div class="pos-row"><span class="pname">Kopi Susu Literan 1L<small>harga kontrak</small></span><span>40</span><span class="price"><span class="old">85.000</span><span class="new">78.000</span></span><span>3.120.000</span></div>
-                <div class="pos-row"><span class="pname">Biji Kopi House Blend 1kg<small>harga kontrak</small></span><span>12</span><span class="price"><span class="old">210.000</span><span class="new">189.000</span></span><span>2.268.000</span></div>
-                <div class="pos-row"><span class="pname">Cold Brew 250ml<small class="plain">harga normal</small></span><span>60</span><span class="price"><span class="new">25.000</span></span><span>1.500.000</span></div>
-              </div>
-              <div class="pos-pay">
-                <span>Pembayaran</span>
-                <span class="seg"><span class="on">Tempo</span><span>Bayar langsung</span></span>
-                <span>Jatuh tempo <strong>23 Des 2026</strong></span>
-              </div>
-              <div class="pos-foot">
-                <div class="grand"><span>Total</span><strong>Rp 6.888.000</strong></div>
-                <span class="pos-btn">Simpan pesanan</span>
-              </div>
-            </div>
+        <figure class="shot-wrap has-insets rise">
+          <div class="shot"><img src="b2b-kasir-presentasi/kasir.jpg" width="1600" height="972" loading="lazy" alt="Layar Kasir B2B: katalog produk di kiri, keranjang PT Sinar Kopi Nusantara di kanan dengan harga kontrak, total hemat Rp 462.000, dan total Rp 3.654.000"></div>
+          <div class="shot-insets">
+            <div class="shot w-checkout"><img src="b2b-kasir-presentasi/kasir-checkout.jpg" width="700" height="1103" loading="lazy" alt="Dialog Selesaikan Pesanan: pilihan Tempo atau Bayar langsung, jatuh tempo 7 hari, pengiriman diambil atau diantar, dan centang kirim invoice lewat email dan WhatsApp"></div>
           </div>
-        </div>
+        </figure>
         <ol class="ksteps">
           <li class="kstep rise"><span class="n">1</span><div><h3>Pilih outlet dan customer</h3><p>Kontrak yang sedang berlaku langsung terbaca.</p></div></li>
           <li class="kstep rise"><span class="n">2</span><div><h3>Tambah produk dan jumlah</h3><p>Harga kontrak muncul sendiri. Stok kurang tetap bisa dipesan, dengan peringatan.</p></div></li>
           <li class="kstep rise"><span class="n">3</span><div><h3>Pilih pengiriman</h3><p>Diambil sendiri (pesanan langsung selesai) atau kurir internal.</p></div></li>
           <li class="kstep rise"><span class="n">4</span><div><h3>Pilih pembayaran</h3><p><strong>Tempo:</strong> jatuh tempo dipilih kasir (saran 7 hari, maks. 180). <strong>Bayar langsung:</strong> tunai, transfer, EDC, atau QRIS; tunai menghitung kembalian.</p></div></li>
+          <li class="kstep rise"><span class="n">5</span><div><h3>Kirim ke customer</h3><p>Invoice (tempo) atau kwitansi (bayar langsung) terkirim lewat email dan/atau WhatsApp. Centang bisa dihapus.</p></div></li>
         </ol>
       </div>
     </div>
@@ -602,19 +510,14 @@ button{font:inherit;color:inherit}
     </header>
     <div class="body">
       <div class="cols-2">
-        <div class="panel rise">
-          <div class="panel-head"><h3>Invoice</h3><span class="mono">ilustrasi</span></div>
-          <div class="inv-filters"><span class="chip mute">Semua</span><span class="chip warn">Belum lunas</span><span class="chip bad">Lewat jatuh tempo</span><span class="chip ok">Lunas</span><span class="chip mute">Customer: semua</span></div>
-          <table class="inv-table">
-            <thead><tr><th>Invoice</th><th class="r">Sisa tagihan</th><th class="r">Aksi</th></tr></thead>
-            <tbody>
-              <tr><td><strong>PT Contoh Sejahtera</strong><small class="mono">07/INV/BGR/11/2026 · jatuh tempo 23 Des</small></td><td class="r"><span class="amt">6.888.000</span><span class="chip warn">Belum lunas</span></td><td class="r"><span class="act primary">Catat pelunasan</span></td></tr>
-              <tr><td><strong>CV Maju Bersama</strong><small class="mono">03/INV/BGR/11/2026 · lewat 5 hari</small></td><td class="r"><span class="amt">2.150.000</span><span class="chip bad">Lewat jatuh tempo</span></td><td class="r"><span class="act">Kirim pengingat</span></td></tr>
-              <tr><td><strong>PT Sinar Pagi</strong><small class="mono">01/INV/BGR/11/2026 · dibayar sebagian</small></td><td class="r"><span class="amt">1.000.000</span><span class="chip info">Sebagian</span></td><td class="r"><span class="act primary">Catat pelunasan</span></td></tr>
-              <tr><td><strong>PT Contoh Sejahtera</strong><small class="mono">12/INV/BGR/10/2026 · lunas 2 Nov</small></td><td class="r"><span class="amt">0</span><span class="chip ok">Lunas</span></td><td class="r"><span class="act">Cetak</span></td></tr>
-            </tbody>
-          </table>
-        </div>
+        <figure class="shot-wrap rise">
+          <div class="shot"><img src="b2b-kasir-presentasi/invoice.jpg" width="1600" height="891" loading="lazy" alt="Menu Invoice: kartu ringkasan belum lunas, lewat jatuh tempo, jatuh tempo 7 hari, dan diterima bulan ini, lalu daftar invoice dengan status, sisa tagihan, dan tombol catat pelunasan serta kirim ke customer"></div>
+          <div class="shot-insets below">
+            <div class="shot"><img src="b2b-kasir-presentasi/invoice-cetak.jpg" width="700" height="463" loading="lazy" alt="Cetakan invoice Budiman Roastery"></div>
+            <div class="shot"><img src="b2b-kasir-presentasi/kwitansi.jpg" width="700" height="532" loading="lazy" alt="Kwitansi Budiman Roastery untuk invoice lunas, dengan nominal terbilang"></div>
+            <figcaption class="shot-cap">Invoice dan kwitansi bertemplate Budiman, siap dicetak atau dikirim sebagai PDF.</figcaption>
+          </div>
+        </figure>
         <ul class="points">
           <li class="rise"><span class="ic"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span><strong>Satu pesanan, satu invoice.</strong> Dicetak dengan template Budiman, bisa disimpan PDF atau diekspor Excel.</span></li>
           <li class="rise"><span class="ic"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span><strong>Catat pelunasan</strong> saat transfer masuk: nominal (boleh sebagian), tanggal bayar, metode, dan foto bukti transfer.</span></li>
@@ -670,25 +573,8 @@ button{font:inherit;color:inherit}
     <div class="body">
       <div class="cols-2">
         <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
-          <div class="kpis">
-            <div class="kpi rise"><span>Penjualan</span><strong>Rp 48,6 jt</strong></div>
-            <div class="kpi rise"><span>Jumlah pesanan</span><strong>37</strong></div>
-            <div class="kpi rise"><span>Kas masuk bersih</span><strong>Rp 31,2 jt</strong></div>
-            <div class="kpi rise"><span>Piutang berjalan</span><strong>Rp 17,4 jt</strong></div>
-            <div class="kpi bad rise"><span>Lewat jatuh tempo</span><strong>Rp 4,1 jt</strong></div>
-            <div class="kpi rise"><span>Pesanan batal</span><strong>2</strong></div>
-          </div>
-          <div class="panel rise">
-            <div class="panel-head"><h3>Umur piutang</h3><span class="mono">per hari ini</span></div>
-            <div class="aging">
-              <div class="ag"><span>Belum jatuh tempo</span><span class="barbg"><i style="width:76%"></i></span><b>13,3 jt</b></div>
-              <div class="ag o1"><span>Lewat 1–30 hari</span><span class="barbg"><i style="width:17%"></i></span><b>2,9 jt</b></div>
-              <div class="ag o2"><span>Lewat 31–60 hari</span><span class="barbg"><i style="width:5%"></i></span><b>0,8 jt</b></div>
-              <div class="ag o3"><span>Lewat 61–90 hari</span><span class="barbg"><i style="width:2%"></i></span><b>0,4 jt</b></div>
-              <div class="ag o4"><span>Lewat &gt; 90 hari</span><span class="barbg"><i style="width:0%"></i></span><b>0</b></div>
-            </div>
-          </div>
-          <p class="note">Angka contoh. Laporan bisa disaring per periode, outlet, dan customer.</p>
+          <div class="shot rise"><img src="b2b-kasir-presentasi/laporan.jpg" width="1600" height="1130" loading="lazy" alt="Laporan B2B periode 1 Agustus sampai 26 November 2026: kartu penjualan, jumlah pesanan, kas masuk bersih, piutang berjalan, lewat jatuh tempo, pesanan dibatalkan, dan grafik tren penjualan mingguan"></div>
+          <p class="note">Data contoh. Laporan bisa disaring per periode, outlet, dan customer.</p>
         </div>
         <ul class="points">
           <li class="rise"><span class="ic"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span><strong>Tren penjualan</strong> harian, mingguan, atau bulanan.</span></li>
@@ -729,15 +615,16 @@ button{font:inherit;color:inherit}
   </section>
 
   <!-- 12. Berikutnya -->
-  <section class="slide" id="berikutnya" data-title="Keputusan berikutnya" aria-label="Slide 12: Yang belum dan keputusan yang dibutuhkan">
+  <section class="slide" id="berikutnya" data-title="Status dan keputusan berikutnya" aria-label="Slide 12: Yang sudah berjalan dan keputusan berikutnya">
     <header class="head">
       <p class="eyebrow">Langkah berikutnya</p>
-      <h2 class="title">Yang belum ada dan keputusan yang dibutuhkan</h2>
+      <h2 class="title">Yang sudah berjalan dan keputusan berikutnya</h2>
     </header>
     <div class="body">
       <div class="next">
         <div class="ncol confirm rise">
           <h3>Perlu keputusan pemilik</h3>
+          <p class="ncol-sub">Setelah pendaftaran rekening ke BCA selesai</p>
           <ol>
             <li><span><strong>Cara transfer tempo dikenali otomatis</strong>
               <span class="choice-row">
@@ -752,9 +639,11 @@ button{font:inherit;color:inherit}
           <h3>Sudah berjalan</h3>
           <ul>
             <li>Customer, kontrak harga, dan perpanjangan</li>
+            <li>Form pendaftaran customer lewat link/QR, dengan konfirmasi otomatis</li>
             <li>Kasir B2B: tempo dan bayar langsung</li>
-            <li>Invoice, pelunasan manual, pembatalan + refund</li>
-            <li>Pengingat email dan WhatsApp</li>
+            <li>Invoice, kwitansi, dan rekap tagihan (PDF)</li>
+            <li>Pelunasan manual, pembatalan + refund</li>
+            <li>Kirim invoice, kwitansi, dan pengingat lewat email &amp; WhatsApp</li>
             <li>Laporan B2B dan export Excel</li>
           </ul>
         </div>
@@ -763,12 +652,11 @@ button{font:inherit;color:inherit}
           <ul>
             <li>Pengiriman ekspedisi dan cek ongkir</li>
             <li>Pembayaran cicilan</li>
-            <li>Tanda "sudah dibaca" di WhatsApp</li>
           </ul>
         </div>
-        <p class="closing" style="grid-column:2 / -1;align-self:end">Diskusi <span>&amp;</span> tanya jawab</p>
+        <p class="closing">Diskusi <span>&amp;</span> tanya jawab</p>
       </div>
-      <p class="note">Untuk pilihan A dibutuhkan contoh file mutasi rekening BCA perusahaan.</p>
+      <p class="note">Sampai keputusan ini diambil, transfer tempo dicatat manual dari menu Invoice. Untuk pilihan A dibutuhkan contoh file mutasi rekening BCA perusahaan.</p>
     </div>
   </section>
 </main>
@@ -808,8 +696,6 @@ button{font:inherit;color:inherit}
     running.push(window.anime({ targets: items, opacity: [0, 1], translateY: [14, 0], delay: window.anime.stagger(70, { start: 120 }), duration: 520, easing: 'easeOutCubic' }));
     var stamp = $('.stamp', s);
     if (stamp) { running.push(window.anime({ targets: stamp, scale: [2.4, 1], rotate: [-30, -14], opacity: [0, 0.92], delay: 700, duration: 420, easing: 'easeInQuad' })); }
-    var bars = $$('.barbg i', s);
-    if (bars.length) { running.push(window.anime({ targets: bars, scaleX: [0, 1], delay: window.anime.stagger(90, { start: 600 }), duration: 700, easing: 'easeOutCubic' })); }
   }
 
   /* ---------- Navigasi ---------- */
