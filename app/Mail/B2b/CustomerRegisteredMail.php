@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
 /**
- * Email konfirmasi pendaftaran customer B2B lewat form umum (aplikasi membership): kode customer dan nomor admin
+ * Email konfirmasi pendaftaran customer B2B lewat form umum (aplikasi membership): data pendaftaran dan nomor admin
  * untuk pemesanan. Dikirim langsung dari SendReminderJob (sudah di queue), jadi tidak di-queue lagi.
  */
 class CustomerRegisteredMail extends Mailable
@@ -27,7 +27,7 @@ class CustomerRegisteredMail extends Mailable
 
     public function subjectLine(): string
     {
-        return '['.$this->profile['brand_name'].'] Pendaftaran customer '.$this->customer->code;
+        return '['.$this->profile['brand_name'].'] Pendaftaran customer berhasil';
     }
 
     public function envelope(): Envelope

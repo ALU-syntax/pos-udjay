@@ -9,7 +9,6 @@
         'text' => '#3f2a25', 'muted' => '#8a6f66', 'line' => '#f0e2d6',
     ];
     $rows = array_filter([
-        ['Kode customer', $customer->code],
         ['Nama', $customer->name],
         ['PIC', $customer->contact_name !== $customer->name ? $customer->contact_name : null],
         ['Telepon', $customer->phone],
@@ -66,10 +65,14 @@
                                     <td style="padding:14px 16px; font-size:13px; line-height:1.6;">
                                         @if ($adminPhone)
                                             Untuk pemesanan, silakan hubungi admin kami di
-                                            <strong style="color:{{ $c['brand'] }};">{{ $adminPhone }}</strong>.
+                                            <strong style="color:{{ $c['brand'] }};">{{ $adminPhone }}</strong>
+                                            dengan menyebutkan nama usaha atau nomor telepon yang terdaftar.
                                             @if ($adminWhatsAppUrl)
                                                 <br><a href="{{ $adminWhatsAppUrl }}" style="display:inline-block; margin-top:10px; padding:8px 16px; background:{{ $c['brand'] }}; color:#ffffff; text-decoration:none; border-radius:6px; font-weight:bold;">Chat admin lewat WhatsApp</a>
                                             @endif
+                                        @else
+                                            {{-- Nomor admin & telepon penagihan belum diisi di config: arahkan ke balasan email. --}}
+                                            Untuk pemesanan, silakan balas email ini dengan menyebutkan nama usaha atau nomor telepon yang terdaftar.
                                         @endif
                                     </td>
                                 </tr>

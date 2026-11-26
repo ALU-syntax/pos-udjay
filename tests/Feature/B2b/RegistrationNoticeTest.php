@@ -70,7 +70,7 @@ class RegistrationNoticeTest extends B2bTestCase
         $this->assertSame(['whatsapp'], $service->queueRegistrationNotice($other)->pluck('channel')->all());
     }
 
-    public function test_email_contains_code_and_admin_contact_without_attachment(): void
+    public function test_email_contains_admin_contact_without_code_or_attachment(): void
     {
         Mail::fake();
         $log = $this->queue('email');
@@ -81,7 +81,9 @@ class RegistrationNoticeTest extends B2bTestCase
             && $mail->attachments === []);
         $log->refresh();
         $this->assertSame(ReminderLog::STATUS_SENT, $log->status);
-        $this->assertStringContainsString('Pendaftaran customer B2B '.$this->customer->code, $log->subject);
+        $this->assertSame('[Budiman Roastery] Pendaftaran customer berhasil', $log->subject);
+        $this->assertStringNotContainsString($this->customer->code, $log->body);
+        $this->assertStringContainsString('nama usaha atau nomor telepon yang terdaftar', $log->body);
         $this->assertStringContainsString('Yth. Bu Rina', $log->body);
         $this->assertStringContainsString('0811-1111-2222', $log->body);
         $this->assertStringContainsString('https://wa.me/6281111112222', $log->body);
@@ -98,7 +100,9 @@ class RegistrationNoticeTest extends B2bTestCase
         Http::assertSentCount(1);
         $text = Http::recorded()->first()[0]->data()['text'];
         $this->assertStringContainsString('Yth. Bu Rina (Kafe Senja)', $text);
-        $this->assertStringContainsString('Kode customer: *'.$this->customer->code.'*', $text);
+        $this->assertStringContainsString('Nama: *Kafe Senja*', $text);
+        $this->assertStringNotContainsString($this->customer->code, $text);
+        $this->assertStringContainsString('nama usaha atau nomor telepon yang terdaftar', $text);
         $this->assertStringContainsString('hubungi admin kami di *0811-1111-2222*', $text);
         $this->assertStringContainsString('Jika Anda tidak merasa mendaftar', $text);
         $this->assertSame(ReminderLog::STATUS_SENT, $log->fresh()->status);

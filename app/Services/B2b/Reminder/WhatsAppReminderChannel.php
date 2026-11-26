@@ -150,21 +150,20 @@ class WhatsAppReminderChannel implements ReminderChannel
         return implode("\n", $lines);
     }
 
-    /** Teks WhatsApp konfirmasi pendaftaran lewat form umum: kode customer + nomor admin untuk pemesanan. */
+    /** Teks WhatsApp konfirmasi pendaftaran lewat form umum: data pendaftaran + nomor admin untuk pemesanan. */
     public function registrationMessage(Customer $customer, array $profile, ?string $adminPhone): string
     {
         $lines = ["Yth. {$this->greeting($customer)},", ''];
         $lines[] = "Terima kasih telah mendaftar sebagai customer *{$profile['brand_name']}*. Pendaftaran Anda sudah kami terima.";
         $lines[] = '';
-        $lines[] = 'Kode customer: *'.$customer->code.'*';
-        $lines[] = 'Nama: '.$customer->name;
+        $lines[] = 'Nama: *'.$customer->name.'*';
         if (filled($customer->contact_name) && $customer->contact_name !== $customer->name) {
             $lines[] = 'PIC: '.$customer->contact_name;
         }
         $lines[] = '';
         $lines[] = $adminPhone
-            ? "Untuk pemesanan, silakan hubungi admin kami di *{$adminPhone}* dan sebutkan kode customer di atas."
-            : "Untuk pemesanan, silakan hubungi kami di {$profile['email']} dan sebutkan kode customer di atas.";
+            ? "Untuk pemesanan, silakan hubungi admin kami di *{$adminPhone}* dengan menyebutkan nama usaha atau nomor telepon yang terdaftar."
+            : "Untuk pemesanan, silakan hubungi kami di {$profile['email']} dengan menyebutkan nama usaha atau nomor telepon yang terdaftar.";
         $lines[] = '';
         $lines[] = 'Jika Anda tidak merasa mendaftar, abaikan pesan ini. Terima kasih.';
 
