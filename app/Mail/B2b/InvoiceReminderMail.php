@@ -18,6 +18,9 @@ use Illuminate\Support\Collection;
  */
 class InvoiceReminderMail extends Mailable
 {
+    /** @var array<int, string> PDF per id invoice, dibuat sekali per email; lihat attachments(). */
+    private array $pdfContents = [];
+
     /**
      * @param  Collection<int, array{invoice: \App\Models\B2b\Invoice, offset: int}>  $items
      * @param  array<string, string>  $profile  B2bSettings::invoiceProfile()
@@ -59,11 +62,16 @@ class InvoiceReminderMail extends Mailable
         ]);
     }
 
-    /** @return array<int, Attachment> */
+    /**
+     * Laravel memanggil attachments() setiap render() dan send(); isi PDF disimpan supaya dibuat sekali dan lampiran
+     * yang sama disatukan Laravel (lihat InvoiceDocumentMail::attachments()).
+     *
+     * @return array<int, Attachment>
+     */
     public function attachments(): array
     {
         return $this->items->map(fn (array $item) => Attachment::fromData(
-            fn () => $this->pdf->output($item['invoice']),
+            fn () => $this->pdfContents[$item['invoice']->id] ??= $this->pdf->output($item['invoice']),
             InvoiceDocument::pdfFilename($item['invoice']),
         )->withMime('application/pdf'))->values()->all();
     }

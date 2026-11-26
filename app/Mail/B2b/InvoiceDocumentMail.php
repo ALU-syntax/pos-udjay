@@ -19,6 +19,9 @@ use Illuminate\Mail\Mailables\Envelope;
  */
 class InvoiceDocumentMail extends Mailable
 {
+    /** PDF dibuat sekali per email; lihat attachments(). */
+    private ?string $pdfContent = null;
+
     /**
      * @param  string  $kind  ReminderLog::KIND_INVOICE atau ReminderLog::KIND_RECEIPT
      * @param  array<string, string>  $profile  B2bSettings::invoiceProfile()
@@ -72,12 +75,18 @@ class InvoiceDocumentMail extends Mailable
         ]);
     }
 
-    /** @return array<int, Attachment> */
+    /**
+     * Laravel memanggil attachments() setiap render() dan send(); kanal email me-render dulu untuk log, lalu mengirim.
+     * Isi PDF disimpan supaya dibuat sekali dan lampiran yang sama disatukan Laravel (dompdf menghasilkan byte berbeda
+     * di tiap pembuatan, jadi tanpa ini PDF terlampir dua kali).
+     *
+     * @return array<int, Attachment>
+     */
     public function attachments(): array
     {
         return [
             Attachment::fromData(
-                fn () => $this->isReceipt() ? $this->pdf->receipt($this->invoice) : $this->pdf->output($this->invoice),
+                fn () => $this->pdfContent ??= $this->isReceipt() ? $this->pdf->receipt($this->invoice) : $this->pdf->output($this->invoice),
                 $this->attachmentName(),
             )->withMime('application/pdf'),
         ];

@@ -124,6 +124,32 @@ class InvoiceDocumentSendTest extends B2bTestCase
         $this->assertStringNotContainsString('Pembayaran dapat ditransfer', $log->body);
     }
 
+    /** Lampiran email yang benar-benar terkirim (mailer array, bukan Mail::fake): nama file PDF per pesan. */
+    private function sentAttachmentNames(): array
+    {
+        return collect(app('mailer')->getSymfonyTransport()->messages())
+            ->map(fn ($sent) => collect($sent->getOriginalMessage()->getAttachments())->map(fn ($part) => $part->getFilename())->all())
+            ->all();
+    }
+
+    public function test_each_pdf_is_attached_once(): void
+    {
+        config(['mail.default' => 'array']);
+        app('mailer')->getSymfonyTransport()->flush();
+        $receipt = $this->invoice(immediate: true);
+        $credit = $this->invoice();
+
+        $this->runJob($this->queue($receipt, ReminderLog::KIND_RECEIPT));
+        $this->runJob($this->queue($credit, ReminderLog::KIND_INVOICE));
+        $this->runJob($this->queue($credit, ReminderLog::KIND_REMINDER));
+
+        $this->assertSame([
+            [InvoiceDocument::receiptPdfFilename($receipt)],
+            [InvoiceDocument::pdfFilename($credit)],
+            [InvoiceDocument::pdfFilename($credit)],
+        ], $this->sentAttachmentNames());
+    }
+
     public function test_documents_are_rechecked_when_the_job_runs(): void
     {
         Mail::fake();
