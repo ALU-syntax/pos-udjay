@@ -1,5 +1,8 @@
 @extends('layouts.app')
 @section('content')
+    @include('layouts.reports.partials.ui-styles')
+    @include('layouts.warehouse.partials.ui-styles')
+
     @php
         $formItems = old('items');
 
@@ -7,7 +10,8 @@
             $formItems = $data->exists
                 ? $data->items->map(fn ($item) => [
                     'raw_material_id' => $item->raw_material_id,
-                    'requested_qty' => $item->requested_qty,
+                    // Tanpa nol di belakang koma agar input tidak tampil "2.00000"
+                    'requested_qty' => rtrim(rtrim(number_format((float) $item->requested_qty, 5, '.', ''), '0'), '.'),
                     'requested_satuan_id' => $item->requested_satuan_id,
                     'notes' => $item->notes,
                 ])->values()->all()
@@ -16,41 +20,47 @@
 
         $formItems = collect($formItems ?: [])->filter(fn ($item) => filled($item['raw_material_id'] ?? null))->values()->all();
         $rawMaterialsById = $rawMaterials->keyBy('id');
+        $baseUnitOf = fn ($rawMaterial) => $rawMaterial?->baseUnit?->symbol ?: $rawMaterial?->baseUnit?->name;
         $rawMaterialCatalog = $rawMaterials->mapWithKeys(fn ($rawMaterial) => [
             $rawMaterial->id => [
                 'id' => $rawMaterial->id,
                 'name' => $rawMaterial->name,
                 'code' => $rawMaterial->code,
-                'base_unit' => $rawMaterial->baseUnit?->symbol ?: $rawMaterial->baseUnit?->name,
+                'base_unit' => $baseUnitOf($rawMaterial),
             ],
         ])->all();
+        $backUrl = $data->exists ? route('warehouse/request-order/detail', $data->id) : route('warehouse/request-order');
     @endphp
 
-    <div class="main-content request-order-form-page">
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
             <div>
-                <h2 class="h4 mb-1 font-weight-bold">
-                    <i class="fa fa-clipboard-list me-2"></i>{{ $title }}
-                </h2>
-                <p class="text-muted small mb-0">Susun kebutuhan bahan baku sebagai draft sebelum disubmit untuk review.</p>
+                <div class="ob-header__eyebrow">
+                    <a href="{{ route('warehouse/request-order') }}">Request Order</a><span class="wh-crumb-sep" aria-hidden="true">/</span>{{ $data->exists ? $data->request_number : 'Tambah' }}
+                </div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-clipboard-list"></i></span>
+                    {{ $title }}
+                </h1>
+                <p class="ob-header__desc">Susun kebutuhan bahan baku sebagai draft. Draft bisa diubah sampai diajukan untuk review.</p>
             </div>
-            <a href="{{ $data->exists ? route('warehouse/request-order/detail', $data->id) : route('warehouse/request-order') }}"
-                class="btn btn-outline-secondary btn-sm">
-                <i class="fa fa-arrow-left me-1"></i>Kembali
-            </a>
+            <div class="wh-actions">
+                <a href="{{ $backUrl }}" class="btn ob-btn ob-btn-outline">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali
+                </a>
+            </div>
         </div>
 
         @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <div class="ob-notice ro-notice" role="status">
+                <i class="fas fa-check-circle" aria-hidden="true"></i> {{ session('success') }}
             </div>
         @endif
 
         @if ($errors->any())
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                Ada data yang belum sesuai. Periksa kembali field yang ditandai.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <div class="ob-notice ro-notice ro-notice--error" role="alert">
+                <i class="fas fa-exclamation-circle" aria-hidden="true"></i> Ada data yang belum sesuai. Periksa kembali field yang ditandai.
             </div>
         @endif
 
@@ -60,203 +70,194 @@
                 @method('put')
             @endif
 
-            <div class="card shadow-sm mb-3">
-                <div class="card-header bg-white border-bottom">
-                    <h5 class="mb-0">Informasi Request</h5>
+            {{-- Informasi request --}}
+            <div class="ob-card ro-card">
+                <div class="wh-card__head">
+                    <div>
+                        <h2 class="wh-card__title"><i class="fas fa-info-circle" aria-hidden="true"></i> Informasi Request</h2>
+                        <p class="wh-card__desc">Siapa yang meminta, dari mana dipenuhi, dan kapan dibutuhkan.</p>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="wh-card__body">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <div class="form-group">
-                                <label>Nomor Request</label>
-                                <input name="request_number" value="{{ old('request_number', $data->request_number) }}"
-                                    type="text" class="form-control @error('request_number') is-invalid @enderror"
-                                    maxlength="100" placeholder="Kosongkan untuk auto-generate">
-                                @error('request_number')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
+                            <label class="form-label" for="request_number">Nomor Request</label>
+                            <input id="request_number" name="request_number" value="{{ old('request_number', $data->request_number) }}"
+                                type="text" class="form-control @error('request_number') is-invalid @enderror"
+                                maxlength="100" placeholder="Contoh: RO-20261127-0001">
+                            @error('request_number')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @else
+                                <small class="text-muted">Kosongkan untuk dibuat otomatis (RO-tanggal-urutan).</small>
+                            @enderror
                         </div>
-
                         <div class="col-md-6 mb-3">
-                            <div class="form-group">
-                                <label>Tanggal Dibutuhkan</label>
-                                <input name="needed_at" value="{{ old('needed_at', optional($data->needed_at)->format('Y-m-d')) }}"
-                                    type="date" class="form-control @error('needed_at') is-invalid @enderror">
-                                @error('needed_at')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
+                            <label class="form-label" for="needed_at">Tanggal Dibutuhkan</label>
+                            <input id="needed_at" name="needed_at" value="{{ old('needed_at', optional($data->needed_at)->format('Y-m-d')) }}"
+                                type="date" class="form-control @error('needed_at') is-invalid @enderror">
+                            @error('needed_at')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @else
+                                <small class="text-muted">Opsional. Request yang lewat tanggal ini ditandai di daftar.</small>
+                            @enderror
                         </div>
-
                         <div class="col-md-6 mb-3">
-                            <div class="form-group">
-                                <label>Lokasi Pemohon <span class="text-danger">*</span></label>
-                                <select name="requester_inventory_id"
-                                    class="form-select select2RequestOrder @error('requester_inventory_id') is-invalid @enderror"
-                                    required>
-                                    <option value="">Pilih lokasi pemohon</option>
-                                    @foreach ($inventories as $inventory)
-                                        <option value="{{ $inventory->id }}" @if (old('requester_inventory_id', $data->requester_inventory_id) == $inventory->id) selected @endif>
-                                            {{ $inventory->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('requester_inventory_id')
-                                    <div class="invalid-feedback d-block">{{ $message }}</div>
-                                @enderror
-                            </div>
+                            <label class="form-label" for="requester_inventory_id">Lokasi Peminta <span class="text-danger">*</span></label>
+                            <select id="requester_inventory_id" name="requester_inventory_id"
+                                class="form-select select2RequestOrder @error('requester_inventory_id') is-invalid @enderror" required>
+                                <option value="">Pilih lokasi peminta</option>
+                                @foreach ($inventories as $inventory)
+                                    <option value="{{ $inventory->id }}" @selected(old('requester_inventory_id', $data->requester_inventory_id) == $inventory->id)>
+                                        {{ $inventory->name }}{{ $inventory->is_active ? '' : ' (Nonaktif)' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('requester_inventory_id')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @else
+                                <small class="text-muted">Outlet atau kitchen yang membutuhkan bahan.</small>
+                            @enderror
                         </div>
-
                         <div class="col-md-6 mb-3">
-                            <div class="form-group">
-                                <label>Inventory Pemenuhan</label>
-                                <select name="fulfillment_inventory_id" id="fulfillmentInventory"
-                                    class="form-select select2RequestOrder @error('fulfillment_inventory_id') is-invalid @enderror">
-                                    <option value="">Belum ditentukan</option>
-                                    @foreach ($inventories as $inventory)
-                                        <option value="{{ $inventory->id }}" @if (old('fulfillment_inventory_id', $data->fulfillment_inventory_id) == $inventory->id) selected @endif>
-                                            {{ $inventory->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('fulfillment_inventory_id')
-                                    <div class="invalid-feedback d-block">{{ $message }}</div>
-                                @enderror
-                            </div>
+                            <label class="form-label" for="fulfillmentInventory">Lokasi Pemenuh</label>
+                            <select name="fulfillment_inventory_id" id="fulfillmentInventory"
+                                class="form-select select2RequestOrder @error('fulfillment_inventory_id') is-invalid @enderror">
+                                <option value="">Belum ditentukan</option>
+                                @foreach ($inventories as $inventory)
+                                    <option value="{{ $inventory->id }}" @selected(old('fulfillment_inventory_id', $data->fulfillment_inventory_id) == $inventory->id)>
+                                        {{ $inventory->name }}{{ $inventory->is_active ? '' : ' (Nonaktif)' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('fulfillment_inventory_id')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @else
+                                <small class="text-muted">Gudang yang mengirim bahan. Stok bebasnya tampil di tiap item.</small>
+                            @enderror
                         </div>
-
                         <div class="col-12">
-                            <div class="form-group">
-                                <label>Catatan</label>
-                                <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="3"
-                                    placeholder="Catatan tambahan untuk request order">{{ old('notes', $data->notes) }}</textarea>
-                                @error('notes')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
+                            <label class="form-label" for="notes">Catatan</label>
+                            <textarea id="notes" name="notes" class="form-control @error('notes') is-invalid @enderror" rows="3"
+                                placeholder="Contoh: untuk persiapan event akhir pekan">{{ old('notes', $data->notes) }}</textarea>
+                            @error('notes')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-white border-bottom">
-                    <h5 class="mb-0">Pilih Bahan Baku</h5>
-                    <small class="text-muted">Pilih bahan satu per satu. Bahan yang sudah dipilih akan dikunci agar tidak duplikat.</small>
+            {{-- Item --}}
+            <div class="ob-card ro-card">
+                <div class="wh-card__head">
+                    <div>
+                        <h2 class="wh-card__title"><i class="fas fa-boxes" aria-hidden="true"></i> Bahan Baku <span class="wh-count" id="requestOrderItemsCount">{{ count($formItems) }}</span></h2>
+                        <p class="wh-card__desc">Pilih bahan satu per satu. Bahan yang sudah ada di daftar tidak bisa dipilih lagi.</p>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row g-2 align-items-end mb-3">
-                        <div class="col-lg-9">
-                            <label class="form-label">Bahan Baku</label>
-                            <select id="rawMaterialPicker" class="form-select select2RequestOrder">
-                                <option value="">Pilih bahan baku</option>
-                                @foreach ($rawMaterials as $rawMaterial)
-                                    <option value="{{ $rawMaterial->id }}">
-                                        {{ $rawMaterial->name }}{{ $rawMaterial->code ? ' - ' . $rawMaterial->code : '' }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-lg-3">
-                            <button type="button" class="btn btn-outline-secondary w-100" id="resetRawMaterialPicker">
-                                <i class="fa fa-undo me-1"></i>Reset
-                            </button>
-                        </div>
+                <div class="wh-card__body ro-picker">
+                    <div class="ro-picker__field">
+                        <label class="form-label" for="rawMaterialPicker">Tambah bahan baku</label>
+                        <select id="rawMaterialPicker" class="form-select select2RequestOrder">
+                            <option value="">Cari nama atau kode bahan</option>
+                            @foreach ($rawMaterials as $rawMaterial)
+                                <option value="{{ $rawMaterial->id }}">
+                                    {{ $rawMaterial->name }}{{ $rawMaterial->code ? ' · ' . $rawMaterial->code : '' }}{{ $baseUnitOf($rawMaterial) ? ' (' . $baseUnitOf($rawMaterial) . ')' : '' }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
+                    <button type="button" class="btn ob-btn ob-btn-outline" id="clearRequestOrderItems">
+                        <i class="fas fa-eraser" aria-hidden="true"></i> Kosongkan daftar
+                    </button>
+                </div>
 
-                    @error('items')
-                        <div class="alert alert-danger py-2">{{ $message }}</div>
-                    @enderror
+                @error('items')
+                    <div class="ob-notice ro-notice ro-notice--error ro-notice--inset" role="alert">
+                        <i class="fas fa-exclamation-circle" aria-hidden="true"></i> {{ $message }}
+                    </div>
+                @enderror
 
-                    <div class="table-responsive request-order-items-wrap">
-                        <table class="table table-sm align-middle mb-0" id="requestOrderItemsTable">
-                            <thead>
-                                <tr>
-                                    <th style="min-width: 330px;">Bahan Baku</th>
-                                    <th style="width: 150px;">Qty</th>
-                                    <th style="min-width: 190px;">Satuan</th>
-                                    <th style="min-width: 260px;">Catatan</th>
-                                    <th style="width: 54px;"></th>
+                <div class="ob-table-scroll">
+                    <table class="wh-table ro-items" id="requestOrderItemsTable">
+                        <thead>
+                            <tr>
+                                <th scope="col">Bahan Baku</th>
+                                <th scope="col" class="ro-col-qty">Qty</th>
+                                <th scope="col" class="ro-col-unit">Satuan</th>
+                                <th scope="col" class="ro-col-notes">Catatan</th>
+                                <th scope="col"><span class="visually-hidden">Aksi</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($formItems as $index => $item)
+                                @php
+                                    $rawMaterialId = $item['raw_material_id'] ?? null;
+                                    $rawMaterial = $rawMaterialsById->get((int) $rawMaterialId);
+                                @endphp
+                                <tr class="request-item-row">
+                                    <td>
+                                        <input type="hidden" name="items[{{ $index }}][raw_material_id]"
+                                            data-field="raw_material_id" class="item-raw-material-id" value="{{ $rawMaterialId }}">
+                                        <div class="wh-cell-stack">
+                                            <span class="wh-strong item-material-name">{{ $rawMaterial?->name ?? '-' }}</span>
+                                            <span class="ob-cell-meta item-material-code">
+                                                {{ $rawMaterial?->code ?: 'Tanpa kode' }}{{ $baseUnitOf($rawMaterial) ? ' · Satuan dasar: ' . $baseUnitOf($rawMaterial) : '' }}
+                                            </span>
+                                        </div>
+                                        @error('items.' . $index . '.raw_material_id')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        <div class="item-stock-info"></div>
+                                    </td>
+                                    <td>
+                                        <input name="items[{{ $index }}][requested_qty]" data-field="requested_qty"
+                                            value="{{ $item['requested_qty'] ?? '' }}" type="number" step="any" min="0.00001"
+                                            class="form-control text-end @error('items.' . $index . '.requested_qty') is-invalid @enderror"
+                                            aria-label="Qty" required>
+                                        @error('items.' . $index . '.requested_qty')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </td>
+                                    <td>
+                                        <select name="items[{{ $index }}][requested_satuan_id]" data-field="requested_satuan_id"
+                                            data-selected="{{ $item['requested_satuan_id'] ?? '' }}"
+                                            class="form-select select2RequestOrder item-unit @error('items.' . $index . '.requested_satuan_id') is-invalid @enderror"
+                                            aria-label="Satuan" required>
+                                            <option value="">Pilih bahan dahulu</option>
+                                        </select>
+                                        @error('items.' . $index . '.requested_satuan_id')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                    </td>
+                                    <td>
+                                        <textarea name="items[{{ $index }}][notes]" data-field="notes" rows="2"
+                                            class="form-control item-notes @error('items.' . $index . '.notes') is-invalid @enderror"
+                                            placeholder="Opsional" aria-label="Catatan item">{{ $item['notes'] ?? '' }}</textarea>
+                                        @error('items.' . $index . '.notes')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </td>
+                                    <td>
+                                        <button type="button" class="ob-icon-btn ob-icon-btn--sm ob-icon-btn--danger remove-request-order-item"
+                                            title="Hapus dari daftar" aria-label="Hapus dari daftar"><i class="fas fa-times" aria-hidden="true"></i></button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($formItems as $index => $item)
-                                    @php
-                                        $rawMaterialId = $item['raw_material_id'] ?? null;
-                                        $rawMaterial = $rawMaterialsById->get((int) $rawMaterialId);
-                                    @endphp
-                                    <tr class="request-item-row">
-                                        <td>
-                                            <input type="hidden" name="items[{{ $index }}][raw_material_id]"
-                                                data-field="raw_material_id" class="item-raw-material-id"
-                                                value="{{ $rawMaterialId }}">
-                                            <div class="selected-material-display">
-                                                <div class="fw-semibold item-material-name">{{ optional($rawMaterial)->name ?? '-' }}</div>
-                                                <small class="text-muted item-material-code">
-                                                    {{ optional($rawMaterial)->code ?? 'Tanpa kode' }}
-                                                    @if ($rawMaterial?->baseUnit)
-                                                        - Base: {{ $rawMaterial->baseUnit->symbol ?: $rawMaterial->baseUnit->name }}
-                                                    @endif
-                                                </small>
-                                            </div>
-                                            @error('items.' . $index . '.raw_material_id')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                            <div class="item-stock-info mt-2"></div>
-                                        </td>
-                                        <td>
-                                            <input name="items[{{ $index }}][requested_qty]" data-field="requested_qty"
-                                                value="{{ $item['requested_qty'] ?? '' }}" type="number" step="0.1"
-                                                min="0.1"
-                                                class="form-control form-control-sm text-end @error('items.' . $index . '.requested_qty') is-invalid @enderror"
-                                                required>
-                                            @error('items.' . $index . '.requested_qty')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </td>
-                                        <td>
-                                            <select name="items[{{ $index }}][requested_satuan_id]" data-field="requested_satuan_id"
-                                                data-selected="{{ $item['requested_satuan_id'] ?? '' }}"
-                                                class="form-select form-select-sm select2RequestOrder item-unit @error('items.' . $index . '.requested_satuan_id') is-invalid @enderror"
-                                                required>
-                                                <option value="">Pilih bahan dahulu</option>
-                                            </select>
-                                            @error('items.' . $index . '.requested_satuan_id')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                        </td>
-                                        <td>
-                                            <textarea name="items[{{ $index }}][notes]" data-field="notes" rows="2"
-                                                class="form-control form-control-sm item-notes @error('items.' . $index . '.notes') is-invalid @enderror"
-                                                placeholder="Opsional">{{ $item['notes'] ?? '' }}</textarea>
-                                            @error('items.' . $index . '.notes')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </td>
-                                        <td class="text-center">
-                                            <button type="button" class="btn btn-outline-danger btn-sm remove-request-order-item">
-                                                <i class="fa fa-times"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                        <div id="requestOrderItemsEmpty" class="text-center text-muted py-4">
-                            Belum ada bahan baku terpilih.
-                        </div>
-                    </div>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div id="requestOrderItemsEmpty" class="wh-empty">
+                    <span class="wh-empty__icon" aria-hidden="true"><i class="fas fa-boxes"></i></span>
+                    <p class="wh-empty__title">Belum ada bahan baku</p>
+                    <p class="wh-empty__text">Pilih bahan dari kolom di atas untuk menambahkannya ke request.</p>
+                </div>
 
-                    <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
-                        <a href="{{ $data->exists ? route('warehouse/request-order/detail', $data->id) : route('warehouse/request-order') }}"
-                            class="btn btn-outline-secondary">
-                            Batal
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fa fa-save me-1"></i>{{ $data->exists ? 'Update Draft' : 'Simpan Draft' }}
-                        </button>
-                    </div>
+                <div class="ro-form-foot">
+                    <a href="{{ $backUrl }}" class="btn ob-btn ob-btn-outline">Batal</a>
+                    <button type="submit" class="btn ob-btn ob-btn-primary">
+                        <i class="fas fa-save" aria-hidden="true"></i> {{ $data->exists ? 'Simpan Perubahan' : 'Simpan Draft' }}
+                    </button>
                 </div>
             </div>
         </form>
@@ -264,32 +265,30 @@
         <template id="requestOrderItemTemplate">
             <tr class="request-item-row">
                 <td>
-                    <input type="hidden" name="items[__INDEX__][raw_material_id]"
-                        data-field="raw_material_id" class="item-raw-material-id">
-                    <div class="selected-material-display">
-                        <div class="fw-semibold item-material-name"></div>
-                        <small class="text-muted item-material-code"></small>
+                    <input type="hidden" name="items[__INDEX__][raw_material_id]" data-field="raw_material_id" class="item-raw-material-id">
+                    <div class="wh-cell-stack">
+                        <span class="wh-strong item-material-name"></span>
+                        <span class="ob-cell-meta item-material-code"></span>
                     </div>
-                    <div class="item-stock-info mt-2"></div>
+                    <div class="item-stock-info"></div>
                 </td>
                 <td>
                     <input name="items[__INDEX__][requested_qty]" data-field="requested_qty" type="number"
-                        step="0.1" min="0.1" class="form-control form-control-sm text-end" required>
+                        step="any" min="0.00001" class="form-control text-end" aria-label="Qty" required>
                 </td>
                 <td>
                     <select name="items[__INDEX__][requested_satuan_id]" data-field="requested_satuan_id"
-                        class="form-select form-select-sm select2RequestOrder item-unit" required>
+                        class="form-select select2RequestOrder item-unit" aria-label="Satuan" required>
                         <option value="">Pilih bahan dahulu</option>
                     </select>
                 </td>
                 <td>
                     <textarea name="items[__INDEX__][notes]" data-field="notes" rows="2"
-                        class="form-control form-control-sm item-notes" placeholder="Opsional"></textarea>
+                        class="form-control item-notes" placeholder="Opsional" aria-label="Catatan item"></textarea>
                 </td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-outline-danger btn-sm remove-request-order-item">
-                        <i class="fa fa-times"></i>
-                    </button>
+                <td>
+                    <button type="button" class="ob-icon-btn ob-icon-btn--sm ob-icon-btn--danger remove-request-order-item"
+                        title="Hapus dari daftar" aria-label="Hapus dari daftar"><i class="fas fa-times" aria-hidden="true"></i></button>
                 </td>
             </tr>
         </template>
@@ -301,11 +300,16 @@
             const rawMaterialStockInfo = @json($rawMaterialStockInfo);
             const rawMaterialCatalog = @json($rawMaterialCatalog);
 
+            // Nama lokasi/bahan berasal dari data user; selalu di-escape sebelum masuk HTML
+            function escapeHtml(value) {
+                return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                }[char]));
+            }
+
+            // Tanpa nol di belakang koma: 25000 → "25.000", 0.05 → "0,05"
             function formatQty(value) {
-                return Number(value || 0).toLocaleString('id-ID', {
-                    minimumFractionDigits: 1,
-                    maximumFractionDigits: 1
-                });
+                return Number(value || 0).toLocaleString('id-ID', { maximumFractionDigits: 5 });
             }
 
             function unitLabel(unit) {
@@ -313,26 +317,26 @@
             }
 
             function materialSubtitle(material) {
-                return material.code || 'Tanpa kode';
+                return (material.code || 'Tanpa kode') + (material.base_unit ? ' · Satuan dasar: ' + material.base_unit : '');
             }
 
-            function initRequestOrderSelect2(context) {
-                $(context).find('.select2RequestOrder').each(function() {
-                    if ($(this).hasClass('select2-hidden-accessible')) {
-                        return;
-                    }
+            function initSelect2(element) {
+                element.select2({ width: '100%' });
+            }
 
-                    $(this).select2({
-                        width: '100%'
-                    });
-                });
+            function destroySelect2(element) {
+                if (element.hasClass('select2-hidden-accessible')) {
+                    element.select2('destroy');
+                }
+            }
+
+            function itemRows() {
+                return $('#requestOrderItemsTable tbody tr');
             }
 
             function selectedMaterialIds() {
                 return $('#requestOrderItemsTable tbody .item-raw-material-id')
-                    .map(function() {
-                        return String($(this).val());
-                    })
+                    .map(function () { return String($(this).val()); })
                     .get()
                     .filter(Boolean);
             }
@@ -341,19 +345,13 @@
                 const selectedIds = new Set(selectedMaterialIds());
                 const picker = $('#rawMaterialPicker');
 
-                if (picker.hasClass('select2-hidden-accessible')) {
-                    picker.select2('destroy');
-                }
-
-                picker.find('option').each(function() {
+                destroySelect2(picker);
+                picker.find('option').each(function () {
                     const value = String(this.value || '');
                     $(this).prop('disabled', value !== '' && selectedIds.has(value));
                 });
-
                 picker.val('');
-                picker.select2({
-                    width: '100%'
-                });
+                initSelect2(picker);
             }
 
             function refreshUnitSelect(row) {
@@ -362,10 +360,7 @@
                 const options = unitOptionsByRawMaterial[materialId] || [];
                 const selected = unitSelect.data('selected') || '';
 
-                if (unitSelect.hasClass('select2-hidden-accessible')) {
-                    unitSelect.select2('destroy');
-                }
-
+                destroySelect2(unitSelect);
                 unitSelect.empty();
 
                 if (!materialId) {
@@ -376,16 +371,14 @@
                     unitSelect.prop('disabled', true);
                 } else {
                     unitSelect.append(new Option('Pilih satuan', '', false, false));
-                    options.forEach(function(unit) {
+                    options.forEach(function (unit) {
                         unitSelect.append(new Option(unitLabel(unit), unit.id, false, String(selected) === String(unit.id)));
                     });
                     unitSelect.prop('disabled', false);
                 }
 
                 unitSelect.data('selected', '');
-                unitSelect.select2({
-                    width: '100%'
-                });
+                initSelect2(unitSelect);
             }
 
             function refreshStockInfo(row) {
@@ -399,51 +392,58 @@
                     return;
                 }
 
-                const baseUnit = info.base_unit || 'base';
+                const unit = escapeHtml(info.base_unit || '');
+                const locations = info.locations || [];
                 const fulfillmentStock = fulfillmentInventoryId
-                    ? (info.locations || []).find((location) => String(location.inventory_id) === String(fulfillmentInventoryId))
+                    ? locations.find((location) => String(location.inventory_id) === String(fulfillmentInventoryId))
                     : null;
-                const locationRows = (info.locations || []).slice(0, 4).map(function(location) {
-                    return `<div class="ro-stock-location">
-                        <span>${location.inventory_name}</span>
-                        <strong>${formatQty(location.qty_free)} ${baseUnit}</strong>
-                    </div>`;
-                }).join('');
 
-                container.html(`
-                    <div class="ro-stock-info">
-                        ${fulfillmentInventoryId ? `
-                            <div class="ro-stock-focus">
-                                Inventory pemenuhan:
-                                <strong>${fulfillmentStock ? formatQty(fulfillmentStock.qty_free) + ' ' + baseUnit + ' free' : 'belum ada stok'}</strong>
-                            </div>
-                        ` : ''}
-                        ${locationRows ? `<div class="ro-stock-locations">${locationRows}</div>` : '<div class="text-muted small">Tidak ada catatan untuk Bahan ini</div>'}
-                    </div>
-                `);
+                let focus = '';
+                if (fulfillmentInventoryId) {
+                    focus = fulfillmentStock
+                        ? `<div class="ro-stock__focus">Stok bebas di pemenuh: <strong>${formatQty(fulfillmentStock.qty_free)} ${unit}</strong></div>`
+                        : '<div class="ro-stock__focus ro-stock__focus--empty">Belum ada stok di lokasi pemenuh</div>';
+                }
+
+                const others = locations.slice(0, 4).map((location) => `<li>
+                        <span>${escapeHtml(location.inventory_name)}</span>
+                        <strong>${formatQty(location.qty_free)} ${unit}</strong>
+                    </li>`).join('');
+                const more = locations.length > 4 ? `<li class="ro-stock__more">+${locations.length - 4} lokasi lain</li>` : '';
+
+                container.html(`<div class="ro-stock">
+                        ${focus}
+                        ${others ? `<ul class="ro-stock__list">${others}${more}</ul>` : '<div class="ro-stock__empty">Belum ada stok tercatat untuk bahan ini.</div>'}
+                    </div>`);
             }
 
             function refreshAllStockInfo() {
-                $('#requestOrderItemsTable tbody tr').each(function() {
-                    refreshStockInfo($(this));
-                });
+                itemRows().each(function () { refreshStockInfo($(this)); });
             }
 
             function updateEmptyState() {
-                const hasRows = $('#requestOrderItemsTable tbody tr').length > 0;
+                const count = itemRows().length;
 
-                $('#requestOrderItemsTable').toggle(hasRows);
-                $('#requestOrderItemsEmpty').toggle(!hasRows);
+                $('#requestOrderItemsTable').closest('.ob-table-scroll').toggle(count > 0);
+                $('#requestOrderItemsEmpty').toggle(count === 0);
+                $('#clearRequestOrderItems').prop('disabled', count === 0);
+                $('#requestOrderItemsCount').text(count);
             }
 
             function reindexRequestOrderItems() {
-                $('#requestOrderItemsTable tbody tr').each(function(index) {
-                    const row = $(this);
-                    row.find('[data-field]').each(function() {
-                        const field = $(this).data('field');
-                        $(this).attr('name', 'items[' + index + '][' + field + ']');
+                itemRows().each(function (index) {
+                    $(this).find('[data-field]').each(function () {
+                        $(this).attr('name', 'items[' + index + '][' + $(this).data('field') + ']');
                     });
                 });
+            }
+
+            function removeRows(rows) {
+                rows.find('.select2RequestOrder').each(function () { destroySelect2($(this)); });
+                rows.remove();
+                reindexRequestOrderItems();
+                updateEmptyState();
+                refreshMaterialPickerOptions();
             }
 
             function createRequestOrderItemRow(materialId) {
@@ -453,10 +453,8 @@
                     return null;
                 }
 
-                const index = $('#requestOrderItemsTable tbody tr').length;
-                const template = $('#requestOrderItemTemplate').html()
-                    .replaceAll('__INDEX__', index);
-                const row = $(template);
+                const index = itemRows().length;
+                const row = $($('#requestOrderItemTemplate').html().replaceAll('__INDEX__', index));
 
                 row.find('.item-raw-material-id').val(material.id);
                 row.find('.item-material-name').text(material.name || '-');
@@ -471,19 +469,18 @@
                 return row;
             }
 
-            $(function() {
-                initRequestOrderSelect2(document);
+            $(function () {
+                $('#requester_inventory_id, #fulfillmentInventory').each(function () { initSelect2($(this)); });
 
-                $('#requestOrderItemsTable tbody tr').each(function() {
-                    const row = $(this);
-                    refreshUnitSelect(row);
-                    refreshStockInfo(row);
+                itemRows().each(function () {
+                    refreshUnitSelect($(this));
+                    refreshStockInfo($(this));
                 });
 
                 updateEmptyState();
                 refreshMaterialPickerOptions();
 
-                $('#rawMaterialPicker').on('change', function() {
+                $('#rawMaterialPicker').on('change', function () {
                     const materialId = String($(this).val() || '');
 
                     if (!materialId) {
@@ -491,7 +488,7 @@
                     }
 
                     if (selectedMaterialIds().includes(materialId)) {
-                        showToast('warning', 'Bahan baku ini sudah dipilih.');
+                        showToast('warning', 'Bahan baku ini sudah ada di daftar.');
                         refreshMaterialPickerOptions();
                         return;
                     }
@@ -499,39 +496,33 @@
                     createRequestOrderItemRow(materialId);
                 });
 
-                $('#resetRawMaterialPicker').on('click', function() {
-                    $('#rawMaterialPicker').val('').trigger('change');
-                    $('#requestOrderItemsTable tbody tr').each(function() {
-                        $(this).find('.select2RequestOrder').each(function() {
-                            if ($(this).hasClass('select2-hidden-accessible')) {
-                                $(this).select2('destroy');
-                            }
-                        });
+                $('#clearRequestOrderItems').on('click', function () {
+                    const count = itemRows().length;
+                    if (count === 0) return;
+
+                    Swal.fire({
+                        title: 'Kosongkan daftar bahan?',
+                        text: count + ' bahan beserta qty dan catatannya akan dihapus dari form ini.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, kosongkan',
+                        cancelButtonText: 'Batal'
+                    }).then(function (result) {
+                        if (result.isConfirmed) {
+                            removeRows(itemRows());
+                        }
                     });
-                    $('#requestOrderItemsTable tbody').empty();
-                    updateEmptyState();
-                    refreshMaterialPickerOptions();
                 });
 
                 $('#fulfillmentInventory').on('change', refreshAllStockInfo);
 
-                $('#requestOrderItemsTable').on('click', '.remove-request-order-item', function() {
-                    const row = $(this).closest('tr');
-
-                    row.find('.select2RequestOrder').each(function() {
-                        if ($(this).hasClass('select2-hidden-accessible')) {
-                            $(this).select2('destroy');
-                        }
-                    });
-                    row.remove();
-                    reindexRequestOrderItems();
-                    updateEmptyState();
-                    refreshMaterialPickerOptions();
+                $('#requestOrderItemsTable').on('click', '.remove-request-order-item', function () {
+                    removeRows($(this).closest('tr'));
                 });
 
-                $('#requestOrderForm').on('submit', function(e) {
-                    if ($('#requestOrderItemsTable tbody tr').length === 0) {
-                        e.preventDefault();
+                $('#requestOrderForm').on('submit', function (event) {
+                    if (itemRows().length === 0) {
+                        event.preventDefault();
                         showToast('error', 'Minimal satu bahan baku wajib dipilih.');
                     }
                 });
@@ -541,67 +532,35 @@
 
     @push('css')
         <style>
-            .request-order-form-page .card {
-                border: 1px solid rgba(18, 38, 63, 0.08);
-                border-radius: 8px;
-            }
+            .ro-card { margin-bottom: 1.25rem; }
+            .ro-notice { margin-bottom: 1rem; }
+            .ro-notice--error { border-color: var(--ob-danger); color: var(--ob-danger); background: var(--ob-danger-soft); }
+            .ro-notice--inset { margin: 0 1.25rem 1rem; }
 
-            .request-order-items-wrap {
-                border: 1px solid rgba(18, 38, 63, 0.08);
-                border-radius: 8px;
-                overflow: hidden;
-            }
+            .ro-picker { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; border-bottom: 1px solid var(--ob-border); }
+            .ro-picker__field { flex: 1 1 320px; min-width: 0; }
 
-            #requestOrderItemsTable th {
-                background: #f8fafc;
-                white-space: nowrap;
-            }
+            .ro-items td { vertical-align: top; }
+            .ro-items .ro-col-qty { width: 140px; }
+            .ro-items .ro-col-unit { width: 200px; }
+            .ro-items .ro-col-notes { width: 260px; }
+            .ro-items td:first-child { min-width: 280px; }
+            .ro-items td:nth-child(2) { min-width: 120px; }
+            .ro-items td:nth-child(3) { min-width: 180px; }
+            .ro-items td:nth-child(4) { min-width: 220px; }
+            .ro-items .select2-container { width: 100% !important; }
+            .ro-items .item-notes { resize: vertical; min-height: 38px; }
 
-            #requestOrderItemsTable .select2-container {
-                width: 100% !important;
-            }
+            .ro-stock { margin-top: .5rem; padding: .5rem .65rem; border: 1px solid var(--ob-border); border-radius: var(--ob-radius-sm); background: var(--ob-surface-2); font-size: .76rem; color: var(--ob-text-2); }
+            .ro-stock__focus { margin-bottom: .35rem; }
+            .ro-stock__focus strong { color: var(--ob-text); }
+            .ro-stock__focus--empty { color: var(--ob-danger); font-weight: 600; }
+            .ro-stock__list { list-style: none; margin: 0; padding: 0; display: grid; gap: .2rem; }
+            .ro-stock__list li { display: flex; justify-content: space-between; gap: 1rem; }
+            .ro-stock__list strong { color: var(--ob-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+            .ro-stock__more, .ro-stock__empty { color: var(--ob-muted); }
 
-            .selected-material-display {
-                padding: 2px 0;
-            }
-
-            .ro-stock-info {
-                border: 1px solid rgba(18, 38, 63, 0.08);
-                border-radius: 8px;
-                background: #fbfcfe;
-                padding: 8px 10px;
-            }
-
-            .ro-stock-focus strong,
-            .ro-stock-location strong {
-                color: #1f2937;
-            }
-
-            .ro-stock-focus {
-                color: #4b5563;
-                font-size: 12px;
-            }
-
-            .ro-stock-locations {
-                margin-top: 6px;
-                display: grid;
-                gap: 4px;
-                font-size: 12px;
-            }
-
-            .ro-stock-location {
-                display: flex;
-                justify-content: space-between;
-                gap: 12px;
-            }
-
-            #requestOrderItemsTable td:nth-child(4) {
-                min-width: 260px;
-            }
-
-            .item-notes {
-                resize: none;
-            }
+            .ro-form-foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; padding: 1rem 1.25rem; border-top: 1px solid var(--ob-border); }
         </style>
     @endpush
 @endsection
