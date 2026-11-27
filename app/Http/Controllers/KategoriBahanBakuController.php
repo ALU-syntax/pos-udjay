@@ -13,7 +13,6 @@ class KategoriBahanBakuController extends Controller
     {
         return $datatable->render('layouts.kategori_bahan_baku.index', [
             'stats' => $this->stats(),
-            'latestCategory' => RawMaterialCategories::latest('updated_at')->first(),
         ]);
     }
 
