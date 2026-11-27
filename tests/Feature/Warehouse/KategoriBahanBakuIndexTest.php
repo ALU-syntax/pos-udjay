@@ -194,7 +194,7 @@ class KategoriBahanBakuIndexTest extends TestCase
             ->assertSee('&lt;i&gt;Uji Aktif&lt;/i&gt;', false)
             ->assertSee('UJ-DTL-1')
             ->assertSee($inactive->name)
-            ->assertSee('kb-row-inactive', false)
+            ->assertSee('wh-row-inactive', false)
             // Bahan baku yang sudah dihapus tidak tampil
             ->assertDontSee($trashed->name);
     }
@@ -207,7 +207,7 @@ class KategoriBahanBakuIndexTest extends TestCase
             ->get(route('library/category-bahan-baku/detail', $category->id))
             ->assertOk()
             ->assertSee('Belum ada bahan baku')
-            ->assertDontSee('<table class="kb-table">', false);
+            ->assertDontSee('<table class="wh-table">', false);
     }
 
     public function test_edit_modal_keeps_saved_values(): void

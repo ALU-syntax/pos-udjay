@@ -1,5 +1,7 @@
 {{-- ob-page memberi token & gaya report ke modal (modal dirender di luar .main-content) --}}
 <x-modal addStyle="modal-xl ob-page ob-modal kb-detail-modal" title="Detail Bahan Baku: {{ $category->name }}" action="#" method="GET" customSubmit="true">
+    @include('layouts.warehouse.partials.ui-styles')
+
     @php
         $activeMaterials = $materials->where('is_active', true)->count();
         $inactiveMaterials = $materials->count() - $activeMaterials;
@@ -51,14 +53,14 @@
     <div class="col-12">
         <div class="ob-card kb-detail__card">
             @if ($materials->isEmpty())
-                <div class="kb-empty">
-                    <span class="kb-empty__icon" aria-hidden="true"><i class="fas fa-inbox"></i></span>
-                    <p class="kb-empty__title">Belum ada bahan baku</p>
-                    <p class="kb-empty__text">Kategori ini belum dipakai oleh bahan baku mana pun. Pilih kategori ini saat menambah bahan baku di menu Library / Bahan Baku.</p>
+                <div class="wh-empty">
+                    <span class="wh-empty__icon" aria-hidden="true"><i class="fas fa-inbox"></i></span>
+                    <p class="wh-empty__title">Belum ada bahan baku</p>
+                    <p class="wh-empty__text">Kategori ini belum dipakai oleh bahan baku mana pun. Pilih kategori ini saat menambah bahan baku di menu Library / Bahan Baku.</p>
                 </div>
             @else
                 <div class="ob-table-scroll">
-                    <table class="kb-table">
+                    <table class="wh-table">
                         <thead>
                             <tr>
                                 <th scope="col">Bahan Baku</th>
@@ -69,13 +71,13 @@
                         </thead>
                         <tbody>
                             @foreach ($materials as $material)
-                                <tr class="{{ $material->is_active ? '' : 'kb-row-inactive' }}">
+                                <tr class="{{ $material->is_active ? '' : 'wh-row-inactive' }}">
                                     <td>
-                                        <div class="kb-cell-stack">
-                                            <span class="kb-strong">{{ $material->name }}</span>
+                                        <div class="wh-cell-stack">
+                                            <span class="wh-strong">{{ $material->name }}</span>
                                             <span class="ob-cell-meta">{{ $material->code ?: 'Tanpa kode' }}</span>
                                             @if ($material->notes)
-                                                <span class="ob-cell-meta kb-truncate" title="{{ $material->notes }}">{{ $material->notes }}</span>
+                                                <span class="ob-cell-meta wh-truncate" title="{{ $material->notes }}">{{ $material->notes }}</span>
                                             @endif
                                         </div>
                                     </td>
@@ -114,24 +116,6 @@
         .kb-detail__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1rem; }
         .kb-detail__stats .ob-stat { margin-bottom: 0; }
         .kb-detail-modal .kb-detail__card { margin-bottom: 1rem; overflow: hidden; }
-
-        .kb-table { width: 100%; margin: 0; border-collapse: collapse; font-size: .85rem; }
-        .kb-table th { padding: .65rem 1rem; background: var(--ob-surface-2); border-bottom: 1px solid var(--ob-border); font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ob-muted); white-space: nowrap; }
-        .kb-table td { padding: .8rem 1rem; border-bottom: 1px solid var(--ob-border); color: var(--ob-text-2); vertical-align: middle; }
-        .kb-table th:first-child, .kb-table td:first-child { padding-left: 1.25rem; }
-        .kb-table th:last-child, .kb-table td:last-child { padding-right: 1.25rem; }
-        .kb-table tbody tr:last-child td { border-bottom: 0; }
-        .kb-table tbody tr:hover td { background: var(--ob-surface-2); }
-        .kb-row-inactive { opacity: .6; }
-
-        .kb-cell-stack { display: flex; flex-direction: column; align-items: flex-start; gap: .2rem; }
-        .kb-strong { font-weight: 600; color: var(--ob-text); }
-        .kb-truncate { display: inline-block; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-        .kb-empty { display: flex; flex-direction: column; align-items: center; gap: .15rem; padding: 2rem 1.25rem; text-align: center; }
-        .kb-empty__icon { display: inline-grid; place-items: center; width: 44px; height: 44px; margin-bottom: .5rem; border-radius: 12px; background: var(--ob-surface-2); border: 1px solid var(--ob-border); color: var(--ob-muted); }
-        .kb-empty__title { margin: 0; font-size: .9rem; font-weight: 600; color: var(--ob-text); }
-        .kb-empty__text { margin: 0; max-width: 46ch; font-size: .8rem; line-height: 1.5; color: var(--ob-muted); }
 
         .kb-detail__foot { display: flex; justify-content: flex-end; }
 

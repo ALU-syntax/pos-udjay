@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('content')
     @include('layouts.reports.partials.ui-styles')
+    @include('layouts.warehouse.partials.ui-styles')
 
     @php
         $dayNames = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
@@ -80,21 +81,21 @@
             {{-- Kolom utama --}}
             <div>
                 <div class="ob-card">
-                    <div class="sp-card__head">
+                    <div class="wh-card__head">
                         <div>
-                            <h2 class="sp-card__title"><i class="fas fa-boxes" aria-hidden="true"></i> Bahan Baku <span class="sp-count">{{ $supplier->rawMaterials->count() }}</span></h2>
-                            <p class="sp-card__desc">Harga dan MOQ dihitung per satuan beli. Bahan bertanda Utama diprioritaskan saat procurement.</p>
+                            <h2 class="wh-card__title"><i class="fas fa-boxes" aria-hidden="true"></i> Bahan Baku <span class="wh-count">{{ $supplier->rawMaterials->count() }}</span></h2>
+                            <p class="wh-card__desc">Harga dan MOQ dihitung per satuan beli. Bahan bertanda Utama diprioritaskan saat procurement.</p>
                         </div>
                     </div>
                     @if ($supplier->rawMaterials->isEmpty())
-                        <div class="sp-empty">
-                            <span class="sp-empty__icon" aria-hidden="true"><i class="fas fa-boxes"></i></span>
-                            <p class="sp-empty__title">Belum ada bahan baku</p>
-                            <p class="sp-empty__text">Tambahkan bahan baku yang dijual supplier ini agar bisa dipilih di procurement plan.</p>
+                        <div class="wh-empty">
+                            <span class="wh-empty__icon" aria-hidden="true"><i class="fas fa-boxes"></i></span>
+                            <p class="wh-empty__title">Belum ada bahan baku</p>
+                            <p class="wh-empty__text">Tambahkan bahan baku yang dijual supplier ini agar bisa dipilih di procurement plan.</p>
                         </div>
                     @else
                         <div class="table-responsive">
-                            <table class="sp-table">
+                            <table class="wh-table">
                                 <thead>
                                     <tr>
                                         <th>Bahan Baku</th>
@@ -118,10 +119,10 @@
                                                 $item->supplier_sku ? 'SKU ' . $item->supplier_sku : null,
                                             ])->filter();
                                         @endphp
-                                        <tr class="{{ $item->is_active ? '' : 'sp-row-inactive' }}">
+                                        <tr class="{{ $item->is_active ? '' : 'wh-row-inactive' }}">
                                             <td>
-                                                <div class="sp-cell-stack">
-                                                    <span class="sp-strong">
+                                                <div class="wh-cell-stack">
+                                                    <span class="wh-strong">
                                                         {{ $materialName }}
                                                         @if ($item->is_preferred)
                                                             <span class="badge badge-primary sp-badge-inline" title="Supplier utama untuk bahan ini"><i class="fas fa-star" aria-hidden="true"></i> Utama</span>
@@ -133,12 +134,12 @@
                                                 </div>
                                             </td>
                                             <td>{{ $unitName ?? '-' }}</td>
-                                            <td class="text-end sp-num">{{ (float) $item->minimum_order_qty > 0 ? $qty($item->minimum_order_qty) : '-' }}</td>
+                                            <td class="text-end wh-num">{{ (float) $item->minimum_order_qty > 0 ? $qty($item->minimum_order_qty) : '-' }}</td>
                                             <td class="text-nowrap">{{ $item->lead_time_days > 0 ? $item->lead_time_days . ' hari' : 'Hari itu juga' }}</td>
                                             <td class="text-end">
                                                 @if ($item->current_price !== null)
-                                                    <div class="sp-cell-stack sp-cell-stack--end">
-                                                        <span class="sp-strong sp-num">{{ $rupiah($item->current_price) }}</span>
+                                                    <div class="wh-cell-stack wh-cell-stack--end">
+                                                        <span class="wh-strong wh-num">{{ $rupiah($item->current_price) }}</span>
                                                         <span class="ob-cell-meta">{{ $unitName ? '/ ' . $unitName : '' }}{{ $item->price_updated_at ? ' · ' . \Illuminate\Support\Carbon::parse($item->price_updated_at)->translatedFormat('d M Y') : '' }}</span>
                                                     </div>
                                                 @else
@@ -165,21 +166,21 @@
                 </div>
 
                 <div class="ob-card">
-                    <div class="sp-card__head">
+                    <div class="wh-card__head">
                         <div>
-                            <h2 class="sp-card__title"><i class="fas fa-history" aria-hidden="true"></i> Histori Harga <span class="sp-count">{{ $priceHistories->count() }}</span></h2>
-                            <p class="sp-card__desc">Tercatat otomatis setiap kali harga bahan diisi atau diubah. Terbaru di atas.</p>
+                            <h2 class="wh-card__title"><i class="fas fa-history" aria-hidden="true"></i> Histori Harga <span class="wh-count">{{ $priceHistories->count() }}</span></h2>
+                            <p class="wh-card__desc">Tercatat otomatis setiap kali harga bahan diisi atau diubah. Terbaru di atas.</p>
                         </div>
                     </div>
                     @if ($priceHistories->isEmpty())
-                        <div class="sp-empty">
-                            <span class="sp-empty__icon" aria-hidden="true"><i class="fas fa-history"></i></span>
-                            <p class="sp-empty__title">Belum ada histori harga</p>
-                            <p class="sp-empty__text">Histori muncul setelah harga bahan baku diisi.</p>
+                        <div class="wh-empty">
+                            <span class="wh-empty__icon" aria-hidden="true"><i class="fas fa-history"></i></span>
+                            <p class="wh-empty__title">Belum ada histori harga</p>
+                            <p class="wh-empty__text">Histori muncul setelah harga bahan baku diisi.</p>
                         </div>
                     @else
                         <div class="table-responsive">
-                            <table class="sp-table">
+                            <table class="wh-table">
                                 <thead>
                                     <tr>
                                         <th>Tanggal</th>
@@ -201,14 +202,14 @@
                                         <tr>
                                             <td class="text-nowrap">{{ $history->effective_from?->translatedFormat('d M Y') ?? '-' }}</td>
                                             <td>
-                                                <div class="sp-cell-stack">
-                                                    <span class="sp-strong">{{ $historyMaterial?->rawMaterial?->name ?? ($historyMaterial?->supplier_material_name ?: '-') }}</span>
+                                                <div class="wh-cell-stack">
+                                                    <span class="wh-strong">{{ $historyMaterial?->rawMaterial?->name ?? ($historyMaterial?->supplier_material_name ?: '-') }}</span>
                                                     @if ($historyMaterial?->purchaseUnit)
                                                         <span class="ob-cell-meta">per {{ $historyMaterial->purchaseUnit->name }}</span>
                                                     @endif
                                                 </div>
                                             </td>
-                                            <td class="text-end sp-strong sp-num">{{ $rupiah($price) }}</td>
+                                            <td class="text-end wh-strong wh-num">{{ $rupiah($price) }}</td>
                                             <td class="text-nowrap">
                                                 @if ($diff === null)
                                                     <span class="sp-trend sp-trend--flat">Harga awal</span>
@@ -237,10 +238,10 @@
             {{-- Kolom samping --}}
             <aside>
                 <div class="ob-card">
-                    <div class="sp-card__head">
-                        <h2 class="sp-card__title"><i class="fas fa-id-card" aria-hidden="true"></i> Profil Supplier</h2>
+                    <div class="wh-card__head">
+                        <h2 class="wh-card__title"><i class="fas fa-id-card" aria-hidden="true"></i> Profil Supplier</h2>
                     </div>
-                    <div class="sp-card__body">
+                    <div class="wh-card__body">
                         <dl class="sp-dl">
                             <div class="sp-dl__row"><dt>Kode</dt><dd>{{ $supplier->code }}</dd></div>
                             <div class="sp-dl__row"><dt>Mode</dt><dd>{{ $supplier->procurement_mode_label === 'Keduanya' ? 'Online & Offline' : $supplier->procurement_mode_label }}</dd></div>
@@ -251,17 +252,17 @@
                 </div>
 
                 <div class="ob-card">
-                    <div class="sp-card__head">
-                        <h2 class="sp-card__title"><i class="fas fa-address-book" aria-hidden="true"></i> Kontak <span class="sp-count">{{ $supplier->contacts->count() }}</span></h2>
+                    <div class="wh-card__head">
+                        <h2 class="wh-card__title"><i class="fas fa-address-book" aria-hidden="true"></i> Kontak <span class="wh-count">{{ $supplier->contacts->count() }}</span></h2>
                     </div>
                     @if ($supplier->contacts->isEmpty())
-                        <p class="sp-side-empty">Belum ada kontak yang tercatat.</p>
+                        <p class="wh-side-empty">Belum ada kontak yang tercatat.</p>
                     @else
                         <ul class="sp-list">
                             @foreach ($supplier->contacts as $contact)
-                                <li class="sp-list__item {{ $contact->is_active ? '' : 'sp-row-inactive' }}">
+                                <li class="sp-list__item {{ $contact->is_active ? '' : 'wh-row-inactive' }}">
                                     <div class="sp-list__top">
-                                        <span class="sp-strong">{{ $contact->name ?: 'Tanpa nama' }}</span>
+                                        <span class="wh-strong">{{ $contact->name ?: 'Tanpa nama' }}</span>
                                         @if ($contact->is_primary)
                                             <span class="badge badge-primary">Utama</span>
                                         @endif
@@ -288,20 +289,20 @@
                 </div>
 
                 <div class="ob-card">
-                    <div class="sp-card__head">
-                        <h2 class="sp-card__title"><i class="fas fa-shopping-cart" aria-hidden="true"></i> Tempat Pemesanan <span class="sp-count">{{ $supplier->orderChannels->count() }}</span></h2>
+                    <div class="wh-card__head">
+                        <h2 class="wh-card__title"><i class="fas fa-shopping-cart" aria-hidden="true"></i> Tempat Pemesanan <span class="wh-count">{{ $supplier->orderChannels->count() }}</span></h2>
                     </div>
                     @if ($supplier->orderChannels->isEmpty())
-                        <p class="sp-side-empty">Belum ada tempat pemesanan yang tercatat.</p>
+                        <p class="wh-side-empty">Belum ada tempat pemesanan yang tercatat.</p>
                     @else
                         <ul class="sp-list">
                             @foreach ($supplier->orderChannels as $channel)
                                 @php
                                     $channelUrl = $channel->url && \Illuminate\Support\Str::startsWith(strtolower($channel->url), ['http://', 'https://']) ? $channel->url : null;
                                 @endphp
-                                <li class="sp-list__item {{ $channel->is_active ? '' : 'sp-row-inactive' }}">
+                                <li class="sp-list__item {{ $channel->is_active ? '' : 'wh-row-inactive' }}">
                                     <div class="sp-list__top">
-                                        <span class="sp-strong">{{ $channel->channel_name ?: ($channel->channelType?->name ?? 'Channel') }}</span>
+                                        <span class="wh-strong">{{ $channel->channel_name ?: ($channel->channelType?->name ?? 'Channel') }}</span>
                                         @if ($channel->is_primary)
                                             <span class="badge badge-primary">Utama</span>
                                         @endif
@@ -328,18 +329,18 @@
                 </div>
 
                 <div class="ob-card">
-                    <div class="sp-card__head">
-                        <h2 class="sp-card__title"><i class="far fa-clock" aria-hidden="true"></i> Jam Operasional</h2>
+                    <div class="wh-card__head">
+                        <h2 class="wh-card__title"><i class="far fa-clock" aria-hidden="true"></i> Jam Operasional</h2>
                     </div>
                     @if ($supplier->operationalHours->isEmpty())
-                        <p class="sp-side-empty">Jam operasional belum diatur.</p>
+                        <p class="wh-side-empty">Jam operasional belum diatur.</p>
                     @else
                         <ul class="sp-hours">
                             @foreach ($dayNames as $day => $dayName)
                                 @php $slots = $hoursByDay->get($day, collect()); @endphp
                                 <li class="sp-hours__row {{ $slots->isEmpty() ? 'is-closed' : '' }}">
                                     <span>{{ $dayName }}</span>
-                                    <span class="sp-num">
+                                    <span class="wh-num">
                                         @if ($slots->isEmpty())
                                             Tutup
                                         @else
@@ -399,9 +400,6 @@
 
     @push('css')
         <style>
-            /* Kaiadmin memberi .badge margin-left:auto, yang mendorong badge ke kanan di dalam flex */
-            .ob-page .badge { margin-left: 0; }
-
             .sp-crumb-sep { margin: 0 .3rem; color: var(--ob-border-strong); }
             .ob-header__eyebrow a { color: inherit; text-decoration: none; }
             .ob-header__eyebrow a:hover { color: var(--ob-primary); }
@@ -416,28 +414,6 @@
             .sp-grid .ob-card { margin-bottom: 1.25rem; }
             @media (max-width: 1199.98px) { .sp-grid { grid-template-columns: minmax(0, 1fr); } }
 
-            /* ----- Kartu ----- */
-            .sp-card__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--ob-border); }
-            .sp-card__title { display: flex; align-items: center; gap: .55rem; margin: 0; font-size: .95rem; font-weight: 700; color: var(--ob-text); }
-            .sp-card__title > i { width: 1.1rem; text-align: center; font-size: .85rem; color: var(--ob-primary); }
-            .sp-card__desc { margin: .2rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--ob-muted); }
-            .sp-card__body { padding: 1rem 1.25rem; }
-            .sp-count { display: inline-grid; place-items: center; min-width: 1.35rem; height: 1.35rem; padding: 0 .4rem; border-radius: 999px; background: var(--ob-border); color: var(--ob-text-2); font-size: .7rem; font-weight: 700; }
-
-            /* ----- Tabel di dalam kartu ----- */
-            .sp-table { width: 100%; margin: 0; border-collapse: collapse; font-size: .85rem; }
-            .sp-table th { padding: .65rem 1rem; background: var(--ob-surface-2); border-bottom: 1px solid var(--ob-border); font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ob-muted); white-space: nowrap; }
-            .sp-table td { padding: .8rem 1rem; border-bottom: 1px solid var(--ob-border); color: var(--ob-text-2); vertical-align: middle; }
-            .sp-table th:first-child, .sp-table td:first-child { padding-left: 1.25rem; }
-            .sp-table th:last-child, .sp-table td:last-child { padding-right: 1.25rem; }
-            .sp-table tbody tr:last-child td { border-bottom: 0; }
-            .sp-table tbody tr:hover td { background: var(--ob-surface-2); }
-            .sp-row-inactive { opacity: .6; }
-
-            .sp-cell-stack { display: flex; flex-direction: column; align-items: flex-start; gap: .2rem; }
-            .sp-cell-stack--end { align-items: flex-end; }
-            .sp-strong { font-weight: 600; color: var(--ob-text); }
-            .sp-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
             .ob-page .sp-badge-inline { margin-left: .35rem; vertical-align: 1px; }
             .ob-page .sp-badge-inline::before { display: none; }
 
@@ -447,13 +423,6 @@
             .sp-trend--up { background: var(--ob-danger-soft); color: var(--ob-danger); }
             .sp-trend--down { background: var(--ob-success-soft); color: var(--ob-success); }
             .sp-trend--flat { background: var(--ob-surface-2); color: var(--ob-muted); border: 1px solid var(--ob-border); }
-
-            /* ----- Keadaan kosong ----- */
-            .sp-empty { display: flex; flex-direction: column; align-items: center; gap: .15rem; padding: 2rem 1.25rem; text-align: center; }
-            .sp-empty__icon { display: inline-grid; place-items: center; width: 44px; height: 44px; margin-bottom: .5rem; border-radius: 12px; background: var(--ob-surface-2); border: 1px solid var(--ob-border); color: var(--ob-muted); }
-            .sp-empty__title { margin: 0; font-size: .9rem; font-weight: 600; color: var(--ob-text); }
-            .sp-empty__text { margin: 0; max-width: 40ch; font-size: .8rem; line-height: 1.5; color: var(--ob-muted); }
-            .sp-side-empty { margin: 0; padding: 1rem 1.25rem; font-size: .8rem; color: var(--ob-muted); }
 
             /* ----- Kolom samping ----- */
             .sp-dl { margin: 0; }
