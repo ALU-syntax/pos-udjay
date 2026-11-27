@@ -14,6 +14,22 @@ use App\Models\InventoryRawMaterialStockBalance;
 
 class InventoryController extends Controller
 {
+    /**
+     * Method di luar nama standar (index, show, create, store, edit, update, destroy)
+     * ikut dicek HasPermission: izin "<aksi> <url menu>".
+     */
+    public function __construct()
+    {
+        $this->abilities += [
+            'detail' => 'read',
+            'createStockBalance' => 'create',
+            'storeStockBalance' => 'create',
+            'editStockBalance' => 'update',
+            'updateStockBalance' => 'update',
+            'destroyStockBalance' => 'delete',
+        ];
+    }
+
     public function index(InventoryDataTable $datatable)
     {
         return $datatable->render('layouts.inventory.index', [

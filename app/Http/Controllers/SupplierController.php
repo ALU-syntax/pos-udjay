@@ -16,6 +16,22 @@ use Illuminate\Validation\ValidationException;
 
 class SupplierController extends Controller
 {
+    /**
+     * Method di luar nama standar (index, show, create, store, edit, update, destroy)
+     * ikut dicek HasPermission: izin "<aksi> <url menu>".
+     */
+    public function __construct()
+    {
+        // Bahan baku supplier dikelola dari halaman detail supplier: termasuk "update supplier"
+        $this->abilities += [
+            'createRawMaterial' => 'update',
+            'storeRawMaterial' => 'update',
+            'editRawMaterial' => 'update',
+            'updateRawMaterial' => 'update',
+            'destroyRawMaterial' => 'update',
+        ];
+    }
+
     public function index(SupplierDataTable $datatable)
     {
         $stats = [

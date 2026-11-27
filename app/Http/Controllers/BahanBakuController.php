@@ -11,6 +11,17 @@ use App\Models\Satuan;
 
 class BahanBakuController extends Controller
 {
+    /**
+     * Method di luar nama standar (index, show, create, store, edit, update, destroy)
+     * ikut dicek HasPermission: izin "<aksi> <url menu>".
+     */
+    public function __construct()
+    {
+        $this->abilities += [
+            'detail' => 'read',
+        ];
+    }
+
     public function index(RawMaterialsDataTable $datatable)
     {
         return $datatable->render('layouts.bahan_baku.index', [

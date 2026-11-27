@@ -17,6 +17,20 @@ use Illuminate\Validation\ValidationException;
 
 class RequestOrderController extends Controller
 {
+    /**
+     * Method di luar nama standar (index, show, create, store, edit, update, destroy)
+     * ikut dicek HasPermission: izin "<aksi> <url menu>".
+     */
+    public function __construct()
+    {
+        // Ajukan & setujui mengubah status request: termasuk "update request order"
+        $this->abilities += [
+            'detail' => 'read',
+            'submit' => 'update',
+            'approve' => 'update',
+        ];
+    }
+
     public function index(RequestOrderDataTable $datatable)
     {
         return $datatable->render('layouts.request_order.index', [

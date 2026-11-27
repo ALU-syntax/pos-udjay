@@ -20,6 +20,18 @@ use Illuminate\Validation\ValidationException;
 
 class ProcurementPlanController extends Controller
 {
+    /**
+     * Method di luar nama standar (index, show, create, store, edit, update, destroy)
+     * ikut dicek HasPermission: izin "<aksi> <url menu>".
+     */
+    public function __construct()
+    {
+        $this->abilities += [
+            'detail' => 'read',
+            'purchaseOrderDetail' => 'read',
+        ];
+    }
+
     public function index(ProcurementPlanDataTable $datatable)
     {
         return $datatable->render('layouts.procurement_plan.index', [

@@ -16,6 +16,8 @@ class WarehouseMenuSeeder extends Seeder
     {
         DB::transaction(function () {
             Cache::forget('menus');
+            // Daftar URL menu dipakai HasPermission untuk cek izin; tanpa ini menu baru tidak dicek sampai cache dibersihkan
+            Cache::forget('urlMenu');
 
             // Penambahan Library
             $mm = Menu::firstOrCreate(['url' => 'library'], ['name' => 'Library', 'category' => 'LIBRARY', 'icon' => 'fa-book']);

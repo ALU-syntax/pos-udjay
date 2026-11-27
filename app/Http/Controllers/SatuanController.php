@@ -13,6 +13,22 @@ use Illuminate\Validation\Rule;
 
 class SatuanController extends Controller
 {
+    /**
+     * Method di luar nama standar (index, show, create, store, edit, update, destroy)
+     * ikut dicek HasPermission: izin "<aksi> <url menu>".
+     */
+    public function __construct()
+    {
+        $this->abilities += [
+            'conversions' => 'read',
+            'createConversion' => 'create',
+            'storeConversion' => 'create',
+            'editConversion' => 'update',
+            'updateConversion' => 'update',
+            'destroyConversion' => 'delete',
+        ];
+    }
+
     public function index(SatuanDataTable $datatable, RawMaterialUnitConversionDataTable $conversionDataTable)
     {
         $stats = $this->stats();
