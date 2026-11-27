@@ -19,10 +19,8 @@ class InventoryController extends Controller
         return $datatable->render('layouts.inventory.index', [
             'stats' => $this->stats(),
             'types' => InventoryType::orderBy('name')->get(),
-            'parents' => Inventory::orderBy('name')->get(),
             'outlets' => Outlets::orderBy('name')->get(),
             'brands' => Brand::orderBy('name')->get(),
-            'latestInventory' => Inventory::latest('updated_at')->first(),
         ]);
     }
 
@@ -177,9 +175,8 @@ class InventoryController extends Controller
             'total' => Inventory::count(),
             'active' => Inventory::where('is_active', 1)->count(),
             'inactive' => Inventory::where('is_active', 0)->count(),
-            'assigned_outlet' => Inventory::whereNotNull('outlet_id')->count(),
-            'assigned_brand' => Inventory::whereNotNull('brand_id')->count(),
-            'stocked_locations' => InventoryRawMaterialStockBalance::distinct('inventory_id')->count('inventory_id'),
+            // Lokasi yang diarsipkan tidak ikut dihitung
+            'stocked_locations' => Inventory::has('stockBalances')->count(),
         ];
     }
 
