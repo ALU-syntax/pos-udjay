@@ -1,280 +1,316 @@
 @extends('layouts.app')
 @section('content')
-    <div class="main-content inventory-detail-page">
-        <div class="mb-4">
-            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-                <div>
-                    <h2 class="h4 mb-1 font-weight-bold">
-                        <i class="fa fa-warehouse me-2"></i>{{ $inventory->name }}
-                    </h2>
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <span class="badge bg-light text-dark border">{{ $inventory->code ?: 'Tanpa kode' }}</span>
-                        @if ($inventory->type)
-                            <span class="badge inventory-type-badge">{{ $inventory->type->name }}</span>
-                        @endif
-                        @if ($inventory->is_active)
-                            <span class="badge bg-success">Aktif</span>
-                        @else
-                            <span class="badge bg-secondary">Tidak Aktif</span>
-                        @endif
-                    </div>
-                    <p class="text-muted small mt-2 mb-0">Kelola bahan baku yang tersimpan di lokasi inventory ini secara real-time.</p>
+    @include('layouts.reports.partials.ui-styles')
+    @include('layouts.warehouse.partials.ui-styles')
+
+    @php
+        // Qty tanpa nol di belakang koma: 25000.00000 → "25.000", 0.50000 → "0,5"
+        $qty = fn ($value) => rtrim(rtrim(number_format((float) $value, 5, ',', '.'), '0'), ',');
+        $unitLabel = fn ($unit) => $unit?->symbol ?: $unit?->name ?: '';
+        $canCreate = auth()->user()->can('create warehouse/inventory');
+        $canUpdate = auth()->user()->can('update warehouse/inventory');
+        $canDelete = auth()->user()->can('delete warehouse/inventory');
+        $canRead = auth()->user()->can('read warehouse/inventory');
+
+        // Status per bahan, juga dipakai filter (data-status)
+        $statuses = [
+            'available' => ['label' => 'Tersedia', 'class' => 'badge-success'],
+            'partial' => ['label' => 'Sebagian Dipesan', 'class' => 'badge-warning'],
+            'reserved' => ['label' => 'Dipesan Semua', 'class' => 'badge-muted'],
+            'empty' => ['label' => 'Habis', 'class' => 'badge-danger'],
+        ];
+        $statusOf = function ($balance) {
+            $available = (float) $balance->qty_available;
+            $reserved = (float) $balance->qty_reserved;
+
+            return match (true) {
+                $available <= 0 => 'empty',
+                $reserved >= $available => 'reserved',
+                $reserved > 0 => 'partial',
+                default => 'available',
+            };
+        };
+    @endphp
+
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
+            <div>
+                <div class="ob-header__eyebrow">
+                    <a href="{{ route('warehouse/inventory') }}">Inventory</a><span class="wh-crumb-sep" aria-hidden="true">/</span>{{ $inventory->code ?: 'Tanpa kode' }}
                 </div>
-                <div class="d-flex gap-2">
-                    <a href="{{ route('warehouse/inventory') }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="fa fa-arrow-left me-1"></i>Kembali
-                    </a>
-                    @can('create warehouse/inventory')
-                        <a href="{{ route('warehouse/inventory/stock-balances/create', $inventory->id) }}" class="btn btn-primary btn-sm action">
-                            <i class="fa fa-plus me-1"></i>Tambah Bahan Baku
-                        </a>
-                    @endcan
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-warehouse"></i></span>
+                    {{ $inventory->name }}
+                </h1>
+                <div class="wh-profile-meta">
+                    <span class="badge {{ $inventory->is_active ? 'badge-success' : 'badge-muted' }}">{{ $inventory->is_active ? 'Aktif' : 'Nonaktif' }}</span>
+                    @if ($inventory->type)
+                        <span class="badge badge-primary">{{ $inventory->type->name }}</span>
+                    @endif
+                    @if ($inventory->parent)
+                        <span>
+                            Bagian dari
+                            @if ($canRead)
+                                <a href="{{ route('warehouse/inventory/detail', $inventory->parent->id) }}">{{ $inventory->parent->name }}</a>
+                            @else
+                                {{ $inventory->parent->name }}
+                            @endif
+                        </span>
+                    @endif
+                    <span>Terakhir diubah {{ $inventory->updated_at?->translatedFormat('d M Y, H:i') ?? '-' }}</span>
                 </div>
             </div>
+            @if ($canUpdate || $canCreate)
+                <div class="wh-actions">
+                    @if ($canUpdate)
+                        <a href="{{ route('warehouse/inventory/edit', $inventory->id) }}" class="btn ob-btn ob-btn-outline action">
+                            <i class="fas fa-pen" aria-hidden="true"></i> Edit Lokasi
+                        </a>
+                    @endif
+                    @if ($canCreate)
+                        <a href="{{ route('warehouse/inventory/stock-balances/create', $inventory->id) }}" class="btn ob-btn ob-btn-primary action">
+                            <i class="fas fa-plus" aria-hidden="true"></i> Tambah Bahan Baku
+                        </a>
+                    @endif
+                </div>
+            @endif
+        </div>
 
-            <div class="row g-3 mb-3">
-                <div class="col-md-6 col-xl-3">
-                    <div class="card border-start border-primary h-100 shadow-sm">
-                        <div class="card-body">
-                            <p class="text-muted small mb-1">Total Bahan</p>
-                            <h4 class="mb-0 fw-bold">{{ number_format($stockStats['total_materials'] ?? 0, 0, ',', '.') }}</h4>
-                        </div>
-                    </div>
+        {{-- Ringkasan: hitungan bahan, karena qty tiap bahan bersatuan berbeda --}}
+        <div class="ob-stats">
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--primary" aria-hidden="true"><i class="fas fa-cubes"></i></span>
+                <div>
+                    <p class="ob-stat__label">Jumlah Bahan</p>
+                    <p class="ob-stat__value">{{ number_format($stockStats['total_materials'], 0, ',', '.') }}</p>
+                    <p class="wh-stat-sub">tercatat di lokasi ini</p>
                 </div>
-                <div class="col-md-6 col-xl-3">
-                    <div class="card border-start border-success h-100 shadow-sm">
-                        <div class="card-body">
-                            <p class="text-muted small mb-1">Qty Available</p>
-                            <h4 class="mb-0 fw-bold text-success">{{ number_format($stockStats['total_available'] ?? 0, 2, ',', '.') }}</h4>
-                        </div>
-                    </div>
+            </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--danger" aria-hidden="true"><i class="fas fa-exclamation-circle"></i></span>
+                <div>
+                    <p class="ob-stat__label">Bahan Habis</p>
+                    <p class="ob-stat__value">{{ number_format($stockStats['empty_materials'], 0, ',', '.') }}</p>
+                    <p class="wh-stat-sub">stok tersedia 0</p>
                 </div>
-                <div class="col-md-6 col-xl-3">
-                    <div class="card border-start border-warning h-100 shadow-sm">
-                        <div class="card-body">
-                            <p class="text-muted small mb-1">Qty Reserved</p>
-                            <h4 class="mb-0 fw-bold text-warning">{{ number_format($stockStats['total_reserved'] ?? 0, 2, ',', '.') }}</h4>
-                        </div>
-                    </div>
+            </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--warning" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                <div>
+                    <p class="ob-stat__label">Bahan Dipesan</p>
+                    <p class="ob-stat__value">{{ number_format($stockStats['reserved_materials'], 0, ',', '.') }}</p>
+                    <p class="wh-stat-sub">sebagian stok sudah dialokasikan</p>
                 </div>
-                <div class="col-md-6 col-xl-3">
-                    <div class="card border-start border-info h-100 shadow-sm">
-                        <div class="card-body">
-                            <p class="text-muted small mb-1">Qty Free</p>
-                            <h4 class="mb-0 fw-bold text-info">{{ number_format($stockStats['total_free'] ?? 0, 2, ',', '.') }}</h4>
-                        </div>
-                    </div>
+            </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--success" aria-hidden="true"><i class="fas fa-sitemap"></i></span>
+                <div>
+                    <p class="ob-stat__label">Sub-lokasi</p>
+                    <p class="ob-stat__value">{{ number_format($inventory->children->count(), 0, ',', '.') }}</p>
+                    <p class="wh-stat-sub">lokasi di dalam lokasi ini</p>
                 </div>
             </div>
         </div>
 
-        <div class="row g-3">
-            <div class="col-xl-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white border-bottom">
-                        <h5 class="mb-0">Informasi Lokasi</h5>
+        <div class="wh-detail-grid">
+            {{-- Kolom utama --}}
+            <div>
+                <div class="ob-card">
+                    <div class="wh-card__head">
+                        <div>
+                            <h2 class="wh-card__title"><i class="fas fa-boxes" aria-hidden="true"></i> Stok Bahan Baku <span class="wh-count">{{ $stockBalances->count() }}</span></h2>
+                            <p class="wh-card__desc">Qty dalam satuan dasar bahan. Bebas = tersedia dikurangi yang sudah dipesan.</p>
+                        </div>
+                        @if ($stockBalances->isNotEmpty())
+                            <div class="inv-stock-filters">
+                                <input id="stock-search" type="search" class="form-control" placeholder="Cari bahan atau kode" aria-label="Cari bahan baku">
+                                <select id="stock-status" class="form-select" aria-label="Filter status stok">
+                                    <option value="">Semua status</option>
+                                    @foreach ($statuses as $key => $status)
+                                        <option value="{{ $key }}">{{ $status['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
                     </div>
-                    <div class="card-body">
-                        <dl class="row mb-0">
-                            <dt class="col-5 text-muted">Nama</dt>
-                            <dd class="col-7">{{ $inventory->name }}</dd>
+                    @if ($stockBalances->isEmpty())
+                        <div class="wh-empty">
+                            <span class="wh-empty__icon" aria-hidden="true"><i class="fas fa-boxes"></i></span>
+                            <p class="wh-empty__title">Belum ada stok</p>
+                            <p class="wh-empty__text">Tambahkan bahan baku yang disimpan di lokasi ini beserta qty tersedianya.</p>
+                        </div>
+                    @else
+                        <div class="ob-table-scroll">
+                            <table class="wh-table" id="inventory-stock-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Bahan Baku</th>
+                                        <th scope="col">Penyimpanan</th>
+                                        <th scope="col" class="text-end">Tersedia</th>
+                                        <th scope="col" class="text-end">Dipesan</th>
+                                        <th scope="col" class="text-end">Bebas</th>
+                                        <th scope="col">Status</th>
+                                        @if ($canUpdate || $canDelete)
+                                            <th scope="col"><span class="visually-hidden">Aksi</span></th>
+                                        @endif
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($stockBalances as $item)
+                                        @php
+                                            $material = $item->rawMaterial;
+                                            $materialName = $material?->name ?? 'Bahan #' . $item->raw_material_id;
+                                            $unit = $unitLabel($material?->baseUnit);
+                                            $statusKey = $statusOf($item);
+                                            $free = (float) $item->qty_available - (float) $item->qty_reserved;
+                                            $materialInactive = ! $material || $material->trashed() || ! $material->is_active;
+                                        @endphp
+                                        <tr class="{{ $materialInactive ? 'wh-row-inactive' : '' }}" data-status="{{ $statusKey }}"
+                                            data-search="{{ mb_strtolower($materialName . ' ' . ($material?->code ?? '')) }}">
+                                            <td>
+                                                <div class="wh-cell-stack">
+                                                    <span class="wh-strong">{{ $materialName }}</span>
+                                                    <span class="ob-cell-meta">
+                                                        {{ $material?->code ?: 'Tanpa kode' }} · {{ $material?->category?->name ?? 'Tanpa kategori' }}
+                                                    </span>
+                                                    @if (! $material || $material->trashed())
+                                                        <span class="ob-cell-meta">Bahan sudah diarsipkan</span>
+                                                    @elseif (! $material->is_active)
+                                                        <span class="ob-cell-meta">Bahan nonaktif</span>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                            <td>{{ $material?->storageType?->name ?? '-' }}</td>
+                                            <td class="text-end wh-num wh-strong">{{ $qty($item->qty_available) }} <span class="inv-unit">{{ $unit }}</span></td>
+                                            <td class="text-end wh-num">{{ (float) $item->qty_reserved > 0 ? $qty($item->qty_reserved) : '-' }}</td>
+                                            <td class="text-end wh-num">{{ $qty(max($free, 0)) }}</td>
+                                            <td><span class="badge {{ $statuses[$statusKey]['class'] }}">{{ $statuses[$statusKey]['label'] }}</span></td>
+                                            @if ($canUpdate || $canDelete)
+                                                <td>
+                                                    <div class="ob-row-actions" role="group" aria-label="Aksi stok {{ $materialName }}">
+                                                        @if ($canUpdate)
+                                                            <a href="{{ route('warehouse/inventory/stock-balances/edit', [$inventory->id, $item->id]) }}" class="ob-icon-btn ob-icon-btn--sm action"
+                                                                title="Edit stok" aria-label="Edit stok"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                                                        @endif
+                                                        @if ($canDelete)
+                                                            <a href="{{ route('warehouse/inventory/stock-balances/destroy', [$inventory->id, $item->id]) }}" class="ob-icon-btn ob-icon-btn--sm ob-icon-btn--danger delete-stock"
+                                                                data-name="{{ $materialName }}" title="Hapus stok" aria-label="Hapus stok"><i class="fas fa-trash" aria-hidden="true"></i></a>
+                                                        @endif
+                                                    </div>
+                                                </td>
+                                            @endif
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="wh-side-empty inv-filter-empty" hidden>Tidak ada bahan yang cocok dengan pencarian atau filter.</p>
+                    @endif
+                </div>
+            </div>
 
-                            <dt class="col-5 text-muted">Kode</dt>
-                            <dd class="col-7">{{ $inventory->code ?: '-' }}</dd>
-
-                            <dt class="col-5 text-muted">Tipe</dt>
-                            <dd class="col-7">{{ optional($inventory->type)->name ?: '-' }}</dd>
-
-                            <dt class="col-5 text-muted">Parent</dt>
-                            <dd class="col-7">{{ optional($inventory->parent)->name ?: '-' }}</dd>
-
-                            <dt class="col-5 text-muted">Outlet</dt>
-                            <dd class="col-7">{{ optional($inventory->outlet)->name ?: 'Semua outlet' }}</dd>
-
-                            <dt class="col-5 text-muted">Brand</dt>
-                            <dd class="col-7">{{ optional($inventory->brand)->name ?: 'Semua brand' }}</dd>
-
-                            <dt class="col-5 text-muted">Update Terakhir</dt>
-                            <dd class="col-7">{{ optional($inventory->updated_at)->format('d M Y H:i') }}</dd>
+            {{-- Kolom samping --}}
+            <aside>
+                <div class="ob-card">
+                    <div class="wh-card__head">
+                        <h2 class="wh-card__title"><i class="fas fa-id-card" aria-hidden="true"></i> Profil Lokasi</h2>
+                    </div>
+                    <div class="wh-card__body">
+                        <dl class="wh-dl">
+                            <div class="wh-dl__row"><dt>Kode</dt><dd>{{ $inventory->code }}</dd></div>
+                            <div class="wh-dl__row"><dt>Tipe</dt><dd>{{ $inventory->type?->name }}</dd></div>
+                            <div class="wh-dl__row"><dt>Bagian dari</dt><dd>{{ $inventory->parent?->name ?? 'Lokasi utama' }}</dd></div>
+                            <div class="wh-dl__row"><dt>Outlet</dt><dd>{{ $inventory->outlet?->name ?? 'Semua outlet' }}</dd></div>
+                            <div class="wh-dl__row"><dt>Brand</dt><dd>{{ $inventory->brand?->name ?? 'Semua brand' }}</dd></div>
+                            <div class="wh-dl__row"><dt>Dibuat</dt><dd>{{ $inventory->created_at?->translatedFormat('d M Y') }}</dd></div>
                         </dl>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-xl-8">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
-                        <div>
-                            <h5 class="mb-0">Stok Bahan Baku</h5>
-                            <small class="text-muted">Kelola stok tersedia dan stok teralokasi per bahan baku.</small>
-                        </div>
-                        <div class="d-flex flex-wrap gap-2">
-                            <input id="stockSearch" type="search" class="form-control form-control-sm stock-search-input"
-                                placeholder="Cari bahan baku">
-                            <select id="stockFilterStatus" class="form-select form-select-sm stock-status-select">
-                                <option value="">Semua Status</option>
-                                <option value="Ready">Ready</option>
-                                <option value="Partial Reserved">Partial Reserved</option>
-                                <option value="Fully Reserved">Fully Reserved</option>
-                                <option value="Out of Stock">Out of Stock</option>
-                            </select>
-                            @can('create warehouse/inventory')
-                                <a href="{{ route('warehouse/inventory/stock-balances/create', $inventory->id) }}"
-                                    class="btn btn-primary btn-sm action">
-                                    <i class="fa fa-plus me-1"></i> Bahan Baku
-                                </a>
-                            @endcan
-                        </div>
+                <div class="ob-card">
+                    <div class="wh-card__head">
+                        <h2 class="wh-card__title"><i class="fas fa-sitemap" aria-hidden="true"></i> Sub-lokasi <span class="wh-count">{{ $inventory->children->count() }}</span></h2>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive mt-4 mb-3">
-                            @if ($stockBalances->isNotEmpty())
-                                <table id="inventory-stock-table" class="table table-hover table-sm mb-0 align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>No</th>
-                                            <th>Bahan Baku</th>
-                                            <th>Kategori</th>
-                                            <th>Satuan</th>
-                                            <th>Penyimpanan</th>
-                                            <th class="text-end">Available</th>
-                                            <th class="text-end">Reserved</th>
-                                            <th class="text-end">Free</th>
-                                            <th>Status</th>
-                                            <th class="text-center"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($stockBalances as $index => $item)
-                                            @php
-                                                $available = (float) $item->qty_available;
-                                                $reserved = (float) $item->qty_reserved;
-                                                $free = $available - $reserved;
-                                                $status = 'Ready';
-                                                $statusClass = 'bg-success';
-
-                                                if ($available <= 0) {
-                                                    $status = 'Out of Stock';
-                                                    $statusClass = 'bg-danger';
-                                                } elseif ($reserved >= $available && $available > 0) {
-                                                    $status = 'Fully Reserved';
-                                                    $statusClass = 'bg-secondary';
-                                                } elseif ($reserved > 0) {
-                                                    $status = 'Partial Reserved';
-                                                    $statusClass = 'bg-warning text-dark';
-                                                }
-                                            @endphp
-                                            <tr>
-                                                <td>{{ $index + 1 }}</td>
-                                                <td>
-                                                    <div class="fw-semibold">{{ optional($item->rawMaterial)->name ?? '-' }}</div>
-                                                    <small class="text-muted">{{ optional($item->rawMaterial)->code ?? 'Tanpa kode' }}</small>
-                                                </td>
-                                                <td>{{ optional(optional($item->rawMaterial)->category)->name ?? '-' }}</td>
-                                                <td>{{ optional(optional($item->rawMaterial)->baseUnit)->symbol ?: optional(optional($item->rawMaterial)->baseUnit)->name ?: '-' }}</td>
-                                                <td>{{ optional(optional($item->rawMaterial)->storageType)->name ?? '-' }}</td>
-                                                <td class="text-end">{{ number_format($available, 2, ',', '.') }}</td>
-                                                <td class="text-end">{{ number_format($reserved, 2, ',', '.') }}</td>
-                                                <td class="text-end">{{ number_format($free, 2, ',', '.') }}</td>
-                                                <td>
-                                                    <span class="badge {{ $statusClass }}">{{ $status }}</span>
-                                                </td>
-                                                <td class="text-center">
-                                                    <div class="btn-group" role="group">
-                                                        @can('update warehouse/inventory')
-                                                            <a href="{{ route('warehouse/inventory/stock-balances/edit', [$inventory->id, $item->id]) }}"
-                                                                class="btn btn-sm btn-outline-primary action">
-                                                                Edit
-                                                            </a>
-                                                        @endcan
-                                                        @can('delete warehouse/inventory')
-                                                            <a href="{{ route('warehouse/inventory/stock-balances/destroy', [$inventory->id, $item->id]) }}"
-                                                                class="btn btn-sm btn-outline-danger delete-stock">
-                                                                Hapus
-                                                            </a>
-                                                        @endcan
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            @else
-                                <div class="p-4 text-center text-muted">
-                                    Belum ada bahan baku di lokasi ini. Tambahkan bahan baku pertama untuk memulai kontrol stok.
-                                </div>
-                            @endif
-                        </div>
-                    </div>
+                    @if ($inventory->children->isEmpty())
+                        <p class="wh-side-empty">Belum ada lokasi lain di dalam lokasi ini.</p>
+                    @else
+                        <ul class="wh-list">
+                            @foreach ($inventory->children as $child)
+                                <li class="wh-list__item {{ $child->is_active ? '' : 'wh-row-inactive' }}">
+                                    <div class="wh-list__top">
+                                        @if ($canRead)
+                                            <a href="{{ route('warehouse/inventory/detail', $child->id) }}" class="wh-strong inv-link">{{ $child->name }}</a>
+                                        @else
+                                            <span class="wh-strong">{{ $child->name }}</span>
+                                        @endif
+                                        @unless ($child->is_active)
+                                            <span class="badge badge-muted">Nonaktif</span>
+                                        @endunless
+                                    </div>
+                                    <span class="ob-cell-meta">{{ $child->code ?: 'Tanpa kode' }}{{ $child->type ? ' · ' . $child->type->name : '' }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                 </div>
-            </div>
+            </aside>
         </div>
     </div>
 
     @push('js')
         <script>
-            let stockTable;
-
-            $(function() {
-                handleAction(null, null, function() {
+            $(function () {
+                handleAction(null, null, function () {
                     location.reload();
                 });
 
-                if ($('#inventory-stock-table').length) {
-                    stockTable = $('#inventory-stock-table').DataTable({
-                        pageLength: 10,
-                        lengthChange: false,
-                        autoWidth: false,
-                        order: [
-                            [1, 'asc']
-                        ],
-                        dom: 'rtip',
-                        language: {
-                            emptyTable: 'Belum ada stok bahan baku.',
-                            info: 'Menampilkan _START_ - _END_ dari _TOTAL_ bahan',
-                            infoEmpty: 'Belum ada bahan',
-                            paginate: {
-                                previous: 'Sebelumnya',
-                                next: 'Berikutnya'
-                            }
-                        }
+                // Pencarian & filter status di sisi browser (semua baris sudah dimuat)
+                function filterStock() {
+                    const keyword = ($('#stock-search').val() || '').toLowerCase().trim();
+                    const status = $('#stock-status').val();
+                    let visible = 0;
+
+                    $('#inventory-stock-table tbody tr').each(function () {
+                        const row = $(this);
+                        const show = (!keyword || row.data('search').toString().includes(keyword))
+                            && (!status || row.data('status') === status);
+                        row.toggle(show);
+                        if (show) visible++;
                     });
 
-                    $('#stockSearch').on('keyup search', function() {
-                        stockTable.search(this.value).draw();
-                    });
-
-                    $('#stockFilterStatus').on('change', function() {
-                        stockTable.column(8).search(this.value).draw();
-                    });
+                    $('.inv-filter-empty').prop('hidden', visible > 0);
                 }
 
-                $('.main-content').on('click', '.delete-stock', function(e) {
-                    e.preventDefault();
-                    const url = this.href;
+                $('#stock-search').on('input search', filterStock);
+                $('#stock-status').on('change', filterStock);
+
+                $('.main-content').on('click', '.delete-stock', function (event) {
+                    event.preventDefault();
+                    const button = this;
 
                     Swal.fire({
                         title: 'Hapus stok bahan baku?',
-                        text: 'Data stok bahan baku pada lokasi ini akan dihapus.',
+                        text: 'Saldo ' + $(button).data('name') + ' di lokasi ini akan dihapus.',
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Ya, hapus'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            $.ajax({
-                                url: url,
-                                method: 'DELETE',
-                                success: function() {
-                                    showToast('success', 'Stok bahan baku dihapus');
-                                    location.reload();
-                                },
-                                error: function(err) {
-                                    showToast('error', err.responseJSON?.message || 'Gagal menghapus stok bahan baku');
-                                }
-                            });
-                        }
+                        confirmButtonText: 'Ya, hapus',
+                        cancelButtonText: 'Batal'
+                    }).then(function (result) {
+                        if (!result.isConfirmed) return;
+
+                        $.ajax({
+                            url: button.href,
+                            method: 'DELETE',
+                            data: { _token: @json(csrf_token()) },
+                            success: function (response) {
+                                showToast(response.status || 'success', response.message || 'Stok bahan baku dihapus');
+                                location.reload();
+                            },
+                            error: function (xhr) {
+                                showToast('error', xhr.responseJSON?.message || 'Gagal menghapus stok bahan baku');
+                            }
+                        });
                     });
                 });
             });
@@ -283,25 +319,19 @@
 
     @push('css')
         <style>
-            .inventory-detail-page .inventory-type-badge {
-                background: #edf3ff;
-                color: #254ead;
-                border: 1px solid rgba(37, 78, 173, 0.18);
-            }
+            .ob-page .ob-stats .ob-stat { margin-bottom: 0; }
 
-            .inventory-detail-page .stock-search-input {
-                min-width: 180px;
-            }
+            .inv-stock-filters { display: flex; flex-wrap: wrap; gap: .5rem; }
+            .inv-stock-filters .form-control,
+            .inv-stock-filters .form-select { height: 36px; padding-top: .35rem; padding-bottom: .35rem; font-size: .82rem; }
+            .inv-stock-filters .form-control { width: 200px; }
+            .inv-stock-filters .form-select { width: 170px; }
+            .inv-unit { font-size: .75rem; font-weight: 500; color: var(--ob-muted); }
+            .inv-link { text-decoration: none; }
+            .inv-link:hover { color: var(--ob-primary); text-decoration: underline; }
 
-            .inventory-detail-page .stock-status-select {
-                min-width: 170px;
-            }
-
-            @media (max-width: 768px) {
-                .inventory-detail-page .stock-search-input,
-                .inventory-detail-page .stock-status-select {
-                    min-width: 100%;
-                }
+            @media (max-width: 575.98px) {
+                .inv-stock-filters, .inv-stock-filters .form-control, .inv-stock-filters .form-select { width: 100%; }
             }
         </style>
     @endpush

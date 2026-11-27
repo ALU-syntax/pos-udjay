@@ -35,4 +35,30 @@
     .wh-empty__title { margin: 0; font-size: .9rem; font-weight: 600; color: var(--ob-text); }
     .wh-empty__text { margin: 0; max-width: 46ch; font-size: .8rem; line-height: 1.5; color: var(--ob-muted); }
     .wh-side-empty { margin: 0; padding: 1rem 1.25rem; font-size: .8rem; color: var(--ob-muted); }
+
+    /* ----- Halaman detail: header, ringkasan, grid utama + samping ----- */
+    .wh-crumb-sep { margin: 0 .3rem; color: var(--ob-border-strong); }
+    .ob-header__eyebrow a { color: inherit; text-decoration: none; }
+    .ob-header__eyebrow a:hover { color: var(--ob-primary); }
+    .wh-profile-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; margin-top: .45rem; font-size: .8rem; color: var(--ob-muted); }
+    .wh-profile-meta a { color: inherit; }
+    .wh-profile-meta a:hover { color: var(--ob-primary); }
+    .wh-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .wh-stat-sub { margin: .1rem 0 0; font-size: .76rem; color: var(--ob-muted); }
+    .wh-detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1.25rem; align-items: start; margin-top: 1.25rem; }
+    .wh-detail-grid .ob-card { margin-bottom: 1.25rem; }
+    @media (max-width: 1199.98px) { .wh-detail-grid { grid-template-columns: minmax(0, 1fr); } }
+
+    /* ----- Kolom samping: daftar info & daftar item ----- */
+    .wh-dl { margin: 0; }
+    .wh-dl__row { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: .75rem; padding: .6rem 0; border-top: 1px solid var(--ob-border); }
+    .wh-dl__row:first-child { border-top: 0; padding-top: 0; }
+    .wh-dl__row:last-child { padding-bottom: 0; }
+    .wh-dl dt { font-size: .8rem; font-weight: 500; color: var(--ob-muted); }
+    .wh-dl dd { margin: 0; font-size: .85rem; font-weight: 500; color: var(--ob-text); overflow-wrap: anywhere; }
+    .wh-dl dd:empty::before { content: "—"; font-weight: 400; color: var(--ob-muted); }
+    .wh-list { list-style: none; margin: 0; padding: 0; }
+    .wh-list__item { display: flex; flex-direction: column; gap: .2rem; padding: .8rem 1.25rem; border-top: 1px solid var(--ob-border); font-size: .82rem; }
+    .wh-list__item:first-child { border-top: 0; }
+    .wh-list__top { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
 </style>
