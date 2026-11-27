@@ -24,10 +24,13 @@
                             <i class="fas fa-random" aria-hidden="true"></i> Tambah Konversi
                         </a>
                     @else
-                        <button type="button" class="btn ob-btn ob-btn-outline" disabled
+                        {{-- Tombol disabled tidak menerima event mouse, jadi tooltip & cursor dipasang di pembungkusnya --}}
+                        <span class="sat-disabled-hint" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="bottom"
                             title="Butuh minimal 1 bahan baku dan 2 satuan">
-                            <i class="fas fa-random" aria-hidden="true"></i> Tambah Konversi
-                        </button>
+                            <button type="button" class="btn ob-btn ob-btn-outline" disabled>
+                                <i class="fas fa-random" aria-hidden="true"></i> Tambah Konversi
+                            </button>
+                        </span>
                     @endif
                     <a href="{{ route('library/satuan/create') }}" class="btn ob-btn ob-btn-primary action">
                         <i class="fas fa-plus" aria-hidden="true"></i> Tambah Satuan
@@ -149,6 +152,11 @@
                 const conversionTable = window.LaravelDataTables[conversionDatatable];
                 const tabKey = 'satuan-active-tab';
 
+                if (window.bootstrap && bootstrap.Tooltip) {
+                    document.querySelectorAll('.sat-disabled-hint[data-bs-toggle="tooltip"]')
+                        .forEach((element) => bootstrap.Tooltip.getOrCreateInstance(element));
+                }
+
                 function applyStats(data) {
                     if (!data) return;
 
@@ -237,6 +245,16 @@
                 display: flex;
                 flex-wrap: wrap;
                 gap: .5rem;
+            }
+
+            /* Cursor tanda tanya memberi isyarat ada tooltip alasan tombol nonaktif */
+            .sat-disabled-hint {
+                display: inline-block;
+                cursor: help;
+            }
+
+            .sat-disabled-hint .btn:disabled {
+                pointer-events: none;
             }
 
             .ob-page .sat-tabs {
