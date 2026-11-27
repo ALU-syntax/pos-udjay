@@ -2,11 +2,18 @@
 
 namespace Tests\Feature\Warehouse;
 
+use App\Enums\ProcurementMode;
+use App\Models\Inventory;
+use App\Models\InventoryRawMaterialStockBalance;
+use App\Models\InventoryType;
 use App\Models\RawMaterialCategories;
 use App\Models\RawMaterials;
+use App\Models\RawMaterialUnitConversions;
 use App\Models\RawStorageType;
 use App\Models\Role;
 use App\Models\Satuan;
+use App\Models\Supplier;
+use App\Models\SupplierRawMaterials;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Collection;
@@ -265,5 +272,134 @@ class BahanBakuIndexTest extends TestCase
             ->assertDontSee($otherInactiveCategory->name)
             ->assertSee($inactiveUnit->name . ' (Nonaktif)')
             ->assertSee('<option value="0" selected>Nonaktif</option>', false);
+    }
+
+    private function stock(RawMaterials $material, array $inventory, float $available, float $reserved = 0): Inventory
+    {
+        $type = InventoryType::query()->forceCreate(['name' => 'Uji Tipe ' . uniqid(), 'is_active' => true]);
+        $location = Inventory::query()->forceCreate(array_merge([
+            'name' => 'Uji Lokasi ' . uniqid(),
+            'inventory_type_id' => $type->id,
+            'is_active' => true,
+        ], $inventory));
+
+        InventoryRawMaterialStockBalance::query()->forceCreate([
+            'raw_material_id' => $material->id,
+            'inventory_id' => $location->id,
+            'qty_available' => $available,
+            'qty_reserved' => $reserved,
+        ]);
+
+        return $location;
+    }
+
+    private function supplierMaterial(RawMaterials $material, array $supplier = [], array $attributes = []): SupplierRawMaterials
+    {
+        $supplier = Supplier::create(array_merge([
+            'name' => 'Uji Supplier ' . uniqid(),
+            'procurement_mode' => ProcurementMode::OFFLINE->value,
+            'is_active' => true,
+        ], $supplier));
+
+        return SupplierRawMaterials::query()->forceCreate(array_merge([
+            'supplier_id' => $supplier->id,
+            'raw_material_id' => $material->id,
+            'purchase_unit_id' => $this->unit(['name' => 'Uji Karung ' . uniqid()])->id,
+            'minimum_order_qty' => 0,
+            'lead_time_days' => 2,
+            'current_price' => null,
+            'is_preferred' => false,
+            'is_active' => true,
+        ], $attributes));
+    }
+
+    public function test_detail_modal_shows_stock_suppliers_and_conversions(): void
+    {
+        $gram = $this->unit(['name' => 'Uji Gram ' . uniqid(), 'symbol' => 'ujgr']);
+        $sack = $this->unit(['name' => 'Uji Sak ' . uniqid(), 'symbol' => 'ujsak']);
+        $material = $this->rawMaterial(['name' => '<i>Uji Detail</i>', 'code' => 'UJ-DET-1', 'notes' => 'Catatan detail uji', 'base_unit_id' => $gram->id]);
+
+        $main = $this->stock($material, ['name' => 'Uji Gudang Utama', 'code' => 'GD-UJ'], 25000, 1500.5);
+        $closed = $this->stock($material, ['name' => 'Uji Gudang Tutup', 'is_active' => false], 100);
+
+        $preferred = $this->supplierMaterial($material, ['name' => '<b>Uji Supplier Utama</b>'], [
+            'supplier_material_name' => 'Terigu Cakra 25kg',
+            'supplier_sku' => 'CK-25',
+            'current_price' => 285000,
+            'lead_time_days' => 3,
+            'is_preferred' => true,
+        ]);
+        $inactiveSupplier = $this->supplierMaterial($material, ['name' => 'Uji Supplier Mati ' . uniqid(), 'is_active' => false]);
+        $trashedSupplier = $this->supplierMaterial($material, ['name' => 'Uji Supplier Hapus ' . uniqid()]);
+        $trashedSupplier->supplier->delete();
+        $trashedLink = $this->supplierMaterial($material, ['name' => 'Uji Link Hapus ' . uniqid()]);
+        $trashedLink->delete();
+
+        RawMaterialUnitConversions::query()->forceCreate([
+            'raw_material_id' => $material->id,
+            'from_unit_id' => $sack->id,
+            'to_unit_id' => $gram->id,
+            'multiplier' => 25000,
+            'notes' => 'Isi bersih per sak',
+        ]);
+
+        $response = $this->actingAs($this->admin(['read library/bahan-baku', 'read warehouse/supplier']))
+            ->get(route('library/bahan-baku/detail', $material->id))
+            ->assertOk()
+            ->assertSee('ob-modal', false)
+            ->assertSee('&lt;i&gt;Uji Detail&lt;/i&gt;', false)
+            // Judul modal tidak boleh ter-escape dua kali
+            ->assertDontSee('&amp;lt;i&amp;gt;', false)
+            ->assertSee('UJ-DET-1')
+            ->assertSee('Catatan detail uji')
+            // Total stok semua lokasi, dalam satuan dasar
+            ->assertSee('25.100')
+            ->assertSee('1.500,5')
+            ->assertSee('Uji Gudang Utama')
+            ->assertSee('GD-UJ')
+            ->assertSee('Lokasi nonaktif')
+            // Supplier: nama di-escape, alias, harga, lead time, utama, nonaktif
+            ->assertSee('&lt;b&gt;Uji Supplier Utama&lt;/b&gt;', false)
+            ->assertSee('Di supplier: Terigu Cakra 25kg · SKU CK-25')
+            ->assertSee('Rp 285.000')
+            ->assertSee('3 hari')
+            ->assertSee('Utama')
+            ->assertSee($inactiveSupplier->supplier->name)
+            ->assertSee('Supplier nonaktif')
+            ->assertSee(route('warehouse/supplier/show', $preferred->supplier_id))
+            // Supplier atau tautan yang sudah dihapus tidak tampil
+            ->assertDontSee($trashedSupplier->supplier->name)
+            ->assertDontSee($trashedLink->supplier->name)
+            // Konversi
+            ->assertSee('1 ujsak = 25.000 ujgr')
+            ->assertSee('Isi bersih per sak');
+
+        $this->assertNotNull($closed);
+    }
+
+    public function test_detail_modal_hides_supplier_link_without_permission(): void
+    {
+        $material = $this->rawMaterial();
+        $item = $this->supplierMaterial($material, ['name' => 'Uji Supplier Tanpa Izin ' . uniqid()]);
+
+        $this->actingAs($this->admin(['read library/bahan-baku']))
+            ->get(route('library/bahan-baku/detail', $material->id))
+            ->assertOk()
+            ->assertSee($item->supplier->name)
+            ->assertDontSee(route('warehouse/supplier/show', $item->supplier_id));
+    }
+
+    public function test_detail_modal_shows_empty_states(): void
+    {
+        $material = $this->rawMaterial();
+
+        $this->actingAs($this->admin(['read library/bahan-baku']))
+            ->get(route('library/bahan-baku/detail', $material->id))
+            ->assertOk()
+            ->assertSee('Belum ada stok')
+            ->assertSee('Belum ada supplier')
+            ->assertSee('Belum ada konversi')
+            ->assertSee('Tanpa kategori')
+            ->assertDontSee('<table class="wh-table">', false);
     }
 }

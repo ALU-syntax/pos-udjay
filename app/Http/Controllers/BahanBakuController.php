@@ -37,9 +37,31 @@ class BahanBakuController extends Controller
 
     public function detail(RawMaterials $rawMaterial)
     {
-        $rawMaterial->load(['category', 'baseUnit', 'storageType']);
+        $rawMaterial->load([
+            'category',
+            'baseUnit',
+            'storageType',
+            'stockBalances.inventory' => fn ($query) => $query->withTrashed(),
+            'supplierMaterials.supplier',
+            'supplierMaterials.purchaseUnit',
+            'unitConversions.fromUnit',
+            'unitConversions.toUnit',
+        ]);
 
-        return view('layouts.bahan_baku.detail-modal', compact('rawMaterial'));
+        // Stok terbanyak di atas; supplier utama lalu yang aktif di atas.
+        // Bahan di supplier yang sudah dihapus tidak ditampilkan.
+        $stockBalances = $rawMaterial->stockBalances->sortByDesc(fn ($balance) => (float) $balance->qty_available)->values();
+        $supplierMaterials = $rawMaterial->supplierMaterials
+            ->filter(fn ($item) => $item->supplier)
+            ->sortBy([
+                fn ($a, $b) => $b->is_preferred <=> $a->is_preferred,
+                fn ($a, $b) => ($b->is_active && $b->supplier->is_active) <=> ($a->is_active && $a->supplier->is_active),
+                fn ($a, $b) => strcasecmp($a->supplier->name, $b->supplier->name),
+            ])
+            ->values();
+        $unitConversions = $rawMaterial->unitConversions->sortBy(fn ($conversion) => $conversion->fromUnit?->name)->values();
+
+        return view('layouts.bahan_baku.detail-modal', compact('rawMaterial', 'stockBalances', 'supplierMaterials', 'unitConversions'));
     }
 
     public function edit(RawMaterials $rawMaterial)
