@@ -19,7 +19,7 @@ class RequestOrderDataTable extends DataTable
                 return view('layouts.request_order.action', compact('requestOrder'))->render();
             })
             ->editColumn('request_number', fn (RawMaterialRequests $requestOrder) => '<div class="ob-cell-stack">'
-                . '<span class="ob-item-cell__title">' . e($requestOrder->request_number) . '</span>'
+                . '<span class="ob-item-cell__title ro-nowrap">' . e($requestOrder->request_number) . '</span>'
                 . '<span class="ob-cell-meta">Dibuat ' . e($requestOrder->created_at?->translatedFormat('d M Y, H:i') ?? '-') . '</span>'
                 . '</div>')
             ->addColumn('route', fn (RawMaterialRequests $requestOrder) => '<div class="ob-cell-stack">'

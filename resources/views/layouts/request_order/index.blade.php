@@ -197,6 +197,11 @@
                 white-space: nowrap;
             }
 
+            /* Nomor request tidak terlipat di tengah pada layar sempit */
+            .ro-nowrap {
+                white-space: nowrap;
+            }
+
             .ro-date {
                 white-space: nowrap;
             }

@@ -88,7 +88,7 @@ class WarehouseMenuSeeder extends Seeder
             $sm = $mm->subMenus()->updateOrCreate(
                 ['url' => 'warehouse/procurement-plan'],
                 [
-                    'name' => 'Perencanaan Order',
+                    'name' => 'Procurement Plan',
                     'category' => $mm->category,
                 ]
             );
