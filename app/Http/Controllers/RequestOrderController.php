@@ -515,14 +515,18 @@ class RequestOrderController extends Controller
         ];
     }
 
+    /** Hitungan item, bukan jumlah qty: tiap bahan punya satuan dasar berbeda sehingga qty tidak bisa dijumlahkan. */
     private function requestOrderStats(RawMaterialRequests $requestOrder): array
     {
         $items = $requestOrder->items;
+        $approved = $items->filter(fn ($item) => (float) ($item->approved_base_qty ?? 0) > 0);
 
         return [
             'total_items' => $items->count(),
-            'total_approved_qty_base' => $items->sum(fn ($item) => (float) ($item->approved_base_qty ?? 0)),
-            'total_fulfilled_qty_base' => $items->sum(fn ($item) => (float) ($item->fulfilled_base_qty ?? 0)),
+            'approved_items' => $approved->count(),
+            'fulfilled_items' => $approved
+                ->filter(fn ($item) => (float) $item->fulfilled_base_qty >= (float) $item->approved_base_qty)
+                ->count(),
         ];
     }
 }
