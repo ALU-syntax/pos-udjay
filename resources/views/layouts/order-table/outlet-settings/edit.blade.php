@@ -5,7 +5,7 @@
 @endphp
 
 {{-- ob-page memberi token & gaya report ke modal (modal dirender di luar .main-content) --}}
-<x-modal addStyle="modal-lg ob-page ob-modal" title="{{ $creating ? 'Tambah Pengaturan Order' : 'Pengaturan Order - '.$outlet->name }}"
+<x-modal addStyle="modal-lg ob-page ob-modal" :title="$creating ? 'Tambah Pengaturan Order' : 'Pengaturan Order - ' . $outlet->name"
     update="{{ !$creating }}" action="{{ $creating ? route('order-table/outlet-settings/store') : route('order-table/outlet-settings/update', $setting->id) }}" method="POST">
     @if (!$creating)
         @method('put')

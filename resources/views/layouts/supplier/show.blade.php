@@ -17,20 +17,20 @@
         <div class="ob-header">
             <div>
                 <div class="ob-header__eyebrow">
-                    <a href="{{ route('warehouse/supplier') }}">Supplier</a><span class="sp-crumb-sep" aria-hidden="true">/</span>{{ $supplier->code ?: 'Tanpa kode' }}
+                    <a href="{{ route('warehouse/supplier') }}">Supplier</a><span class="wh-crumb-sep" aria-hidden="true">/</span>{{ $supplier->code ?: 'Tanpa kode' }}
                 </div>
                 <h1 class="ob-header__title">
                     <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-truck"></i></span>
                     {{ $supplier->name }}
                 </h1>
-                <div class="sp-profile-meta">
+                <div class="wh-profile-meta">
                     <span class="badge {{ $supplier->is_active ? 'badge-success' : 'badge-muted' }}">{{ $supplier->is_active ? 'Aktif' : 'Nonaktif' }}</span>
                     <span class="badge badge-primary">{{ $supplier->procurement_mode_label === 'Keduanya' ? 'Online & Offline' : $supplier->procurement_mode_label }}</span>
                     <span>Terakhir diubah {{ $supplier->updated_at?->translatedFormat('d M Y, H:i') ?? '-' }}</span>
                 </div>
             </div>
             @if ($canUpdate)
-                <div class="sp-actions">
+                <div class="wh-actions">
                     <a href="{{ route('warehouse/supplier/edit', $supplier->id) }}" class="btn ob-btn ob-btn-outline action">
                         <i class="fas fa-pen" aria-hidden="true"></i> Edit Supplier
                     </a>
@@ -48,7 +48,7 @@
                 <div>
                     <p class="ob-stat__label">Bahan Baku</p>
                     <p class="ob-stat__value">{{ number_format($stats['materials'], 0, ',', '.') }}</p>
-                    <p class="sp-stat-sub">{{ number_format($stats['active_materials'], 0, ',', '.') }} aktif</p>
+                    <p class="wh-stat-sub">{{ number_format($stats['active_materials'], 0, ',', '.') }} aktif</p>
                 </div>
             </div>
             <div class="ob-card ob-stat">
@@ -56,7 +56,7 @@
                 <div>
                     <p class="ob-stat__label">Supplier Utama</p>
                     <p class="ob-stat__value">{{ number_format($stats['preferred'], 0, ',', '.') }}</p>
-                    <p class="sp-stat-sub">bahan yang diprioritaskan</p>
+                    <p class="wh-stat-sub">bahan yang diprioritaskan</p>
                 </div>
             </div>
             <div class="ob-card ob-stat">
@@ -64,7 +64,7 @@
                 <div>
                     <p class="ob-stat__label">Rata-rata Lead Time</p>
                     <p class="ob-stat__value">{{ $stats['avg_lead_time'] !== null ? str_replace('.', ',', (string) $stats['avg_lead_time']) . ' hari' : '-' }}</p>
-                    <p class="sp-stat-sub">dari pesan sampai barang tiba</p>
+                    <p class="wh-stat-sub">dari pesan sampai barang tiba</p>
                 </div>
             </div>
             <div class="ob-card ob-stat">
@@ -72,12 +72,12 @@
                 <div>
                     <p class="ob-stat__label">Perubahan Harga</p>
                     <p class="ob-stat__value">{{ number_format($stats['price_changes'], 0, ',', '.') }}</p>
-                    <p class="sp-stat-sub">{{ $stats['last_price_change'] ? 'Terakhir ' . $stats['last_price_change']->translatedFormat('d M Y') : 'Belum ada' }}</p>
+                    <p class="wh-stat-sub">{{ $stats['last_price_change'] ? 'Terakhir ' . $stats['last_price_change']->translatedFormat('d M Y') : 'Belum ada' }}</p>
                 </div>
             </div>
         </div>
 
-        <div class="sp-grid">
+        <div class="wh-detail-grid">
             {{-- Kolom utama --}}
             <div>
                 <div class="ob-card">
@@ -94,7 +94,7 @@
                             <p class="wh-empty__text">Tambahkan bahan baku yang dijual supplier ini agar bisa dipilih di procurement plan.</p>
                         </div>
                     @else
-                        <div class="table-responsive">
+                        <div class="ob-table-scroll">
                             <table class="wh-table">
                                 <thead>
                                     <tr>
@@ -179,7 +179,7 @@
                             <p class="wh-empty__text">Histori muncul setelah harga bahan baku diisi.</p>
                         </div>
                     @else
-                        <div class="table-responsive">
+                        <div class="ob-table-scroll">
                             <table class="wh-table">
                                 <thead>
                                     <tr>
@@ -242,11 +242,11 @@
                         <h2 class="wh-card__title"><i class="fas fa-id-card" aria-hidden="true"></i> Profil Supplier</h2>
                     </div>
                     <div class="wh-card__body">
-                        <dl class="sp-dl">
-                            <div class="sp-dl__row"><dt>Kode</dt><dd>{{ $supplier->code }}</dd></div>
-                            <div class="sp-dl__row"><dt>Mode</dt><dd>{{ $supplier->procurement_mode_label === 'Keduanya' ? 'Online & Offline' : $supplier->procurement_mode_label }}</dd></div>
-                            <div class="sp-dl__row"><dt>Dibuat</dt><dd>{{ $supplier->created_at?->translatedFormat('d M Y') }}</dd></div>
-                            <div class="sp-dl__row"><dt>Catatan</dt><dd class="sp-notes">{{ $supplier->notes }}</dd></div>
+                        <dl class="wh-dl">
+                            <div class="wh-dl__row"><dt>Kode</dt><dd>{{ $supplier->code }}</dd></div>
+                            <div class="wh-dl__row"><dt>Mode</dt><dd>{{ $supplier->procurement_mode_label === 'Keduanya' ? 'Online & Offline' : $supplier->procurement_mode_label }}</dd></div>
+                            <div class="wh-dl__row"><dt>Dibuat</dt><dd>{{ $supplier->created_at?->translatedFormat('d M Y') }}</dd></div>
+                            <div class="wh-dl__row"><dt>Catatan</dt><dd class="sp-notes">{{ $supplier->notes }}</dd></div>
                         </dl>
                     </div>
                 </div>
@@ -258,10 +258,10 @@
                     @if ($supplier->contacts->isEmpty())
                         <p class="wh-side-empty">Belum ada kontak yang tercatat.</p>
                     @else
-                        <ul class="sp-list">
+                        <ul class="wh-list">
                             @foreach ($supplier->contacts as $contact)
-                                <li class="sp-list__item {{ $contact->is_active ? '' : 'wh-row-inactive' }}">
-                                    <div class="sp-list__top">
+                                <li class="wh-list__item {{ $contact->is_active ? '' : 'wh-row-inactive' }}">
+                                    <div class="wh-list__top">
                                         <span class="wh-strong">{{ $contact->name ?: 'Tanpa nama' }}</span>
                                         @if ($contact->is_primary)
                                             <span class="badge badge-primary">Utama</span>
@@ -295,13 +295,13 @@
                     @if ($supplier->orderChannels->isEmpty())
                         <p class="wh-side-empty">Belum ada tempat pemesanan yang tercatat.</p>
                     @else
-                        <ul class="sp-list">
+                        <ul class="wh-list">
                             @foreach ($supplier->orderChannels as $channel)
                                 @php
                                     $channelUrl = $channel->url && \Illuminate\Support\Str::startsWith(strtolower($channel->url), ['http://', 'https://']) ? $channel->url : null;
                                 @endphp
-                                <li class="sp-list__item {{ $channel->is_active ? '' : 'wh-row-inactive' }}">
-                                    <div class="sp-list__top">
+                                <li class="wh-list__item {{ $channel->is_active ? '' : 'wh-row-inactive' }}">
+                                    <div class="wh-list__top">
                                         <span class="wh-strong">{{ $channel->channel_name ?: ($channel->channelType?->name ?? 'Channel') }}</span>
                                         @if ($channel->is_primary)
                                             <span class="badge badge-primary">Utama</span>
@@ -400,19 +400,8 @@
 
     @push('css')
         <style>
-            .sp-crumb-sep { margin: 0 .3rem; color: var(--ob-border-strong); }
-            .ob-header__eyebrow a { color: inherit; text-decoration: none; }
-            .ob-header__eyebrow a:hover { color: var(--ob-primary); }
-
-            .sp-profile-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; margin-top: .45rem; font-size: .8rem; color: var(--ob-muted); }
-            .sp-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
-
+            /* Header, grid detail, daftar info & daftar item: kelas wh-* di layouts.warehouse.partials.ui-styles */
             .ob-page .ob-stats .ob-stat { margin-bottom: 0; }
-            .sp-stat-sub { margin: .1rem 0 0; font-size: .76rem; color: var(--ob-muted); }
-
-            .sp-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1.25rem; align-items: start; margin-top: 1.25rem; }
-            .sp-grid .ob-card { margin-bottom: 1.25rem; }
-            @media (max-width: 1199.98px) { .sp-grid { grid-template-columns: minmax(0, 1fr); } }
 
             .ob-page .sp-badge-inline { margin-left: .35rem; vertical-align: 1px; }
             .ob-page .sp-badge-inline::before { display: none; }
@@ -424,20 +413,9 @@
             .sp-trend--down { background: var(--ob-success-soft); color: var(--ob-success); }
             .sp-trend--flat { background: var(--ob-surface-2); color: var(--ob-muted); border: 1px solid var(--ob-border); }
 
-            /* ----- Kolom samping ----- */
-            .sp-dl { margin: 0; }
-            .sp-dl__row { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: .75rem; padding: .6rem 0; border-top: 1px solid var(--ob-border); }
-            .sp-dl__row:first-child { border-top: 0; padding-top: 0; }
-            .sp-dl__row:last-child { padding-bottom: 0; }
-            .sp-dl dt { font-size: .8rem; font-weight: 500; color: var(--ob-muted); }
-            .sp-dl dd { margin: 0; font-size: .85rem; font-weight: 500; color: var(--ob-text); overflow-wrap: anywhere; }
-            .sp-dl dd:empty::before { content: "—"; font-weight: 400; color: var(--ob-muted); }
+            /* ----- Kolom samping (khusus supplier) ----- */
             .sp-notes { white-space: pre-line; font-weight: 400 !important; }
 
-            .sp-list { list-style: none; margin: 0; padding: 0; }
-            .sp-list__item { display: flex; flex-direction: column; gap: .2rem; padding: .8rem 1.25rem; border-top: 1px solid var(--ob-border); font-size: .82rem; }
-            .sp-list__item:first-child { border-top: 0; }
-            .sp-list__top { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
             .sp-list__line { display: inline-flex; align-items: baseline; gap: .45rem; color: var(--ob-text-2); overflow-wrap: anywhere; text-decoration: none; }
             .sp-list__line i { width: .9rem; flex: none; text-align: center; font-size: .75rem; color: var(--ob-muted); }
             a.sp-list__line { color: var(--ob-primary); font-weight: 600; }

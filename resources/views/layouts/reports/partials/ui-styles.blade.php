@@ -271,8 +271,11 @@
     }
 
     /* Wrapper tabel dari opsi dom DataTable: hanya tabel yang scroll horizontal,
-       show entries / search / pagination tetap di tempat */
+       show entries / search / pagination tetap di tempat.
+       position: relative agar elemen absolute di dalam tabel (mis. .visually-hidden
+       di kolom Aksi) ikut terpotong, bukan melebarkan halaman di layar sempit */
     .ob-page .ob-table-scroll {
+        position: relative;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }

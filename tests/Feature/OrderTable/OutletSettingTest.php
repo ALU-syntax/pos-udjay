@@ -114,6 +114,19 @@ class OutletSettingTest extends OrderTableTestCase
         $this->assertStringContainsString(route('order-table/outlet-settings/toggle', $setting->id), $row['action']);
     }
 
+    public function test_edit_modal_title_escapes_outlet_name_once(): void
+    {
+        $outlet = $this->outlet('Kopi & Teh <Kemang>');
+        $user = $this->userFor($outlet, ['update order-table/outlet-settings']);
+        $setting = $this->setting($outlet);
+
+        $this->actingAs($user)->get(route('order-table/outlet-settings/edit', $setting->id))
+            ->assertOk()
+            ->assertSee('Pengaturan Order - Order Table Outlet Kopi &amp; Teh &lt;Kemang&gt;', false)
+            ->assertDontSee('&amp;amp;', false)
+            ->assertDontSee('&amp;lt;', false);
+    }
+
     public function test_global_public_url_can_be_updated_and_is_audited(): void
     {
         $outlet = $this->outlet('Public Url');
