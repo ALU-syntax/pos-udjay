@@ -6,7 +6,9 @@ use App\Enums\ProcurementMode;
 use App\Models\Inventory;
 use App\Models\InventoryType;
 use App\Models\ProcurementPlans;
+use App\Models\InventoryRawMaterialStockBalance;
 use App\Models\RawMaterialRequestItems;
+use App\Models\RawMaterialUnitConversions;
 use App\Models\RawMaterialRequestStatus;
 use App\Models\RawMaterialRequests;
 use App\Models\RawMaterials;
@@ -95,6 +97,21 @@ class ProcurementPlanFormTest extends TestCase
         ]);
     }
 
+    private function conversion(RawMaterials $material, Satuan $from, Satuan $to, float $multiplier): void
+    {
+        RawMaterialUnitConversions::create(['raw_material_id' => $material->id, 'from_unit_id' => $from->id, 'to_unit_id' => $to->id, 'multiplier' => $multiplier]);
+    }
+
+    private function storePlan(Inventory $location, array $sources, array $suppliers)
+    {
+        return $this->actingAs($this->admin())->post(route('warehouse/procurement-plan/store'), [
+            'plan_number' => 'UJ-PP-' . uniqid(),
+            'planning_location_id' => $location->id,
+            'selected_sources' => $sources,
+            'supplier_raw_materials' => $suppliers,
+        ]);
+    }
+
     public function test_create_page_groups_approved_items_per_material_with_units_and_suppliers(): void
     {
         $gram = Satuan::create(['name' => 'Uji Gram', 'symbol' => 'ujg', 'is_active' => 1]);
@@ -104,6 +121,7 @@ class ProcurementPlanFormTest extends TestCase
         $this->approvedItem($material, $gram, 2500, $kitchen, 'UJ-RO-A-' . uniqid());
         $this->approvedItem($material, $gram, 1500, $this->location(), 'UJ-RO-B-' . uniqid());
         $this->supplierFor($material, 'Uji CV Pangan', 285000, true, $sack);
+        $this->conversion($material, $sack, $gram, 25000);
         $noSupplier = $this->material('Uji Ragi Instan', $gram);
         $this->approvedItem($noSupplier, $gram, 100, $kitchen, 'UJ-RO-C-' . uniqid());
 
@@ -143,6 +161,86 @@ class ProcurementPlanFormTest extends TestCase
         $response->assertRedirect(route('warehouse/procurement-plan/purchase-orders', $plan->id));
         $this->assertSame(1, $plan->items()->count());
         $this->assertSame(1, $plan->purchaseOrders()->count());
+    }
+
+    public function test_store_converts_shortage_to_purchase_unit_for_estimate_and_purchase_order(): void
+    {
+        $gram = Satuan::create(['name' => 'Uji Gram', 'symbol' => 'ujg', 'is_active' => 1]);
+        $sack = Satuan::create(['name' => 'Uji Karung', 'symbol' => 'ujkrg', 'is_active' => 1]);
+        $material = $this->material('Uji Tepung Konversi', $gram);
+        $location = $this->location();
+        // Butuh 32.500 g, stok bebas 2.500 g → kekurangan 30.000 g = 1,2 karung (1 karung = 25.000 g)
+        $item = $this->approvedItem($material, $gram, 32500, $location, 'UJ-RO-K-' . uniqid());
+        InventoryRawMaterialStockBalance::query()->forceCreate(['raw_material_id' => $material->id, 'inventory_id' => $location->id, 'qty_available' => 2500, 'qty_reserved' => 0]);
+        $supplierMaterial = $this->supplierFor($material, 'Uji CV Konversi', 285000, true, $sack);
+        $this->conversion($material, $sack, $gram, 25000);
+
+        $this->storePlan($location, [$item->id], [$material->id => $supplierMaterial->id])->assertRedirect();
+
+        $plan = ProcurementPlans::latest('id')->firstOrFail();
+        $planItem = $plan->items()->firstOrFail();
+        $this->assertEquals(30000, (float) $planItem->qty_to_purchase_base);
+        $this->assertEquals(285000, (float) $planItem->estimated_unit_price);
+        $this->assertEquals(342000, (float) $planItem->estimated_subtotal);
+
+        $poItem = $plan->purchaseOrders()->firstOrFail()->items()->firstOrFail();
+        $this->assertEquals(1.2, (float) $poItem->qty_ordered);
+        $this->assertSame($sack->id, (int) $poItem->unit_id);
+        $this->assertEquals(30000, (float) $poItem->qty_base_ordered);
+        $this->assertEquals(285000, (float) $poItem->unit_price);
+        $this->assertEquals(342000, (float) $poItem->subtotal);
+    }
+
+    public function test_store_uses_reverse_conversion_when_only_base_to_purchase_unit_exists(): void
+    {
+        $gram = Satuan::create(['name' => 'Uji Gram', 'symbol' => 'ujg', 'is_active' => 1]);
+        $kilo = Satuan::create(['name' => 'Uji Kilogram', 'symbol' => 'ujkg', 'is_active' => 1]);
+        $material = $this->material('Uji Gula Kebalikan', $gram);
+        $location = $this->location();
+        $item = $this->approvedItem($material, $gram, 2500, $location, 'UJ-RO-R-' . uniqid());
+        $supplierMaterial = $this->supplierFor($material, 'Uji Toko Gula', 16000, true, $kilo);
+        // Hanya ada konversi 1 g = 0,001 kg
+        $this->conversion($material, $gram, $kilo, 0.001);
+
+        $this->storePlan($location, [$item->id], [$material->id => $supplierMaterial->id])->assertRedirect();
+
+        $poItem = ProcurementPlans::latest('id')->firstOrFail()->purchaseOrders()->firstOrFail()->items()->firstOrFail();
+        $this->assertEquals(2.5, (float) $poItem->qty_ordered);
+        $this->assertEquals(40000, (float) $poItem->subtotal);
+    }
+
+    public function test_purchase_unit_without_conversion_cannot_be_used(): void
+    {
+        $gram = Satuan::create(['name' => 'Uji Gram', 'symbol' => 'ujg', 'is_active' => 1]);
+        $box = Satuan::create(['name' => 'Uji Dus', 'symbol' => 'ujdus', 'is_active' => 1]);
+        $material = $this->material('Uji Keju Tanpa Konversi', $gram);
+        $location = $this->location();
+        $item = $this->approvedItem($material, $gram, 1000, $location, 'UJ-RO-N-' . uniqid());
+        $supplierMaterial = $this->supplierFor($material, 'Uji Toko Keju', 90000, true, $box);
+        // Bahan lain dengan dua supplier: satu punya konversi, satu belum
+        $butter = $this->material('Uji Mentega Campuran', $gram);
+        $this->approvedItem($butter, $gram, 500, $location, 'UJ-RO-M-' . uniqid());
+        $this->supplierFor($butter, 'Uji Toko Mentega Dus', 70000, true, $box);
+        $this->supplierFor($butter, 'Uji Toko Mentega Gram', 90, false, $gram);
+
+        // Form: bahan tanpa opsi yang bisa dipakai tidak bisa dipilih; opsi tanpa konversi nonaktif
+        $this->actingAs($this->admin())
+            ->get(route('warehouse/procurement-plan/create'))
+            ->assertOk()
+            ->assertSee('Satuan beli belum punya konversi')
+            ->assertSee('Uji Toko Mentega Dus · Utama · belum ada konversi ujdus')
+            ->assertSee('Uji Toko Mentega Gram');
+
+        // Server tetap menolak bila dikirim langsung
+        $this->actingAs($this->admin())
+            ->from(route('warehouse/procurement-plan/create'))
+            ->post(route('warehouse/procurement-plan/store'), [
+                'planning_location_id' => $location->id,
+                'selected_sources' => [$item->id],
+                'supplier_raw_materials' => [$material->id => $supplierMaterial->id],
+            ])
+            ->assertRedirect(route('warehouse/procurement-plan/create'))
+            ->assertSessionHasErrors(["supplier_raw_materials.{$material->id}"]);
     }
 
     public function test_store_without_selection_returns_indonesian_error(): void

@@ -54,7 +54,7 @@
                 <option value="{{ $unit->id }}" @selected((string) old('purchase_unit_id', $item->purchase_unit_id) === (string) $unit->id)>{{ $unit->name }}</option>
             @endforeach
         </select>
-        <small class="text-muted">Satuan saat memesan ke supplier, mis. karung atau dus.</small>
+        <small class="text-muted">Satuan saat memesan ke supplier, mis. karung atau dus. Harus sudah punya konversi ke satuan dasar bahan.</small>
     </div>
     <div class="col-md-6 mb-3">
         <label class="form-label" for="current_price">Harga per Satuan Beli</label>

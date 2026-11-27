@@ -92,13 +92,14 @@ class ProcurementPlanController extends Controller
         $selectedItems = $sourceItems
             ->filter(fn (RawMaterialRequestItems $item) => $allocations->has($item->id))
             ->groupBy('raw_material_id');
-        $supplierRawMaterials = SupplierRawMaterials::with(['supplier', 'purchaseUnit'])
+        $supplierRawMaterials = SupplierRawMaterials::with(['supplier', 'purchaseUnit', 'rawMaterial.baseUnit'])
             ->whereIn('id', collect($request->input('supplier_raw_materials', []))->filter()->values())
             ->where('is_active', true)
             ->whereHas('supplier', fn ($supplier) => $supplier->where('is_active', true))
             ->get()
             ->keyBy('id');
         $selectedSupplierRawMaterials = collect();
+        $purchaseConversions = collect();
 
         foreach ($selectedItems as $rawMaterialId => $items) {
             $supplierRawMaterialId = (int) data_get($request->input('supplier_raw_materials', []), $rawMaterialId);
@@ -112,10 +113,26 @@ class ProcurementPlanController extends Controller
                 ]);
             }
 
+            // Harga per satuan beli, kebutuhan dalam satuan dasar: tanpa konversi nilai PO tidak bisa dihitung
+            $conversion = $supplierRawMaterial->rawMaterial?->conversionToBase((int) $supplierRawMaterial->purchase_unit_id);
+
+            if ($conversion === null) {
+                throw ValidationException::withMessages([
+                    "supplier_raw_materials.{$rawMaterialId}" => sprintf(
+                        'Satuan beli %s dari %s belum punya konversi ke %s untuk %s.',
+                        $supplierRawMaterial->purchaseUnit?->name ?? '-',
+                        $supplierRawMaterial->supplier?->name ?? 'supplier ini',
+                        $supplierRawMaterial->rawMaterial?->baseUnit?->name ?? 'satuan dasar',
+                        $supplierRawMaterial->rawMaterial?->name ?? 'bahan baku ini'
+                    ),
+                ]);
+            }
+
             $selectedSupplierRawMaterials->put((int) $rawMaterialId, $supplierRawMaterial);
+            $purchaseConversions->put((int) $rawMaterialId, $conversion);
         }
 
-        $procurementPlan = DB::transaction(function () use ($validated, $allocations, $selectedItems, $selectedSupplierRawMaterials) {
+        $procurementPlan = DB::transaction(function () use ($validated, $allocations, $selectedItems, $selectedSupplierRawMaterials, $purchaseConversions) {
             $procurementPlan = ProcurementPlans::create([
                 'plan_number' => $validated['plan_number'] ?: $this->nextPlanNumber(),
                 'planning_location_id' => $validated['planning_location_id'],
@@ -133,7 +150,9 @@ class ProcurementPlanController extends Controller
                 $shortageQty = max($requiredQty - $availableQty, 0);
                 $supplierRawMaterial = $selectedSupplierRawMaterials->get((int) $rawMaterialId);
                 $estimatedUnitPrice = $supplierRawMaterial->current_price !== null ? (float) $supplierRawMaterial->current_price : null;
-                $estimatedSubtotal = $estimatedUnitPrice !== null ? $shortageQty * $estimatedUnitPrice : null;
+                // Qty beli = kekurangan (satuan dasar) ÷ isi 1 satuan beli; tanpa pembulatan
+                $purchaseQty = $shortageQty / $purchaseConversions->get((int) $rawMaterialId);
+                $estimatedSubtotal = $estimatedUnitPrice !== null ? $purchaseQty * $estimatedUnitPrice : null;
 
                 $planItem = $procurementPlan->items()->create([
                     'raw_material_id' => $rawMaterialId,
@@ -181,6 +200,7 @@ class ProcurementPlanController extends Controller
             'items.sources.rawMaterialRequestItem.rawMaterial',
             'items.sources.rawMaterialRequestItem.rawMaterialRequest.requesterInventory',
             'items.sources.rawMaterialRequestItem.rawMaterialRequest.fulfillmentInventory',
+            'purchaseOrders.items.unit',
         ])->loadCount('purchaseOrders');
 
         return view('layouts.procurement_plan.show', [
@@ -300,7 +320,7 @@ class ProcurementPlanController extends Controller
 
     private function supplierOptionsByRawMaterial(Collection $rawMaterialIds): array
     {
-        return SupplierRawMaterials::with(['supplier', 'purchaseUnit'])
+        return SupplierRawMaterials::with(['supplier', 'purchaseUnit', 'rawMaterial'])
             ->whereIn('raw_material_id', $rawMaterialIds)
             ->where('is_active', true)
             ->whereHas('supplier', fn ($supplier) => $supplier->where('is_active', true))
@@ -318,6 +338,8 @@ class ProcurementPlanController extends Controller
                         'purchase_unit' => $supplierRawMaterial->purchaseUnit?->symbol ?: $supplierRawMaterial->purchaseUnit?->name,
                         'current_price' => $supplierRawMaterial->current_price !== null ? (float) $supplierRawMaterial->current_price : null,
                         'is_preferred' => (bool) $supplierRawMaterial->is_preferred,
+                        // Null = satuan beli belum punya konversi ke satuan dasar; opsi tidak bisa dipilih
+                        'conversion_to_base' => $supplierRawMaterial->rawMaterial?->conversionToBase((int) $supplierRawMaterial->purchase_unit_id),
                     ])
                     ->values()
                     ->all();
@@ -381,7 +403,7 @@ class ProcurementPlanController extends Controller
             return $procurementPlan->purchaseOrders()->with('items')->get();
         }
 
-        $procurementPlan->loadMissing(['items.rawMaterial', 'items.unit', 'items.supplier']);
+        $procurementPlan->loadMissing(['items.rawMaterial', 'items.unit', 'items.supplier', 'items.supplierRawMaterial.rawMaterial']);
 
         $itemsBySupplier = $procurementPlan->items
             ->filter(fn ($item) => $item->supplier_id && (float) $item->qty_to_purchase_base > 0)
@@ -413,17 +435,28 @@ class ProcurementPlanController extends Controller
             ]);
 
             foreach ($items as $item) {
-                $qtyToPurchase = round((float) $item->qty_to_purchase_base, 5);
+                $qtyBase = round((float) $item->qty_to_purchase_base, 5);
+                $supplierRawMaterial = $item->supplierRawMaterial;
+                $conversion = $supplierRawMaterial?->rawMaterial?->conversionToBase((int) $supplierRawMaterial->purchase_unit_id);
+
+                if (!$supplierRawMaterial || $conversion === null) {
+                    throw ValidationException::withMessages([
+                        'supplier_raw_materials' => 'Satuan beli ' . ($item->rawMaterial?->name ?? 'bahan baku') . ' belum punya konversi ke satuan dasar.',
+                    ]);
+                }
+
+                // PO memakai satuan beli (untuk supplier) dan tetap menyimpan qty satuan dasar (untuk stok)
+                $qtyOrdered = $qtyBase / $conversion;
                 $unitPrice = $item->estimated_unit_price !== null ? (float) $item->estimated_unit_price : null;
                 $subtotal = $item->estimated_subtotal !== null
                     ? (float) $item->estimated_subtotal
-                    : ($unitPrice !== null ? $qtyToPurchase * $unitPrice : null);
+                    : ($unitPrice !== null ? $qtyOrdered * $unitPrice : null);
 
                 $purchaseOrder->items()->create([
                     'raw_material_id' => $item->raw_material_id,
-                    'qty_ordered' => $qtyToPurchase,
-                    'unit_id' => $item->unit_id,
-                    'qty_base_ordered' => $qtyToPurchase,
+                    'qty_ordered' => round($qtyOrdered, 5),
+                    'unit_id' => $supplierRawMaterial->purchase_unit_id,
+                    'qty_base_ordered' => $qtyBase,
                     'qty_base_received' => 0,
                     'qty_base_rejected' => 0,
                     'qty_base_cancelled' => 0,

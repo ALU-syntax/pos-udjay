@@ -46,6 +46,34 @@ class RawMaterials extends Model
         return $this->hasMany(RawMaterialUnitConversions::class, 'raw_material_id');
     }
 
+    /**
+     * Jumlah satuan dasar dalam 1 satuan $unitId (mis. 1 karung = 25.000 g).
+     * Memakai konversi satuan → dasar, atau kebalikannya (dasar → satuan).
+     * Null bila belum ada konversi yang valid.
+     */
+    public function conversionToBase(int $unitId): ?float
+    {
+        if ((int) $this->base_unit_id === $unitId) {
+            return 1.0;
+        }
+
+        $direct = (float) $this->unitConversions()
+            ->where('from_unit_id', $unitId)
+            ->where('to_unit_id', $this->base_unit_id)
+            ->value('multiplier');
+
+        if ($direct > 0) {
+            return $direct;
+        }
+
+        $reverse = (float) $this->unitConversions()
+            ->where('from_unit_id', $this->base_unit_id)
+            ->where('to_unit_id', $unitId)
+            ->value('multiplier');
+
+        return $reverse > 0 ? 1 / $reverse : null;
+    }
+
     public function purchaseOrderItems()
     {
         return $this->hasMany(PurchaseOrdersItems::class, 'raw_material_id');

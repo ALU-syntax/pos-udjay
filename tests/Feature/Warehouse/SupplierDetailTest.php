@@ -4,6 +4,7 @@ namespace Tests\Feature\Warehouse;
 
 use App\Enums\ProcurementMode;
 use App\Models\RawMaterialCategories;
+use App\Models\RawMaterialUnitConversions;
 use App\Models\RawMaterials;
 use App\Models\RawStorageType;
 use App\Models\Role;
@@ -72,6 +73,29 @@ class SupplierDetailTest extends TestCase
             'is_preferred' => false,
             'is_active' => true,
         ], $attributes));
+    }
+
+    private function conversion(RawMaterials $material, int $fromUnitId, int $toUnitId, float $multiplier): void
+    {
+        RawMaterialUnitConversions::create([
+            'raw_material_id' => $material->id,
+            'from_unit_id' => $fromUnitId,
+            'to_unit_id' => $toUnitId,
+            'multiplier' => $multiplier,
+        ]);
+    }
+
+    private function storeMaterial(Supplier $supplier, RawMaterials $material, int $purchaseUnitId)
+    {
+        return $this->actingAs($this->admin(['update warehouse/supplier']))
+            ->postJson(route('warehouse/supplier/raw-materials/store', $supplier->id), [
+                'raw_material_id' => $material->id,
+                'purchase_unit_id' => $purchaseUnitId,
+                'lead_time_days' => 1,
+                'current_price' => 285000,
+                'is_preferred' => 1,
+                'is_active' => 1,
+            ]);
     }
 
     private function history(SupplierRawMaterials $item, float $price, string $date, User $by): void
@@ -171,7 +195,9 @@ class SupplierDetailTest extends TestCase
     {
         $admin = $this->admin(['update warehouse/supplier']);
         $supplier = $this->supplier();
-        $item = $this->supplierMaterial($supplier, $this->rawMaterial('Uji Mentega Harga'), ['current_price' => 50000]);
+        $material = $this->rawMaterial('Uji Mentega Harga');
+        $item = $this->supplierMaterial($supplier, $material, ['current_price' => 50000]);
+        $this->conversion($material, $item->purchase_unit_id, $material->base_unit_id, 25000);
 
         $this->actingAs($admin)
             ->putJson(route('warehouse/supplier/raw-materials/update', [$supplier->id, $item->id]), [
@@ -190,6 +216,43 @@ class SupplierDetailTest extends TestCase
             'updated_by' => $admin->id,
             'notes' => 'Harga sebelumnya Rp 50.000,00',
         ]);
+    }
+
+    public function test_purchase_unit_without_conversion_to_base_is_rejected(): void
+    {
+        $material = $this->rawMaterial('Uji Tepung Konversi');
+        $sack = $this->unit('Karung');
+        $supplier = $this->supplier();
+
+        $this->storeMaterial($supplier, $material, $sack->id)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['purchase_unit_id'])
+            ->assertJsonPath('errors.purchase_unit_id.0', fn ($message) => str_contains($message, $sack->name . ' belum punya konversi ke')
+                && str_contains($message, 'Uji Tepung Konversi'));
+
+        $this->assertDatabaseMissing('supplier_raw_materials', ['supplier_id' => $supplier->id]);
+    }
+
+    public function test_purchase_unit_accepted_with_conversion_in_either_direction_or_as_base_unit(): void
+    {
+        // Konversi satuan beli → dasar (1 karung = 25.000 g)
+        $flour = $this->rawMaterial('Uji Tepung Langsung');
+        $sack = $this->unit('Karung');
+        $this->conversion($flour, $sack->id, $flour->base_unit_id, 25000);
+        $this->storeMaterial($this->supplier(), $flour, $sack->id)->assertOk();
+
+        // Konversi kebalikannya (1 g = 0,001 kg)
+        $sugar = $this->rawMaterial('Uji Gula Kebalikan');
+        $kilo = $this->unit('Kilogram');
+        $this->conversion($sugar, $sugar->base_unit_id, $kilo->id, 0.001);
+        $this->storeMaterial($this->supplier(), $sugar, $kilo->id)->assertOk();
+
+        // Satuan beli = satuan dasar
+        $salt = $this->rawMaterial('Uji Garam Dasar');
+        $this->storeMaterial($this->supplier(), $salt, $salt->base_unit_id)->assertOk();
+
+        $this->assertSame(1000.0, $sugar->conversionToBase($kilo->id));
+        $this->assertSame(25000.0, $flour->conversionToBase($sack->id));
     }
 
     public function test_edit_modal_keeps_inactive_raw_material_selected(): void

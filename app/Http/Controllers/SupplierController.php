@@ -12,6 +12,7 @@ use App\Models\SupplierRawMaterials;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class SupplierController extends Controller
 {
@@ -180,6 +181,8 @@ class SupplierController extends Controller
             'raw_material_id' => [$uniqueRule],
         ]);
 
+        $this->ensurePurchaseUnitConvertible($validated);
+
         $currentPrice = $validated['current_price'] ?? null;
 
         $supplierRawMaterial = SupplierRawMaterials::create(array_merge($validated, [
@@ -228,6 +231,8 @@ class SupplierController extends Controller
         $request->validate([
             'raw_material_id' => [$uniqueRule],
         ]);
+
+        $this->ensurePurchaseUnitConvertible($validated);
 
         $oldPrice = $supplierRawMaterial->current_price;
         $currentPrice = $validated['current_price'] ?? null;
@@ -292,6 +297,30 @@ class SupplierController extends Controller
                 ->when($currentRawMaterialId, fn ($query) => $query->orWhere('id', $currentRawMaterialId)))
             ->orderBy('name')
             ->get();
+    }
+
+    /**
+     * Harga disimpan per satuan beli; qty kebutuhan dalam satuan dasar. Tanpa konversi
+     * satuan beli → satuan dasar, qty beli dan nilai PO tidak bisa dihitung.
+     */
+    private function ensurePurchaseUnitConvertible(array $validated): void
+    {
+        $rawMaterial = RawMaterials::with('baseUnit')->findOrFail($validated['raw_material_id']);
+
+        if ($rawMaterial->conversionToBase((int) $validated['purchase_unit_id']) !== null) {
+            return;
+        }
+
+        $purchaseUnit = Satuan::find($validated['purchase_unit_id']);
+
+        throw ValidationException::withMessages([
+            'purchase_unit_id' => sprintf(
+                '%s belum punya konversi ke %s untuk %s. Tambahkan dulu di Library → Satuan, tab Konversi per Bahan Baku.',
+                $purchaseUnit?->name ?? 'Satuan ini',
+                $rawMaterial->baseUnit?->name ?? 'satuan dasar',
+                $rawMaterial->name
+            ),
+        ]);
     }
 
     private function ensureBelongsToSupplier(Supplier $supplier, SupplierRawMaterials $supplierRawMaterial): void

@@ -138,15 +138,17 @@
                                     $groupSourceIds = $group->items->pluck('id')->map(fn ($id) => (int) $id)->all();
                                     $hasSelected = count(array_intersect($groupSourceIds, $selectedSources)) > 0;
                                     $supplierOptions = $supplierOptionsByRawMaterial[$groupId] ?? [];
-                                    $defaultSupplierId = collect($supplierOptions)->firstWhere('is_preferred', true)['id'] ?? ($supplierOptions[0]['id'] ?? null);
+                                    // Hanya opsi yang satuan belinya punya konversi ke satuan dasar yang bisa dipakai
+                                    $usableOptions = collect($supplierOptions)->filter(fn ($option) => $option['conversion_to_base'] !== null);
+                                    $defaultSupplierId = $usableOptions->firstWhere('is_preferred', true)['id'] ?? ($usableOptions->first()['id'] ?? null);
                                     $supplierField = 'supplier_raw_materials.' . $groupId;
                                     $selectedSupplierId = (int) old($supplierField, $defaultSupplierId);
                                     $selectedSupplier = collect($supplierOptions)->firstWhere('id', $selectedSupplierId);
                                     $unit = $group->base_satuan_name ?: ($group->raw_material?->baseUnit?->symbol ?: $group->raw_material?->baseUnit?->name);
                                     $groupSearch = mb_strtolower(($group->raw_material?->name ?? '') . ' ' . ($group->raw_material?->code ?? ''));
                                     $isOpen = $hasSelected || $errors->has($supplierField);
-                                    // Bahan tanpa supplier aktif tidak bisa dipilih: PO tidak bisa dibuat
-                                    $noSupplier = empty($supplierOptions);
+                                    // Bahan tanpa supplier aktif (atau tanpa konversi satuan beli) tidak bisa dipilih: PO tidak bisa dibuat
+                                    $noSupplier = $usableOptions->isEmpty();
                                 @endphp
                                 <tbody class="pp-group {{ $isOpen ? 'is-open' : '' }}" data-group-id="{{ $groupId }}" data-search="{{ $groupSearch }}">
                                     <tr class="pp-group-row">
@@ -175,19 +177,24 @@
                                             </div>
                                         </td>
                                         <td class="pp-col-supplier">
-                                            @if ($noSupplier)
+                                            @if (empty($supplierOptions))
                                                 <select name="supplier_raw_materials[{{ $groupId }}]" class="form-select supplier-select" data-group-id="{{ $groupId }}" disabled>
                                                     <option value="">Belum ada supplier</option>
                                                 </select>
                                                 <small class="pp-warn">Belum bisa dipilih. Tambahkan bahan ini ke salah satu supplier dulu.</small>
+                                            @elseif ($noSupplier)
+                                                <select name="supplier_raw_materials[{{ $groupId }}]" class="form-select supplier-select" data-group-id="{{ $groupId }}" disabled>
+                                                    <option value="">Satuan beli belum punya konversi</option>
+                                                </select>
+                                                <small class="pp-warn">Belum bisa dipilih. Tambahkan konversi satuan beli ke {{ $unit }} di Library → Satuan.</small>
                                             @else
                                                 <select name="supplier_raw_materials[{{ $groupId }}]" data-group-id="{{ $groupId }}"
                                                     class="form-select supplier-select @error($supplierField) is-invalid @enderror"
                                                     aria-label="Supplier {{ $group->raw_material?->name }}">
                                                     @foreach ($supplierOptions as $option)
                                                         <option value="{{ $option['id'] }}" data-price="{{ $option['current_price'] }}" data-unit="{{ $option['purchase_unit'] }}"
-                                                            @selected((int) $option['id'] === $selectedSupplierId)>
-                                                            {{ $option['supplier_name'] }}{{ $option['is_preferred'] ? ' · Utama' : '' }}
+                                                            @selected((int) $option['id'] === $selectedSupplierId) @disabled($option['conversion_to_base'] === null)>
+                                                            {{ $option['supplier_name'] }}{{ $option['is_preferred'] ? ' · Utama' : '' }}{{ $option['conversion_to_base'] === null ? ' · belum ada konversi ' . $option['purchase_unit'] : '' }}
                                                         </option>
                                                     @endforeach
                                                 </select>

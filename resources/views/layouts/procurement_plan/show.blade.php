@@ -15,6 +15,9 @@
         $toPurchaseCount = $items->filter(fn ($item) => (float) $item->qty_to_purchase_base > 0)->count();
         $hasPrice = $items->contains(fn ($item) => $item->estimated_subtotal !== null);
         $canRead = auth()->user()->can('read warehouse/procurement-plan');
+        // Qty dalam satuan beli diambil dari snapshot item PO (satu PO per supplier, satu baris per bahan)
+        $poItemByKey = $procurementPlan->purchaseOrders->flatMap(fn ($purchaseOrder) => $purchaseOrder->items
+            ->mapWithKeys(fn ($poItem) => [$purchaseOrder->supplier_id . '-' . $poItem->raw_material_id => $poItem]));
     @endphp
 
     <div class="main-content ob-page">
@@ -128,6 +131,8 @@
                                         @php
                                             $unit = $unitOf($item->unit) ?: $unitOf($item->rawMaterial?->baseUnit);
                                             $purchaseUnit = $unitOf($item->supplierRawMaterial?->purchaseUnit);
+                                            $poItem = $poItemByKey->get($item->supplier_id . '-' . $item->raw_material_id);
+                                            $poUnit = $unitOf($poItem?->unit);
                                         @endphp
                                         <tr>
                                             <td>
@@ -141,7 +146,12 @@
                                             <td class="text-end wh-num">{{ $qty($item->qty_available_base) }} {{ $unit }}</td>
                                             <td class="text-end">
                                                 @if ((float) $item->qty_to_purchase_base > 0)
-                                                    <span class="wh-strong wh-num">{{ $qty($item->qty_to_purchase_base) }} {{ $unit }}</span>
+                                                    <div class="wh-cell-stack wh-cell-stack--end">
+                                                        <span class="wh-strong wh-num">{{ $qty($item->qty_to_purchase_base) }} {{ $unit }}</span>
+                                                        @if ($poItem && $poUnit && $poUnit !== $unit)
+                                                            <span class="ob-cell-meta wh-num">= {{ $qty($poItem->qty_ordered) }} {{ $poUnit }}</span>
+                                                        @endif
+                                                    </div>
                                                 @else
                                                     <span class="badge badge-success">Cukup dari stok</span>
                                                 @endif

@@ -147,7 +147,9 @@
                             <tbody>
                                 @foreach ($items as $item)
                                     @php
-                                        $unit = $unitOf($item->unit) ?: $unitOf($item->rawMaterial?->baseUnit);
+                                        // qty_ordered dalam satuan beli (unit_id); diterima/ditolak/batal dalam satuan dasar
+                                        $orderUnit = $unitOf($item->unit);
+                                        $unit = $unitOf($item->rawMaterial?->baseUnit) ?: $orderUnit;
                                         $received = (float) $item->qty_base_received;
                                         $ordered = (float) $item->qty_base_ordered;
                                         $extra = collect([
@@ -162,7 +164,14 @@
                                                 <span class="ob-cell-meta">{{ $item->rawMaterial?->code ?: 'Tanpa kode' }}</span>
                                             </div>
                                         </td>
-                                        <td class="text-end wh-num wh-strong">{{ $qty($item->qty_ordered) }} {{ $unit }}</td>
+                                        <td class="text-end">
+                                            <div class="wh-cell-stack wh-cell-stack--end">
+                                                <span class="wh-num wh-strong">{{ $qty($item->qty_ordered) }} {{ $orderUnit ?: $unit }}</span>
+                                                @if ($orderUnit && $orderUnit !== $unit)
+                                                    <span class="ob-cell-meta wh-num">= {{ $qty($item->qty_base_ordered) }} {{ $unit }}</span>
+                                                @endif
+                                            </div>
+                                        </td>
                                         <td class="text-end">
                                             <div class="wh-cell-stack wh-cell-stack--end">
                                                 @if ($ordered > 0 && $received >= $ordered)
@@ -175,7 +184,18 @@
                                                 @endif
                                             </div>
                                         </td>
-                                        <td class="text-end wh-num">{{ $item->unit_price !== null ? $rupiah($item->unit_price) : '-' }}</td>
+                                        <td class="text-end">
+                                            @if ($item->unit_price !== null)
+                                                <div class="wh-cell-stack wh-cell-stack--end">
+                                                    <span class="wh-num">{{ $rupiah($item->unit_price) }}</span>
+                                                    @if ($orderUnit)
+                                                        <span class="ob-cell-meta">per {{ $orderUnit }}</span>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <span class="ob-cell-meta">-</span>
+                                            @endif
+                                        </td>
                                         <td class="text-end wh-num wh-strong">{{ $item->subtotal !== null ? $rupiah($item->subtotal) : '-' }}</td>
                                     </tr>
                                 @endforeach
