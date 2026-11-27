@@ -76,7 +76,7 @@ class KategoriBahanBakuIndexTest extends TestCase
 
     public function test_index_page_renders_report_style(): void
     {
-        $this->actingAs($this->admin(['create library/category-bahan-baku']))
+        $this->actingAs($this->admin(['create library/kategori-bahan-baku']))
             ->get(route('library/category-bahan-baku'))
             ->assertOk()
             ->assertSee('ob-page', false)
@@ -154,11 +154,11 @@ class KategoriBahanBakuIndexTest extends TestCase
     {
         $category = $this->category();
 
-        $readOnly = $this->rows($this->admin(['read library/category-bahan-baku']))[$category->id]['action'];
+        $readOnly = $this->rows($this->admin(['read library/kategori-bahan-baku']))[$category->id]['action'];
         $this->assertStringContainsString(route('library/category-bahan-baku/detail', $category->id), $readOnly);
         $this->assertStringNotContainsString(route('library/category-bahan-baku/edit', $category->id), $readOnly);
 
-        $editor = $this->rows($this->admin(['update library/category-bahan-baku']))[$category->id]['action'];
+        $editor = $this->rows($this->admin(['update library/kategori-bahan-baku']))[$category->id]['action'];
         $this->assertStringNotContainsString(route('library/category-bahan-baku/detail', $category->id), $editor);
         $this->assertStringContainsString(route('library/category-bahan-baku/edit', $category->id), $editor);
     }
@@ -167,7 +167,7 @@ class KategoriBahanBakuIndexTest extends TestCase
     {
         $before = RawMaterialCategories::count();
 
-        $this->actingAs($this->admin(['create library/category-bahan-baku']))
+        $this->actingAs($this->admin(['create library/kategori-bahan-baku']))
             ->postJson(route('library/category-bahan-baku/store'), [
                 'name' => 'Uji Kategori Baru ' . uniqid(),
                 'is_active' => 1,
@@ -176,11 +176,45 @@ class KategoriBahanBakuIndexTest extends TestCase
             ->assertJsonPath('data.total', $before + 1);
     }
 
+    public function test_detail_modal_lists_materials_with_status(): void
+    {
+        $category = $this->category(['notes' => 'Catatan kategori detail']);
+        $active = $this->rawMaterial($category);
+        $active->update(['name' => '<i>Uji Aktif</i>', 'code' => 'UJ-DTL-1']);
+        $inactive = $this->rawMaterial($category);
+        $inactive->update(['is_active' => false]);
+        $trashed = $this->rawMaterial($category);
+        $trashed->delete();
+
+        $this->actingAs($this->admin(['read library/kategori-bahan-baku']))
+            ->get(route('library/category-bahan-baku/detail', $category->id))
+            ->assertOk()
+            ->assertSee('ob-modal', false)
+            ->assertSee('Catatan kategori detail')
+            ->assertSee('&lt;i&gt;Uji Aktif&lt;/i&gt;', false)
+            ->assertSee('UJ-DTL-1')
+            ->assertSee($inactive->name)
+            ->assertSee('kb-row-inactive', false)
+            // Bahan baku yang sudah dihapus tidak tampil
+            ->assertDontSee($trashed->name);
+    }
+
+    public function test_detail_modal_shows_empty_state(): void
+    {
+        $category = $this->category();
+
+        $this->actingAs($this->admin(['read library/kategori-bahan-baku']))
+            ->get(route('library/category-bahan-baku/detail', $category->id))
+            ->assertOk()
+            ->assertSee('Belum ada bahan baku')
+            ->assertDontSee('<table class="kb-table">', false);
+    }
+
     public function test_edit_modal_keeps_saved_values(): void
     {
         $category = $this->category(['name' => 'Uji Modal ' . uniqid(), 'notes' => 'Catatan modal uji', 'is_active' => false]);
 
-        $this->actingAs($this->admin(['update library/category-bahan-baku']))
+        $this->actingAs($this->admin(['update library/kategori-bahan-baku']))
             ->get(route('library/category-bahan-baku/edit', $category->id))
             ->assertOk()
             ->assertSee('Edit Kategori Bahan Baku')

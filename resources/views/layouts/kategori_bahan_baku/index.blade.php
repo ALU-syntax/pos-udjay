@@ -13,7 +13,7 @@
                 </h1>
                 <p class="ob-header__desc">Kelola pengelompokan bahan baku agar pencarian, pembelian, dan stok lebih rapi.</p>
             </div>
-            @can('create library/category-bahan-baku')
+            @can('create library/kategori-bahan-baku')
                 <a href="{{ route('library/category-bahan-baku/create') }}" class="btn ob-btn ob-btn-primary action">
                     <i class="fas fa-plus" aria-hidden="true"></i> Tambah Kategori
                 </a>
