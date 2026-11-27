@@ -18,79 +18,65 @@ class ProcurementPlanDataTable extends DataTable
                 return view('layouts.procurement_plan.action', compact('procurementPlan'))->render();
             })
             ->editColumn('plan_number', function (ProcurementPlans $procurementPlan) {
-                return '<span class="badge bg-light text-dark border">' . e($procurementPlan->plan_number) . '</span>';
-            })
-            ->addColumn('status_name', function (ProcurementPlans $procurementPlan) {
-                $status = $procurementPlan->status;
-                $code = $status?->code ?? 'unknown';
-                $class = match ($code) {
-                    'draft' => 'bg-secondary',
-                    'reviewed' => 'bg-primary',
-                    'approved' => 'bg-success',
-                    'converted_to_po' => 'bg-info text-dark',
-                    'cancelled' => 'bg-dark',
-                    default => 'bg-light text-dark border',
-                };
+                $meta = 'Dibuat ' . ($procurementPlan->planned_at?->translatedFormat('d M Y, H:i') ?? '-');
+                if ($procurementPlan->plannedBy) {
+                    $meta .= ' · ' . $procurementPlan->plannedBy->name;
+                }
 
-                return '<span class="badge ' . $class . '">' . e($status?->name ?? '-') . '</span>'
-                    . '<span class="d-none">' . e($code) . '</span>';
+                return '<div class="ob-cell-stack">'
+                    . '<span class="ob-item-cell__title pp-nowrap">' . e($procurementPlan->plan_number) . '</span>'
+                    . '<span class="ob-cell-meta">' . e($meta) . '</span>'
+                    . '</div>';
             })
-            ->addColumn('planning_location_name', function (ProcurementPlans $procurementPlan) {
-                return $procurementPlan->planningLocation
-                    ? e($procurementPlan->planningLocation->name)
-                    : '<span class="text-muted">-</span>';
+            ->addColumn('planning_location_name', fn (ProcurementPlans $procurementPlan) => $procurementPlan->planningLocation
+                ? '<span class="pp-strong">' . e($procurementPlan->planningLocation->name) . '</span>'
+                : '<span class="ob-cell-meta">-</span>')
+            ->addColumn('items_count_label', fn (ProcurementPlans $procurementPlan) => '<span class="pp-strong">'
+                . number_format((int) $procurementPlan->items_count, 0, ',', '.') . ' bahan</span>')
+            ->addColumn('purchase_orders_label', fn (ProcurementPlans $procurementPlan) => (int) $procurementPlan->purchase_orders_count > 0
+                ? '<span class="pp-strong">' . number_format((int) $procurementPlan->purchase_orders_count, 0, ',', '.') . ' PO</span>'
+                : '<span class="ob-cell-meta pp-nowrap">Belum ada PO</span>')
+            // Total qty tidak ditampilkan: tiap bahan punya satuan dasar berbeda, jadi jumlahnya tidak bermakna
+            ->addColumn('estimated_total', function (ProcurementPlans $procurementPlan) {
+                if ($procurementPlan->items_sum_estimated_subtotal === null) {
+                    return '<span class="ob-cell-meta pp-nowrap">Belum ada harga</span>';
+                }
+
+                $total = (float) $procurementPlan->items_sum_estimated_subtotal;
+
+                return '<span class="pp-num">Rp ' . number_format($total, fmod($total, 1) ? 2 : 0, ',', '.') . '</span>';
             })
-            ->addColumn('items_count_label', function (ProcurementPlans $procurementPlan) {
-                return '<strong>' . (int) ($procurementPlan->items_count ?? 0) . '</strong> item';
-            })
-            ->editColumn('items_sum_qty_required_base', function (ProcurementPlans $procurementPlan) {
-                return number_format((float) ($procurementPlan->items_sum_qty_required_base ?? 0), 1, ',', '.');
-            })
-            ->editColumn('items_sum_qty_to_purchase_base', function (ProcurementPlans $procurementPlan) {
-                return number_format((float) ($procurementPlan->items_sum_qty_to_purchase_base ?? 0), 1, ',', '.');
-            })
-            ->addColumn('planned_by_name', function (ProcurementPlans $procurementPlan) {
-                return $procurementPlan->plannedBy
-                    ? e($procurementPlan->plannedBy->name)
-                    : '<span class="text-muted">-</span>';
-            })
-            ->editColumn('planned_at', function (ProcurementPlans $procurementPlan) {
-                return $procurementPlan->planned_at ? $procurementPlan->planned_at->format('d M Y H:i') : '<span class="text-muted">-</span>';
-            })
-            ->editColumn('updated_at', function (ProcurementPlans $procurementPlan) {
-                return $procurementPlan->updated_at ? $procurementPlan->updated_at->format('d M Y H:i') : '-';
-            })
-            ->filterColumn('status_name', function (QueryBuilder $query, $keyword) {
-                $query->whereHas('status', fn ($status) => $status
-                    ->where('code', 'like', "%{$keyword}%")
-                    ->orWhere('name', 'like', "%{$keyword}%"));
-            })
-            ->filterColumn('planning_location_name', function (QueryBuilder $query, $keyword) {
-                $query->whereHas('planningLocation', fn ($inventory) => $inventory->where('name', 'like', "%{$keyword}%"));
-            })
-            ->filterColumn('planned_by_name', function (QueryBuilder $query, $keyword) {
-                $query->whereHas('plannedBy', fn ($user) => $user->where('name', 'like', "%{$keyword}%"));
-            })
-            ->addIndexColumn()
-            ->rawColumns([
-                'action',
-                'plan_number',
-                'status_name',
-                'planning_location_name',
-                'items_count_label',
-                'planned_by_name',
-                'planned_at',
-            ]);
+            ->addColumn('status_name', fn (ProcurementPlans $procurementPlan) => $procurementPlan->status
+                ? '<span class="badge ' . $procurementPlan->status->badge_class . '">' . e($procurementPlan->status->label) . '</span>'
+                : '<span class="ob-cell-meta">-</span>')
+            ->editColumn('updated_at', fn (ProcurementPlans $procurementPlan) => $procurementPlan->updated_at
+                ? '<span class="ob-cell-meta pp-nowrap">' . e($procurementPlan->updated_at->translatedFormat('d M Y, H:i')) . '</span>'
+                : '<span class="ob-cell-meta">-</span>')
+            ->filterColumn('plan_number', fn (QueryBuilder $query, string $keyword) => $query
+                ->where('procurement_plans.plan_number', 'like', "%{$keyword}%"))
+            ->rawColumns(['action', 'plan_number', 'planning_location_name', 'items_count_label', 'purchase_orders_label', 'estimated_total', 'status_name', 'updated_at'])
+            ->setRowId('id');
     }
 
     public function query(ProcurementPlans $model): QueryBuilder
     {
-        return $model->newQuery()
+        $query = $model->newQuery()
             ->with(['status', 'planningLocation', 'plannedBy'])
-            ->withCount('items')
-            ->withSum('items', 'qty_required_base')
-            ->withSum('items', 'qty_to_purchase_base')
-            ->latest('updated_at');
+            ->withCount(['items', 'purchaseOrders'])
+            ->withSum('items', 'estimated_subtotal');
+
+        // Filter dikirim lewat parameter ajax (bukan pencarian kolom) agar bisa dikombinasikan
+        $status = $this->request()->get('status');
+        if (ctype_digit((string) $status)) {
+            $query->where('status_id', (int) $status);
+        }
+
+        $location = $this->request()->get('location');
+        if (ctype_digit((string) $location)) {
+            $query->where('planning_location_id', (int) $location);
+        }
+
+        return $query;
     }
 
     public function html(): HtmlBuilder
@@ -98,33 +84,31 @@ class ProcurementPlanDataTable extends DataTable
         return $this->builder()
             ->setTableId('procurement-plan-table')
             ->columns($this->getColumns())
-            ->minifiedAjax()
-            ->responsive(true)
-            ->orderBy(8, 'desc')
-            ->parameters([
-                'autoWidth' => false,
-                'scrollX' => true,
-                'scrollCollapse' => true,
-            ]);
+            ->minifiedAjax('', null, [
+                'status' => "$('#filter-status').val()",
+                'location' => "$('#filter-location').val()",
+            ])
+            // Hanya tabel yang scroll horizontal, length/search/paging tetap di tempat.
+            ->dom("<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>><'ob-table-scroll'tr><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>")
+            // Terbaru di atas
+            ->orderBy(6, 'desc');
     }
 
     public function getColumns(): array
     {
         return [
-            Column::make('DT_RowIndex')->title('No')->searchable(false)->orderable(false)->width(48),
-            Column::make('plan_number')->title('Nomor Plan'),
-            Column::make('status_name')->title('Status')->orderable(false),
-            Column::make('planning_location_name')->title('Lokasi Planning')->orderable(false),
-            Column::make('items_count_label')->title('Item')->searchable(false)->orderable(false),
-            Column::make('items_sum_qty_required_base')->title('Total Required')->searchable(false),
-            Column::make('items_sum_qty_to_purchase_base')->title('To Purchase')->searchable(false),
-            Column::make('planned_by_name')->title('Dibuat Oleh')->orderable(false),
-            Column::make('planned_at')->title('Planned At'),
-            Column::make('updated_at')->title('Update Terakhir'),
+            Column::make('plan_number')->title('Plan'),
+            Column::make('planning_location_name')->title('Lokasi Planning')->orderable(false)->searchable(false),
+            Column::make('items_count_label')->title('Item')->orderable(false)->searchable(false),
+            Column::make('purchase_orders_label')->title('PO')->orderable(false)->searchable(false),
+            Column::make('estimated_total')->title('Estimasi')->orderable(false)->searchable(false)->addClass('text-end'),
+            Column::make('status_name')->title('Status')->orderable(false)->searchable(false),
+            Column::make('updated_at')->title('Diperbarui')->searchable(false),
             Column::computed('action')
+                ->title('')
                 ->exportable(false)
                 ->printable(false)
-                ->width(90)
+                ->width(120)
                 ->addClass('text-center'),
         ];
     }

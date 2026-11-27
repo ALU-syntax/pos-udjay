@@ -1,52 +1,69 @@
 @extends('layouts.app')
 @section('content')
+    @include('layouts.reports.partials.ui-styles')
+    @include('layouts.warehouse.partials.ui-styles')
+
     @php
         $selectedSources = collect(old('selected_sources', []))->map(fn ($id) => (int) $id)->all();
-        $formatQty = fn ($value) => number_format((float) $value, 1, ',', '.');
-        $formatMoney = fn ($value) => $value === null ? '-' : 'Rp ' . number_format((float) $value, 2, ',', '.');
+        // Qty tanpa nol di belakang koma (decimal:5); Rupiah tanpa ,00 kalau bulat
+        $qty = fn ($value) => rtrim(rtrim(number_format((float) $value, 5, ',', '.'), '0'), ',');
+        $rupiah = fn ($value) => $value === null ? null : 'Rp ' . number_format((float) $value, fmod((float) $value, 1) ? 2 : 0, ',', '.');
+        $sourceCount = $sourceGroups->sum(fn ($group) => $group->items->count());
     @endphp
 
-    <div class="main-content procurement-plan-form-page">
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
+            <div>
+                <div class="ob-header__eyebrow">
+                    <a href="{{ route('warehouse/procurement-plan') }}">Procurement Plan</a><span class="wh-crumb-sep" aria-hidden="true">/</span>Tambah
+                </div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span>
+                    {{ $title }}
+                </h1>
+                <p class="ob-header__desc">Pilih item Request Order yang sudah disetujui, tentukan supplier tiap bahan, lalu PO draft dibuat per supplier.</p>
+            </div>
+            <div class="wh-actions">
+                <a href="{{ route('warehouse/procurement-plan') }}" class="btn ob-btn ob-btn-outline">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali
+                </a>
+            </div>
+        </div>
+
         @if ($errors->any())
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ $errors->first() }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <div class="ob-notice pp-notice pp-notice--error" role="alert">
+                <i class="fas fa-exclamation-circle" aria-hidden="true"></i> {{ $errors->first() }}
             </div>
         @endif
-
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-            <div>
-                <h2 class="h4 mb-1 font-weight-bold">
-                    <i class="fa fa-clipboard-check me-2"></i>{{ $title }}
-                </h2>
-                <p class="text-muted small mb-0">Pilih bahan baku dari Request Order approved, lalu tentukan supplier untuk setiap bahan.</p>
-            </div>
-            <a href="{{ route('warehouse/procurement-plan') }}" class="btn btn-outline-secondary btn-sm">
-                <i class="fa fa-arrow-left me-1"></i>Kembali
-            </a>
-        </div>
 
         <form action="{{ $action }}" method="POST" id="procurementPlanForm">
             @csrf
 
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white border-bottom">
-                    <h5 class="mb-0">Informasi Plan</h5>
+            {{-- Informasi plan --}}
+            <div class="ob-card pp-card">
+                <div class="wh-card__head">
+                    <div>
+                        <h2 class="wh-card__title"><i class="fas fa-info-circle" aria-hidden="true"></i> Informasi Plan</h2>
+                        <p class="wh-card__desc">Nomor plan dan lokasi tempat stok dicek sebelum dibeli.</p>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Nomor Plan</label>
-                            <input type="text" name="plan_number"
+                <div class="wh-card__body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="plan_number">Nomor Plan</label>
+                            <input id="plan_number" name="plan_number" type="text" maxlength="100"
                                 class="form-control @error('plan_number') is-invalid @enderror"
-                                value="{{ old('plan_number', $planNumber) }}" placeholder="Auto jika dikosongkan">
+                                value="{{ old('plan_number', $planNumber) }}" placeholder="Contoh: {{ $planNumber }}">
                             @error('plan_number')
                                 <div class="invalid-feedback">{{ $message }}</div>
+                            @else
+                                <small class="text-muted">Kosongkan untuk dibuat otomatis.</small>
                             @enderror
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Lokasi Planning <span class="text-danger">*</span></label>
-                            <select name="planning_location_id"
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="planning_location_id">Lokasi Planning <span class="text-danger">*</span></label>
+                            <select id="planning_location_id" name="planning_location_id"
                                 class="form-select @error('planning_location_id') is-invalid @enderror" required>
                                 <option value="">Pilih lokasi planning</option>
                                 @foreach ($inventories as $inventory)
@@ -56,21 +73,15 @@
                                 @endforeach
                             </select>
                             @error('planning_location_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @else
+                                <small class="text-muted">Stok bebas di lokasi ini mengurangi qty yang perlu dibeli.</small>
                             @enderror
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Ringkasan Pilihan</label>
-                            <div class="pp-selection-summary">
-                                <span><strong id="selectedSourceCount">0</strong> request</span>
-                                <span><strong id="selectedMaterialCount">0</strong> bahan</span>
-                                <span><strong id="selectedAllocationTotal">0,0</strong> base</span>
-                            </div>
-                        </div>
                         <div class="col-12">
-                            <label class="form-label">Catatan</label>
-                            <textarea name="notes" rows="3" class="form-control @error('notes') is-invalid @enderror"
-                                placeholder="Catatan procurement plan">{{ old('notes') }}</textarea>
+                            <label class="form-label" for="notes">Catatan</label>
+                            <textarea id="notes" name="notes" rows="3" class="form-control @error('notes') is-invalid @enderror"
+                                placeholder="Contoh: pembelian mingguan untuk outlet Kemang">{{ old('notes') }}</textarea>
                             @error('notes')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -79,192 +90,173 @@
                 </div>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-white border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <div class="container ps-0">
-                        <div class="row">
-                            <h5 class="mb-0">Item Request Order Approved</h5>
-                            <small class="text-muted">Parent row adalah bahan baku. Buka detail untuk memilih request dari masing-masing pemohon.</small>
-                        </div>
-                        <div class="row">
-                            <div class="col-8">
-                                <input type="search" id="sourceSearch" class="form-control form-control-sm" placeholder="Cari bahan/request">
-                            </div>
-                            <div class="col-4 d-flex flex-row-reverse">
-                                <button type="button" class="btn btn-outline-primary btn-sm ms-3" id="selectAllSources">
-                                    <i class="fa fa-check-square me-1"></i>Pilih Semua
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" id="clearAllSources">
-                                    <i class="fa fa-times-circle me-1"></i>Hapus Semua Pilihan
-                                </button>
-                            </div>
-                        </div>
+            {{-- Item request order --}}
+            <div class="ob-card pp-card">
+                <div class="wh-card__head">
+                    <div>
+                        <h2 class="wh-card__title"><i class="fas fa-layer-group" aria-hidden="true"></i> Item Request Order Disetujui <span class="wh-count">{{ $sourceGroups->count() }}</span></h2>
+                        <p class="wh-card__desc">Satu baris per bahan baku. Buka baris untuk memilih request dari masing-masing peminta.</p>
                     </div>
                 </div>
-                <div class="card-body p-0">
-                    <div class="pp-source-scroll">
-                        <table class="table table-hover table-sm mb-0 align-middle pp-source-table" id="approvedRequestItemsTable">
+
+                @if ($sourceGroups->isEmpty())
+                    <div class="wh-empty">
+                        <span class="wh-empty__icon" aria-hidden="true"><i class="fas fa-layer-group"></i></span>
+                        <p class="wh-empty__title">Belum ada item yang bisa direncanakan</p>
+                        <p class="wh-empty__text">Item muncul di sini setelah Request Order disetujui dan belum masuk plan lain.</p>
+                    </div>
+                @else
+                    <div class="wh-card__body pp-toolbar">
+                        <div class="pp-toolbar__search">
+                            <label class="form-label" for="sourceSearch">Cari</label>
+                            <input type="search" id="sourceSearch" class="form-control" placeholder="Nama bahan, nomor request, atau peminta">
+                        </div>
+                        <div class="pp-toolbar__actions">
+                            <button type="button" class="btn ob-btn ob-btn-outline" id="selectAllSources">
+                                <i class="fas fa-check-double" aria-hidden="true"></i> Pilih semua
+                            </button>
+                            <button type="button" class="btn ob-btn ob-btn-outline" id="clearAllSources">
+                                <i class="fas fa-eraser" aria-hidden="true"></i> Kosongkan pilihan
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ob-table-scroll">
+                        <table class="wh-table pp-sources" id="approvedRequestItemsTable">
                             <thead>
                                 <tr>
-                                    <th class="text-center">Pilih</th>
-                                    <th>Bahan Baku</th>
-                                    <th class="text-end">Total Base</th>
-                                    <th>Pilih Supplier</th>
-                                    <th class="text-end">Harga</th>
+                                    <th scope="col" class="pp-col-check"><span class="visually-hidden">Pilih</span></th>
+                                    <th scope="col">Bahan Baku / Request</th>
+                                    <th scope="col" class="text-end">Qty Dibutuhkan</th>
+                                    <th scope="col" class="pp-col-supplier">Supplier</th>
+                                    <th scope="col" class="text-end">Harga Beli</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                @forelse ($sourceGroups as $group)
-                                    @php
-                                        $groupId = (int) $group->raw_material_id;
-                                        $groupSourceIds = $group->items->pluck('id')->map(fn ($id) => (int) $id)->all();
-                                        $isGroupSelected = count(array_intersect($groupSourceIds, $selectedSources)) > 0;
-                                        $supplierOptions = $supplierOptionsByRawMaterial[$groupId] ?? [];
-                                        $defaultSupplierId = collect($supplierOptions)->firstWhere('is_preferred', true)['id'] ?? ($supplierOptions[0]['id'] ?? null);
-                                        $supplierField = 'supplier_raw_materials.' . $groupId;
-                                        $selectedSupplierId = (int) old($supplierField, $defaultSupplierId);
-                                        $selectedSupplierOption = collect($supplierOptions)->firstWhere('id', $selectedSupplierId);
-                                        $baseUnit = $group->base_satuan_name
-                                            ?: optional(optional($group->raw_material)->baseUnit)->symbol
-                                            ?: optional(optional($group->raw_material)->baseUnit)->name;
-                                        $groupSearchText = strtolower(
-                                            ($group->raw_material?->name ?? '') . ' ' .
-                                            ($group->raw_material?->code ?? '') . ' ' .
-                                            $group->items->map(fn ($item) => ($item->rawMaterialRequest?->request_number ?? '') . ' ' . ($item->rawMaterialRequest?->requesterInventory?->name ?? ''))->implode(' ')
-                                        );
-                                    @endphp
-                                    <tr class="pp-group-row" data-group-id="{{ $groupId }}" data-collapse-target="#sourceGroup{{ $groupId }}" data-search-text="{{ $groupSearchText }}">
-                                        <td class="text-center">
-                                            <input type="checkbox" class="form-check-input group-checkbox" data-group-id="{{ $groupId }}" @checked($isGroupSelected)>
+                            @foreach ($sourceGroups as $group)
+                                @php
+                                    $groupId = (int) $group->raw_material_id;
+                                    $groupSourceIds = $group->items->pluck('id')->map(fn ($id) => (int) $id)->all();
+                                    $hasSelected = count(array_intersect($groupSourceIds, $selectedSources)) > 0;
+                                    $supplierOptions = $supplierOptionsByRawMaterial[$groupId] ?? [];
+                                    $defaultSupplierId = collect($supplierOptions)->firstWhere('is_preferred', true)['id'] ?? ($supplierOptions[0]['id'] ?? null);
+                                    $supplierField = 'supplier_raw_materials.' . $groupId;
+                                    $selectedSupplierId = (int) old($supplierField, $defaultSupplierId);
+                                    $selectedSupplier = collect($supplierOptions)->firstWhere('id', $selectedSupplierId);
+                                    $unit = $group->base_satuan_name ?: ($group->raw_material?->baseUnit?->symbol ?: $group->raw_material?->baseUnit?->name);
+                                    $groupSearch = mb_strtolower(($group->raw_material?->name ?? '') . ' ' . ($group->raw_material?->code ?? ''));
+                                    $isOpen = $hasSelected || $errors->has($supplierField);
+                                    // Bahan tanpa supplier aktif tidak bisa dipilih: PO tidak bisa dibuat
+                                    $noSupplier = empty($supplierOptions);
+                                @endphp
+                                <tbody class="pp-group {{ $isOpen ? 'is-open' : '' }}" data-group-id="{{ $groupId }}" data-search="{{ $groupSearch }}">
+                                    <tr class="pp-group-row">
+                                        <td class="pp-col-check">
+                                            <input type="checkbox" class="form-check-input group-checkbox" data-group-id="{{ $groupId }}"
+                                                aria-label="Pilih semua request {{ $group->raw_material?->name }}" @disabled($noSupplier)>
                                         </td>
                                         <td>
-                                            <div class="d-flex align-items-start gap-2">
-                                                <button class="btn btn-outline-secondary btn-sm pp-collapse-toggle" type="button"
-                                                    data-bs-target="#sourceGroup{{ $groupId }}"
-                                                    aria-expanded="false" aria-controls="sourceGroup{{ $groupId }}">
-                                                    <i class="fa fa-chevron-down"></i>
-                                                </button>
-                                                <div>
-                                                    <div class="fw-semibold">{{ optional($group->raw_material)->name ?? '-' }}</div>
-                                                    <small class="text-muted">
-                                                        {{ optional($group->raw_material)->code ?? 'Tanpa kode' }}{{ $baseUnit ? ' · Base: ' . $baseUnit : '' }}
-                                                    </small>
+                                            <div class="pp-material">
+                                                <button type="button" class="ob-icon-btn ob-icon-btn--sm pp-toggle" aria-expanded="{{ $isOpen ? 'true' : 'false' }}"
+                                                    aria-label="Tampilkan request {{ $group->raw_material?->name }}"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+                                                <div class="wh-cell-stack">
+                                                    <span class="wh-strong">{{ $group->raw_material?->name ?? '-' }}</span>
+                                                    <span class="ob-cell-meta">
+                                                        {{ $group->raw_material?->code ?: 'Tanpa kode' }} · {{ $group->items->count() }} request
+                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td class="text-end">
-                                            <div class="fw-semibold">{{ $formatQty($group->total_remaining_base) }}</div>
-                                            <small class="text-muted">Approved {{ $formatQty($group->total_approved_base) }}</small>
+                                            <div class="wh-cell-stack wh-cell-stack--end">
+                                                <span class="wh-strong wh-num">{{ $qty($group->total_remaining_base) }} {{ $unit }}</span>
+                                                @if ((float) $group->total_allocated_base > 0)
+                                                    <span class="ob-cell-meta wh-num">dari {{ $qty($group->total_approved_base) }} disetujui</span>
+                                                @endif
+                                            </div>
                                         </td>
-                                        <td>
-                                            <select name="supplier_raw_materials[{{ $groupId }}]"
-                                                class="form-select form-select-sm supplier-select @error($supplierField) is-invalid @enderror"
-                                                data-group-id="{{ $groupId }}" @disabled(empty($supplierOptions))>
-                                                @if (empty($supplierOptions))
-                                                    <option value="">Tidak ada supplier</option>
-                                                @else
-                                                    @foreach ($supplierOptions as $supplierOption)
-                                                        <option value="{{ $supplierOption['id'] }}"
-                                                            data-price="{{ $supplierOption['current_price'] }}"
-                                                            data-unit="{{ $supplierOption['purchase_unit'] }}"
-                                                            @selected((int) $supplierOption['id'] === $selectedSupplierId)>
-                                                            {{ $supplierOption['supplier_name'] }}
-                                                            @if ($supplierOption['purchase_unit'])
-                                                                · {{ $supplierOption['purchase_unit'] }}
-                                                            @endif
-                                                            @if ($supplierOption['is_preferred'])
-                                                                · Preferred
-                                                            @endif
+                                        <td class="pp-col-supplier">
+                                            @if ($noSupplier)
+                                                <select name="supplier_raw_materials[{{ $groupId }}]" class="form-select supplier-select" data-group-id="{{ $groupId }}" disabled>
+                                                    <option value="">Belum ada supplier</option>
+                                                </select>
+                                                <small class="pp-warn">Belum bisa dipilih. Tambahkan bahan ini ke salah satu supplier dulu.</small>
+                                            @else
+                                                <select name="supplier_raw_materials[{{ $groupId }}]" data-group-id="{{ $groupId }}"
+                                                    class="form-select supplier-select @error($supplierField) is-invalid @enderror"
+                                                    aria-label="Supplier {{ $group->raw_material?->name }}">
+                                                    @foreach ($supplierOptions as $option)
+                                                        <option value="{{ $option['id'] }}" data-price="{{ $option['current_price'] }}" data-unit="{{ $option['purchase_unit'] }}"
+                                                            @selected((int) $option['id'] === $selectedSupplierId)>
+                                                            {{ $option['supplier_name'] }}{{ $option['is_preferred'] ? ' · Utama' : '' }}
                                                         </option>
                                                     @endforeach
-                                                @endif
-                                            </select>
+                                                </select>
+                                            @endif
                                             @error($supplierField)
-                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
                                             @enderror
                                         </td>
                                         <td class="text-end">
-                                            <div class="fw-semibold group-price" data-group-id="{{ $groupId }}">
-                                                {{ $formatMoney($selectedSupplierOption['current_price'] ?? null) }}
+                                            <div class="wh-cell-stack wh-cell-stack--end">
+                                                <span class="wh-strong wh-num group-price" data-group-id="{{ $groupId }}">{{ $rupiah($selectedSupplier['current_price'] ?? null) ?? 'Belum diisi' }}</span>
+                                                <span class="ob-cell-meta group-price-unit" data-group-id="{{ $groupId }}">{{ !empty($selectedSupplier['purchase_unit']) ? 'per ' . $selectedSupplier['purchase_unit'] : '' }}</span>
                                             </div>
-                                            <small class="text-muted group-price-unit" data-group-id="{{ $groupId }}">
-                                                {{ $selectedSupplierOption['purchase_unit'] ?? '' }}
-                                            </small>
                                         </td>
                                     </tr>
-                                    <tr class="pp-detail-row" data-group-id="{{ $groupId }}" data-search-text="{{ $groupSearchText }}">
-                                        <td colspan="5" class="p-0 border-top-0">
-                                            <div class="pp-detail-panel" id="sourceGroup{{ $groupId }}">
-                                                <div class="pp-child-wrap">
-                                                    <table class="table table-sm mb-0 align-middle pp-child-table">
-                                                        <thead>
-                                                            <tr>
-                                                                <th class="text-center">Pilih</th>
-                                                                <th>Pemohon</th>
-                                                                <th>Request Order</th>
-                                                                <th class="text-end">Approved Base</th>
-                                                                <th class="text-end">Harga</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach ($group->items as $sourceItem)
-                                                                @php
-                                                                    $sourceId = (int) $sourceItem->id;
-                                                                    $isSelected = in_array($sourceId, $selectedSources, true);
-                                                                    $requestOrder = $sourceItem->rawMaterialRequest;
-                                                                @endphp
-                                                                <tr class="pp-child-source-row"
-                                                                    data-group-id="{{ $groupId }}"
-                                                                    data-search-text="{{ strtolower(($requestOrder?->request_number ?? '') . ' ' . ($requestOrder?->requesterInventory?->name ?? '') . ' ' . ($sourceItem->rawMaterial?->name ?? '')) }}">
-                                                                    <td class="text-center">
-                                                                        <input type="checkbox" name="selected_sources[]" value="{{ $sourceId }}"
-                                                                            class="form-check-input child-checkbox"
-                                                                            data-group-id="{{ $groupId }}"
-                                                                            data-qty="{{ $sourceItem->remaining_qty_base }}"
-                                                                            @checked($isSelected)>
-                                                                    </td>
-                                                                    <td>{{ optional($requestOrder?->requesterInventory)->name ?? '-' }}</td>
-                                                                    <td>
-                                                                        <div class="fw-semibold">{{ $requestOrder?->request_number ?? '-' }}</div>
-                                                                        <small class="text-muted">{{ optional($requestOrder?->needed_at)->format('d M Y') ?? '-' }}</small>
-                                                                    </td>
-                                                                    <td class="text-end">
-                                                                        <div>{{ $formatQty($sourceItem->remaining_qty_base) }}</div>
-                                                                        @if ((float) $sourceItem->allocated_qty_base > 0)
-                                                                            <small class="text-muted">Allocated {{ $formatQty($sourceItem->allocated_qty_base) }}</small>
-                                                                        @endif
-                                                                    </td>
-                                                                    <td class="text-end">
-                                                                        <span class="child-price" data-group-id="{{ $groupId }}">
-                                                                            {{ $formatMoney($selectedSupplierOption['current_price'] ?? null) }}
-                                                                        </span>
-                                                                    </td>
-                                                                </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
+                                    @foreach ($group->items as $sourceItem)
+                                        @php
+                                            $requestOrder = $sourceItem->rawMaterialRequest;
+                                            $requester = $requestOrder?->requesterInventory?->name;
+                                            $childSearch = mb_strtolower(($requestOrder?->request_number ?? '') . ' ' . ($requester ?? ''));
+                                        @endphp
+                                        <tr class="pp-source-row" data-search="{{ $childSearch }}">
+                                            <td class="pp-col-check">
+                                                <input type="checkbox" name="selected_sources[]" value="{{ $sourceItem->id }}"
+                                                    class="form-check-input child-checkbox" data-group-id="{{ $groupId }}"
+                                                    aria-label="Pilih {{ $requestOrder?->request_number }}" @disabled($noSupplier)
+                                                    @checked(! $noSupplier && in_array((int) $sourceItem->id, $selectedSources, true))>
+                                            </td>
+                                            <td>
+                                                <div class="wh-cell-stack pp-source">
+                                                    <span class="pp-source__name">{{ $requester ?? '-' }}</span>
+                                                    <span class="ob-cell-meta">
+                                                        {{ $requestOrder?->request_number ?? '-' }}{{ $requestOrder?->needed_at ? ' · dibutuhkan ' . $requestOrder->needed_at->translatedFormat('d M Y') : '' }}
+                                                    </span>
                                                 </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted py-4">
-                                            Belum ada item Request Order approved yang bisa dipilih.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="wh-cell-stack wh-cell-stack--end">
+                                                    <span class="wh-num">{{ $qty($sourceItem->remaining_qty_base) }} {{ $unit }}</span>
+                                                    @if ((float) $sourceItem->allocated_qty_base > 0)
+                                                        <span class="ob-cell-meta wh-num">{{ $qty($sourceItem->allocated_qty_base) }} sudah di plan lain</span>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                            <td colspan="2"></td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            @endforeach
                         </table>
                     </div>
-                </div>
-                <div class="card-footer bg-white d-flex flex-wrap justify-content-end gap-2">
-                    <a href="{{ route('warehouse/procurement-plan') }}" class="btn btn-outline-secondary">
-                        Batal
-                    </a>
-                    <button type="submit" class="btn btn-primary" @disabled($sourceGroups->isEmpty())>
-                        <i class="fa fa-file-invoice me-1"></i>Simpan & Generate PO
-                    </button>
+                    <div id="sourceSearchEmpty" class="wh-empty" hidden>
+                        <span class="wh-empty__icon" aria-hidden="true"><i class="fas fa-search"></i></span>
+                        <p class="wh-empty__title">Tidak ada yang cocok</p>
+                        <p class="wh-empty__text">Coba kata kunci lain atau kosongkan pencarian.</p>
+                    </div>
+                @endif
+
+                <div class="pp-form-foot">
+                    <p class="pp-summary" aria-live="polite">
+                        <strong id="selectedSourceCount">0</strong> dari {{ $sourceCount }} request dipilih ·
+                        <strong id="selectedMaterialCount">0</strong> bahan
+                    </p>
+                    <div class="wh-actions">
+                        <a href="{{ route('warehouse/procurement-plan') }}" class="btn ob-btn ob-btn-outline">Batal</a>
+                        <button type="submit" class="btn ob-btn ob-btn-primary" @disabled($sourceGroups->isEmpty())>
+                            <i class="fas fa-file-invoice" aria-hidden="true"></i> Simpan & Buat PO
+                        </button>
+                    </div>
                 </div>
             </div>
         </form>
@@ -272,337 +264,177 @@
 
     @push('js')
         <script>
-            $(function() {
-                function formatQty(value) {
-                    return Number(value || 0).toLocaleString('id-ID', {
-                        minimumFractionDigits: 1,
-                        maximumFractionDigits: 1
-                    });
-                }
-
+            $(function () {
                 function formatMoney(value) {
-                    if (value === undefined || value === null || value === '') {
-                        return '-';
-                    }
+                    if (value === undefined || value === null || value === '') return 'Belum diisi';
 
-                    return 'Rp ' + Number(value || 0).toLocaleString('id-ID', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    });
+                    const number = Number(value);
+                    return 'Rp ' + number.toLocaleString('id-ID', { minimumFractionDigits: number % 1 ? 2 : 0, maximumFractionDigits: 2 });
                 }
 
-                function groupChildren(groupId) {
+                function children(groupId) {
                     return $('.child-checkbox[data-group-id="' + groupId + '"]');
                 }
 
                 function updateGroupCheckbox(groupId) {
-                    const children = groupChildren(groupId);
-                    const checkedChildren = children.filter(':checked');
-                    const parent = $('.group-checkbox[data-group-id="' + groupId + '"]');
+                    const all = children(groupId);
+                    const checked = all.filter(':checked').length;
 
-                    parent.prop('checked', children.length > 0 && checkedChildren.length === children.length);
-                    parent.prop('indeterminate', checkedChildren.length > 0 && checkedChildren.length < children.length);
+                    $('.group-checkbox[data-group-id="' + groupId + '"]')
+                        .prop('checked', all.length > 0 && checked === all.length)
+                        .prop('indeterminate', checked > 0 && checked < all.length);
                 }
 
                 function updateGroupPrice(groupId) {
-                    const select = $('.supplier-select[data-group-id="' + groupId + '"]');
-                    const selectedOption = select.find('option:selected');
-                    const price = selectedOption.data('price');
-                    const unit = selectedOption.data('unit') || '';
+                    const option = $('.supplier-select[data-group-id="' + groupId + '"] option:selected');
+                    const unit = option.data('unit') || '';
 
-                    $('.group-price[data-group-id="' + groupId + '"]').text(formatMoney(price));
-                    $('.group-price-unit[data-group-id="' + groupId + '"]').text(unit);
-                    $('.child-price[data-group-id="' + groupId + '"]').text(formatMoney(price));
+                    $('.group-price[data-group-id="' + groupId + '"]').text(formatMoney(option.data('price')));
+                    $('.group-price-unit[data-group-id="' + groupId + '"]').text(unit ? 'per ' + unit : '');
                 }
 
-                function updateSelectionSummary() {
-                    const checkedChildren = $('.child-checkbox:checked');
-                    const selectedGroups = new Set();
-                    let selectedTotal = 0;
+                function updateSummary() {
+                    const checked = $('.child-checkbox:checked');
+                    const groups = new Set(checked.map(function () { return $(this).data('group-id'); }).get());
 
-                    checkedChildren.each(function() {
-                        selectedGroups.add($(this).data('group-id'));
-                        selectedTotal += Number($(this).data('qty') || 0);
+                    $('#selectedSourceCount').text(checked.length);
+                    $('#selectedMaterialCount').text(groups.size);
+                }
+
+                function setOpen(group, open) {
+                    group.toggleClass('is-open', open);
+                    group.find('.pp-toggle').attr('aria-expanded', open ? 'true' : 'false');
+                }
+
+                function refreshAll() {
+                    $('.group-checkbox').each(function () {
+                        updateGroupCheckbox($(this).data('group-id'));
+                        updateGroupPrice($(this).data('group-id'));
                     });
-
-                    $('#selectedSourceCount').text(checkedChildren.length);
-                    $('#selectedMaterialCount').text(selectedGroups.size);
-                    $('#selectedAllocationTotal').text(formatQty(selectedTotal));
+                    updateSummary();
                 }
 
-                function updateAllGroups() {
-                    $('.group-checkbox').each(function() {
-                        const groupId = $(this).data('group-id');
-
-                        updateGroupCheckbox(groupId);
-                        updateGroupPrice(groupId);
-                    });
-
-                    updateSelectionSummary();
-                }
-
-                $('.group-checkbox').on('change', function() {
+                $('.group-checkbox').on('change', function () {
                     const groupId = $(this).data('group-id');
-                    groupChildren(groupId).prop('checked', $(this).is(':checked'));
-
+                    children(groupId).prop('checked', this.checked);
                     updateGroupCheckbox(groupId);
-                    updateSelectionSummary();
+                    updateSummary();
                 });
 
-                $('.child-checkbox').on('change', function() {
-                    const groupId = $(this).data('group-id');
-
-                    updateGroupCheckbox(groupId);
-                    updateSelectionSummary();
+                $('.child-checkbox').on('change', function () {
+                    updateGroupCheckbox($(this).data('group-id'));
+                    updateSummary();
                 });
 
-                $('.supplier-select').on('change', function() {
+                $('.supplier-select').on('change', function () {
                     updateGroupPrice($(this).data('group-id'));
                 });
 
-                function setGroupOpen(groupId, shouldOpen) {
-                    const group = $('.pp-group-row[data-group-id="' + groupId + '"]');
-                    const detail = $('.pp-detail-row[data-group-id="' + groupId + '"]');
-                    const toggle = group.find('.pp-collapse-toggle');
-
-                    group.toggleClass('is-expanded', shouldOpen);
-                    detail.toggleClass('is-open', shouldOpen);
-                    toggle
-                        .toggleClass('is-expanded', shouldOpen)
-                        .attr('aria-expanded', shouldOpen ? 'true' : 'false');
-                }
-
-                function toggleGroup(groupId) {
-                    const detail = $('.pp-detail-row[data-group-id="' + groupId + '"]');
-
-                    setGroupOpen(groupId, !detail.hasClass('is-open'));
-                }
-
-                $('.pp-collapse-toggle').on('click', function(e) {
-                    e.stopPropagation();
-                    toggleGroup($(this).closest('.pp-group-row').data('group-id'));
+                // Klik baris bahan (selain kontrol) membuka/menutup daftar request-nya
+                $('.pp-group-row').on('click', function (event) {
+                    if ($(event.target).closest('input, select, a, label').length) return;
+                    const group = $(this).closest('.pp-group');
+                    setOpen(group, !group.hasClass('is-open'));
                 });
 
-                $('.pp-group-row').on('click', function(e) {
-                    if ($(e.target).closest('button, input, select, textarea, label, a, .select2-container').length) {
-                        return;
-                    }
+                $('#sourceSearch').on('input search', function () {
+                    const keyword = this.value.trim().toLowerCase();
+                    let visibleGroups = 0;
 
-                    toggleGroup($(this).data('group-id'));
-                });
-
-                $('#sourceSearch').on('keyup search', function() {
-                    const keyword = this.value.toLowerCase();
-
-                    $('.pp-group-row').each(function() {
+                    $('.pp-group').each(function () {
                         const group = $(this);
-                        const groupId = group.data('group-id');
-                        const detail = $('.pp-detail-row[data-group-id="' + groupId + '"]');
-                        const groupText = String(group.data('search-text') || '');
-                        let childMatched = false;
+                        const groupMatch = keyword === '' || String(group.data('search')).includes(keyword);
+                        let childMatch = false;
 
-                        detail.find('.pp-child-source-row').each(function() {
-                            const child = $(this);
-                            const matched = String(child.data('search-text') || '').includes(keyword);
-                            child.toggle(matched || groupText.includes(keyword));
-                            childMatched = childMatched || matched;
+                        group.find('.pp-source-row').each(function () {
+                            const match = groupMatch || String($(this).data('search')).includes(keyword);
+                            $(this).toggleClass('is-filtered', !match);
+                            childMatch = childMatch || match;
                         });
 
-                        const visible = keyword === '' || groupText.includes(keyword) || childMatched;
-                        group.toggle(visible);
-                        detail.toggle(visible);
-                    });
-                });
-
-                $('#selectAllSources').on('click', function() {
-                    $('.child-checkbox').prop('checked', true);
-                    $('.group-checkbox').each(function() {
-                        updateGroupCheckbox($(this).data('group-id'));
+                        const visible = groupMatch || childMatch;
+                        group.prop('hidden', !visible);
+                        if (visible) visibleGroups++;
+                        // Request yang cocok langsung terlihat
+                        if (keyword !== '' && !groupMatch && childMatch) setOpen(group, true);
                     });
 
-                    updateSelectionSummary();
+                    $('#sourceSearchEmpty').prop('hidden', visibleGroups > 0);
+                    $('#approvedRequestItemsTable').closest('.ob-table-scroll').prop('hidden', visibleGroups === 0);
                 });
 
-                $('#clearAllSources').on('click', function() {
-                    $('.child-checkbox').prop('checked', false);
-                    $('.group-checkbox').each(function() {
-                        updateGroupCheckbox($(this).data('group-id'));
-                    });
-
-                    updateSelectionSummary();
+                $('#selectAllSources, #clearAllSources').on('click', function () {
+                    $('.child-checkbox:not(:disabled)').prop('checked', this.id === 'selectAllSources');
+                    refreshAll();
                 });
 
-                $('#procurementPlanForm').on('submit', function(e) {
-                    if ($('.child-checkbox:checked').length === 0) {
-                        e.preventDefault();
-                        showToast('error', 'Pilih minimal satu request dari item Request Order approved.');
+                $('#procurementPlanForm').on('submit', function (event) {
+                    const checked = $('.child-checkbox:checked');
+
+                    if (checked.length === 0) {
+                        event.preventDefault();
+                        showToast('error', 'Pilih minimal satu request dari item Request Order yang disetujui.');
                         return;
                     }
 
-                    let invalidSupplier = false;
-
-                    $('.child-checkbox:checked').each(function() {
+                    const missing = new Set();
+                    checked.each(function () {
                         const groupId = $(this).data('group-id');
-                        const select = $('.supplier-select[data-group-id="' + groupId + '"]');
-
-                        if (!select.val()) {
-                            invalidSupplier = true;
-                        }
+                        if (!$('.supplier-select[data-group-id="' + groupId + '"]').val()) missing.add(groupId);
                     });
 
-                    if (invalidSupplier) {
-                        e.preventDefault();
-                        showToast('error', 'Pilih supplier untuk setiap bahan baku yang dipilih.');
+                    if (missing.size > 0) {
+                        event.preventDefault();
+                        missing.forEach(function (groupId) { setOpen($('.pp-group[data-group-id="' + groupId + '"]'), true); });
+                        showToast('error', 'Ada bahan terpilih yang belum punya supplier. Lepas pilihannya atau tambahkan bahan itu ke supplier dulu.');
                     }
                 });
 
-                updateAllGroups();
+                $('#planning_location_id').select2({ width: '100%' });
+                refreshAll();
             });
         </script>
     @endpush
 
     @push('css')
         <style>
-            .procurement-plan-form-page .card {
-                border: 1px solid rgba(18, 38, 63, 0.08);
-                border-radius: 8px;
-            }
+            .pp-card { margin-bottom: 1.25rem; }
+            .pp-notice { margin-bottom: 1rem; }
+            .pp-notice--error { border-color: var(--ob-danger); color: var(--ob-danger); background: var(--ob-danger-soft); }
 
-            .pp-selection-summary {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                min-height: 40px;
-                padding: 8px 12px;
-                border: 1px solid rgba(18, 38, 63, 0.08);
-                border-radius: 8px;
-                background: #fbfcfe;
-                flex-wrap: wrap;
-            }
+            .pp-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; border-bottom: 1px solid var(--ob-border); }
+            .pp-toolbar__search { flex: 1 1 320px; min-width: 0; }
+            .pp-toolbar__actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 
-            .pp-source-scroll {
-                overflow-x: auto;
-                padding: 8px 0;
-            }
+            .pp-sources .pp-col-check { width: 44px; padding-right: 0; }
+            .pp-sources .pp-col-supplier { width: 260px; min-width: 220px; }
+            .pp-sources td:nth-child(2) { min-width: 260px; }
+            .pp-sources td:nth-child(3) { min-width: 140px; }
+            .pp-sources td:nth-child(5) { min-width: 130px; }
 
-            .pp-source-table {
-                min-width: 1080px;
-            }
+            /* Tiap bahan = satu tbody: baris bahan + baris request (tersembunyi sampai dibuka) */
+            .pp-group-row { cursor: pointer; }
+            .pp-group.is-open .pp-group-row td { background: var(--ob-surface-2); }
+            .pp-source-row { display: none; }
+            .pp-group.is-open .pp-source-row:not(.is-filtered) { display: table-row; }
+            .pp-source-row td { background: var(--ob-surface-2); font-size: .82rem; padding-top: .55rem; padding-bottom: .55rem; }
+            /* wh-table menghapus border baris terakhir tbody; baris anak tetap butuh pemisah tipis */
+            .wh-table tbody.pp-group tr:last-child td { border-bottom: 1px solid var(--ob-border); }
 
-            .pp-source-table th,
-            .pp-source-table td {
-                white-space: nowrap;
-            }
+            .pp-material { display: flex; align-items: flex-start; gap: .6rem; }
+            .pp-toggle i { transition: transform .15s ease; }
+            .pp-toggle[aria-expanded="true"] i { transform: rotate(180deg); }
+            .pp-source { padding-left: 2.6rem; }
+            .pp-source__name { font-weight: 600; color: var(--ob-text-2); }
 
-            .pp-source-table > :not(caption) > * > * {
-                padding: 0.55rem 0.75rem;
-            }
+            .pp-sources .form-check-input { width: 1.05rem; height: 1.05rem; margin: 0; border: 1.5px solid var(--ob-border-strong); cursor: pointer; }
+            .pp-sources .form-check-input:disabled { cursor: not-allowed; opacity: .45; }
 
-            .pp-group-row {
-                cursor: pointer;
-                transition: background-color 0.18s ease, box-shadow 0.18s ease;
-            }
+            .pp-warn { display: block; margin-top: .3rem; font-size: .75rem; color: var(--ob-danger); }
 
-            .pp-group-row:hover td,
-            .pp-group-row.is-expanded td {
-                background: #f8fafc;
-            }
-
-            .pp-group-row.is-expanded td {
-                box-shadow: inset 0 1px 0 rgba(18, 38, 63, 0.06), inset 0 -1px 0 rgba(18, 38, 63, 0.06);
-            }
-
-            .pp-source-table td:nth-child(2) {
-                white-space: normal;
-                min-width: 280px;
-                max-width: 420px;
-                overflow-wrap: anywhere;
-            }
-
-            .pp-source-table td:nth-child(4) {
-                min-width: 260px;
-            }
-
-            .pp-collapse-toggle {
-                width: 32px;
-                height: 32px;
-                padding: 0;
-                flex: 0 0 32px;
-            }
-
-            .pp-collapse-toggle i {
-                transition: transform 0.18s ease;
-            }
-
-            .pp-collapse-toggle.is-expanded i,
-            .pp-collapse-toggle[aria-expanded="true"] i {
-                transform: rotate(180deg);
-            }
-
-            .pp-child-wrap {
-                padding: 8px 14px 12px 56px;
-                background: linear-gradient(180deg, #f8fafc 0%, #fbfcfe 100%);
-            }
-
-            .pp-detail-row > td {
-                background: #fbfcfe;
-            }
-
-            .pp-detail-panel {
-                max-height: 0;
-                overflow: hidden;
-                opacity: 0;
-                transform: translateY(-4px);
-                transition: max-height 0.16s ease, opacity 0.12s ease, transform 0.16s ease;
-                will-change: max-height, opacity, transform;
-                contain: layout paint;
-            }
-
-            .pp-detail-row.is-open .pp-detail-panel {
-                max-height: min(58vh, 620px);
-                opacity: 1;
-                transform: translateY(0);
-            }
-
-            .pp-detail-row.is-open .pp-child-wrap {
-                max-height: min(58vh, 620px);
-                overflow-y: auto;
-            }
-
-            .pp-child-table {
-                border: 1px solid rgba(18, 38, 63, 0.08);
-                border-radius: 8px;
-                background: #fff;
-                overflow: hidden;
-            }
-
-            .pp-child-table th,
-            .pp-child-table td {
-                white-space: nowrap;
-                padding: 0.45rem 0.65rem;
-            }
-
-            .pp-child-table thead th {
-                background: #f3f6fb;
-                color: #4b5563;
-                font-size: 0.78rem;
-                font-weight: 700;
-            }
-
-            .pp-child-table td:nth-child(2),
-            .pp-child-table td:nth-child(3) {
-                white-space: normal;
-                min-width: 220px;
-                max-width: 360px;
-                overflow-wrap: anywhere;
-            }
-
-            @media (max-width: 768px) {
-
-                .pp-child-wrap {
-                    padding-left: 12px;
-                }
-            }
+            .pp-form-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: 1rem 1.25rem; border-top: 1px solid var(--ob-border); }
+            .pp-summary { margin: 0; font-size: .85rem; color: var(--ob-muted); }
+            .pp-summary strong { color: var(--ob-text); font-variant-numeric: tabular-nums; }
         </style>
     @endpush
 @endsection

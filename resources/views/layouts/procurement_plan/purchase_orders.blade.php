@@ -1,332 +1,282 @@
 @extends('layouts.app')
 @section('content')
+    @include('layouts.reports.partials.ui-styles')
+    @include('layouts.warehouse.partials.ui-styles')
+
     @php
-        $formatQty = fn ($value) => number_format((float) $value, 1, ',', '.');
-        $formatMoney = fn ($value) => $value === null ? '-' : 'Rp ' . number_format((float) $value, 2, ',', '.');
-        $poStatusClass = fn ($code) => match ($code) {
-            'draft' => 'bg-secondary',
-            'submitted' => 'bg-primary',
-            'approved' => 'bg-success',
-            'ordered' => 'bg-info text-dark',
-            'partially_received' => 'bg-warning text-dark',
-            'received' => 'bg-success',
-            'cancelled' => 'bg-dark',
-            'rejected' => 'bg-danger',
-            default => 'bg-light text-dark border',
-        };
-        $receiptStatusClass = fn ($code) => match ($code) {
-            'draft' => 'bg-secondary',
-            'posted' => 'bg-success',
-            'voided' => 'bg-dark',
-            default => 'bg-light text-dark border',
-        };
+        // Qty tanpa nol di belakang koma (decimal:5); Rupiah tanpa ,00 kalau bulat
+        $qty = fn ($value) => rtrim(rtrim(number_format((float) $value, 5, ',', '.'), '0'), ',');
+        $rupiah = fn ($value) => 'Rp ' . number_format((float) $value, fmod((float) $value, 1) ? 2 : 0, ',', '.');
+        $unitOf = fn ($unit) => $unit?->symbol ?: $unit?->name;
+        $dateTime = fn ($value) => $value?->translatedFormat('d M Y, H:i');
+        $partyLabel = fn ($party) => ['buyer' => 'Pembeli (internal)', 'supplier' => 'Supplier'][$party] ?? ucfirst((string) $party);
+        $allItems = $purchaseOrders->flatMap(fn ($purchaseOrder) => $purchaseOrder->items);
+        $fullyReceived = $allItems->filter(fn ($item) => (float) $item->qty_base_ordered > 0 && (float) $item->qty_base_received >= (float) $item->qty_base_ordered)->count();
+        $hasPrice = $allItems->contains(fn ($item) => $item->subtotal !== null);
+        $planStatus = $procurementPlan->status;
     @endphp
 
-    <div class="main-content procurement-po-detail-page">
-        @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-        @if ($errors->any())
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ $errors->first() }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
             <div>
-                <h2 class="h4 mb-1 font-weight-bold">
-                    <i class="fa fa-file-invoice me-2"></i>Detail PO {{ $procurementPlan->plan_number }}
-                </h2>
-                <p class="text-muted small mb-0">Purchase order yang digenerate dari procurement plan ini, dikelompokkan per supplier.</p>
+                <div class="ob-header__eyebrow">
+                    <a href="{{ route('warehouse/procurement-plan') }}">Procurement Plan</a><span class="wh-crumb-sep" aria-hidden="true">/</span><a
+                        href="{{ route('warehouse/procurement-plan/detail', $procurementPlan->id) }}">{{ $procurementPlan->plan_number }}</a>
+                </div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-file-invoice"></i></span>
+                    Purchase Order
+                </h1>
+                <div class="wh-profile-meta">
+                    @if ($planStatus)
+                        <span class="badge {{ $planStatus->badge_class }}">Plan: {{ $planStatus->label }}</span>
+                    @endif
+                    <span><i class="fas fa-warehouse" aria-hidden="true"></i> {{ $procurementPlan->planningLocation?->name ?? '-' }}</span>
+                    <span>Satu PO per supplier, dibuat dari plan ini.</span>
+                </div>
             </div>
-            <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('warehouse/procurement-plan') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fa fa-arrow-left me-1"></i>Kembali
-                </a>
-                <a href="{{ route('warehouse/procurement-plan/detail', $procurementPlan->id) }}" class="btn btn-outline-primary btn-sm">
-                    <i class="fa fa-clipboard-check me-1"></i>Detail Plan
+            <div class="wh-actions">
+                <a href="{{ route('warehouse/procurement-plan/detail', $procurementPlan->id) }}" class="btn ob-btn ob-btn-outline">
+                    <i class="fas fa-clipboard-check" aria-hidden="true"></i> Detail Plan
                 </a>
             </div>
         </div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-xl-4">
-                <div class="card shadow-sm po-info-card po-border-primary h-100">
-                    <div class="card-header bg-white border-bottom">
-                        <h5 class="mb-0"><i class="fa fa-info-circle me-2"></i>Plan Info</h5>
-                    </div>
-                    <div class="card-body">
-                        <dl class="po-info-list mb-0">
-                            <div>
-                                <dt>Plan Number</dt>
-                                <dd>{{ $procurementPlan->plan_number }}</dd>
-                            </div>
-                            <div>
-                                <dt>Planning Location</dt>
-                                <dd>{{ optional($procurementPlan->planningLocation)->name ?? '-' }}</dd>
-                            </div>
-                            <div>
-                                <dt>Status Plan</dt>
-                                <dd>{{ optional($procurementPlan->status)->name ?? '-' }}</dd>
-                            </div>
-                            <div>
-                                <dt>Planned At</dt>
-                                <dd>{{ optional($procurementPlan->planned_at)->format('d M Y H:i') ?? '-' }}</dd>
-                            </div>
-                        </dl>
-                    </div>
+        @if (session('success'))
+            <div class="ob-notice pp-notice" role="status">
+                <i class="fas fa-check-circle" aria-hidden="true"></i> {{ session('success') }}
+            </div>
+        @endif
+        @if ($errors->any())
+            <div class="ob-notice pp-notice pp-notice--error" role="alert">
+                <i class="fas fa-exclamation-circle" aria-hidden="true"></i> {{ $errors->first() }}
+            </div>
+        @endif
+
+        {{-- Ringkasan --}}
+        <div class="ob-stats">
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--primary" aria-hidden="true"><i class="fas fa-file-invoice"></i></span>
+                <div>
+                    <p class="ob-stat__label">Purchase Order</p>
+                    <p class="ob-stat__value">{{ number_format($stats['total_purchase_orders'] ?? 0, 0, ',', '.') }}</p>
+                    <p class="wh-stat-sub">{{ number_format($stats['total_suppliers'] ?? 0, 0, ',', '.') }} supplier</p>
                 </div>
             </div>
-
-            <div class="col-xl-4">
-                <div class="card shadow-sm po-info-card po-border-success h-100">
-                    <div class="card-header bg-white border-bottom">
-                        <h5 class="mb-0"><i class="fa fa-chart-pie me-2"></i>PO Summary</h5>
-                    </div>
-                    <div class="card-body">
-                        <dl class="po-info-list mb-0">
-                            <div>
-                                <dt>Total PO</dt>
-                                <dd>{{ number_format($stats['total_purchase_orders'] ?? 0, 0, ',', '.') }}</dd>
-                            </div>
-                            <div>
-                                <dt>Total Supplier</dt>
-                                <dd>{{ number_format($stats['total_suppliers'] ?? 0, 0, ',', '.') }}</dd>
-                            </div>
-                            <div>
-                                <dt>Total Item</dt>
-                                <dd>{{ number_format($stats['total_items'] ?? 0, 0, ',', '.') }}</dd>
-                            </div>
-                            <div>
-                                <dt>Estimasi Nilai</dt>
-                                <dd>{{ $formatMoney($stats['estimated_total'] ?? 0) }}</dd>
-                            </div>
-                        </dl>
-                    </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--warning" aria-hidden="true"><i class="fas fa-boxes"></i></span>
+                <div>
+                    <p class="ob-stat__label">Item Dipesan</p>
+                    <p class="ob-stat__value">{{ number_format($stats['total_items'] ?? 0, 0, ',', '.') }}</p>
+                    <p class="wh-stat-sub">bahan di semua PO</p>
                 </div>
             </div>
-
-            <div class="col-xl-4">
-                <div class="card shadow-sm po-info-card po-border-info h-100">
-                    <div class="card-header bg-white border-bottom">
-                        <h5 class="mb-0"><i class="fa fa-truck-loading me-2"></i>Progress</h5>
-                    </div>
-                    <div class="card-body">
-                        <dl class="po-info-list mb-0">
-                            <div>
-                                <dt>Qty Ordered</dt>
-                                <dd>{{ $formatQty($stats['qty_base_ordered'] ?? 0) }}</dd>
-                            </div>
-                            <div>
-                                <dt>Qty Received</dt>
-                                <dd>{{ $formatQty($stats['qty_base_received'] ?? 0) }}</dd>
-                            </div>
-                            <div>
-                                <dt>Penerimaan</dt>
-                                <dd>{{ number_format($stats['total_receipts'] ?? 0, 0, ',', '.') }} dokumen</dd>
-                            </div>
-                            <div>
-                                <dt>Cancellation</dt>
-                                <dd>{{ number_format($stats['total_cancellations'] ?? 0, 0, ',', '.') }} dokumen</dd>
-                            </div>
-                        </dl>
-                    </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--success" aria-hidden="true"><i class="fas fa-truck-loading"></i></span>
+                <div>
+                    <p class="ob-stat__label">Diterima Penuh</p>
+                    <p class="ob-stat__value">{{ number_format($fullyReceived, 0, ',', '.') }}<span class="pp-stat-of"> / {{ number_format($allItems->count(), 0, ',', '.') }}</span></p>
+                    <p class="wh-stat-sub">{{ number_format($stats['total_receipts'] ?? 0, 0, ',', '.') }} dokumen penerimaan</p>
+                </div>
+            </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--danger" aria-hidden="true"><i class="fas fa-coins"></i></span>
+                <div>
+                    <p class="ob-stat__label">Estimasi Nilai</p>
+                    <p class="ob-stat__value pp-stat-money">{{ $hasPrice ? $rupiah($stats['estimated_total'] ?? 0) : '-' }}</p>
+                    <p class="wh-stat-sub">{{ $hasPrice ? 'total subtotal semua PO' : 'harga belum diisi' }}</p>
                 </div>
             </div>
         </div>
 
         @forelse ($purchaseOrders as $purchaseOrder)
             @php
-                $poItems = $purchaseOrder->items;
-                $poTotal = $poItems->sum(fn ($item) => (float) ($item->subtotal ?? 0));
-                $qtyOrdered = $poItems->sum(fn ($item) => (float) $item->qty_base_ordered);
-                $qtyReceived = $poItems->sum(fn ($item) => (float) $item->qty_base_received);
-                $poStatusCode = optional($purchaseOrder->status)->code;
+                $items = $purchaseOrder->items;
+                $status = $purchaseOrder->status;
+                $contact = $purchaseOrder->supplier?->primaryContact;
+                $contactText = $contact ? ($contact->phone ?: $contact->email ?: $contact->name) : null;
+                $poHasPrice = $items->contains(fn ($item) => $item->subtotal !== null);
+                $receipts = $purchaseOrder->receipts;
+                $cancellations = $purchaseOrder->cancellations;
             @endphp
 
-            <div class="card shadow-sm po-card mb-4">
-                <div class="card-header bg-white border-bottom">
-                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
-                        <div>
-                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                                <h5 class="mb-0">{{ $purchaseOrder->po_number }}</h5>
-                                <span class="badge {{ $poStatusClass($poStatusCode) }}">{{ optional($purchaseOrder->status)->name ?? '-' }}</span>
-                            </div>
-                            <div class="text-muted small">
-                                {{ optional($purchaseOrder->supplier)->name ?? '-' }}
-                                @if ($purchaseOrder->supplier?->primaryContact)
-                                    - {{ $purchaseOrder->supplier->primaryContact->phone ?? $purchaseOrder->supplier->primaryContact->email ?? $purchaseOrder->supplier->primaryContact->name }}
-                                @endif
-                            </div>
-                        </div>
-                        <div class="po-card-summary">
-                            <span>{{ $poItems->count() }} item</span>
-                            <span>{{ $formatQty($qtyOrdered) }} ordered</span>
-                            <span>{{ $formatQty($qtyReceived) }} received</span>
-                            <strong>{{ $formatMoney($poTotal) }}</strong>
-                        </div>
+            <div class="ob-card pp-po">
+                <div class="wh-card__head">
+                    <div>
+                        <h2 class="wh-card__title">
+                            <i class="fas fa-file-invoice" aria-hidden="true"></i> {{ $purchaseOrder->po_number }}
+                            @if ($status)
+                                <span class="badge {{ $status->badge_class }}">{{ $status->label }}</span>
+                            @endif
+                        </h2>
+                        <p class="wh-card__desc">
+                            <i class="fas fa-truck" aria-hidden="true"></i> <strong class="pp-supplier-name">{{ $purchaseOrder->supplier?->name ?? '-' }}</strong>
+                            @if ($contactText)
+                                · {{ $contactText }}
+                            @endif
+                        </p>
+                    </div>
+                    <div class="pp-po-total">
+                        <span class="pp-po-total__label">Total</span>
+                        <span class="pp-po-total__value">{{ $poHasPrice ? $rupiah($items->sum(fn ($item) => (float) ($item->subtotal ?? 0))) : '-' }}</span>
                     </div>
                 </div>
 
-                <div class="card-body">
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6 col-xl-3">
-                            <div class="po-mini-box">
-                                <span>Order Date</span>
-                                <strong>{{ optional($purchaseOrder->order_date)->format('d M Y') ?? '-' }}</strong>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-xl-3">
-                            <div class="po-mini-box">
-                                <span>Expected Delivery</span>
-                                <strong>{{ optional($purchaseOrder->expected_delivery_date)->format('d M Y') ?? '-' }}</strong>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-xl-3">
-                            <div class="po-mini-box">
-                                <span>Receiving Location</span>
-                                <strong>{{ optional($purchaseOrder->receivingLocation)->name ?? '-' }}</strong>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-xl-3">
-                            <div class="po-mini-box">
-                                <span>Requested By</span>
-                                <strong>{{ optional($purchaseOrder->requestedBy)->name ?? '-' }}</strong>
-                            </div>
-                        </div>
-                    </div>
+                <dl class="pp-po-meta">
+                    <div><dt>Tanggal Order</dt><dd>{{ $purchaseOrder->order_date?->translatedFormat('d M Y') }}</dd></div>
+                    <div><dt>Perkiraan Tiba</dt><dd>{{ $purchaseOrder->expected_delivery_date?->translatedFormat('d M Y') }}</dd></div>
+                    <div><dt>Lokasi Terima</dt><dd>{{ $purchaseOrder->receivingLocation?->name }}</dd></div>
+                    <div><dt>Diajukan Oleh</dt><dd>{{ $purchaseOrder->requestedBy?->name }}</dd></div>
+                </dl>
 
-                    <div class="po-section-title">Item PO</div>
-                    <div class="po-table-scroll mb-4">
-                        <table class="table table-hover table-sm mb-0 align-middle po-items-table">
+                @if ($items->isEmpty())
+                    <p class="wh-side-empty">Belum ada item di PO ini.</p>
+                @else
+                    <div class="ob-table-scroll">
+                        <table class="wh-table pp-po-items">
                             <thead>
                                 <tr>
-                                    <th>No</th>
-                                    <th>Bahan Baku</th>
-                                    <th class="text-end">Qty Order</th>
-                                    <th class="text-end">Qty Base</th>
-                                    <th class="text-end">Received</th>
-                                    <th class="text-end">Rejected</th>
-                                    <th class="text-end">Cancelled</th>
-                                    <th class="text-end">Unit Price</th>
-                                    <th class="text-end">Subtotal</th>
+                                    <th scope="col">Bahan Baku</th>
+                                    <th scope="col" class="text-end">Dipesan</th>
+                                    <th scope="col" class="text-end">Diterima</th>
+                                    <th scope="col" class="text-end">Harga</th>
+                                    <th scope="col" class="text-end">Subtotal</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($poItems as $index => $item)
+                                @foreach ($items as $item)
+                                    @php
+                                        $unit = $unitOf($item->unit) ?: $unitOf($item->rawMaterial?->baseUnit);
+                                        $received = (float) $item->qty_base_received;
+                                        $ordered = (float) $item->qty_base_ordered;
+                                        $extra = collect([
+                                            (float) $item->qty_base_rejected > 0 ? 'Ditolak ' . $qty($item->qty_base_rejected) . ' ' . $unit : null,
+                                            (float) $item->qty_base_cancelled > 0 ? 'Batal ' . $qty($item->qty_base_cancelled) . ' ' . $unit : null,
+                                        ])->filter()->implode(' · ');
+                                    @endphp
                                     <tr>
-                                        <td>{{ $index + 1 }}</td>
                                         <td>
-                                            <div class="fw-semibold">{{ optional($item->rawMaterial)->name ?? '-' }}</div>
-                                            <small class="text-muted">{{ optional($item->rawMaterial)->code ?? 'Tanpa kode' }}</small>
+                                            <div class="wh-cell-stack">
+                                                <span class="wh-strong">{{ $item->rawMaterial?->name ?? '-' }}</span>
+                                                <span class="ob-cell-meta">{{ $item->rawMaterial?->code ?: 'Tanpa kode' }}</span>
+                                            </div>
                                         </td>
-                                        <td class="text-end">{{ $formatQty($item->qty_ordered) }} <small class="text-muted">{{ optional($item->unit)->symbol ?: optional($item->unit)->name }}</small></td>
-                                        <td class="text-end">{{ $formatQty($item->qty_base_ordered) }}</td>
-                                        <td class="text-end">{{ $formatQty($item->qty_base_received) }}</td>
-                                        <td class="text-end">{{ $formatQty($item->qty_base_rejected) }}</td>
-                                        <td class="text-end">{{ $formatQty($item->qty_base_cancelled) }}</td>
-                                        <td class="text-end">{{ $formatMoney($item->unit_price) }}</td>
-                                        <td class="text-end fw-semibold">{{ $formatMoney($item->subtotal) }}</td>
+                                        <td class="text-end wh-num wh-strong">{{ $qty($item->qty_ordered) }} {{ $unit }}</td>
+                                        <td class="text-end">
+                                            <div class="wh-cell-stack wh-cell-stack--end">
+                                                @if ($ordered > 0 && $received >= $ordered)
+                                                    <span class="badge badge-success">Lengkap</span>
+                                                @else
+                                                    <span class="wh-num">{{ $qty($received) }} {{ $unit }}</span>
+                                                @endif
+                                                @if ($extra)
+                                                    <span class="ob-cell-meta wh-num">{{ $extra }}</span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td class="text-end wh-num">{{ $item->unit_price !== null ? $rupiah($item->unit_price) : '-' }}</td>
+                                        <td class="text-end wh-num wh-strong">{{ $item->subtotal !== null ? $rupiah($item->subtotal) : '-' }}</td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="9" class="text-center text-muted py-4">Belum ada item PO.</td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
+                @endif
 
-                    <div class="po-section-title">Penerimaan & Surat Jalan</div>
-                    <div class="po-table-scroll mb-4">
-                        <table class="table table-hover table-sm mb-0 align-middle po-receipts-table">
+                @if ($receipts->isNotEmpty())
+                    <div class="pp-po-section">
+                        <h3 class="pp-po-section__title"><i class="fas fa-truck-loading" aria-hidden="true"></i> Penerimaan <span class="wh-count">{{ $receipts->count() }}</span></h3>
+                    </div>
+                    <div class="ob-table-scroll">
+                        <table class="wh-table">
                             <thead>
                                 <tr>
-                                    <th>No</th>
-                                    <th>Receipt</th>
-                                    <th>Status</th>
-                                    <th>Surat Jalan</th>
-                                    <th>Invoice Supplier</th>
-                                    <th>Received At</th>
-                                    <th>Received By</th>
-                                    <th class="text-end">Item</th>
-                                    <th class="text-end">Accepted Base</th>
+                                    <th scope="col">Penerimaan</th>
+                                    <th scope="col">Surat Jalan / Invoice</th>
+                                    <th scope="col">Diterima</th>
+                                    <th scope="col" class="text-end">Item</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($purchaseOrder->receipts as $index => $receipt)
-                                    @php
-                                        $receiptStatusCode = optional($receipt->status)->code;
-                                        $acceptedBase = $receipt->items->sum(fn ($item) => (float) $item->qty_base_accepted);
-                                    @endphp
+                                @foreach ($receipts as $receipt)
                                     <tr>
-                                        <td>{{ $index + 1 }}</td>
-                                        <td>{{ $receipt->receipt_number ?? '-' }}</td>
-                                        <td><span class="badge {{ $receiptStatusClass($receiptStatusCode) }}">{{ optional($receipt->status)->name ?? '-' }}</span></td>
-                                        <td>{{ $receipt->delivery_note_number ?? '-' }}</td>
-                                        <td>{{ $receipt->supplier_invoice_number ?? '-' }}</td>
-                                        <td>{{ optional($receipt->received_at)->format('d M Y H:i') ?? '-' }}</td>
-                                        <td>{{ optional($receipt->receivedBy)->name ?? '-' }}</td>
-                                        <td class="text-end">{{ $receipt->items->count() }}</td>
-                                        <td class="text-end">{{ $formatQty($acceptedBase) }}</td>
+                                        <td>
+                                            <div class="wh-cell-stack">
+                                                <span class="wh-strong pp-nowrap">{{ $receipt->receipt_number ?? '-' }}</span>
+                                                @if ($receipt->status)
+                                                    <span class="badge {{ $receipt->status->badge_class }}">{{ $receipt->status->label }}</span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="wh-cell-stack">
+                                                <span>{{ $receipt->delivery_note_number ?: 'Tanpa surat jalan' }}</span>
+                                                <span class="ob-cell-meta">{{ $receipt->supplier_invoice_number ? 'Invoice ' . $receipt->supplier_invoice_number : 'Tanpa invoice' }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="wh-cell-stack">
+                                                <span class="pp-nowrap">{{ $dateTime($receipt->received_at) ?? '-' }}</span>
+                                                <span class="ob-cell-meta">{{ $receipt->receivedBy?->name ?? '-' }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-end wh-num">{{ $receipt->items->count() }} bahan</td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="9" class="text-center text-muted py-4">Belum ada penerimaan untuk PO ini.</td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
+                @endif
 
-                    <div class="po-section-title">Cancellation</div>
-                    <div class="po-table-scroll">
-                        <table class="table table-hover table-sm mb-0 align-middle po-cancellations-table">
+                @if ($cancellations->isNotEmpty())
+                    <div class="pp-po-section">
+                        <h3 class="pp-po-section__title"><i class="fas fa-ban" aria-hidden="true"></i> Pembatalan <span class="wh-count">{{ $cancellations->count() }}</span></h3>
+                    </div>
+                    <div class="ob-table-scroll">
+                        <table class="wh-table">
                             <thead>
                                 <tr>
-                                    <th>No</th>
-                                    <th>Nomor Cancellation</th>
-                                    <th>Pihak</th>
-                                    <th>Cancelled At</th>
-                                    <th>Cancelled By</th>
-                                    <th>Reason</th>
-                                    <th class="text-end">Item</th>
-                                    <th class="text-end">Cancelled Base</th>
+                                    <th scope="col">Pembatalan</th>
+                                    <th scope="col">Waktu</th>
+                                    <th scope="col">Alasan</th>
+                                    <th scope="col" class="text-end">Item</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($purchaseOrder->cancellations as $index => $cancellation)
-                                    @php
-                                        $cancelledBase = $cancellation->items->sum(fn ($item) => (float) $item->qty_base_cancelled);
-                                    @endphp
+                                @foreach ($cancellations as $cancellation)
                                     <tr>
-                                        <td>{{ $index + 1 }}</td>
-                                        <td>{{ $cancellation->cancellation_number ?? '-' }}</td>
-                                        <td>{{ ucfirst($cancellation->cancelled_by_party) }}</td>
-                                        <td>{{ optional($cancellation->cancelled_at)->format('d M Y H:i') ?? '-' }}</td>
-                                        <td>{{ optional($cancellation->cancelledBy)->name ?? '-' }}</td>
-                                        <td>{{ $cancellation->reason ?? '-' }}</td>
-                                        <td class="text-end">{{ $cancellation->items->count() }}</td>
-                                        <td class="text-end">{{ $formatQty($cancelledBase) }}</td>
+                                        <td>
+                                            <div class="wh-cell-stack">
+                                                <span class="wh-strong pp-nowrap">{{ $cancellation->cancellation_number ?: 'Tanpa nomor' }}</span>
+                                                <span class="ob-cell-meta">Oleh {{ $partyLabel($cancellation->cancelled_by_party) }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="wh-cell-stack">
+                                                <span class="pp-nowrap">{{ $dateTime($cancellation->cancelled_at) ?? '-' }}</span>
+                                                <span class="ob-cell-meta">{{ $cancellation->cancelledBy?->name ? 'Dicatat ' . $cancellation->cancelledBy->name : 'Dari supplier' }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="pp-reason">{{ $cancellation->reason ?: '-' }}</td>
+                                        <td class="text-end wh-num">{{ $cancellation->items->count() }} bahan</td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="8" class="text-center text-muted py-4">Belum ada cancellation untuk PO ini.</td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
-                </div>
+                @endif
+
+                @if ($receipts->isEmpty() && $cancellations->isEmpty())
+                    <p class="pp-po-foot"><i class="fas fa-info-circle" aria-hidden="true"></i> Belum ada penerimaan maupun pembatalan untuk PO ini.</p>
+                @endif
             </div>
         @empty
-            <div class="card shadow-sm po-card">
-                <div class="card-body text-center text-muted py-5">
-                    Belum ada purchase order yang digenerate dari procurement plan ini.
+            <div class="ob-card">
+                <div class="wh-empty">
+                    <span class="wh-empty__icon" aria-hidden="true"><i class="fas fa-file-invoice"></i></span>
+                    <p class="wh-empty__title">Belum ada Purchase Order</p>
+                    <p class="wh-empty__text">PO hanya dibuat untuk bahan yang perlu dibeli. Bila semua bahan cukup dari stok di lokasi planning, plan ini tidak menghasilkan PO.</p>
                 </div>
             </div>
         @endforelse
@@ -334,160 +284,35 @@
 
     @push('css')
         <style>
-            .procurement-po-detail-page .card {
-                border: 1px solid rgba(18, 38, 63, 0.08);
-                border-radius: 8px;
-            }
+            .ob-page .ob-stats .ob-stat { margin-bottom: 0; }
+            .pp-notice { margin-top: 1rem; }
+            .pp-notice--error { border-color: var(--ob-danger); color: var(--ob-danger); background: var(--ob-danger-soft); }
+            .ob-page .pp-stat-money { font-size: 1.15rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+            .pp-stat-of { font-size: .9rem; font-weight: 500; color: var(--ob-muted); }
 
-            .po-info-card,
-            .po-card {
-                overflow: hidden;
-            }
+            .pp-po { margin-top: 1.25rem; }
+            .pp-po .wh-card__title .badge { font-size: .7rem; }
+            .pp-supplier-name { color: var(--ob-text); font-weight: 600; }
+            .pp-po-total { display: flex; flex-direction: column; align-items: flex-end; }
+            .pp-po-total__label { font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ob-muted); }
+            @media (max-width: 575.98px) { .pp-po-total { align-items: flex-start; } }
+            .pp-po-total__value { font-size: 1.05rem; font-weight: 700; color: var(--ob-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-            .po-info-card::before,
-            .po-card::before {
-                content: "";
-                display: block;
-                height: 4px;
-            }
+            .pp-po-meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem 1.25rem; margin: 0; padding: 1rem 1.25rem; border-bottom: 1px solid var(--ob-border); }
+            .pp-po-meta dt { font-size: .72rem; font-weight: 600; color: var(--ob-muted); }
+            .pp-po-meta dd { margin: .15rem 0 0; font-size: .85rem; font-weight: 500; color: var(--ob-text); overflow-wrap: anywhere; }
+            .pp-po-meta dd:empty::before { content: "—"; font-weight: 400; color: var(--ob-muted); }
+            @media (max-width: 767.98px) { .pp-po-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-            .po-border-primary::before,
-            .po-card::before {
-                background: #2f6fcf;
-            }
-
-            .po-border-success::before {
-                background: #15965f;
-            }
-
-            .po-border-info::before {
-                background: #13a2b8;
-            }
-
-            .po-info-list {
-                display: grid;
-                gap: 10px;
-            }
-
-            .po-info-list > div {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                gap: 16px;
-                padding-bottom: 10px;
-                border-bottom: 1px solid rgba(18, 38, 63, 0.08);
-            }
-
-            .po-info-list > div:last-child {
-                border-bottom: 0;
-                padding-bottom: 0;
-            }
-
-            .po-info-list dt {
-                color: #667085;
-                font-size: 12px;
-                font-weight: 600;
-                min-width: 130px;
-            }
-
-            .po-info-list dd {
-                margin-bottom: 0;
-                text-align: right;
-                color: #1f2937;
-                font-weight: 600;
-                overflow-wrap: anywhere;
-            }
-
-            .po-card-summary {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: flex-end;
-                gap: 8px;
-                color: #475467;
-                font-size: 12px;
-            }
-
-            .po-card-summary span,
-            .po-card-summary strong {
-                display: inline-flex;
-                align-items: center;
-                min-height: 28px;
-                padding: 4px 9px;
-                border: 1px solid rgba(18, 38, 63, 0.1);
-                border-radius: 8px;
-                background: #f8fafc;
-            }
-
-            .po-mini-box {
-                height: 100%;
-                padding: 12px;
-                border: 1px solid rgba(18, 38, 63, 0.08);
-                border-radius: 8px;
-                background: #fbfcfe;
-            }
-
-            .po-mini-box span {
-                display: block;
-                color: #667085;
-                font-size: 12px;
-                font-weight: 600;
-                margin-bottom: 4px;
-            }
-
-            .po-mini-box strong {
-                color: #1f2937;
-                font-size: 13px;
-                overflow-wrap: anywhere;
-            }
-
-            .po-section-title {
-                margin-bottom: 8px;
-                color: #1f2937;
-                font-size: 13px;
-                font-weight: 800;
-            }
-
-            .po-table-scroll {
-                overflow-x: auto;
-            }
-
-            .po-items-table,
-            .po-receipts-table,
-            .po-cancellations-table {
-                min-width: 1020px;
-            }
-
-            .po-items-table th,
-            .po-items-table td,
-            .po-receipts-table th,
-            .po-receipts-table td,
-            .po-cancellations-table th,
-            .po-cancellations-table td {
-                white-space: nowrap;
-            }
-
-            .po-items-table td:nth-child(2),
-            .po-cancellations-table td:nth-child(6) {
-                white-space: normal;
-                min-width: 220px;
-                max-width: 360px;
-                overflow-wrap: anywhere;
-            }
-
-            @media (max-width: 768px) {
-                .po-info-list > div {
-                    display: block;
-                }
-
-                .po-info-list dd {
-                    margin-top: 4px;
-                    text-align: left;
-                }
-
-                .po-card-summary {
-                    justify-content: flex-start;
-                }
-            }
+            .pp-po-items td:first-child { min-width: 200px; }
+            /* Lebar kolom angka sama di setiap kartu PO agar mudah dibandingkan */
+            .pp-po-items th:nth-child(n+2) { width: 16%; }
+            .pp-po-section { padding: .9rem 1.25rem .6rem; border-top: 1px solid var(--ob-border); }
+            .pp-po-section__title { display: flex; align-items: center; gap: .5rem; margin: 0; font-size: .85rem; font-weight: 700; color: var(--ob-text); }
+            .pp-po-section__title > i { font-size: .8rem; color: var(--ob-primary); }
+            .pp-nowrap { white-space: nowrap; }
+            .pp-reason { min-width: 200px; white-space: normal; }
+            .pp-po-foot { margin: 0; padding: .85rem 1.25rem; border-top: 1px solid var(--ob-border); font-size: .8rem; color: var(--ob-muted); }
         </style>
     @endpush
 @endsection

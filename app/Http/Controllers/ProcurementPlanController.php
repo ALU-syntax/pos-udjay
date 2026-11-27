@@ -181,7 +181,7 @@ class ProcurementPlanController extends Controller
             'items.sources.rawMaterialRequestItem.rawMaterial',
             'items.sources.rawMaterialRequestItem.rawMaterialRequest.requesterInventory',
             'items.sources.rawMaterialRequestItem.rawMaterialRequest.fulfillmentInventory',
-        ]);
+        ])->loadCount('purchaseOrders');
 
         return view('layouts.procurement_plan.show', [
             'procurementPlan' => $procurementPlan,

@@ -1,262 +1,249 @@
 @extends('layouts.app')
 @section('content')
+    @include('layouts.reports.partials.ui-styles')
+    @include('layouts.warehouse.partials.ui-styles')
+
     @php
-        $statusCode = optional($procurementPlan->status)->code;
-        $isDraft = $statusCode === 'draft';
-        $statusClass = match ($statusCode) {
-            'draft' => 'bg-secondary',
-            'reviewed' => 'bg-primary',
-            'approved' => 'bg-success',
-            'converted_to_po' => 'bg-info text-dark',
-            'cancelled' => 'bg-dark',
-            default => 'bg-light text-dark border',
-        };
-        $formatQty = fn ($value) => number_format((float) $value, 1, ',', '.');
-        $formatMoney = fn ($value) => $value === null ? '-' : number_format((float) $value, 2, ',', '.');
+        $status = $procurementPlan->status;
+        $isDraft = $status?->code === \App\Models\ProcurementPlanStatus::DRAFT;
+        // Qty tanpa nol di belakang koma (decimal:5); Rupiah tanpa ,00 kalau bulat
+        $qty = fn ($value) => rtrim(rtrim(number_format((float) $value, 5, ',', '.'), '0'), ',');
+        $rupiah = fn ($value) => 'Rp ' . number_format((float) $value, fmod((float) $value, 1) ? 2 : 0, ',', '.');
+        $unitOf = fn ($unit) => $unit?->symbol ?: $unit?->name;
+        $items = $procurementPlan->items->sortBy(fn ($item) => $item->rawMaterial?->name)->values();
+        $sources = $items->flatMap(fn ($item) => $item->sources->map(fn ($source) => (object) ['source' => $source, 'item' => $item]));
+        $toPurchaseCount = $items->filter(fn ($item) => (float) $item->qty_to_purchase_base > 0)->count();
+        $hasPrice = $items->contains(fn ($item) => $item->estimated_subtotal !== null);
+        $canRead = auth()->user()->can('read warehouse/procurement-plan');
     @endphp
 
-    <div class="main-content procurement-plan-detail-page">
-        @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div class="main-content ob-page">
+        {{-- Header --}}
+        <div class="ob-header">
             <div>
-                <h2 class="h4 mb-1 font-weight-bold">
-                    <i class="fa fa-clipboard-check me-2"></i>{{ $procurementPlan->plan_number }}
-                </h2>
+                <div class="ob-header__eyebrow">
+                    <a href="{{ route('warehouse/procurement-plan') }}">Procurement Plan</a><span class="wh-crumb-sep" aria-hidden="true">/</span>Detail
+                </div>
+                <h1 class="ob-header__title">
+                    <span class="ob-header__icon" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span>
+                    {{ $procurementPlan->plan_number }}
+                </h1>
+                <div class="wh-profile-meta">
+                    @if ($status)
+                        <span class="badge {{ $status->badge_class }}">{{ $status->label }}</span>
+                    @endif
+                    <span><i class="fas fa-warehouse" aria-hidden="true"></i> {{ $procurementPlan->planningLocation?->name ?? '-' }}</span>
+                    <span>Dibuat {{ $procurementPlan->planned_at?->translatedFormat('d M Y, H:i') ?? '-' }}{{ $procurementPlan->plannedBy ? ' oleh ' . $procurementPlan->plannedBy->name : '' }}</span>
+                </div>
             </div>
-            <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('warehouse/procurement-plan') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fa fa-arrow-left me-1"></i>Kembali
-                </a>
-                <a href="{{ route('warehouse/procurement-plan/purchase-orders', $procurementPlan->id) }}" class="btn btn-outline-primary btn-sm">
-                    <i class="fa fa-file-invoice me-1"></i>Detail PO
-                </a>
-                @if ($isDraft)
-                    <a href="{{ route('warehouse/procurement-plan/destroy', $procurementPlan->id) }}" class="btn btn-outline-danger btn-sm delete-procurement-plan-detail">
-                        <i class="fa fa-trash me-1"></i>Hapus
+            <div class="wh-actions">
+                @if ($canRead)
+                    <a href="{{ route('warehouse/procurement-plan/purchase-orders', $procurementPlan->id) }}" class="btn ob-btn ob-btn-outline">
+                        <i class="fas fa-file-invoice" aria-hidden="true"></i> Purchase Order
                     </a>
+                @endif
+                @if ($isDraft)
+                    @can('delete warehouse/procurement-plan')
+                        <a href="{{ route('warehouse/procurement-plan/destroy', $procurementPlan->id) }}" class="btn ob-btn ob-btn-outline pp-btn-danger delete-procurement-plan"
+                            data-number="{{ $procurementPlan->plan_number }}">
+                            <i class="fas fa-trash" aria-hidden="true"></i> Hapus Draft
+                        </a>
+                    @endcan
                 @endif
             </div>
         </div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-xl-4">
-                <div class="card shadow-sm pp-info-card pp-border-primary h-100">
-                    <div class="card-header bg-white border-bottom">
-                        <h5 class="mb-0"><i class="fa fa-info-circle me-2"></i>Plan Info</h5>
-                    </div>
-                    <div class="card-body">
-                        <dl class="pp-info-list mb-0">
-                            <div>
-                                <dt>Plan Number</dt>
-                                <dd>{{ $procurementPlan->plan_number }}</dd>
-                            </div>
-                            <div>
-                                <dt>Planning Location</dt>
-                                <dd>{{ optional($procurementPlan->planningLocation)->name ?? '-' }}</dd>
-                            </div>
-                            <div>
-                                <dt>Status</dt>
-                                <dd><span class="badge {{ $statusClass }}">{{ optional($procurementPlan->status)->name ?? '-' }}</span></dd>
-                            </div>
-                            <div class="pp-notes-row">
-                                <dt>Notes</dt>
-                                <dd>{{ $procurementPlan->notes ?: '-' }}</dd>
-                            </div>
-                        </dl>
-                    </div>
-                </div>
+        @if (session('success'))
+            <div class="ob-notice pp-notice" role="status">
+                <i class="fas fa-check-circle" aria-hidden="true"></i> {{ session('success') }}
             </div>
+        @endif
 
-            <div class="col-xl-4">
-                <div class="card shadow-sm pp-info-card pp-border-info h-100">
-                    <div class="card-header bg-white border-bottom">
-                        <h5 class="mb-0"><i class="fa fa-user-clock me-2"></i>User & Time Info</h5>
-                    </div>
-                    <div class="card-body">
-                        <dl class="pp-info-list mb-0">
-                            <div>
-                                <dt>Planned By</dt>
-                                <dd>{{ optional($procurementPlan->plannedBy)->name ?? '-' }}</dd>
-                            </div>
-                            <div>
-                                <dt>Planned At</dt>
-                                <dd>{{ optional($procurementPlan->planned_at)->format('d M Y H:i') ?? '-' }}</dd>
-                            </div>
-                            <div>
-                                <dt>Approved By</dt>
-                                <dd>{{ optional($procurementPlan->approvedBy)->name ?? '-' }}</dd>
-                            </div>
-                            <div>
-                                <dt>Approved At</dt>
-                                <dd>{{ optional($procurementPlan->approved_at)->format('d M Y H:i') ?? '-' }}</dd>
-                            </div>
-                        </dl>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-4">
-                <div class="card shadow-sm pp-info-card pp-border-success h-100">
-                    <div class="card-header bg-white border-bottom">
-                        <h5 class="mb-0"><i class="fa fa-chart-pie me-2"></i>Procurement Summary</h5>
-                    </div>
-                    <div class="card-body">
-                        <dl class="pp-info-list mb-0">
-                            <div>
-                                <dt>Total Items</dt>
-                                <dd>{{ number_format($stats['total_items'] ?? 0, 0, ',', '.') }}</dd>
-                            </div>
-                            <div>
-                                <dt>Total Sources</dt>
-                                <dd>{{ number_format($stats['total_sources'] ?? 0, 0, ',', '.') }}</dd>
-                            </div>
-                            <div>
-                                <dt>Required Base</dt>
-                                <dd>{{ $formatQty($stats['qty_required_base'] ?? 0) }}</dd>
-                            </div>
-                            <div>
-                                <dt>To Purchase Base</dt>
-                                <dd>{{ $formatQty($stats['qty_to_purchase_base'] ?? 0) }}</dd>
-                            </div>
-                        </dl>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card shadow-sm pp-items-card mb-4">
-            <div class="card-header bg-white border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+        {{-- Ringkasan --}}
+        <div class="ob-stats">
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--primary" aria-hidden="true"><i class="fas fa-boxes"></i></span>
                 <div>
-                    <h5 class="mb-0">Item Procurement</h5>
-                    <small class="text-muted">Item sudah digabung berdasarkan bahan baku dari source Request Order yang dipilih.</small>
+                    <p class="ob-stat__label">Bahan Baku</p>
+                    <p class="ob-stat__value">{{ number_format($items->count(), 0, ',', '.') }}</p>
+                    <p class="wh-stat-sub">dari {{ number_format($sources->count(), 0, ',', '.') }} request</p>
                 </div>
-                <input id="planItemSearch" type="search" class="form-control form-control-sm pp-detail-search"
-                    placeholder="Cari bahan">
             </div>
-            <div class="card-body p-0">
-                <div class="pp-items-scroll">
-                    <table id="procurement-plan-items-table" class="table table-hover table-sm mb-0 align-middle pp-items-table">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Bahan Baku</th>
-                                <th>Supplier</th>
-                                <th class="text-end">Required Base</th>
-                                <th class="text-end">Available Base</th>
-                                <th class="text-end">Shortage Base</th>
-                                <th class="text-end">To Purchase</th>
-                                <th class="text-end">Est. Unit Price</th>
-                                <th class="text-end">Est. Subtotal</th>
-                                <th>Source</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($procurementPlan->items as $index => $item)
-                                <tr>
-                                    <td>{{ $index + 1 }}</td>
-                                    <td>
-                                        <div class="fw-semibold">{{ optional($item->rawMaterial)->name ?? '-' }}</div>
-                                        <small class="text-muted">{{ optional($item->rawMaterial)->code ?? 'Tanpa kode' }} · {{ optional($item->unit)->symbol ?: optional($item->unit)->name }}</small>
-                                    </td>
-                                    <td>
-                                        <div class="fw-semibold">{{ optional($item->supplier)->name ?? '-' }}</div>
-                                        <small class="text-muted">
-                                            {{ optional($item->supplierRawMaterial)->supplier_material_name ?: 'Nama supplier material belum diisi' }}
-                                            @if ($item->supplierRawMaterial?->purchaseUnit)
-                                                · {{ $item->supplierRawMaterial->purchaseUnit->symbol ?: $item->supplierRawMaterial->purchaseUnit->name }}
-                                            @endif
-                                        </small>
-                                    </td>
-                                    <td class="text-end">{{ $formatQty($item->qty_required_base) }}</td>
-                                    <td class="text-end">{{ $formatQty($item->qty_available_base) }}</td>
-                                    <td class="text-end">{{ $formatQty($item->qty_shortage_base) }}</td>
-                                    <td class="text-end fw-semibold">{{ $formatQty($item->qty_to_purchase_base) }}</td>
-                                    <td class="text-end">{{ $formatMoney($item->estimated_unit_price) }}</td>
-                                    <td class="text-end">{{ $formatMoney($item->estimated_subtotal) }}</td>
-                                    <td>
-                                        <div class="pp-source-stack">
-                                            @foreach ($item->sources as $source)
-                                                @php
-                                                    $requestItem = $source->rawMaterialRequestItem;
-                                                    $requestOrder = $requestItem?->rawMaterialRequest;
-                                                @endphp
-                                                <span class="badge bg-light text-dark border">
-                                                    {{ $requestOrder?->request_number ?? '-' }}:
-                                                    {{ $formatQty($source->qty_base_allocated) }}
-                                                </span>
-                                            @endforeach
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="10" class="text-center text-muted py-4">Belum ada item procurement plan.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--warning" aria-hidden="true"><i class="fas fa-shopping-cart"></i></span>
+                <div>
+                    <p class="ob-stat__label">Perlu Dibeli</p>
+                    <p class="ob-stat__value">{{ number_format($toPurchaseCount, 0, ',', '.') }}</p>
+                    <p class="wh-stat-sub">bahan, sisanya cukup dari stok</p>
+                </div>
+            </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--success" aria-hidden="true"><i class="fas fa-file-invoice"></i></span>
+                <div>
+                    <p class="ob-stat__label">Purchase Order</p>
+                    <p class="ob-stat__value">{{ number_format($procurementPlan->purchase_orders_count, 0, ',', '.') }}</p>
+                    <p class="wh-stat-sub">satu PO per supplier</p>
+                </div>
+            </div>
+            <div class="ob-card ob-stat">
+                <span class="ob-stat__icon ob-stat__icon--danger" aria-hidden="true"><i class="fas fa-coins"></i></span>
+                <div>
+                    <p class="ob-stat__label">Estimasi Biaya</p>
+                    <p class="ob-stat__value pp-stat-money">{{ $hasPrice ? $rupiah($stats['estimated_total'] ?? 0) : '-' }}</p>
+                    <p class="wh-stat-sub">{{ $hasPrice ? 'dari harga supplier terakhir' : 'harga supplier belum diisi' }}</p>
                 </div>
             </div>
         </div>
 
-        <div class="card shadow-sm pp-items-card">
-            <div class="card-header bg-white border-bottom">
-                <h5 class="mb-0">Detail Source Request Order</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="pp-items-scroll">
-                    <table class="table table-hover table-sm mb-0 align-middle pp-source-detail-table">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Request Order</th>
-                                <th>Pemohon</th>
-                                <th>Fulfillment</th>
-                                <th>Bahan Baku</th>
-                                <th class="text-end">Qty Approved</th>
-                                <th class="text-end">Qty Allocated</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @php $sourceIndex = 1; @endphp
-                            @forelse ($procurementPlan->items as $item)
-                                @foreach ($item->sources as $source)
-                                    @php
-                                        $requestItem = $source->rawMaterialRequestItem;
-                                        $requestOrder = $requestItem?->rawMaterialRequest;
-                                    @endphp
+        <div class="wh-detail-grid">
+            <div>
+                {{-- Bahan baku --}}
+                <div class="ob-card">
+                    <div class="wh-card__head">
+                        <div>
+                            <h2 class="wh-card__title"><i class="fas fa-boxes" aria-hidden="true"></i> Bahan Baku <span class="wh-count">{{ $items->count() }}</span></h2>
+                            <p class="wh-card__desc">Kebutuhan digabung per bahan. Yang dibeli hanya kekurangan setelah dikurangi stok bebas di lokasi planning.</p>
+                        </div>
+                    </div>
+                    @if ($items->isEmpty())
+                        <div class="wh-empty">
+                            <span class="wh-empty__icon" aria-hidden="true"><i class="fas fa-boxes"></i></span>
+                            <p class="wh-empty__title">Belum ada bahan</p>
+                            <p class="wh-empty__text">Plan ini tidak memiliki item.</p>
+                        </div>
+                    @else
+                        <div class="ob-table-scroll">
+                            <table class="wh-table pp-items" id="procurement-plan-items-table">
+                                <thead>
                                     <tr>
-                                        <td>{{ $sourceIndex++ }}</td>
-                                        <td>
-                                            <div class="fw-semibold">{{ $requestOrder?->request_number ?? '-' }}</div>
-                                            <small class="text-muted">{{ optional($requestOrder?->needed_at)->format('d M Y') ?? '-' }}</small>
-                                        </td>
-                                        <td>{{ optional($requestOrder?->requesterInventory)->name ?? '-' }}</td>
-                                        <td>{{ optional($requestOrder?->fulfillmentInventory)->name ?? 'Belum ditentukan' }}</td>
-                                        <td>{{ optional($requestItem?->rawMaterial)->name ?? optional($item->rawMaterial)->name ?? '-' }}</td>
-                                        <td class="text-end">
-                                            {{ $formatQty($requestItem?->approved_base_qty ?? 0) }}
-                                            <small class="text-muted">{{ $requestItem?->approved_base_satuan_name }}</small>
-                                        </td>
-                                        <td class="text-end">
-                                            {{ $formatQty($source->qty_base_allocated) }}
-                                            <small class="text-muted">{{ $requestItem?->approved_base_satuan_name }}</small>
-                                        </td>
+                                        <th scope="col">Bahan Baku</th>
+                                        <th scope="col" class="text-end">Dibutuhkan</th>
+                                        <th scope="col" class="text-end">Stok Bebas</th>
+                                        <th scope="col" class="text-end">Perlu Dibeli</th>
+                                        <th scope="col" class="text-end">Estimasi</th>
                                     </tr>
-                                @endforeach
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">Belum ada source request order.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                                </thead>
+                                <tbody>
+                                    @foreach ($items as $item)
+                                        @php
+                                            $unit = $unitOf($item->unit) ?: $unitOf($item->rawMaterial?->baseUnit);
+                                            $purchaseUnit = $unitOf($item->supplierRawMaterial?->purchaseUnit);
+                                        @endphp
+                                        <tr>
+                                            <td>
+                                                <div class="wh-cell-stack">
+                                                    <span class="wh-strong">{{ $item->rawMaterial?->name ?? '-' }}</span>
+                                                    <span class="ob-cell-meta">{{ $item->rawMaterial?->code ?: 'Tanpa kode' }} · {{ $item->sources->count() }} request</span>
+                                                    <span class="pp-supplier"><i class="fas fa-truck" aria-hidden="true"></i> {{ $item->supplier?->name ?? 'Tanpa supplier' }}{{ $item->supplierRawMaterial?->supplier_material_name ? ' · ' . $item->supplierRawMaterial->supplier_material_name : '' }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-end wh-num">{{ $qty($item->qty_required_base) }} {{ $unit }}</td>
+                                            <td class="text-end wh-num">{{ $qty($item->qty_available_base) }} {{ $unit }}</td>
+                                            <td class="text-end">
+                                                @if ((float) $item->qty_to_purchase_base > 0)
+                                                    <span class="wh-strong wh-num">{{ $qty($item->qty_to_purchase_base) }} {{ $unit }}</span>
+                                                @else
+                                                    <span class="badge badge-success">Cukup dari stok</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-end">
+                                                @if ($item->estimated_unit_price !== null)
+                                                    <div class="wh-cell-stack wh-cell-stack--end">
+                                                        <span class="wh-strong wh-num">{{ $rupiah($item->estimated_subtotal ?? 0) }}</span>
+                                                        <span class="ob-cell-meta wh-num">{{ $rupiah($item->estimated_unit_price) }}{{ $purchaseUnit ? ' per ' . $purchaseUnit : '' }}</span>
+                                                    </div>
+                                                @else
+                                                    <span class="ob-cell-meta">Harga belum diisi</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Asal request --}}
+                <div class="ob-card">
+                    <div class="wh-card__head">
+                        <div>
+                            <h2 class="wh-card__title"><i class="fas fa-clipboard-list" aria-hidden="true"></i> Asal Request <span class="wh-count">{{ $sources->count() }}</span></h2>
+                            <p class="wh-card__desc">Item Request Order yang dialokasikan ke plan ini.</p>
+                        </div>
+                    </div>
+                    @if ($sources->isEmpty())
+                        <div class="wh-empty">
+                            <span class="wh-empty__icon" aria-hidden="true"><i class="fas fa-clipboard-list"></i></span>
+                            <p class="wh-empty__title">Belum ada request</p>
+                            <p class="wh-empty__text">Tidak ada item Request Order yang tercatat untuk plan ini.</p>
+                        </div>
+                    @else
+                        <div class="ob-table-scroll">
+                            <table class="wh-table pp-sources-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Request</th>
+                                        <th scope="col">Peminta → Pemenuh</th>
+                                        <th scope="col">Bahan Baku</th>
+                                        <th scope="col" class="text-end">Disetujui</th>
+                                        <th scope="col" class="text-end">Masuk Plan</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($sources as $row)
+                                        @php
+                                            $requestItem = $row->source->rawMaterialRequestItem;
+                                            $requestOrder = $requestItem?->rawMaterialRequest;
+                                            $unit = $requestItem?->approved_base_satuan_name ?: $unitOf($row->item->unit);
+                                        @endphp
+                                        <tr>
+                                            <td>
+                                                <div class="wh-cell-stack">
+                                                    @if ($requestOrder)
+                                                        <a class="wh-strong pp-link" href="{{ route('warehouse/request-order/detail', $requestOrder->id) }}">{{ $requestOrder->request_number }}</a>
+                                                    @else
+                                                        <span class="wh-strong">-</span>
+                                                    @endif
+                                                    <span class="ob-cell-meta">{{ $requestOrder?->needed_at ? 'Dibutuhkan ' . $requestOrder->needed_at->translatedFormat('d M Y') : 'Tanpa tanggal dibutuhkan' }}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="wh-cell-stack">
+                                                    <span class="wh-strong">{{ $requestOrder?->requesterInventory?->name ?? '-' }}</span>
+                                                    <span class="ob-cell-meta"><i class="fas fa-long-arrow-alt-right" aria-hidden="true"></i> {{ $requestOrder?->fulfillmentInventory?->name ?? 'Pemenuh belum ditentukan' }}</span>
+                                                </div>
+                                            </td>
+                                            <td>{{ $requestItem?->rawMaterial?->name ?? $row->item->rawMaterial?->name ?? '-' }}</td>
+                                            <td class="text-end wh-num">{{ $qty($requestItem?->approved_base_qty ?? 0) }} {{ $unit }}</td>
+                                            <td class="text-end wh-num wh-strong">{{ $qty($row->source->qty_base_allocated) }} {{ $unit }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Kolom samping --}}
+            <div>
+                <div class="ob-card">
+                    <div class="wh-card__head">
+                        <h2 class="wh-card__title"><i class="fas fa-id-card" aria-hidden="true"></i> Informasi Plan</h2>
+                    </div>
+                    <div class="wh-card__body">
+                        <dl class="wh-dl">
+                            <div class="wh-dl__row"><dt>Nomor</dt><dd>{{ $procurementPlan->plan_number }}</dd></div>
+                            <div class="wh-dl__row"><dt>Lokasi</dt><dd>{{ $procurementPlan->planningLocation?->name }}</dd></div>
+                            <div class="wh-dl__row"><dt>Dibuat</dt><dd>{{ $procurementPlan->planned_at?->translatedFormat('d M Y, H:i') }}</dd></div>
+                            <div class="wh-dl__row"><dt>Oleh</dt><dd>{{ $procurementPlan->plannedBy?->name }}</dd></div>
+                            @if ($procurementPlan->approved_at)
+                                <div class="wh-dl__row"><dt>Jadi PO</dt><dd>{{ $procurementPlan->approved_at->translatedFormat('d M Y, H:i') }}{{ $procurementPlan->approvedBy ? ' · ' . $procurementPlan->approvedBy->name : '' }}</dd></div>
+                            @endif
+                            <div class="wh-dl__row"><dt>Catatan</dt><dd class="pp-notes">{{ $procurementPlan->notes }}</dd></div>
+                        </dl>
+                    </div>
                 </div>
             </div>
         </div>
@@ -264,60 +251,33 @@
 
     @push('js')
         <script>
-            $(function() {
-                const hasItemRows = $('#procurement-plan-items-table tbody td[colspan]').length === 0;
-
-                if (hasItemRows) {
-                    const itemTable = $('#procurement-plan-items-table').DataTable({
-                        pageLength: 10,
-                        lengthChange: false,
-                        autoWidth: false,
-                        order: [
-                            [1, 'asc']
-                        ],
-                        dom: 'rtip',
-                        language: {
-                            emptyTable: 'Belum ada item procurement plan.',
-                            info: 'Menampilkan _START_ - _END_ dari _TOTAL_ item',
-                            infoEmpty: 'Belum ada item',
-                            paginate: {
-                                previous: 'Sebelumnya',
-                                next: 'Berikutnya'
-                            }
-                        }
-                    });
-
-                    $('#planItemSearch').on('keyup search', function() {
-                        itemTable.search(this.value).draw();
-                    });
-                }
-
-                $('.main-content').on('click', '.delete-procurement-plan-detail', function(e) {
-                    e.preventDefault();
-                    const url = this.href;
+            $(function () {
+                $('.main-content').on('click', '.delete-procurement-plan', function (event) {
+                    event.preventDefault();
+                    const button = this;
 
                     Swal.fire({
-                        title: 'Hapus procurement plan?',
-                        text: 'Procurement plan draft dan source allocation-nya akan dihapus.',
+                        title: 'Hapus draft?',
+                        text: 'Plan ' + $(button).data('number') + ' akan dihapus dan item Request Order-nya bisa direncanakan lagi.',
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Ya, hapus'
-                    }).then((result) => {
-                        if (!result.isConfirmed) {
-                            return;
-                        }
+                        confirmButtonText: 'Ya, hapus',
+                        cancelButtonText: 'Batal'
+                    }).then(function (result) {
+                        if (!result.isConfirmed) return;
 
                         $.ajax({
-                            url: url,
+                            url: button.href,
                             method: 'DELETE',
-                            success: function(res) {
-                                showToast(res.status, res.message);
-                                window.location.href = "{{ route('warehouse/procurement-plan') }}";
+                            data: { _token: @json(csrf_token()) },
+                            success: function (response) {
+                                showToast(response.status || 'success', response.message || 'Procurement plan draft berhasil dihapus.');
+                                window.location.href = @json(route('warehouse/procurement-plan'));
                             },
-                            error: function(err) {
-                                showToast('error', err.responseJSON?.message || 'Gagal menghapus procurement plan');
+                            error: function (xhr) {
+                                const errors = xhr.responseJSON?.errors;
+                                const message = errors ? Object.values(errors).flat()[0] : xhr.responseJSON?.message;
+                                showToast('error', message || 'Gagal menghapus procurement plan');
                             }
                         });
                     });
@@ -328,129 +288,19 @@
 
     @push('css')
         <style>
-            .procurement-plan-detail-page .card {
-                border: 1px solid rgba(18, 38, 63, 0.08);
-                border-radius: 8px;
-            }
+            .ob-page .ob-stats .ob-stat { margin-bottom: 0; }
+            .pp-notice { margin-top: 1rem; }
+            .ob-page .pp-stat-money { font-size: 1.15rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+            .pp-btn-danger { color: var(--ob-danger) !important; border-color: var(--ob-danger) !important; }
+            .pp-btn-danger:hover { background: var(--ob-danger-soft) !important; }
+            .pp-notes { white-space: pre-line; font-weight: 400 !important; }
+            .pp-link { text-decoration: none; color: var(--ob-primary); }
+            .pp-link:hover { text-decoration: underline; }
 
-            .pp-info-card {
-                overflow: hidden;
-            }
-
-            .pp-info-card::before {
-                content: "";
-                display: block;
-                height: 4px;
-            }
-
-            .pp-border-primary::before {
-                background: #2f6fcf;
-            }
-
-            .pp-border-info::before {
-                background: #13a2b8;
-            }
-
-            .pp-border-success::before {
-                background: #15965f;
-            }
-
-            .pp-info-list {
-                display: grid;
-                gap: 10px;
-            }
-
-            .pp-info-list > div {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                gap: 16px;
-                padding-bottom: 10px;
-                border-bottom: 1px solid rgba(18, 38, 63, 0.08);
-            }
-
-            .pp-info-list > div:last-child {
-                border-bottom: 0;
-                padding-bottom: 0;
-            }
-
-            .pp-info-list dt {
-                color: #667085;
-                font-size: 12px;
-                font-weight: 600;
-                min-width: 130px;
-            }
-
-            .pp-info-list dd {
-                margin-bottom: 0;
-                text-align: right;
-                color: #1f2937;
-                font-weight: 600;
-                overflow-wrap: anywhere;
-            }
-
-            .pp-notes-row {
-                display: block !important;
-            }
-
-            .pp-notes-row dd {
-                margin-top: 4px;
-                text-align: left;
-                font-weight: 500;
-            }
-
-            .procurement-plan-detail-page .pp-detail-search {
-                min-width: 220px;
-            }
-
-            .pp-items-scroll {
-                padding: 16px 0;
-                overflow-x: auto;
-            }
-
-            .pp-items-table,
-            .pp-source-detail-table {
-                min-width: 1120px;
-            }
-
-            .pp-items-table th,
-            .pp-items-table td,
-            .pp-source-detail-table th,
-            .pp-source-detail-table td {
-                white-space: nowrap;
-            }
-
-            .pp-items-table td:nth-child(2),
-            .pp-items-table td:nth-child(3),
-            .pp-items-table td:nth-child(10),
-            .pp-source-detail-table td:nth-child(2),
-            .pp-source-detail-table td:nth-child(5) {
-                white-space: normal;
-                min-width: 220px;
-                max-width: 380px;
-                overflow-wrap: anywhere;
-            }
-
-            .pp-source-stack {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 6px;
-            }
-
-            @media (max-width: 768px) {
-                .procurement-plan-detail-page .pp-detail-search {
-                    min-width: 100%;
-                }
-
-                .pp-info-list > div {
-                    display: block;
-                }
-
-                .pp-info-list dd {
-                    margin-top: 4px;
-                    text-align: left;
-                }
-            }
+            .pp-supplier { font-size: .78rem; color: var(--ob-text-2); }
+            .pp-supplier i { width: .9rem; font-size: .7rem; color: var(--ob-muted); }
+            .pp-items td:first-child, .pp-sources-table td:first-child { min-width: 200px; }
+            .pp-sources-table td:nth-child(2) { min-width: 180px; }
         </style>
     @endpush
 @endsection

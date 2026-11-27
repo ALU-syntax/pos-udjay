@@ -14,11 +14,35 @@ class PurchaseOrderReceiptStatus extends Model
     public const POSTED = 'posted';
     public const VOIDED = 'voided';
 
+    /** Label tampilan berbahasa Indonesia; kolom name di DB tetap bahasa Inggris dari seed. */
+    public const LABELS = [
+        self::DRAFT => 'Draft',
+        self::POSTED => 'Diposting',
+        self::VOIDED => 'Dibatalkan',
+    ];
+
+    /** Kelas badge gaya report (ob-*). */
+    public const BADGES = [
+        self::DRAFT => 'badge-muted',
+        self::POSTED => 'badge-success',
+        self::VOIDED => 'badge-muted',
+    ];
+
     protected $guarded = ['id'];
 
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function getLabelAttribute(): string
+    {
+        return self::LABELS[$this->code] ?? $this->name;
+    }
+
+    public function getBadgeClassAttribute(): string
+    {
+        return self::BADGES[$this->code] ?? 'badge-muted';
+    }
 
     public function receipts()
     {
