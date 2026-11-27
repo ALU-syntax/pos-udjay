@@ -17,7 +17,6 @@ class BahanBakuController extends Controller
             'stats' => $this->stats(),
             'categories' => RawMaterialCategories::orderBy('name')->get(),
             'storageTypes' => RawStorageType::orderBy('name')->get(),
-            'latestMaterial' => RawMaterials::latest('updated_at')->first(),
         ]);
     }
 
@@ -67,11 +66,19 @@ class BahanBakuController extends Controller
 
     private function formData(RawMaterials $rawMaterial, string $action): array
     {
+        // Hanya kategori & satuan aktif yang bisa dipilih; pilihan yang sudah tersimpan
+        // tetap ikut (bertanda Nonaktif) agar edit tidak menghapus datanya.
         return [
             'data' => $rawMaterial,
             'action' => $action,
-            'categories' => RawMaterialCategories::orderBy('name')->get(),
-            'units' => Satuan::orderBy('name')->get(),
+            'categories' => RawMaterialCategories::where('is_active', 1)
+                ->when($rawMaterial->raw_material_category_id, fn ($query, $id) => $query->orWhere('id', $id))
+                ->orderBy('name')
+                ->get(),
+            'units' => Satuan::where('is_active', 1)
+                ->when($rawMaterial->base_unit_id, fn ($query, $id) => $query->orWhere('id', $id))
+                ->orderBy('name')
+                ->get(),
             'storageTypes' => RawStorageType::orderBy('name')->get(),
         ];
     }

@@ -18,72 +18,72 @@ class RawMaterialsDataTable extends DataTable
             ->addColumn('action', function (RawMaterials $rawMaterial) {
                 return view('layouts.bahan_baku.action', compact('rawMaterial'))->render();
             })
+            // Kolom bahan baku menggabungkan nama + kode + catatan, jadi pencarian mencakup ketiganya
             ->editColumn('name', function (RawMaterials $rawMaterial) {
                 $code = $rawMaterial->code
-                    ? '<span class="badge bg-light text-dark border mt-1">' . e($rawMaterial->code) . '</span>'
-                    : '<span class="text-muted small d-block mt-1">Tanpa kode</span>';
+                    ? '<span class="ob-cell-meta">' . e($rawMaterial->code) . '</span>'
+                    : '<span class="ob-cell-meta">Tanpa kode</span>';
+                $notes = $rawMaterial->notes
+                    ? '<span class="ob-cell-meta bb-notes" title="' . e($rawMaterial->notes) . '">' . e(Str::limit($rawMaterial->notes, 80)) . '</span>'
+                    : '';
 
-                return '<div class="fw-semibold">' . e($rawMaterial->name) . '</div>' . $code;
+                return '<div class="ob-cell-stack">'
+                    . '<span class="ob-item-cell__title">' . e($rawMaterial->name) . '</span>'
+                    . $code
+                    . $notes
+                    . '</div>';
             })
-            ->addColumn('category_name', function (RawMaterials $rawMaterial) {
-                return $rawMaterial->category
-                    ? e($rawMaterial->category->name)
-                    : '<span class="text-muted">Tanpa kategori</span>';
-            })
+            ->filterColumn('name', fn (QueryBuilder $query, string $keyword) => $query->where(
+                fn (QueryBuilder $query) => $query->where('raw_materials.name', 'like', "%{$keyword}%")
+                    ->orWhere('raw_materials.code', 'like', "%{$keyword}%")
+                    ->orWhere('raw_materials.notes', 'like', "%{$keyword}%")
+            ))
+            ->addColumn('category_name', fn (RawMaterials $rawMaterial) => $rawMaterial->category
+                ? '<span class="bb-strong">' . e($rawMaterial->category->name) . '</span>'
+                : '<span class="ob-cell-meta">Tanpa kategori</span>')
             ->addColumn('base_unit_name', function (RawMaterials $rawMaterial) {
                 $label = optional($rawMaterial->baseUnit)->symbol ?: optional($rawMaterial->baseUnit)->name;
 
                 return $label
-                    ? '<span class="unit-pill">' . e($label) . '</span>'
-                    : '<span class="text-muted">-</span>';
+                    ? '<span class="badge badge-primary">' . e($label) . '</span>'
+                    : '<span class="ob-cell-meta">-</span>';
             })
-            ->addColumn('storage_type_name', function (RawMaterials $rawMaterial) {
-                return $rawMaterial->storageType
-                    ? '<span class="storage-pill">' . e($rawMaterial->storageType->name) . '</span>'
-                    : '<span class="text-muted">-</span>';
-            })
-            ->editColumn('is_active', function (RawMaterials $rawMaterial) {
-                return $rawMaterial->is_active
-                    ? '<span class="badge badge-pill badge-success">Aktif</span>'
-                    : '<span class="badge badge-pill badge-secondary">Tidak Aktif</span>';
-            })
-            ->editColumn('notes', function (RawMaterials $rawMaterial) {
-                return $rawMaterial->notes
-                    ? e(Str::limit($rawMaterial->notes, 70))
-                    : '<span class="text-muted">-</span>';
-            })
-            ->editColumn('updated_at', function (RawMaterials $rawMaterial) {
-                return $rawMaterial->updated_at ? $rawMaterial->updated_at->format('d M Y H:i') : '-';
-            })
-            ->filterColumn('category_name', function (QueryBuilder $query, $keyword) {
-                if ($keyword === '__empty__') {
-                    $query->whereNull('raw_material_category_id');
-                    return;
-                }
-
-                $query->whereHas('category', fn ($category) => $category->where('name', 'like', "%{$keyword}%"));
-            })
-            ->filterColumn('name', function (QueryBuilder $query, $keyword) {
-                $query->where(function (QueryBuilder $query) use ($keyword) {
-                    $query->where('name', 'like', "%{$keyword}%")
-                        ->orWhere('code', 'like', "%{$keyword}%");
-                });
-            })
-            ->filterColumn('base_unit_name', function (QueryBuilder $query, $keyword) {
-                $query->whereHas('baseUnit', fn ($unit) => $unit
-                    ->where('name', 'like', "%{$keyword}%")
-                    ->orWhere('symbol', 'like', "%{$keyword}%"));
-            })
-            ->filterColumn('storage_type_name', function (QueryBuilder $query, $keyword) {
-                $query->whereHas('storageType', fn ($storageType) => $storageType->where('name', 'like', "%{$keyword}%"));
-            })
-            ->rawColumns(['action', 'name', 'category_name', 'base_unit_name', 'storage_type_name', 'is_active', 'notes']);
+            ->addColumn('storage_type_name', fn (RawMaterials $rawMaterial) => $rawMaterial->storageType
+                ? e($rawMaterial->storageType->name)
+                : '<span class="ob-cell-meta">-</span>')
+            ->editColumn('is_active', fn (RawMaterials $rawMaterial) => $rawMaterial->is_active
+                ? '<span class="badge badge-success">Aktif</span>'
+                : '<span class="badge badge-muted">Nonaktif</span>')
+            ->editColumn('updated_at', fn (RawMaterials $rawMaterial) => $rawMaterial->updated_at
+                ? '<span class="ob-cell-meta">' . e($rawMaterial->updated_at->translatedFormat('d M Y, H:i')) . '</span>'
+                : '<span class="ob-cell-meta">-</span>')
+            ->rawColumns(['action', 'name', 'category_name', 'base_unit_name', 'storage_type_name', 'is_active', 'updated_at'])
+            ->setRowId('id');
     }
 
     public function query(RawMaterials $model): QueryBuilder
     {
-        return $model->newQuery()
-            ->with(['category', 'baseUnit', 'storageType']);
+        $query = $model->newQuery()->with(['category', 'baseUnit', 'storageType']);
+
+        // Filter dikirim lewat parameter ajax (bukan pencarian kolom) agar bisa dikombinasikan
+        $category = $this->request()->get('category');
+        if ($category === 'none') {
+            $query->whereNull('raw_material_category_id');
+        } elseif (ctype_digit((string) $category)) {
+            $query->where('raw_material_category_id', (int) $category);
+        }
+
+        $storage = $this->request()->get('storage');
+        if (ctype_digit((string) $storage)) {
+            $query->where('storage_type_id', (int) $storage);
+        }
+
+        $status = $this->request()->get('status');
+        if ($status === '0' || $status === '1') {
+            $query->where('is_active', (int) $status);
+        }
+
+        return $query;
     }
 
     public function html(): HtmlBuilder
@@ -91,25 +91,30 @@ class RawMaterialsDataTable extends DataTable
         return $this->builder()
             ->setTableId('raw-materials-table')
             ->columns($this->getColumns())
-            ->minifiedAjax()
-            ->responsive(true)
-            ->orderBy(0);
+            ->minifiedAjax('', null, [
+                'category' => "$('#filter-category').val()",
+                'storage' => "$('#filter-storage').val()",
+                'status' => "$('#filter-status').val()",
+            ])
+            // Hanya tabel yang scroll horizontal, length/search/paging tetap di tempat.
+            ->dom("<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>><'ob-table-scroll'tr><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>")
+            ->orderBy(0, 'asc');
     }
 
     public function getColumns(): array
     {
         return [
             Column::make('name')->title('Bahan Baku'),
-            Column::make('category_name')->title('Kategori')->orderable(false),
-            Column::make('base_unit_name')->title('Satuan Dasar')->orderable(false),
-            Column::make('storage_type_name')->title('Penyimpanan')->orderable(false),
-            Column::make('is_active')->title('Status'),
-            Column::make('notes')->title('Catatan')->orderable(false),
-            Column::make('updated_at')->title('Update Terakhir'),
+            Column::make('category_name')->title('Kategori')->orderable(false)->searchable(false),
+            Column::make('base_unit_name')->title('Satuan Dasar')->orderable(false)->searchable(false),
+            Column::make('storage_type_name')->title('Penyimpanan')->orderable(false)->searchable(false),
+            Column::make('is_active')->title('Status')->searchable(false),
+            Column::make('updated_at')->title('Diperbarui')->searchable(false),
             Column::computed('action')
+                ->title('')
                 ->exportable(false)
                 ->printable(false)
-                ->width(90)
+                ->width(110)
                 ->addClass('text-center'),
         ];
     }

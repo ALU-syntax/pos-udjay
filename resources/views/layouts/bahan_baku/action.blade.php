@@ -1,28 +1,14 @@
-<div class="btn-group" role="group">
-    <button type="button" class="btn btn-primary dropdown-toggle btn-sm" data-bs-toggle="dropdown" aria-expanded="false">
-        Action
-    </button>
-    <ul class="dropdown-menu">
-        @can('read library/bahan-baku')
-            <li>
-                <a class="dropdown-item action" href="{{ route('library/bahan-baku/detail', $rawMaterial->id) }}">
-                    <i class="fa fa-eye me-2"></i>Detail
-                </a>
-            </li>
-        @endcan
-        @can('update library/bahan-baku')
-            <li>
-                <a class="dropdown-item action" href="{{ route('library/bahan-baku/edit', $rawMaterial->id) }}">
-                    <i class="fa fa-edit me-2"></i>Edit
-                </a>
-            </li>
-        @endcan
-        @can('delete library/bahan-baku')
-            <li>
-                <a class="dropdown-item delete text-danger" href="{{ route('library/bahan-baku/destroy', $rawMaterial->id) }}">
-                    <i class="fa fa-archive me-2"></i>Arsipkan
-                </a>
-            </li>
-        @endcan
-    </ul>
+<div class="ob-row-actions" role="group" aria-label="Aksi bahan baku {{ $rawMaterial->name }}">
+    @can('read library/bahan-baku')
+        <a href="{{ route('library/bahan-baku/detail', $rawMaterial->id) }}" class="ob-icon-btn ob-icon-btn--sm action"
+            title="Detail bahan baku" aria-label="Detail bahan baku"><i class="fas fa-eye" aria-hidden="true"></i></a>
+    @endcan
+    @can('update library/bahan-baku')
+        <a href="{{ route('library/bahan-baku/edit', $rawMaterial->id) }}" class="ob-icon-btn ob-icon-btn--sm action"
+            title="Edit bahan baku" aria-label="Edit bahan baku"><i class="fas fa-pen" aria-hidden="true"></i></a>
+    @endcan
+    @can('delete library/bahan-baku')
+        <a href="{{ route('library/bahan-baku/destroy', $rawMaterial->id) }}" class="ob-icon-btn ob-icon-btn--sm ob-icon-btn--danger archive-material"
+            data-name="{{ $rawMaterial->name }}" title="Arsipkan bahan baku" aria-label="Arsipkan bahan baku"><i class="fas fa-archive" aria-hidden="true"></i></a>
+    @endcan
 </div>
