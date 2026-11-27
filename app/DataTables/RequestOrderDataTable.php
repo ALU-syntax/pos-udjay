@@ -2,6 +2,7 @@
 
 namespace App\DataTables;
 
+use App\Models\RawMaterialRequestStatus;
 use App\Models\RawMaterialRequests;
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
 use Yajra\DataTables\EloquentDataTable;
@@ -17,83 +18,68 @@ class RequestOrderDataTable extends DataTable
             ->addColumn('action', function (RawMaterialRequests $requestOrder) {
                 return view('layouts.request_order.action', compact('requestOrder'))->render();
             })
-            ->editColumn('request_number', function (RawMaterialRequests $requestOrder) {
-                return '<span class="badge bg-light text-dark border">' . e($requestOrder->request_number) . '</span>';
-            })
-            ->addColumn('status_name', function (RawMaterialRequests $requestOrder) {
-                $status = $requestOrder->status;
-                $code = $status?->code ?? 'unknown';
-                $class = match ($code) {
-                    'draft' => 'bg-secondary',
-                    'submitted' => 'bg-primary',
-                    'approved', 'fulfilled' => 'bg-success',
-                    'waiting_stock', 'partially_fulfilled' => 'bg-warning text-dark',
-                    'waiting_procurement' => 'bg-info text-dark',
-                    'rejected' => 'bg-danger',
-                    'cancelled' => 'bg-dark',
-                    default => 'bg-light text-dark border',
-                };
-
-                return '<span class="badge ' . $class . '">' . e($status?->name ?? '-') . '</span>'
-                    . '<span class="d-none">' . e($code) . '</span>';
-            })
-            ->addColumn('requester_name', function (RawMaterialRequests $requestOrder) {
-                return $requestOrder->requesterInventory
-                    ? e($requestOrder->requesterInventory->name)
-                    : '<span class="text-muted">-</span>';
-            })
-            ->addColumn('fulfillment_name', function (RawMaterialRequests $requestOrder) {
-                return $requestOrder->fulfillmentInventory
-                    ? e($requestOrder->fulfillmentInventory->name)
-                    : '<span class="text-muted">Belum ditentukan</span>';
-            })
-            ->addColumn('items_count_label', function (RawMaterialRequests $requestOrder) {
-                return '<strong>' . (int) ($requestOrder->items_count ?? 0) . '</strong> item';
-            })
+            ->editColumn('request_number', fn (RawMaterialRequests $requestOrder) => '<div class="ob-cell-stack">'
+                . '<span class="ob-item-cell__title">' . e($requestOrder->request_number) . '</span>'
+                . '<span class="ob-cell-meta">Dibuat ' . e($requestOrder->created_at?->translatedFormat('d M Y, H:i') ?? '-') . '</span>'
+                . '</div>')
+            ->addColumn('route', fn (RawMaterialRequests $requestOrder) => '<div class="ob-cell-stack">'
+                . '<span class="ro-strong">' . e($requestOrder->requesterInventory?->name ?? '-') . '</span>'
+                . '<span class="ob-cell-meta"><i class="fas fa-long-arrow-alt-right" aria-hidden="true"></i> '
+                . ($requestOrder->fulfillmentInventory ? e($requestOrder->fulfillmentInventory->name) : 'Pemenuh belum ditentukan')
+                . '</span>'
+                . '</div>')
+            ->addColumn('items_count_label', fn (RawMaterialRequests $requestOrder) => '<span class="ro-strong">'
+                . number_format((int) $requestOrder->items_count, 0, ',', '.') . ' item</span>')
             ->editColumn('needed_at', function (RawMaterialRequests $requestOrder) {
-                return $requestOrder->needed_at ? $requestOrder->needed_at->format('d M Y') : '<span class="text-muted">-</span>';
-            })
-            ->editColumn('created_at', function (RawMaterialRequests $requestOrder) {
-                return $requestOrder->created_at ? $requestOrder->created_at->format('d M Y H:i') : '-';
-            })
-            ->editColumn('updated_at', function (RawMaterialRequests $requestOrder) {
-                return $requestOrder->updated_at ? $requestOrder->updated_at->format('d M Y H:i') : '-';
-            })
-            ->filterColumn('status_name', function (QueryBuilder $query, $keyword) {
-                $query->whereHas('status', fn ($status) => $status
-                    ->where('code', 'like', "%{$keyword}%")
-                    ->orWhere('name', 'like', "%{$keyword}%"));
-            })
-            ->filterColumn('requester_name', function (QueryBuilder $query, $keyword) {
-                $query->whereHas('requesterInventory', fn ($inventory) => $inventory->where('name', 'like', "%{$keyword}%"));
-            })
-            ->filterColumn('fulfillment_name', function (QueryBuilder $query, $keyword) {
-                if ($keyword === '__empty__') {
-                    $query->whereNull('fulfillment_inventory_id');
-                    return;
+                if (! $requestOrder->needed_at) {
+                    return '<span class="ob-cell-meta">-</span>';
                 }
 
-                $query->whereHas('fulfillmentInventory', fn ($inventory) => $inventory->where('name', 'like', "%{$keyword}%"));
+                $date = e($requestOrder->needed_at->translatedFormat('d M Y'));
+                $overdue = $requestOrder->needed_at->lt(today())
+                    && ! in_array($requestOrder->status?->code, RawMaterialRequestStatus::CLOSED, true);
+
+                return $overdue
+                    ? '<div class="ob-cell-stack"><span class="ro-overdue">' . $date . '</span><span class="ob-cell-meta">Lewat tanggal</span></div>'
+                    : '<span class="ro-date">' . $date . '</span>';
             })
-            ->addIndexColumn()
-            ->rawColumns([
-                'action',
-                'request_number',
-                'status_name',
-                'requester_name',
-                'fulfillment_name',
-                'items_count_label',
-                'needed_at',
-                'created_at',
-            ]);
+            ->addColumn('status_name', fn (RawMaterialRequests $requestOrder) => $requestOrder->status
+                ? '<span class="badge ' . $requestOrder->status->badge_class . '">' . e($requestOrder->status->label) . '</span>'
+                : '<span class="ob-cell-meta">-</span>')
+            ->editColumn('updated_at', fn (RawMaterialRequests $requestOrder) => $requestOrder->updated_at
+                ? '<span class="ob-cell-meta">' . e($requestOrder->updated_at->translatedFormat('d M Y, H:i')) . '</span>'
+                : '<span class="ob-cell-meta">-</span>')
+            ->filterColumn('request_number', fn (QueryBuilder $query, string $keyword) => $query
+                ->where('raw_material_requests.request_number', 'like', "%{$keyword}%"))
+            ->rawColumns(['action', 'request_number', 'route', 'items_count_label', 'needed_at', 'status_name', 'updated_at'])
+            ->setRowId('id');
     }
 
     public function query(RawMaterialRequests $model): QueryBuilder
     {
-        return $model->newQuery()
+        $query = $model->newQuery()
             ->with(['status', 'requesterInventory', 'fulfillmentInventory'])
-            ->withCount('items')
-            ->latest('updated_at');
+            ->withCount('items');
+
+        // Filter dikirim lewat parameter ajax (bukan pencarian kolom) agar bisa dikombinasikan
+        $status = $this->request()->get('status');
+        if (ctype_digit((string) $status)) {
+            $query->where('status_id', (int) $status);
+        }
+
+        $requester = $this->request()->get('requester');
+        if (ctype_digit((string) $requester)) {
+            $query->where('requester_inventory_id', (int) $requester);
+        }
+
+        $fulfillment = $this->request()->get('fulfillment');
+        if ($fulfillment === 'none') {
+            $query->whereNull('fulfillment_inventory_id');
+        } elseif (ctype_digit((string) $fulfillment)) {
+            $query->where('fulfillment_inventory_id', (int) $fulfillment);
+        }
+
+        return $query;
     }
 
     public function html(): HtmlBuilder
@@ -101,32 +87,31 @@ class RequestOrderDataTable extends DataTable
         return $this->builder()
             ->setTableId('request-order-table')
             ->columns($this->getColumns())
-            ->minifiedAjax()
-            ->responsive(true)
-            ->orderBy(8, 'desc')
-            ->parameters([
-                'autoWidth' => false,
-                'scrollX' => true,
-                'scrollCollapse' => true,
-            ]);
+            ->minifiedAjax('', null, [
+                'status' => "$('#filter-status').val()",
+                'requester' => "$('#filter-requester').val()",
+                'fulfillment' => "$('#filter-fulfillment').val()",
+            ])
+            // Hanya tabel yang scroll horizontal, length/search/paging tetap di tempat.
+            ->dom("<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>><'ob-table-scroll'tr><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>")
+            // Terbaru di atas
+            ->orderBy(5, 'desc');
     }
 
     public function getColumns(): array
     {
         return [
-            Column::make('DT_RowIndex')->title('No')->searchable(false)->orderable(false)->width(48),
-            Column::make('request_number')->title('Nomor Request'),
-            Column::make('status_name')->title('Status')->orderable(false),
-            Column::make('requester_name')->title('Pemohon')->orderable(false),
-            Column::make('fulfillment_name')->title('Dipenuhi Oleh')->orderable(false),
-            Column::make('needed_at')->title('Dibutuhkan'),
-            Column::make('items_count_label')->title('Item')->searchable(false)->orderable(false),
-            Column::make('created_at')->title('Dibuat Pada'),
-            Column::make('updated_at')->title('Update Terakhir'),
+            Column::make('request_number')->title('Request'),
+            Column::make('route')->title('Peminta → Pemenuh')->orderable(false)->searchable(false),
+            Column::make('items_count_label')->title('Item')->orderable(false)->searchable(false),
+            Column::make('needed_at')->title('Dibutuhkan')->searchable(false),
+            Column::make('status_name')->title('Status')->orderable(false)->searchable(false),
+            Column::make('updated_at')->title('Diperbarui')->searchable(false),
             Column::computed('action')
+                ->title('')
                 ->exportable(false)
                 ->printable(false)
-                ->width(90)
+                ->width(140)
                 ->addClass('text-center'),
         ];
     }
