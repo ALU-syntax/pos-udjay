@@ -11,6 +11,12 @@ class Satuan extends Model
 
     protected $guarded = ['id'];
 
+    /** Bahan baku yang memakai satuan ini sebagai satuan dasar */
+    public function rawMaterials()
+    {
+        return $this->hasMany(RawMaterials::class, 'base_unit_id');
+    }
+
     public function purchaseOrderItems()
     {
         return $this->hasMany(PurchaseOrdersItems::class, 'unit_id');

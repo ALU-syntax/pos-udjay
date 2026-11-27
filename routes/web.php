@@ -456,6 +456,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/store', [SatuanController::class, 'store'])->name('satuan/store');
             Route::get('/edit/{satuan}', [SatuanController::class, 'edit'])->name('satuan/edit');
             Route::put('/update/{satuan}', [SatuanController::class, 'update'])->name('satuan/update');
+            Route::get('/conversions', [SatuanController::class, 'conversions'])->name('satuan/conversions');
             Route::get('/conversions/create', [SatuanController::class, 'createConversion'])->name('satuan/conversions/create');
             Route::post('/conversions/store', [SatuanController::class, 'storeConversion'])->name('satuan/conversions/store');
             Route::get('/conversions/{conversion}/edit', [SatuanController::class, 'editConversion'])->name('satuan/conversions/edit');

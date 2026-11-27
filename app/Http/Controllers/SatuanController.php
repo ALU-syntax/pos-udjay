@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\DataTables\RawMaterialUnitConversionDataTable;
 use App\DataTables\SatuanDataTable;
 use App\Http\Requests\SatuanStoreRequest;
 use App\Models\RawMaterials;
@@ -12,16 +13,20 @@ use Illuminate\Validation\Rule;
 
 class SatuanController extends Controller
 {
-    public function index(SatuanDataTable $datatable)
+    public function index(SatuanDataTable $datatable, RawMaterialUnitConversionDataTable $conversionDataTable)
     {
         $stats = $this->stats();
-        $conversions = RawMaterialUnitConversions::with(['rawMaterial.baseUnit', 'fromUnit', 'toUnit'])
-            ->latest()
-            ->get();
-        $rawMaterials = RawMaterials::with('baseUnit')->orderBy('name')->get();
-        $units = Satuan::orderBy('name')->get();
+        $rawMaterials = RawMaterials::orderBy('name')->get(['id', 'name']);
+        $unitCount = Satuan::count();
+        $conversionTable = $conversionDataTable->html();
 
-        return $datatable->render('layouts.satuan.index', compact('stats', 'conversions', 'rawMaterials', 'units'));
+        return $datatable->render('layouts.satuan.index', compact('stats', 'rawMaterials', 'unitCount', 'conversionTable'));
+    }
+
+    /** Data JSON tabel "Konversi per Bahan Baku" */
+    public function conversions(RawMaterialUnitConversionDataTable $datatable)
+    {
+        return $datatable->ajax();
     }
 
     public function create()
@@ -99,7 +104,7 @@ class SatuanController extends Controller
     {
         $conversion->delete();
 
-        return responseSuccessDelete();
+        return responseSuccess(false, 'Konversi bahan baku berhasil dihapus', $this->stats(true));
     }
 
     private function validateConversion(Request $request, ?RawMaterialUnitConversions $conversion = null): array
@@ -131,10 +136,7 @@ class SatuanController extends Controller
             'total' => Satuan::count(),
             'active' => Satuan::where('is_active', 1)->count(),
             'inactive' => Satuan::where('is_active', 0)->count(),
-            'symbolized' => Satuan::whereNotNull('symbol')->where('symbol', '!=', '')->count(),
             'conversion_total' => RawMaterialUnitConversions::count(),
-            'converted_materials' => RawMaterialUnitConversions::distinct('raw_material_id')->count('raw_material_id'),
-            'raw_material_total' => RawMaterials::count(),
             'refresh_conversions' => $refreshConversions,
         ];
     }
