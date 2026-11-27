@@ -128,6 +128,19 @@ class LibraryListPagesTest extends OrderTableTestCase
         $this->assertNotContains($group->id, $optional);
     }
 
+    public function test_modifier_product_modal_title_escapes_name_once(): void
+    {
+        $outlet = $this->outlet('Library Modifier Title');
+        $user = $this->libraryUser($outlet);
+        $group = ModifierGroup::create(['name' => 'Sugar & Ice <Level>', 'outlet_id' => (string) $outlet->id]);
+
+        $this->actingAs($user)->get(route('library/modifiers/getProduct', $group->id))
+            ->assertOk()
+            ->assertSee('Atur Produk: Sugar &amp; Ice &lt;Level&gt;', false)
+            ->assertDontSee('&amp;amp;', false)
+            ->assertDontSee('&amp;lt;', false);
+    }
+
     public function test_index_pages_render_with_report_layout(): void
     {
         $outlet = $this->outlet('Library Index');

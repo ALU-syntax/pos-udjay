@@ -199,6 +199,17 @@ class KategoriBahanBakuIndexTest extends TestCase
             ->assertDontSee($trashed->name);
     }
 
+    public function test_detail_modal_title_escapes_name_once(): void
+    {
+        $category = $this->category(['name' => 'Susu & Olahan ' . uniqid()]);
+
+        $this->actingAs($this->admin(['read library/kategori-bahan-baku']))
+            ->get(route('library/category-bahan-baku/detail', $category->id))
+            ->assertOk()
+            ->assertSee('Detail Bahan Baku: ' . e($category->name), false)
+            ->assertDontSee('&amp;amp;', false);
+    }
+
     public function test_detail_modal_shows_empty_state(): void
     {
         $category = $this->category();

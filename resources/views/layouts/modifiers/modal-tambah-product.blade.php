@@ -1,5 +1,5 @@
 {{-- ob-page memberi token & gaya report ke modal (modal dirender di luar .main-content) --}}
-<x-modal addStyle="modal-lg ob-page ob-modal" title="Atur Produk: {{ $data->name }}" action="{{ $action }}" method="POST" update="1">
+<x-modal addStyle="modal-lg ob-page ob-modal" :title="'Atur Produk: ' . $data->name" action="{{ $action }}" method="POST" update="1">
     @if ($data->id)
         @method('put')
     @endif

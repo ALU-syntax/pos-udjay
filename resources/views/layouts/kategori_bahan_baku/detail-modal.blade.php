@@ -1,5 +1,5 @@
 {{-- ob-page memberi token & gaya report ke modal (modal dirender di luar .main-content) --}}
-<x-modal addStyle="modal-xl ob-page ob-modal kb-detail-modal" title="Detail Bahan Baku: {{ $category->name }}" action="#" method="GET" customSubmit="true">
+<x-modal addStyle="modal-xl ob-page ob-modal kb-detail-modal" :title="'Detail Bahan Baku: ' . $category->name" action="#" method="GET" customSubmit="true">
     @include('layouts.warehouse.partials.ui-styles')
 
     @php
