@@ -82,7 +82,7 @@ class SatuanController extends Controller
         return view('layouts.satuan.conversion-modal', [
             'conversion' => new RawMaterialUnitConversions(),
             'rawMaterials' => RawMaterials::with('baseUnit')->orderBy('name')->get(),
-            'units' => Satuan::orderBy('name')->get(),
+            'units' => $this->conversionUnitOptions(),
             'action' => route('library/satuan/conversions/store'),
         ]);
     }
@@ -101,7 +101,7 @@ class SatuanController extends Controller
         return view('layouts.satuan.conversion-modal', [
             'conversion' => $conversion,
             'rawMaterials' => RawMaterials::with('baseUnit')->orderBy('name')->get(),
-            'units' => Satuan::orderBy('name')->get(),
+            'units' => $this->conversionUnitOptions($conversion),
             'action' => route('library/satuan/conversions/update', $conversion->id),
             'update' => true,
         ]);
@@ -123,8 +123,28 @@ class SatuanController extends Controller
         return responseSuccess(false, 'Konversi bahan baku berhasil dihapus', $this->stats(true));
     }
 
+    /** Satuan aktif saja; satuan yang sudah tersimpan di konversi tetap ikut agar edit tidak memaksa ganti. */
+    private function conversionUnitOptions(?RawMaterialUnitConversions $conversion = null)
+    {
+        $currentIds = $this->currentUnitIds($conversion);
+
+        return Satuan::where(fn ($query) => $query->where('is_active', 1)
+                ->when($currentIds, fn ($query) => $query->orWhereIn('id', $currentIds)))
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function currentUnitIds(?RawMaterialUnitConversions $conversion): array
+    {
+        return array_values(array_filter([$conversion?->from_unit_id, $conversion?->to_unit_id]));
+    }
+
     private function validateConversion(Request $request, ?RawMaterialUnitConversions $conversion = null): array
     {
+        $currentUnitIds = $this->currentUnitIds($conversion);
+        $activeOrCurrentUnit = Rule::exists('satuans', 'id')->where(fn ($query) => $query->where('is_active', 1)
+            ->when($currentUnitIds, fn ($query) => $query->orWhereIn('id', $currentUnitIds)));
+
         return $request->validate([
             'raw_material_id' => [
                 'required',
@@ -135,14 +155,16 @@ class SatuanController extends Controller
                         ->where('from_unit_id', $request->input('from_unit_id'))
                         ->where('to_unit_id', $request->input('to_unit_id'))),
             ],
-            'from_unit_id' => ['required', 'exists:satuans,id', 'different:to_unit_id'],
-            'to_unit_id' => ['required', 'exists:satuans,id', 'different:from_unit_id'],
+            'from_unit_id' => ['required', $activeOrCurrentUnit, 'different:to_unit_id'],
+            'to_unit_id' => ['required', $activeOrCurrentUnit, 'different:from_unit_id'],
             'multiplier' => ['required', 'numeric', 'gt:0'],
             'notes' => ['nullable', 'string'],
         ], [
             'raw_material_id.unique' => 'Konversi untuk bahan baku dan pasangan satuan ini sudah ada.',
             'from_unit_id.different' => 'Satuan asal dan satuan tujuan harus berbeda.',
             'to_unit_id.different' => 'Satuan tujuan dan satuan asal harus berbeda.',
+            'from_unit_id.exists' => 'Satuan asal tidak ditemukan atau sudah nonaktif.',
+            'to_unit_id.exists' => 'Satuan tujuan tidak ditemukan atau sudah nonaktif.',
         ]);
     }
 

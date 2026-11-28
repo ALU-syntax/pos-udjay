@@ -46,7 +46,7 @@
             @foreach ($units as $unit)
                 <option value="{{ $unit->id }}" data-label="{{ $unitLabel($unit) }}"
                     @selected((string) old('from_unit_id', $conversion->from_unit_id) === (string) $unit->id)>
-                    {{ $unit->name }}{{ $unit->symbol ? ' (' . $unit->symbol . ')' : '' }}
+                    {{ $unit->name }}{{ $unit->symbol ? ' (' . $unit->symbol . ')' : '' }}{{ $unit->is_active ? '' : ' (Nonaktif)' }}
                 </option>
             @endforeach
         </select>
@@ -63,7 +63,7 @@
             @foreach ($units as $unit)
                 <option value="{{ $unit->id }}" data-label="{{ $unitLabel($unit) }}"
                     @selected((string) old('to_unit_id', $conversion->to_unit_id) === (string) $unit->id)>
-                    {{ $unit->name }}{{ $unit->symbol ? ' (' . $unit->symbol . ')' : '' }}
+                    {{ $unit->name }}{{ $unit->symbol ? ' (' . $unit->symbol . ')' : '' }}{{ $unit->is_active ? '' : ' (Nonaktif)' }}
                 </option>
             @endforeach
         </select>

@@ -221,4 +221,77 @@ class SatuanConversionTest extends TestCase
             ->assertSee('data-base-unit="kg"', false)
             ->assertSee('Catatan modal');
     }
+
+    public function test_create_modal_hides_inactive_unit(): void
+    {
+        $active = $this->satuan('Uji Sat Aktif');
+        $inactive = $this->satuan('Uji Sat Mati');
+        $inactive->update(['is_active' => 0]);
+
+        $this->actingAs($this->admin(['update library/satuan']))
+            ->get(route('library/satuan/conversions/create'))
+            ->assertOk()
+            ->assertSee($active->name)
+            ->assertDontSee($inactive->name);
+    }
+
+    public function test_edit_modal_keeps_saved_inactive_unit_marked(): void
+    {
+        $kg = $this->satuan('Uji Kilogram', 'kg');
+        $box = $this->satuan('Uji Box Lama', 'box');
+        $other = $this->satuan('Uji Sat Lain');
+        $conversion = $this->conversion($this->rawMaterial('Uji Telur', $kg), $box, $kg, 15);
+        $box->update(['is_active' => 0]);
+        $other->update(['is_active' => 0]);
+
+        $this->actingAs($this->admin(['update library/satuan']))
+            ->get(route('library/satuan/conversions/edit', $conversion->id))
+            ->assertOk()
+            ->assertSee($box->name . ' (box) (Nonaktif)')
+            ->assertDontSee($other->name);
+    }
+
+    public function test_store_rejects_inactive_unit(): void
+    {
+        $kg = $this->satuan('Uji Kilogram', 'kg');
+        $box = $this->satuan('Uji Box Mati', 'box');
+        $box->update(['is_active' => 0]);
+        $material = $this->rawMaterial('Uji Telur', $kg);
+
+        $this->actingAs($this->admin(['update library/satuan']))
+            ->postJson(route('library/satuan/conversions/store'), [
+                'raw_material_id' => $material->id,
+                'from_unit_id' => $box->id,
+                'to_unit_id' => $kg->id,
+                'multiplier' => 15,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['from_unit_id' => 'Satuan asal tidak ditemukan atau sudah nonaktif.']);
+
+        $this->assertFalse(RawMaterialUnitConversions::where('raw_material_id', $material->id)->exists());
+    }
+
+    public function test_update_keeps_saved_inactive_unit_but_rejects_other_inactive(): void
+    {
+        $kg = $this->satuan('Uji Kilogram', 'kg');
+        $box = $this->satuan('Uji Box Lama', 'box');
+        $other = $this->satuan('Uji Sat Lain');
+        $material = $this->rawMaterial('Uji Telur', $kg);
+        $conversion = $this->conversion($material, $box, $kg, 15);
+        $box->update(['is_active' => 0]);
+        $other->update(['is_active' => 0]);
+        $admin = $this->admin(['update library/satuan']);
+        $payload = ['raw_material_id' => $material->id, 'from_unit_id' => $box->id, 'to_unit_id' => $kg->id, 'multiplier' => 12];
+
+        $this->actingAs($admin)
+            ->putJson(route('library/satuan/conversions/update', $conversion->id), $payload)
+            ->assertOk();
+        $this->assertEquals(12, (float) $conversion->fresh()->multiplier);
+
+        $this->actingAs($admin)
+            ->putJson(route('library/satuan/conversions/update', $conversion->id), array_merge($payload, ['from_unit_id' => $other->id]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('from_unit_id');
+        $this->assertSame($box->id, $conversion->fresh()->from_unit_id);
+    }
 }
