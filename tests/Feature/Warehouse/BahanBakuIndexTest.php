@@ -274,6 +274,57 @@ class BahanBakuIndexTest extends TestCase
             ->assertSee('<option value="0" selected>Nonaktif</option>', false);
     }
 
+    public function test_store_rejects_inactive_category_and_unit(): void
+    {
+        $inactiveCategory = $this->category(['is_active' => false]);
+        $inactiveUnit = $this->unit(['is_active' => 0]);
+        $name = 'Uji Bahan Ditolak ' . uniqid();
+
+        $this->actingAs($this->admin(['create library/bahan-baku']))
+            ->postJson(route('library/bahan-baku/store'), [
+                'name' => $name,
+                'raw_material_category_id' => $inactiveCategory->id,
+                'base_unit_id' => $inactiveUnit->id,
+                'storage_type_id' => $this->storage()->id,
+                'is_active' => 1,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors([
+                'raw_material_category_id' => 'Kategori tidak ditemukan atau sudah nonaktif.',
+                'base_unit_id' => 'Satuan dasar tidak ditemukan atau sudah nonaktif.',
+            ]);
+
+        $this->assertFalse(RawMaterials::where('name', $name)->exists());
+    }
+
+    public function test_update_keeps_saved_inactive_choice_but_rejects_other_inactive(): void
+    {
+        $savedCategory = $this->category(['is_active' => false]);
+        $savedUnit = $this->unit(['is_active' => 0]);
+        $otherInactiveUnit = $this->unit(['is_active' => 0]);
+        $material = $this->rawMaterial(['raw_material_category_id' => $savedCategory->id, 'base_unit_id' => $savedUnit->id]);
+        $admin = $this->admin(['update library/bahan-baku']);
+        $payload = [
+            'name' => 'Uji Bahan Ubah ' . uniqid(),
+            'raw_material_category_id' => $savedCategory->id,
+            'base_unit_id' => $savedUnit->id,
+            'storage_type_id' => $material->storage_type_id,
+            'is_active' => 1,
+        ];
+
+        // Nilai tersimpan boleh tetap dipakai walau sudah nonaktif
+        $this->actingAs($admin)
+            ->putJson(route('library/bahan-baku/update', $material->id), $payload)
+            ->assertOk();
+        $this->assertSame($payload['name'], $material->fresh()->name);
+
+        $this->actingAs($admin)
+            ->putJson(route('library/bahan-baku/update', $material->id), array_merge($payload, ['base_unit_id' => $otherInactiveUnit->id]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('base_unit_id');
+        $this->assertSame($savedUnit->id, $material->fresh()->base_unit_id);
+    }
+
     private function stock(RawMaterials $material, array $inventory, float $available, float $reserved = 0): Inventory
     {
         $type = InventoryType::query()->forceCreate(['name' => 'Uji Tipe ' . uniqid(), 'is_active' => true]);
