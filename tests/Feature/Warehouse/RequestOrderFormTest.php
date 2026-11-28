@@ -159,4 +159,29 @@ class RequestOrderFormTest extends TestCase
             ->assertSee($material->name)
             ->assertSee('Catatan tetap ada');
     }
+
+    public function test_store_rejects_same_requester_and_fulfillment_location(): void
+    {
+        $location = $this->location();
+        $material = $this->material();
+        $payload = [
+            'requester_inventory_id' => $location->id,
+            'fulfillment_inventory_id' => $location->id,
+            'items' => [
+                ['raw_material_id' => $material->id, 'requested_qty' => '1', 'requested_satuan_id' => $material->base_unit_id],
+            ],
+        ];
+
+        $this->actingAs($this->admin(['create warehouse/request-order']))
+            ->from(route('warehouse/request-order/create'))
+            ->post(route('warehouse/request-order/store'), $payload)
+            ->assertSessionHasErrors(['fulfillment_inventory_id' => 'Lokasi pemenuh tidak boleh sama dengan lokasi peminta.']);
+
+        $this->assertFalse(RawMaterialRequests::where('requester_inventory_id', $location->id)->exists());
+
+        $payload['fulfillment_inventory_id'] = $this->location()->id;
+
+        $this->post(route('warehouse/request-order/store'), $payload)->assertSessionHasNoErrors();
+        $this->assertTrue(RawMaterialRequests::where('requester_inventory_id', $location->id)->exists());
+    }
 }

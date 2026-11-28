@@ -132,7 +132,7 @@
                             @error('fulfillment_inventory_id')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @else
-                                <small class="text-muted">Gudang yang mengirim bahan. Stok bebasnya tampil di tiap item.</small>
+                                <small class="text-muted">Gudang yang mengirim bahan, selain lokasi peminta. Stok bebasnya tampil di tiap item.</small>
                             @enderror
                         </div>
                         <div class="col-12">
@@ -515,6 +515,23 @@
                 });
 
                 $('#fulfillmentInventory').on('change', refreshAllStockInfo);
+
+                // Lokasi tidak bisa meminta ke dirinya sendiri: opsi yang sama di pemenuh dinonaktifkan
+                function syncFulfillmentOptions() {
+                    const requesterId = String($('#requester_inventory_id').val() || '');
+                    const fulfillment = $('#fulfillmentInventory');
+
+                    fulfillment.find('option').each(function () {
+                        $(this).prop('disabled', requesterId !== '' && $(this).val() === requesterId);
+                    });
+
+                    if (requesterId !== '' && String(fulfillment.val() || '') === requesterId) {
+                        fulfillment.val('').trigger('change');
+                    }
+                }
+
+                syncFulfillmentOptions();
+                $('#requester_inventory_id').on('change', syncFulfillmentOptions);
 
                 $('#requestOrderItemsTable').on('click', '.remove-request-order-item', function () {
                     removeRows($(this).closest('tr'));
