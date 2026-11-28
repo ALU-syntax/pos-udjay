@@ -264,13 +264,19 @@ class InventoryIndexTest extends TestCase
         $grandchild = $this->location(['name' => 'Uji Laci ' . uniqid(), 'parent_id' => $child->id]);
         $other = $this->location(['name' => 'Uji Gudang Lain ' . uniqid()]);
 
-        $this->actingAs($this->admin(['update warehouse/inventory']))
+        $html = $this->actingAs($this->admin(['update warehouse/inventory']))
             ->get(route('warehouse/inventory/edit', $root->id))
             ->assertOk()
-            ->assertSee('<option value="' . $other->id . '"', false)
-            ->assertDontSee('<option value="' . $root->id . '"', false)
-            ->assertDontSee('<option value="' . $child->id . '"', false)
-            ->assertDontSee('<option value="' . $grandchild->id . '"', false);
+            ->getContent();
+
+        // Hanya select parent: ID lokasi bisa sama dengan ID outlet/brand/tipe di select lain
+        $this->assertSame(1, preg_match('/<select id="parent_id".*?<\/select>/s', $html, $match));
+        $parentSelect = $match[0];
+
+        $this->assertStringContainsString('<option value="' . $other->id . '"', $parentSelect);
+        $this->assertStringNotContainsString('<option value="' . $root->id . '"', $parentSelect);
+        $this->assertStringNotContainsString('<option value="' . $child->id . '"', $parentSelect);
+        $this->assertStringNotContainsString('<option value="' . $grandchild->id . '"', $parentSelect);
     }
 
     public function test_update_rejects_descendant_as_parent(): void
