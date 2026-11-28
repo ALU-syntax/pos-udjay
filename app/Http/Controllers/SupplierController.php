@@ -153,7 +153,7 @@ class SupplierController extends Controller
         return view('layouts.supplier.raw-material-modal', [
             'supplier' => $supplier,
             'rawMaterials' => $this->rawMaterialOptions(),
-            'units' => Satuan::orderBy('name')->get(),
+            'units' => $this->purchaseUnitOptions(),
             'action' => route('warehouse/supplier/raw-materials/store', $supplier->id),
             'item' => new SupplierRawMaterials(),
         ]);
@@ -166,7 +166,7 @@ class SupplierController extends Controller
         return view('layouts.supplier.raw-material-modal', [
             'supplier' => $supplier,
             'rawMaterials' => $this->rawMaterialOptions($supplierRawMaterial->raw_material_id),
-            'units' => Satuan::orderBy('name')->get(),
+            'units' => $this->purchaseUnitOptions($supplierRawMaterial->purchase_unit_id),
             'action' => route('warehouse/supplier/raw-materials/update', [$supplier->id, $supplierRawMaterial->id]),
             'item' => $supplierRawMaterial,
             'update' => true,
@@ -179,14 +179,14 @@ class SupplierController extends Controller
             'raw_material_id' => ['required', 'exists:raw_materials,id'],
             'supplier_material_name' => ['nullable', 'string', 'max:255'],
             'supplier_sku' => ['nullable', 'string', 'max:100'],
-            'purchase_unit_id' => ['required', 'exists:satuans,id'],
+            'purchase_unit_id' => ['required', $this->activeOrCurrentUnit()],
             'minimum_order_qty' => ['nullable', 'numeric', 'min:0'],
             'lead_time_days' => ['required', 'integer', 'min:0'],
             'current_price' => ['nullable', 'numeric', 'min:0'],
             'is_preferred' => ['required', 'boolean'],
             'is_active' => ['required', 'boolean'],
             'notes' => ['nullable', 'string'],
-        ]);
+        ], $this->purchaseUnitMessages());
 
         $uniqueRule = Rule::unique('supplier_raw_materials')
             ->where(fn ($query) => $query->where('supplier_id', $supplier->id)
@@ -229,14 +229,14 @@ class SupplierController extends Controller
             'raw_material_id' => ['required', 'exists:raw_materials,id'],
             'supplier_material_name' => ['nullable', 'string', 'max:255'],
             'supplier_sku' => ['nullable', 'string', 'max:100'],
-            'purchase_unit_id' => ['required', 'exists:satuans,id'],
+            'purchase_unit_id' => ['required', $this->activeOrCurrentUnit($supplierRawMaterial->purchase_unit_id)],
             'minimum_order_qty' => ['nullable', 'numeric', 'min:0'],
             'lead_time_days' => ['required', 'integer', 'min:0'],
             'current_price' => ['nullable', 'numeric', 'min:0'],
             'is_preferred' => ['required', 'boolean'],
             'is_active' => ['required', 'boolean'],
             'notes' => ['nullable', 'string'],
-        ]);
+        ], $this->purchaseUnitMessages());
 
         $uniqueRule = Rule::unique('supplier_raw_materials')
             ->ignore($supplierRawMaterial->id)
@@ -313,6 +313,26 @@ class SupplierController extends Controller
                 ->when($currentRawMaterialId, fn ($query) => $query->orWhere('id', $currentRawMaterialId)))
             ->orderBy('name')
             ->get();
+    }
+
+    /** Satuan beli aktif saja; satuan yang sudah tersimpan tetap ikut agar edit tidak memaksa ganti. */
+    private function purchaseUnitOptions(?int $currentUnitId = null)
+    {
+        return Satuan::where(fn ($query) => $query->where('is_active', 1)
+                ->when($currentUnitId, fn ($query) => $query->orWhere('id', $currentUnitId)))
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function activeOrCurrentUnit(?int $currentUnitId = null)
+    {
+        return Rule::exists('satuans', 'id')->where(fn ($query) => $query->where('is_active', 1)
+            ->when($currentUnitId, fn ($query) => $query->orWhere('id', $currentUnitId)));
+    }
+
+    private function purchaseUnitMessages(): array
+    {
+        return ['purchase_unit_id.exists' => 'Satuan beli tidak ditemukan atau sudah nonaktif.'];
     }
 
     /**

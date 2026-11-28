@@ -269,4 +269,80 @@ class SupplierDetailTest extends TestCase
             ->assertSee('Uji Bahan Nonaktif')
             ->assertSee('— nonaktif');
     }
+
+    public function test_create_modal_hides_inactive_purchase_unit(): void
+    {
+        $supplier = $this->supplier();
+        $active = $this->unit('Uji Sat Aktif');
+        $inactive = $this->unit('Uji Sat Mati');
+        $inactive->update(['is_active' => 0]);
+
+        $this->actingAs($this->admin(['update warehouse/supplier']))
+            ->get(route('warehouse/supplier/raw-materials/create', $supplier->id))
+            ->assertOk()
+            ->assertSee($active->name)
+            ->assertDontSee($inactive->name);
+    }
+
+    public function test_edit_modal_keeps_saved_inactive_purchase_unit_marked(): void
+    {
+        $supplier = $this->supplier();
+        $sack = $this->unit('Uji Karung Lama');
+        $other = $this->unit('Uji Sat Lain');
+        $item = $this->supplierMaterial($supplier, $this->rawMaterial('Uji Tepung ' . uniqid()), ['purchase_unit_id' => $sack->id]);
+        $sack->update(['is_active' => 0]);
+        $other->update(['is_active' => 0]);
+
+        $this->actingAs($this->admin(['update warehouse/supplier']))
+            ->get(route('warehouse/supplier/raw-materials/edit', [$supplier->id, $item->id]))
+            ->assertOk()
+            ->assertSee($sack->name . ' — nonaktif')
+            ->assertDontSee($other->name);
+    }
+
+    public function test_store_rejects_inactive_purchase_unit(): void
+    {
+        $material = $this->rawMaterial('Uji Tepung ' . uniqid());
+        $sack = $this->unit('Uji Karung Mati');
+        $this->conversion($material, $sack->id, $material->base_unit_id, 25000);
+        $sack->update(['is_active' => 0]);
+        $supplier = $this->supplier();
+
+        $this->storeMaterial($supplier, $material, $sack->id)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['purchase_unit_id' => 'Satuan beli tidak ditemukan atau sudah nonaktif.']);
+
+        $this->assertDatabaseMissing('supplier_raw_materials', ['supplier_id' => $supplier->id]);
+    }
+
+    public function test_update_keeps_saved_inactive_purchase_unit_but_rejects_other_inactive(): void
+    {
+        $supplier = $this->supplier();
+        $material = $this->rawMaterial('Uji Tepung ' . uniqid());
+        $sack = $this->unit('Uji Karung Lama');
+        $other = $this->unit('Uji Sat Lain');
+        $this->conversion($material, $sack->id, $material->base_unit_id, 25000);
+        $this->conversion($material, $other->id, $material->base_unit_id, 1000);
+        $item = $this->supplierMaterial($supplier, $material, ['purchase_unit_id' => $sack->id]);
+        $sack->update(['is_active' => 0]);
+        $other->update(['is_active' => 0]);
+        $admin = $this->admin(['update warehouse/supplier']);
+        $payload = [
+            'raw_material_id' => $material->id,
+            'purchase_unit_id' => $sack->id,
+            'lead_time_days' => 5,
+            'is_preferred' => 0,
+            'is_active' => 1,
+        ];
+        $url = route('warehouse/supplier/raw-materials/update', [$supplier->id, $item->id]);
+
+        $this->actingAs($admin)->putJson($url, $payload)->assertOk();
+        $this->assertSame(5, (int) $item->fresh()->lead_time_days);
+
+        $this->actingAs($admin)
+            ->putJson($url, array_merge($payload, ['purchase_unit_id' => $other->id]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('purchase_unit_id');
+        $this->assertSame($sack->id, $item->fresh()->purchase_unit_id);
+    }
 }

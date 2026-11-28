@@ -51,7 +51,7 @@
         <select id="purchase_unit_id" name="purchase_unit_id" class="form-select" required>
             <option value="">Pilih satuan</option>
             @foreach ($units as $unit)
-                <option value="{{ $unit->id }}" @selected((string) old('purchase_unit_id', $item->purchase_unit_id) === (string) $unit->id)>{{ $unit->name }}</option>
+                <option value="{{ $unit->id }}" @selected((string) old('purchase_unit_id', $item->purchase_unit_id) === (string) $unit->id)>{{ $unit->name }}{{ $unit->is_active ? '' : ' — nonaktif' }}</option>
             @endforeach
         </select>
         <small class="text-muted">Satuan saat memesan ke supplier, mis. karung atau dus. Harus sudah punya konversi ke satuan dasar bahan.</small>
