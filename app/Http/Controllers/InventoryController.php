@@ -154,7 +154,7 @@ class InventoryController extends Controller
     private function formData(Inventory $inventory, string $action): array
     {
         $parents = Inventory::query()
-            ->when($inventory->exists, fn ($query) => $query->where('id', '!=', $inventory->id))
+            ->when($inventory->exists, fn ($query) => $query->whereNotIn('id', [$inventory->id, ...$inventory->descendantIds()]))
             ->orderBy('name')
             ->get();
 

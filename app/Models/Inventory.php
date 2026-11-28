@@ -27,6 +27,32 @@ class Inventory extends Model
         return $this->hasMany(self::class, 'parent_id');
     }
 
+    /**
+     * ID semua anak, cucu, dst. Dipakai agar lokasi tidak bisa memilih keturunannya
+     * sebagai parent (A → B → A). $visited menjaga loop bila data lama sudah bersiklus.
+     */
+    public function descendantIds(): array
+    {
+        $visited = [$this->id => true];
+        $frontier = [$this->id];
+
+        while ($frontier) {
+            $frontier = self::query()
+                ->whereIn('parent_id', $frontier)
+                ->pluck('id')
+                ->reject(fn ($id) => isset($visited[$id]))
+                ->all();
+
+            foreach ($frontier as $id) {
+                $visited[$id] = true;
+            }
+        }
+
+        unset($visited[$this->id]);
+
+        return array_keys($visited);
+    }
+
     public function outlet()
     {
         return $this->belongsTo(Outlets::class, 'outlet_id');

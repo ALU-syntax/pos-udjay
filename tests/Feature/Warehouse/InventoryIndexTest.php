@@ -256,4 +256,55 @@ class InventoryIndexTest extends TestCase
             ->assertSee($parent->name)
             ->assertSee('<option value="0" selected>Nonaktif</option>', false);
     }
+
+    public function test_edit_modal_hides_self_and_descendants_from_parent_options(): void
+    {
+        $root = $this->location(['name' => 'Uji Gudang ' . uniqid()]);
+        $child = $this->location(['name' => 'Uji Rak ' . uniqid(), 'parent_id' => $root->id]);
+        $grandchild = $this->location(['name' => 'Uji Laci ' . uniqid(), 'parent_id' => $child->id]);
+        $other = $this->location(['name' => 'Uji Gudang Lain ' . uniqid()]);
+
+        $this->actingAs($this->admin(['update warehouse/inventory']))
+            ->get(route('warehouse/inventory/edit', $root->id))
+            ->assertOk()
+            ->assertSee('<option value="' . $other->id . '"', false)
+            ->assertDontSee('<option value="' . $root->id . '"', false)
+            ->assertDontSee('<option value="' . $child->id . '"', false)
+            ->assertDontSee('<option value="' . $grandchild->id . '"', false);
+    }
+
+    public function test_update_rejects_descendant_as_parent(): void
+    {
+        $root = $this->location(['name' => 'Uji Gudang ' . uniqid()]);
+        $child = $this->location(['name' => 'Uji Rak ' . uniqid(), 'parent_id' => $root->id]);
+        $grandchild = $this->location(['name' => 'Uji Laci ' . uniqid(), 'parent_id' => $child->id]);
+        $admin = $this->admin(['update warehouse/inventory']);
+
+        foreach ([$root, $grandchild] as $parent) {
+            $this->actingAs($admin)
+                ->putJson(route('warehouse/inventory/update', $root->id), [
+                    'name' => $root->name,
+                    'parent_id' => $parent->id,
+                    'inventory_type_id' => $root->inventory_type_id,
+                    'is_active' => 1,
+                ])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors('parent_id');
+        }
+
+        $this->assertNull($root->fresh()->parent_id);
+
+        $other = $this->location(['name' => 'Uji Gudang Lain ' . uniqid()]);
+
+        $this->actingAs($admin)
+            ->putJson(route('warehouse/inventory/update', $root->id), [
+                'name' => $root->name,
+                'parent_id' => $other->id,
+                'inventory_type_id' => $root->inventory_type_id,
+                'is_active' => 1,
+            ])
+            ->assertOk();
+
+        $this->assertSame($other->id, $root->fresh()->parent_id);
+    }
 }

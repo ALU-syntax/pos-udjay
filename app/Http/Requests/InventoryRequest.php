@@ -24,7 +24,7 @@ class InventoryRequest extends FormRequest
 
     public function rules(): array
     {
-        $inventoryId = $this->route('inventory')?->id;
+        $inventory = $this->route('inventory');
 
         return [
             'code' => ['nullable', 'string', 'max:50'],
@@ -32,7 +32,7 @@ class InventoryRequest extends FormRequest
             'parent_id' => [
                 'nullable',
                 'exists:inventory,id',
-                Rule::notIn([$inventoryId]),
+                Rule::notIn($inventory ? [$inventory->id, ...$inventory->descendantIds()] : []),
             ],
             'outlet_id' => ['nullable', 'exists:outlets,id'],
             'brand_id' => ['nullable', 'exists:brands,id'],
@@ -46,7 +46,7 @@ class InventoryRequest extends FormRequest
         return [
             'name.required' => 'Nama lokasi inventory wajib diisi.',
             'inventory_type_id.required' => 'Tipe lokasi wajib dipilih.',
-            'parent_id.not_in' => 'Parent lokasi tidak boleh menunjuk dirinya sendiri.',
+            'parent_id.not_in' => 'Parent lokasi tidak boleh dirinya sendiri atau lokasi di bawahnya.',
             'is_active.required' => 'Status lokasi wajib dipilih.',
         ];
     }
