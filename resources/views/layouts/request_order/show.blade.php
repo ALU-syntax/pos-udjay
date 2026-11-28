@@ -11,6 +11,8 @@
         $canUpdate = auth()->user()->can('update warehouse/request-order');
         $canDelete = auth()->user()->can('delete warehouse/request-order');
         $canApprove = $isSubmitted && auth()->user()->can('approve warehouse/request-order');
+        $canCancel = ($isDraft || $isSubmitted) && $canUpdate;
+        $closedLabel = $requestOrder->closed_at ? ($status?->label ?? 'Ditutup') : null;
         $isOverdue = $requestOrder->needed_at && $requestOrder->needed_at->lt(today())
             && ! in_array($statusCode, \App\Models\RawMaterialRequestStatus::CLOSED, true);
 
@@ -61,12 +63,20 @@
                         <i class="fas fa-trash" aria-hidden="true"></i> Hapus
                     </a>
                 @endif
+                @if ($canCancel)
+                    <a href="{{ route('warehouse/request-order/cancel', $requestOrder->id) }}" class="btn ob-btn ob-btn-outline cancel-request-order-detail">
+                        <i class="fas fa-ban" aria-hidden="true"></i> Batalkan
+                    </a>
+                @endif
                 @if ($isDraft && $canUpdate)
                     <a href="{{ route('warehouse/request-order/submit', $requestOrder->id) }}" class="btn ob-btn ob-btn-primary submit-request-order-detail">
                         <i class="fas fa-paper-plane" aria-hidden="true"></i> Ajukan
                     </a>
                 @endif
                 @if ($canApprove)
+                    <a href="{{ route('warehouse/request-order/reject', $requestOrder->id) }}" class="btn ob-btn ob-btn-danger reject-request-order-detail">
+                        <i class="fas fa-times-circle" aria-hidden="true"></i> Tolak
+                    </a>
                     <button type="submit" form="approveRequestOrderForm" class="btn ob-btn ob-btn-primary">
                         <i class="fas fa-check-circle" aria-hidden="true"></i> Setujui
                     </button>
@@ -282,6 +292,13 @@
                                 <span class="ob-cell-meta">oleh {{ $requestOrder->approvedBy?->name ?? '-' }} · {{ $requestOrder->approved_at->translatedFormat('d M Y, H:i') }}</span>
                             </li>
                         @endif
+                        @if ($closedLabel)
+                            <li class="wh-list__item">
+                                <span class="wh-strong">{{ $closedLabel }}</span>
+                                <span class="ob-cell-meta">oleh {{ $requestOrder->closedBy?->name ?? '-' }} · {{ $requestOrder->closed_at->translatedFormat('d M Y, H:i') }}</span>
+                                <span class="ro-closed-remarks">Alasan: {{ $requestOrder->closed_remarks }}</span>
+                            </li>
+                        @endif
                     </ul>
                 </div>
             </aside>
@@ -306,20 +323,30 @@
                 });
 
                 function confirmAjax(button, options) {
-                    Swal.fire({
+                    const remarks = options.remarks ? {
+                        input: 'textarea',
+                        inputLabel: options.remarks,
+                        inputAttributes: { maxlength: 1000 },
+                        inputValidator: (value) => (!value || !value.trim() ? 'Alasan wajib diisi.' : undefined)
+                    } : {};
+
+                    Swal.fire(Object.assign({
                         title: options.title,
                         text: options.text,
                         icon: options.icon,
                         showCancelButton: true,
                         confirmButtonText: options.confirm,
                         cancelButtonText: 'Batal'
-                    }).then(function (result) {
+                    }, remarks)).then(function (result) {
                         if (!result.isConfirmed) return;
+
+                        const data = { _token: @json(csrf_token()) };
+                        if (options.remarks) data.closed_remarks = result.value.trim();
 
                         $.ajax({
                             url: button.href,
                             method: options.method,
-                            data: { _token: @json(csrf_token()) },
+                            data: data,
                             success: function (response) {
                                 showToast(response.status || 'success', response.message || options.success);
                                 options.after();
@@ -343,6 +370,36 @@
                         method: 'POST',
                         success: 'Request order berhasil diajukan.',
                         failed: 'Gagal mengajukan request order',
+                        after: () => location.reload()
+                    });
+                });
+
+                $('.main-content').on('click', '.cancel-request-order-detail', function (event) {
+                    event.preventDefault();
+                    confirmAjax(this, {
+                        title: 'Batalkan request?',
+                        text: 'Request yang dibatalkan tidak bisa diajukan atau disetujui lagi.',
+                        icon: 'warning',
+                        confirm: 'Ya, batalkan',
+                        remarks: 'Alasan pembatalan',
+                        method: 'POST',
+                        success: 'Request order berhasil dibatalkan.',
+                        failed: 'Gagal membatalkan request order',
+                        after: () => location.reload()
+                    });
+                });
+
+                $('.main-content').on('click', '.reject-request-order-detail', function (event) {
+                    event.preventDefault();
+                    confirmAjax(this, {
+                        title: 'Tolak request?',
+                        text: 'Alasan penolakan akan terlihat oleh pemohon di halaman detail.',
+                        icon: 'warning',
+                        confirm: 'Ya, tolak',
+                        remarks: 'Alasan penolakan',
+                        method: 'POST',
+                        success: 'Request order berhasil ditolak.',
+                        failed: 'Gagal menolak request order',
                         after: () => location.reload()
                     });
                 });
@@ -397,6 +454,7 @@
             .ro-item-notes { white-space: pre-line; max-width: 320px; }
             .ro-rejected-qty { color: var(--ob-muted); text-decoration: line-through; }
             .ro-notes { white-space: pre-line; font-weight: 400 !important; }
+            .ro-closed-remarks { white-space: pre-line; }
 
             #request-order-items-detail-table td { vertical-align: top; }
             #request-order-items-detail-table td:first-child { min-width: 240px; }

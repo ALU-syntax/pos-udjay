@@ -192,6 +192,62 @@ class RequestOrderDetailTest extends TestCase
         $this->assertNotNull($full);
     }
 
+    public function test_cancel_and_reject_buttons_follow_status_and_permissions(): void
+    {
+        $draft = $this->requestOrder(RawMaterialRequestStatus::DRAFT);
+        $submitted = $this->requestOrder(RawMaterialRequestStatus::SUBMITTED);
+        $approved = $this->requestOrder(RawMaterialRequestStatus::APPROVED);
+        $updater = $this->admin(['read warehouse/request-order', 'update warehouse/request-order']);
+        $approver = $this->admin(['read warehouse/request-order', 'approve warehouse/request-order']);
+        $reader = $this->admin(['read warehouse/request-order']);
+        $see = fn (User $user, RawMaterialRequests $ro) => $this->actingAs($user)->get(route('warehouse/request-order/detail', $ro->id))->assertOk();
+
+        // Batalkan: draft & diajukan, butuh izin update
+        $see($updater, $draft)->assertSee(route('warehouse/request-order/cancel', $draft->id));
+        $see($updater, $submitted)
+            ->assertSee(route('warehouse/request-order/cancel', $submitted->id))
+            ->assertDontSee(route('warehouse/request-order/reject', $submitted->id));
+        $see($updater, $approved)->assertDontSee(route('warehouse/request-order/cancel', $approved->id));
+
+        // Tolak: hanya diajukan, butuh izin approve
+        $see($approver, $submitted)
+            ->assertSee(route('warehouse/request-order/reject', $submitted->id))
+            ->assertDontSee(route('warehouse/request-order/cancel', $submitted->id));
+        $see($approver, $draft)->assertDontSee(route('warehouse/request-order/reject', $draft->id));
+
+        $see($reader, $submitted)
+            ->assertDontSee(route('warehouse/request-order/cancel', $submitted->id))
+            ->assertDontSee(route('warehouse/request-order/reject', $submitted->id));
+    }
+
+    public function test_closed_request_shows_who_when_and_escaped_remarks_in_history(): void
+    {
+        $closer = $this->admin([], 'Uji Kepala Gudang');
+        $rejected = $this->requestOrder(RawMaterialRequestStatus::REJECTED, [
+            'closed_by' => $closer->id,
+            'closed_at' => now(),
+            'closed_remarks' => '<b>Stok kosong</b>',
+        ]);
+        $cancelled = $this->requestOrder(RawMaterialRequestStatus::CANCELLED, [
+            'closed_by' => $closer->id,
+            'closed_at' => now(),
+            'closed_remarks' => 'Salah pilih lokasi',
+        ]);
+        $admin = $this->admin(['read warehouse/request-order', 'update warehouse/request-order', 'approve warehouse/request-order']);
+
+        $this->actingAs($admin)
+            ->get(route('warehouse/request-order/detail', $rejected->id))
+            ->assertOk()
+            ->assertSeeInOrder(['Riwayat', 'Ditolak', 'oleh Uji Kepala Gudang', 'Alasan: &lt;b&gt;Stok kosong&lt;/b&gt;'], false)
+            ->assertDontSee(route('warehouse/request-order/cancel', $rejected->id))
+            ->assertDontSee(route('warehouse/request-order/reject', $rejected->id));
+
+        $this->actingAs($admin)
+            ->get(route('warehouse/request-order/detail', $cancelled->id))
+            ->assertOk()
+            ->assertSeeInOrder(['Riwayat', 'Dibatalkan', 'oleh Uji Kepala Gudang', 'Alasan: Salah pilih lokasi']);
+    }
+
     public function test_detail_shows_empty_state_without_items(): void
     {
         $draft = $this->requestOrder(RawMaterialRequestStatus::DRAFT);

@@ -88,6 +88,7 @@ class RequestOrderController extends Controller
             'fulfillmentInventory',
             'requestedBy',
             'approvedBy',
+            'closedBy',
             'items.rawMaterial.baseUnit',
             'items.unit',
         ]);
