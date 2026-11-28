@@ -312,7 +312,11 @@ class RequestOrderController extends Controller
         })
             ->orderBy('name')
             ->get();
-        $units = Satuan::orderBy('name')->get();
+        // Satuan aktif saja; satuan yang sudah dipakai item request ini tetap ikut agar edit tidak memaksa ganti
+        $currentUnitIds = $requestOrder->items->pluck('requested_satuan_id')->filter()->unique()->values();
+        $units = Satuan::where(fn ($query) => $query->where('is_active', 1)->orWhereIn('id', $currentUnitIds))
+            ->orderBy('name')
+            ->get();
         $conversions = RawMaterialUnitConversions::whereIn('raw_material_id', $rawMaterials->pluck('id'))->get();
         $stockBalances = InventoryRawMaterialStockBalance::with('inventory')
             ->whereIn('raw_material_id', $rawMaterials->pluck('id'))
@@ -460,6 +464,7 @@ class RequestOrderController extends Controller
                             'id' => $unit->id,
                             'name' => $unit->name,
                             'symbol' => $unit->symbol,
+                            'is_active' => (bool) $unit->is_active,
                         ])
                         ->values()
                         ->all(),

@@ -313,7 +313,8 @@
             }
 
             function unitLabel(unit) {
-                return unit.symbol ? unit.name + ' (' + unit.symbol + ')' : unit.name;
+                const label = unit.symbol ? unit.name + ' (' + unit.symbol + ')' : unit.name;
+                return unit.is_active === false ? label + ' (Nonaktif)' : label;
             }
 
             function materialSubtitle(material) {

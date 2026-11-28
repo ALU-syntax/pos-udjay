@@ -7,6 +7,7 @@ use App\Models\InventoryType;
 use App\Models\RawMaterialRequestItems;
 use App\Models\RawMaterialRequestStatus;
 use App\Models\RawMaterialRequests;
+use App\Models\RawMaterialUnitConversions;
 use App\Models\RawMaterials;
 use App\Models\RawStorageType;
 use App\Models\Role;
@@ -183,5 +184,68 @@ class RequestOrderFormTest extends TestCase
 
         $this->post(route('warehouse/request-order/store'), $payload)->assertSessionHasNoErrors();
         $this->assertTrue(RawMaterialRequests::where('requester_inventory_id', $location->id)->exists());
+    }
+
+    public function test_create_form_offers_only_active_units(): void
+    {
+        $material = $this->material();
+        $box = $this->unit('ujbox');
+        $sack = $this->unit('ujkrg');
+        foreach ([$box, $sack] as $unit) {
+            RawMaterialUnitConversions::create(['raw_material_id' => $material->id, 'from_unit_id' => $unit->id, 'to_unit_id' => $material->base_unit_id, 'multiplier' => 10]);
+        }
+        $sack->update(['is_active' => 0]);
+
+        $options = $this->actingAs($this->admin(['create warehouse/request-order']))
+            ->get(route('warehouse/request-order/create'))
+            ->assertOk()
+            ->viewData('unitOptionsByRawMaterial')[$material->id];
+
+        $ids = array_column($options, 'id');
+        $this->assertContains($material->base_unit_id, $ids);
+        $this->assertContains($box->id, $ids);
+        $this->assertNotContains($sack->id, $ids);
+    }
+
+    public function test_edit_form_keeps_saved_inactive_unit_marked(): void
+    {
+        $material = $this->material();
+        $requestOrder = $this->draft($this->location(), $material, 2);
+        $material->baseUnit()->update(['is_active' => 0]);
+
+        $options = $this->actingAs($this->admin(['update warehouse/request-order']))
+            ->get(route('warehouse/request-order/edit', $requestOrder->id))
+            ->assertOk()
+            ->viewData('unitOptionsByRawMaterial')[$material->id];
+
+        $this->assertSame([[$material->base_unit_id, false]], array_map(fn ($unit) => [$unit['id'], $unit['is_active']], $options));
+    }
+
+    public function test_store_rejects_inactive_unit_but_update_keeps_saved_one(): void
+    {
+        $requester = $this->location();
+        $material = $this->material();
+        $material->baseUnit()->update(['is_active' => 0]);
+        $payload = [
+            'requester_inventory_id' => $requester->id,
+            'items' => [
+                ['raw_material_id' => $material->id, 'requested_qty' => '3', 'requested_satuan_id' => $material->base_unit_id],
+            ],
+        ];
+        $admin = $this->admin(['create warehouse/request-order', 'update warehouse/request-order']);
+
+        $this->actingAs($admin)
+            ->from(route('warehouse/request-order/create'))
+            ->post(route('warehouse/request-order/store'), $payload)
+            ->assertSessionHasErrors(['items.0.requested_satuan_id' => 'Satuan pada item tidak ditemukan atau sudah nonaktif.']);
+        $this->assertFalse(RawMaterialRequests::where('requester_inventory_id', $requester->id)->exists());
+
+        // Draft lama yang sudah memakai satuan itu tetap bisa diedit
+        $requestOrder = $this->draft($requester, $material, 2);
+
+        $this->actingAs($admin)
+            ->put(route('warehouse/request-order/update', $requestOrder->id), $payload)
+            ->assertSessionHasNoErrors();
+        $this->assertSame(3.0, (float) $requestOrder->items()->value('requested_qty'));
     }
 }

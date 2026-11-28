@@ -62,7 +62,7 @@ class RequestOrderRequest extends FormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.raw_material_id' => ['required', 'distinct', 'exists:raw_materials,id'],
             'items.*.requested_qty' => ['required', 'numeric', 'gt:0'],
-            'items.*.requested_satuan_id' => ['required', 'exists:satuans,id'],
+            'items.*.requested_satuan_id' => ['required', $this->activeOrCurrentUnit($requestOrder)],
             'items.*.notes' => ['nullable', 'string'],
         ];
     }
@@ -82,6 +82,16 @@ class RequestOrderRequest extends FormRequest
             'items.*.requested_qty.required' => 'Qty request pada item wajib diisi.',
             'items.*.requested_qty.gt' => 'Qty request harus lebih dari 0.',
             'items.*.requested_satuan_id.required' => 'Satuan pada item wajib dipilih.',
+            'items.*.requested_satuan_id.exists' => 'Satuan pada item tidak ditemukan atau sudah nonaktif.',
         ];
+    }
+
+    /** Satuan aktif saja, kecuali satuan yang sudah dipakai item request ini (edit tidak memaksa ganti). */
+    private function activeOrCurrentUnit($requestOrder)
+    {
+        $currentUnitIds = $requestOrder ? $requestOrder->items()->pluck('requested_satuan_id')->filter()->unique()->values()->all() : [];
+
+        return Rule::exists('satuans', 'id')->where(fn ($query) => $query->where('is_active', 1)
+            ->when($currentUnitIds, fn ($query) => $query->orWhereIn('id', $currentUnitIds)));
     }
 }
