@@ -85,7 +85,7 @@ class WarehouseMenuSeeder extends Seeder
                     'category' => $mm->category,
                 ]
             );
-            $this->attachMenuPermission($sm, null, ['admin']);
+            $this->attachMenuPermission($sm, ['create ', 'read ', 'update ', 'delete ', 'approve '], ['admin']);
 
             $sm = $mm->subMenus()->updateOrCreate(
                 ['url' => 'warehouse/procurement-plan'],

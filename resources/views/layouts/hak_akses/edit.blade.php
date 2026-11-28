@@ -11,7 +11,7 @@
         $verbLabels = [
             'create' => 'Tambah', 'read' => 'Lihat', 'update' => 'Ubah', 'delete' => 'Hapus',
             'sort' => 'Urutkan', 'print' => 'Cetak', 'download' => 'Unduh', 'retry' => 'Coba Ulang',
-            'cancel' => 'Batalkan', 'cancel-completed' => 'Batalkan Selesai', 'send' => 'Kirim', 'toggle' => 'Saklar Darurat', 'manage-whatsapp' => 'Kelola WhatsApp', 'close' => 'Tutup', 'serve' => 'Sajikan',
+            'cancel' => 'Batalkan', 'cancel-completed' => 'Batalkan Selesai', 'send' => 'Kirim', 'toggle' => 'Saklar Darurat', 'manage-whatsapp' => 'Kelola WhatsApp', 'close' => 'Tutup', 'serve' => 'Sajikan', 'approve' => 'Setujui',
         ];
         // Menu tanpa permission sama sekali tidak perlu ditampilkan
         $groups = $menus->filter(fn ($menu) => $menu->permissions->isNotEmpty()

@@ -23,11 +23,11 @@ class RequestOrderController extends Controller
      */
     public function __construct()
     {
-        // Ajukan & setujui mengubah status request: termasuk "update request order"
+        // Ajukan termasuk "update"; setujui butuh izin terpisah "approve warehouse/request-order"
         $this->abilities += [
             'detail' => 'read',
             'submit' => 'update',
-            'approve' => 'update',
+            'approve' => 'approve',
         ];
     }
 

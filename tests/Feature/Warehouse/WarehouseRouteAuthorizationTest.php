@@ -144,7 +144,7 @@ class WarehouseRouteAuthorizationTest extends TestCase
             ['delete', 'warehouse/supplier/raw-materials/destroy', [$f['supplier']->id, $f['supplierMaterial']->id], 'update warehouse/supplier'],
             ['get', 'warehouse/request-order/detail', [$f['requestOrder']->id], 'read warehouse/request-order'],
             ['post', 'warehouse/request-order/submit', [$f['requestOrder']->id], 'update warehouse/request-order'],
-            ['post', 'warehouse/request-order/approve', [$f['requestOrder']->id], 'update warehouse/request-order'],
+            ['post', 'warehouse/request-order/approve', [$f['requestOrder']->id], 'approve warehouse/request-order'],
             ['get', 'warehouse/procurement-plan/detail', [$f['plan']->id], 'read warehouse/procurement-plan'],
             ['get', 'warehouse/procurement-plan/purchase-orders', [$f['plan']->id], 'read warehouse/procurement-plan'],
         ];
@@ -204,6 +204,9 @@ class WarehouseRouteAuthorizationTest extends TestCase
             ['raw_material_id' => $f['material']->id, 'qty_available' => 7, 'qty_reserved' => 0])->assertForbidden();
         $this->assertEquals(10, (float) $f['balance']->fresh()->qty_available);
         $this->hit($reader, 'post', 'warehouse/request-order/submit', [$f['requestOrder']->id])->assertForbidden();
+        // Izin ubah request order tidak cukup untuk menyetujui
+        $updater = $this->user(['update warehouse/request-order']);
+        $this->hit($updater, 'post', 'warehouse/request-order/approve', [$f['requestOrder']->id])->assertForbidden();
         $this->hit($reader, 'delete', 'library/satuan/conversions/destroy', [$f['conversion']->id])->assertForbidden();
         $this->hit($reader, 'get', 'warehouse/inventory/detail', [$f['inventory']->id])->assertOk();
     }

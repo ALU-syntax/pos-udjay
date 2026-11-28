@@ -127,7 +127,7 @@ class RequestOrderDetailTest extends TestCase
             'requested_base_qty' => 2500.25,
         ]);
 
-        $this->actingAs($this->admin(['read warehouse/request-order', 'update warehouse/request-order']))
+        $this->actingAs($this->admin(['read warehouse/request-order', 'approve warehouse/request-order']))
             ->get(route('warehouse/request-order/detail', $submitted->id))
             ->assertOk()
             ->assertSee('Diajukan')
@@ -141,8 +141,8 @@ class RequestOrderDetailTest extends TestCase
             ->assertSee('= 2.500,25 ujg')
             ->assertDontSee('step="0.1"', false);
 
-        // Tanpa izin update: tidak ada form approval
-        $this->actingAs($this->admin(['read warehouse/request-order']))
+        // Izin update saja tidak cukup: form approval butuh izin approve
+        $this->actingAs($this->admin(['read warehouse/request-order', 'update warehouse/request-order']))
             ->get(route('warehouse/request-order/detail', $submitted->id))
             ->assertOk()
             ->assertDontSee(route('warehouse/request-order/approve', $submitted->id))
@@ -156,7 +156,7 @@ class RequestOrderDetailTest extends TestCase
         $submitted = $this->requestOrder(RawMaterialRequestStatus::SUBMITTED);
         $small = $this->item($submitted, ['requested_qty' => 0.05, 'requested_base_qty' => 0.05]);
 
-        $this->actingAs($this->admin(['update warehouse/request-order']))
+        $this->actingAs($this->admin(['approve warehouse/request-order']))
             ->post(route('warehouse/request-order/approve', $submitted->id), [
                 'items' => [$small->id => ['approved_base_qty' => '0.05']],
             ])

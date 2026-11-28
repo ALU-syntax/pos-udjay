@@ -10,7 +10,7 @@
         $isSubmitted = $statusCode === \App\Models\RawMaterialRequestStatus::SUBMITTED;
         $canUpdate = auth()->user()->can('update warehouse/request-order');
         $canDelete = auth()->user()->can('delete warehouse/request-order');
-        $canApprove = $isSubmitted && $canUpdate;
+        $canApprove = $isSubmitted && auth()->user()->can('approve warehouse/request-order');
         $isOverdue = $requestOrder->needed_at && $requestOrder->needed_at->lt(today())
             && ! in_array($statusCode, \App\Models\RawMaterialRequestStatus::CLOSED, true);
 
