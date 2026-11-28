@@ -403,12 +403,11 @@ class BahanBakuIndexTest extends TestCase
             ->assertDontSee('&amp;lt;i&amp;gt;', false)
             ->assertSee('UJ-DET-1')
             ->assertSee('Catatan detail uji')
-            // Total stok semua lokasi, dalam satuan dasar
-            ->assertSee('25.100')
-            ->assertSee('1.500,5')
-            ->assertSee('Uji Gudang Utama')
-            ->assertSee('GD-UJ')
-            ->assertSee('Lokasi nonaktif')
+            // Stok tersedia hanya lokasi aktif; lokasi nonaktif ditampilkan terpisah
+            ->assertSee('di 1 lokasi aktif · 1.500,5 dipesan')
+            ->assertSee('+ 100 ujgr di 1 lokasi nonaktif, tidak dihitung')
+            ->assertDontSee('25.100')
+            ->assertSeeInOrder(['Uji Gudang Utama', 'GD-UJ', 'Lokasi nonaktif atau dihapus', 'Uji Gudang Tutup', 'Lokasi nonaktif'])
             // Supplier: nama di-escape, alias, harga, lead time, utama, nonaktif
             ->assertSee('&lt;b&gt;Uji Supplier Utama&lt;/b&gt;', false)
             ->assertSee('Di supplier: Terigu Cakra 25kg · SKU CK-25')
@@ -438,6 +437,23 @@ class BahanBakuIndexTest extends TestCase
             ->assertOk()
             ->assertSee($item->supplier->name)
             ->assertDontSee(route('warehouse/supplier/show', $item->supplier_id));
+    }
+
+    public function test_detail_modal_with_only_inactive_or_trashed_stock_shows_zero_available(): void
+    {
+        $gram = $this->unit(['name' => 'Uji Gram ' . uniqid(), 'symbol' => 'ujgr']);
+        $material = $this->rawMaterial(['base_unit_id' => $gram->id]);
+        $this->stock($material, ['name' => 'Uji Gudang Tutup', 'is_active' => false], 40);
+        $this->stock($material, ['name' => 'Uji Gudang Hapus'], 60)->delete();
+
+        $this->actingAs($this->admin(['read library/bahan-baku']))
+            ->get(route('library/bahan-baku/detail', $material->id))
+            ->assertOk()
+            ->assertSee('Belum ada saldo di lokasi aktif')
+            ->assertSee('+ 100 ujgr di 2 lokasi nonaktif, tidak dihitung')
+            ->assertSee('Lokasi nonaktif atau dihapus')
+            ->assertSee('Lokasi dihapus')
+            ->assertDontSee('Belum ada stok');
     }
 
     public function test_detail_modal_shows_empty_states(): void

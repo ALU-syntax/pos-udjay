@@ -10,8 +10,11 @@
         $rupiah = fn ($value) => 'Rp ' . number_format((float) $value, fmod((float) $value, 1) ? 2 : 0, ',', '.');
         $baseUnit = $unitLabel($rawMaterial->baseUnit);
 
-        $totalAvailable = $stockBalances->sum(fn ($balance) => (float) $balance->qty_available);
-        $totalReserved = $stockBalances->sum(fn ($balance) => (float) $balance->qty_reserved);
+        // Hanya lokasi aktif; stok di lokasi nonaktif/dihapus ditampilkan terpisah
+        $totalAvailable = $activeStockBalances->sum(fn ($balance) => (float) $balance->qty_available);
+        $totalReserved = $activeStockBalances->sum(fn ($balance) => (float) $balance->qty_reserved);
+        $inactiveAvailable = $inactiveStockBalances->sum(fn ($balance) => (float) $balance->qty_available);
+        $stockCount = $activeStockBalances->count() + $inactiveStockBalances->count();
         $activeSuppliers = $supplierMaterials->filter(fn ($item) => $item->is_active && $item->supplier->is_active)->count();
         $preferredSuppliers = $supplierMaterials->where('is_preferred', true)->count();
         $canReadSupplier = auth()->user()->can('read warehouse/supplier');
@@ -45,7 +48,10 @@
                 <div>
                     <p class="ob-stat__label">Stok Tersedia</p>
                     <p class="ob-stat__value">{{ $qty($totalAvailable) }} <span class="bb-detail__unit">{{ $baseUnit }}</span></p>
-                    <p class="bb-detail__stat-sub">{{ $stockBalances->isEmpty() ? 'Belum ada saldo' : 'di ' . $stockBalances->count() . ' lokasi · ' . $qty($totalReserved) . ' dipesan' }}</p>
+                    <p class="bb-detail__stat-sub">{{ $activeStockBalances->isEmpty() ? 'Belum ada saldo di lokasi aktif' : 'di ' . $activeStockBalances->count() . ' lokasi aktif · ' . $qty($totalReserved) . ' dipesan' }}</p>
+                    @if ($inactiveStockBalances->isNotEmpty())
+                        <p class="bb-detail__stat-sub bb-detail__stat-sub--warn">+ {{ $qty($inactiveAvailable) }} {{ $baseUnit }} di {{ $inactiveStockBalances->count() }} lokasi nonaktif, tidak dihitung</p>
+                    @endif
                 </div>
             </div>
             <div class="ob-card ob-stat">
@@ -73,11 +79,11 @@
             <div class="ob-card bb-detail__card">
                 <div class="wh-card__head">
                     <div>
-                        <h3 class="wh-card__title"><i class="fas fa-warehouse" aria-hidden="true"></i> Stok per Lokasi <span class="wh-count">{{ $stockBalances->count() }}</span></h3>
+                        <h3 class="wh-card__title"><i class="fas fa-warehouse" aria-hidden="true"></i> Stok per Lokasi <span class="wh-count">{{ $stockCount }}</span></h3>
                         <p class="wh-card__desc">Dalam satuan dasar ({{ $baseUnit }}). Dipesan = sudah dialokasikan, belum keluar.</p>
                     </div>
                 </div>
-                @if ($stockBalances->isEmpty())
+                @if ($stockCount === 0)
                     <div class="wh-empty">
                         <span class="wh-empty__icon" aria-hidden="true"><i class="fas fa-warehouse"></i></span>
                         <p class="wh-empty__title">Belum ada stok</p>
@@ -94,29 +100,20 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($stockBalances as $balance)
-                                    @php
-                                        $inventory = $balance->inventory;
-                                        $inventoryActive = $inventory && ! $inventory->trashed() && $inventory->is_active;
-                                    @endphp
-                                    <tr class="{{ $inventoryActive ? '' : 'wh-row-inactive' }}">
-                                        <td>
-                                            <div class="wh-cell-stack">
-                                                <span class="wh-strong">{{ $inventory?->name ?? 'Lokasi #' . $balance->inventory_id }}</span>
-                                                @if (! $inventory || $inventory->trashed())
-                                                    <span class="ob-cell-meta">Lokasi dihapus</span>
-                                                @elseif (! $inventory->is_active)
-                                                    <span class="ob-cell-meta">Lokasi nonaktif</span>
-                                                @elseif ($inventory->code)
-                                                    <span class="ob-cell-meta">{{ $inventory->code }}</span>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td class="text-end wh-num wh-strong">{{ $qty($balance->qty_available) }}</td>
-                                        <td class="text-end wh-num">{{ (float) $balance->qty_reserved > 0 ? $qty($balance->qty_reserved) : '-' }}</td>
-                                    </tr>
+                                @foreach ($activeStockBalances as $balance)
+                                    @include('layouts.bahan_baku.partials.stock-row', ['balance' => $balance])
                                 @endforeach
                             </tbody>
+                            @if ($inactiveStockBalances->isNotEmpty())
+                                <tbody>
+                                    <tr class="bb-stock-group">
+                                        <th colspan="3" scope="rowgroup">Lokasi nonaktif atau dihapus · tidak dihitung di Stok Tersedia</th>
+                                    </tr>
+                                    @foreach ($inactiveStockBalances as $balance)
+                                        @include('layouts.bahan_baku.partials.stock-row', ['balance' => $balance])
+                                    @endforeach
+                                </tbody>
+                            @endif
                         </table>
                     </div>
                 @endif
@@ -272,6 +269,8 @@
         .bb-detail__stats .ob-stat { margin-bottom: 0; }
         .bb-detail__unit { font-size: .8rem; font-weight: 600; color: var(--ob-muted); }
         .bb-detail__stat-sub { margin: .1rem 0 0; font-size: .76rem; color: var(--ob-muted); }
+        .bb-detail__stat-sub--warn { color: #b45309; }
+        .bb-stock-group th { padding: .55rem 1.25rem; background: var(--ob-surface-2); border-top: 1px solid var(--ob-border); border-bottom: 1px solid var(--ob-border); font-size: .72rem; font-weight: 600; color: var(--ob-muted); }
 
         .bb-detail__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
         .bb-detail-modal .bb-detail__card { margin-bottom: 1rem; overflow: hidden; }

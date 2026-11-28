@@ -61,7 +61,11 @@ class BahanBakuController extends Controller
 
         // Stok terbanyak di atas; supplier utama lalu yang aktif di atas.
         // Bahan di supplier yang sudah dihapus tidak ditampilkan.
-        $stockBalances = $rawMaterial->stockBalances->sortByDesc(fn ($balance) => (float) $balance->qty_available)->values();
+        // Stok di lokasi nonaktif/dihapus dipisah: tidak dihitung sebagai stok tersedia.
+        [$activeStockBalances, $inactiveStockBalances] = $rawMaterial->stockBalances
+            ->sortByDesc(fn ($balance) => (float) $balance->qty_available)
+            ->partition(fn ($balance) => $balance->inventory && ! $balance->inventory->trashed() && $balance->inventory->is_active)
+            ->map->values();
         $supplierMaterials = $rawMaterial->supplierMaterials
             ->filter(fn ($item) => $item->supplier)
             ->sortBy([
@@ -72,7 +76,7 @@ class BahanBakuController extends Controller
             ->values();
         $unitConversions = $rawMaterial->unitConversions->sortBy(fn ($conversion) => $conversion->fromUnit?->name)->values();
 
-        return view('layouts.bahan_baku.detail-modal', compact('rawMaterial', 'stockBalances', 'supplierMaterials', 'unitConversions'));
+        return view('layouts.bahan_baku.detail-modal', compact('rawMaterial', 'activeStockBalances', 'inactiveStockBalances', 'supplierMaterials', 'unitConversions'));
     }
 
     public function edit(RawMaterials $rawMaterial)
