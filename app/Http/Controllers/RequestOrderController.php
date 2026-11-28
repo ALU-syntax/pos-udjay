@@ -23,11 +23,13 @@ class RequestOrderController extends Controller
      */
     public function __construct()
     {
-        // Ajukan termasuk "update"; setujui butuh izin terpisah "approve warehouse/request-order"
+        // Ajukan & batalkan termasuk "update"; setujui & tolak butuh izin terpisah "approve warehouse/request-order"
         $this->abilities += [
             'detail' => 'read',
             'submit' => 'update',
+            'cancel' => 'update',
             'approve' => 'approve',
+            'reject' => 'approve',
         ];
     }
 
@@ -238,6 +240,52 @@ class RequestOrderController extends Controller
         return redirect()
             ->route('warehouse/request-order/detail', $requestOrder->id)
             ->with('success', 'Request order berhasil disetujui.');
+    }
+
+    public function reject(Request $request, RawMaterialRequests $requestOrder)
+    {
+        $this->ensureSubmitted($requestOrder, 'ditolak');
+
+        return $this->close($request, $requestOrder, RawMaterialRequestStatus::REJECTED, 'Request order berhasil ditolak');
+    }
+
+    public function cancel(Request $request, RawMaterialRequests $requestOrder)
+    {
+        $requestOrder->loadMissing('status');
+
+        if (!in_array($requestOrder->status?->code, [RawMaterialRequestStatus::DRAFT, RawMaterialRequestStatus::SUBMITTED], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'Request order hanya bisa dibatalkan saat berstatus draft atau diajukan.',
+            ]);
+        }
+
+        return $this->close($request, $requestOrder, RawMaterialRequestStatus::CANCELLED, 'Request order berhasil dibatalkan');
+    }
+
+    /** Tolak & batalkan sama-sama menutup request dengan alasan wajib. */
+    private function close(Request $request, RawMaterialRequests $requestOrder, string $statusCode, string $message)
+    {
+        $validated = $request->validate([
+            'closed_remarks' => ['required', 'string', 'max:1000'],
+        ], [
+            'closed_remarks.required' => 'Alasan wajib diisi.',
+            'closed_remarks.max' => 'Alasan maksimal 1000 karakter.',
+        ]);
+
+        $requestOrder->update([
+            'status_id' => $this->statusId($statusCode),
+            'closed_by' => auth()->id(),
+            'closed_at' => now(),
+            'closed_remarks' => trim($validated['closed_remarks']),
+        ]);
+
+        if ($request->expectsJson()) {
+            return responseSuccess(false, $message, $this->stats());
+        }
+
+        return redirect()
+            ->route('warehouse/request-order/detail', $requestOrder->id)
+            ->with('success', $message . '.');
     }
 
     private function formData(RawMaterialRequests $requestOrder, string $action, string $title): array
@@ -467,13 +515,13 @@ class RequestOrderController extends Controller
         }
     }
 
-    private function ensureSubmitted(RawMaterialRequests $requestOrder): void
+    private function ensureSubmitted(RawMaterialRequests $requestOrder, string $action = 'disetujui'): void
     {
         $requestOrder->loadMissing('status');
 
         if ($requestOrder->status?->code !== 'submitted') {
             throw ValidationException::withMessages([
-                'status' => 'Request order hanya bisa disetujui saat berstatus submitted.',
+                'status' => "Request order hanya bisa {$action} saat berstatus diajukan.",
             ]);
         }
     }

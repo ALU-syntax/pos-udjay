@@ -15,6 +15,7 @@ class RawMaterialRequests extends Model
     protected $casts = [
         'needed_at' => 'date',
         'approved_at' => 'datetime',
+        'closed_at' => 'datetime',
     ];
 
     public function requesterInventory()
@@ -45,5 +46,11 @@ class RawMaterialRequests extends Model
     public function approvedBy()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /** Yang menolak atau membatalkan; jenisnya dibaca dari status. */
+    public function closedBy()
+    {
+        return $this->belongsTo(User::class, 'closed_by');
     }
 }

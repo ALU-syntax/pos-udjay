@@ -688,6 +688,8 @@ Route::middleware('auth')->group(function () {
             Route::delete('/destroy/{requestOrder}', [RequestOrderController::class, 'destroy'])->name('request-order/destroy');
             Route::post('/submit/{requestOrder}', [RequestOrderController::class, 'submit'])->name('request-order/submit');
             Route::post('/approve/{requestOrder}', [RequestOrderController::class, 'approve'])->name('request-order/approve');
+            Route::post('/reject/{requestOrder}', [RequestOrderController::class, 'reject'])->name('request-order/reject');
+            Route::post('/cancel/{requestOrder}', [RequestOrderController::class, 'cancel'])->name('request-order/cancel');
         });
 
         Route::prefix('procurement-plan')->group(function () {

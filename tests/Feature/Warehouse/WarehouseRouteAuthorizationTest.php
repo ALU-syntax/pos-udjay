@@ -145,6 +145,8 @@ class WarehouseRouteAuthorizationTest extends TestCase
             ['get', 'warehouse/request-order/detail', [$f['requestOrder']->id], 'read warehouse/request-order'],
             ['post', 'warehouse/request-order/submit', [$f['requestOrder']->id], 'update warehouse/request-order'],
             ['post', 'warehouse/request-order/approve', [$f['requestOrder']->id], 'approve warehouse/request-order'],
+            ['post', 'warehouse/request-order/reject', [$f['requestOrder']->id], 'approve warehouse/request-order'],
+            ['post', 'warehouse/request-order/cancel', [$f['requestOrder']->id], 'update warehouse/request-order'],
             ['get', 'warehouse/procurement-plan/detail', [$f['plan']->id], 'read warehouse/procurement-plan'],
             ['get', 'warehouse/procurement-plan/purchase-orders', [$f['plan']->id], 'read warehouse/procurement-plan'],
         ];
@@ -207,6 +209,7 @@ class WarehouseRouteAuthorizationTest extends TestCase
         // Izin ubah request order tidak cukup untuk menyetujui
         $updater = $this->user(['update warehouse/request-order']);
         $this->hit($updater, 'post', 'warehouse/request-order/approve', [$f['requestOrder']->id])->assertForbidden();
+        $this->hit($updater, 'post', 'warehouse/request-order/reject', [$f['requestOrder']->id], ['closed_remarks' => 'Uji'])->assertForbidden();
         $this->hit($reader, 'delete', 'library/satuan/conversions/destroy', [$f['conversion']->id])->assertForbidden();
         $this->hit($reader, 'get', 'warehouse/inventory/detail', [$f['inventory']->id])->assertOk();
     }

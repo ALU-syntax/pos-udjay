@@ -202,4 +202,78 @@ class RequestOrderDetailTest extends TestCase
             ->assertSee('Belum ada item')
             ->assertDontSee('id="request-order-items-detail-table"', false);
     }
+
+    public function test_reject_needs_remarks_and_records_who_and_why(): void
+    {
+        $submitted = $this->requestOrder(RawMaterialRequestStatus::SUBMITTED);
+        $approver = $this->admin(['approve warehouse/request-order']);
+
+        $this->actingAs($approver)
+            ->postJson(route('warehouse/request-order/reject', $submitted->id), ['closed_remarks' => '   '])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['closed_remarks' => 'Alasan wajib diisi.']);
+        $this->assertSame(RawMaterialRequestStatus::SUBMITTED, $submitted->fresh()->status->code);
+
+        $this->actingAs($approver)
+            ->postJson(route('warehouse/request-order/reject', $submitted->id), ['closed_remarks' => ' Stok gudang pusat kosong '])
+            ->assertOk();
+
+        $submitted->refresh();
+        $this->assertSame(RawMaterialRequestStatus::REJECTED, $submitted->status->code);
+        $this->assertSame($approver->id, $submitted->closed_by);
+        $this->assertNotNull($submitted->closed_at);
+        $this->assertSame('Stok gudang pusat kosong', $submitted->closed_remarks);
+    }
+
+    /** Izin route (approve vs update) diuji di WarehouseRouteAuthorizationTest: DB testing tidak punya menu warehouse. */
+    public function test_reject_only_for_submitted(): void
+    {
+        $draft = $this->requestOrder(RawMaterialRequestStatus::DRAFT);
+
+        $this->actingAs($this->admin(['approve warehouse/request-order']))
+            ->postJson(route('warehouse/request-order/reject', $draft->id), ['closed_remarks' => 'Uji'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['status' => 'Request order hanya bisa ditolak saat berstatus diajukan.']);
+
+        $this->assertSame(RawMaterialRequestStatus::DRAFT, $draft->fresh()->status->code);
+    }
+
+    public function test_cancel_draft_or_submitted_with_remarks(): void
+    {
+        $updater = $this->admin(['update warehouse/request-order']);
+
+        foreach ([RawMaterialRequestStatus::DRAFT, RawMaterialRequestStatus::SUBMITTED] as $status) {
+            $requestOrder = $this->requestOrder($status);
+
+            $this->actingAs($updater)
+                ->postJson(route('warehouse/request-order/cancel', $requestOrder->id), [])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors('closed_remarks');
+
+            $this->actingAs($updater)
+                ->postJson(route('warehouse/request-order/cancel', $requestOrder->id), ['closed_remarks' => 'Salah pilih lokasi'])
+                ->assertOk();
+
+            $requestOrder->refresh();
+            $this->assertSame(RawMaterialRequestStatus::CANCELLED, $requestOrder->status->code);
+            $this->assertSame($updater->id, $requestOrder->closed_by);
+            $this->assertSame('Salah pilih lokasi', $requestOrder->closed_remarks);
+        }
+    }
+
+    public function test_cancel_rejected_for_closed_or_approved_request(): void
+    {
+        $updater = $this->admin(['update warehouse/request-order']);
+
+        foreach ([RawMaterialRequestStatus::APPROVED, RawMaterialRequestStatus::REJECTED, RawMaterialRequestStatus::CANCELLED] as $status) {
+            $requestOrder = $this->requestOrder($status);
+
+            $this->actingAs($updater)
+                ->postJson(route('warehouse/request-order/cancel', $requestOrder->id), ['closed_remarks' => 'Uji'])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors(['status' => 'Request order hanya bisa dibatalkan saat berstatus draft atau diajukan.']);
+
+            $this->assertSame($status, $requestOrder->fresh()->status->code);
+        }
+    }
 }
